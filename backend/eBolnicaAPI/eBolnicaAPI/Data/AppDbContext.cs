@@ -1,0 +1,15 @@
+﻿using eBolnicaAPI.Models.Entities;
+using Microsoft.EntityFrameworkCore;
+namespace eBolnicaAPI.Data
+{
+    public class AppDbContext : DbContext
+    {
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+        {
+        }
+    public DbSet<Doctor> Doctors { get; set; }
+
+    public DbSet<Patient> Patients { get; set; }
+}
+}
+
