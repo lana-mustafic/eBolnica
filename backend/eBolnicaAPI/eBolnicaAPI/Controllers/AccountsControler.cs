@@ -1,4 +1,5 @@
-﻿using eBolnicaAPI.Models.DTOs;
+﻿using eBolnicaAPI.Data;
+using eBolnicaAPI.Models.DTOs;
 using eBolnicaAPI.Models.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -11,36 +12,49 @@ namespace eBolnicaAPI.Controllers
     public class AccountsController : ControllerBase
     {
         private readonly UserManager<AppUser> _userManager;
+        private readonly AppDbContext _dbcontext;
 
-        public AccountsController(UserManager<AppUser> userManager)
+        public AccountsController(AppDbContext dbcontext,UserManager<AppUser> userManager)
         {
+            _dbcontext = dbcontext;
             _userManager = userManager;
         }
 
-        [HttpPost("Registration")]
-        public async Task<IActionResult> RegisterUser([FromBody] UserRegistrationDto userForRegistration)
+        [HttpPost("patient-registration")]
+        public async Task<IActionResult> RegisterPatient([FromBody] UserRegistrationDto userForRegistration)
         {
             if (userForRegistration == null || !ModelState.IsValid)
-                return BadRequest();
+                return BadRequest(ModelState);
 
- 
+
             var user = new AppUser
             {
                 Email = userForRegistration.Email,
                 UserName = userForRegistration.Email,
                 FirstName = userForRegistration.FirstName,
                 LastName = userForRegistration.LastName,
+                UserType = "Patient"
             };
 
             var result = await _userManager.CreateAsync(user, userForRegistration.Password);
 
             if (!result.Succeeded)
             {
-                var errors = result.Errors.Select(e => e.Description);
-                return BadRequest(new RegistrationResponseDto { Errors = errors });
+                return BadRequest(result.Errors);
             }
 
-            return StatusCode(201, new { Message = "User created successfully" });
+            var patient = new Patient
+            {
+                AppUserId = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+            };
+
+            _dbcontext.Patients.Add(patient);
+            await _dbcontext.SaveChangesAsync();
+
+            return Ok(new { message = "Patient registered successfully" });
+
         }
     }
 }

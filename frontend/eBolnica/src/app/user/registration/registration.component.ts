@@ -1,26 +1,60 @@
+import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
-import { Form, FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { AbstractControl, Form, FormBuilder, FormGroup, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
+import { AuthService } from '../../shared/services/auth.service';
+
 
 @Component({
   selector: 'app-registration',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule,CommonModule],
   templateUrl: './registration.component.html',
   styleUrl: './registration.component.css'
 })
 export class RegistrationComponent {
   form: FormGroup;
+  isSubmitted:boolean = false;
+  errorMessage:string | null = null;
+  submitSuccess:string | null = null;
 
-  constructor(private formBuilder: FormBuilder) {
-    this.form = this.formBuilder.group({
-      fullName: [''],
-      email: [''],
-      password: [''],
-      confirmPassword: ['']
-    });
+  passwordMatchValidator:ValidatorFn = (control:AbstractControl):null =>{
+    const password = control.get('password')
+    const confirmPassword = control.get('confirmPassword')
+
+    if(password && confirmPassword && password.value!=confirmPassword.value)
+      confirmPassword?.setErrors({passwordMismatch:true})
+      else
+      confirmPassword?.setErrors(null);
+
+    return null;
   }
 
-  onSubmit(){
-  console.log(this.form.value);
-}
-}
+  constructor(private formBuilder: FormBuilder, private authService:AuthService) {
+    this.form = this.formBuilder.group({
+      firstName: ['', Validators.required],
+      lastName: ['', Validators.required],
+      email: ['', [Validators.required,Validators.email]],
+      password: ['', [Validators.required,
+                      Validators.minLength(6),
+                      Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).+$/)]],
+      confirmPassword: ['']
+    }, {validators:this.passwordMatchValidator});
+  }
 
+
+  onSubmit(){
+  this.submitSuccess = null;
+  if (this.form.valid) {
+      this.errorMessage = null;
+      this.authService.createUser(this.form.value).subscribe({
+        next: (response) => {
+          console.log('Success:', response);
+          this.submitSuccess= "Registration successful";
+          this.form.reset();
+        },
+        error: (err) => {
+          console.error('Error:', err);
+        }
+      });
+}
+}
+}

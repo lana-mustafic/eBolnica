@@ -1,8 +1,8 @@
 [
   {
     "ContainingType": "eBolnicaAPI.Controllers.AccountsController",
-    "Method": "RegisterUser",
-    "RelativePath": "api/accounts/Registration",
+    "Method": "RegisterPatient",
+    "RelativePath": "api/accounts/patient-registration",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,

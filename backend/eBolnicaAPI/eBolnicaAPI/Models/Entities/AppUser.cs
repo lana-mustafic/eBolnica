@@ -6,7 +6,7 @@ namespace eBolnicaAPI.Models.Entities
     {
         public string FirstName { get; set; }
         public string LastName { get; set; }
-        public Doctor DoctorProfile { get; set; }
-        public Patient PatientProfile { get; set; }
+
+        public string UserType { get; set; }
     }
 }

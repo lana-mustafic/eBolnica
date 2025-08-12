@@ -15,9 +15,8 @@ namespace eBolnicaAPI.Models.Entities
         public string LastName { get; set; }
 
         [Required]
-        public string UserId { get; set; }
-
-        public AppUser User { get; set; }
+        public string AppUserId { get; set; }
+        public AppUser AppUser { get; set; }
 
         public string PhoneNumber { get; set; }
 

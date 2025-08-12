@@ -12,6 +12,8 @@ namespace eBolnicaAPI.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Patient>().HasOne(p => p.AppUser).WithOne().HasForeignKey<Patient>(p => p.AppUserId);
         }
 
     public DbSet<Doctor> Doctors { get; set; }

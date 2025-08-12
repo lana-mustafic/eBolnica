@@ -5,7 +5,7 @@
     "version": "1.0"
   },
   "paths": {
-    "/api/accounts/Registration": {
+    "/api/accounts/patient-registration": {
       "post": {
         "tags": [
           "Accounts"
@@ -683,30 +683,34 @@
       },
       "UserRegistrationDto": {
         "required": [
+          "confirmPassword",
           "email",
+          "firstName",
+          "lastName",
           "password"
         ],
         "type": "object",
         "properties": {
           "firstName": {
-            "type": "string",
-            "nullable": true
+            "minLength": 1,
+            "type": "string"
           },
           "lastName": {
-            "type": "string",
-            "nullable": true
+            "minLength": 1,
+            "type": "string"
           },
           "email": {
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "format": "email"
           },
           "password": {
-            "minLength": 1,
+            "minLength": 6,
             "type": "string"
           },
           "confirmPassword": {
-            "type": "string",
-            "nullable": true
+            "minLength": 1,
+            "type": "string"
           }
         },
         "additionalProperties": false

@@ -1,18 +1,50 @@
     <div class="mb-4 h2 text-success text-center">Sign up</div>
 <form [formGroup]="form" (ngSubmit)="onSubmit()">
     <div class="mb-3">
-        <input class="form-control bg-body-secondary" placeholder="Full Name" formControlName="fullName">
+        <input class="form-control bg-body-secondary" placeholder="First Name" formControlName="firstName">
+        <div class="error-feedback" *ngIf="form.controls['firstName'].hasError('required')">
+            Please enter your first name
+        </div>
+    </div>
+    <div class="mb-3">
+        <input class="form-control bg-body-secondary" placeholder="Last Name" formControlName="lastName">
+        <div class="error-feedback" *ngIf="form.controls['lastName'].hasError('required')">
+            Please enter your last name
+        </div>
     </div>
      <div class="mb-3">
         <input class="form-control bg-body-secondary" placeholder="Email" formControlName="email">
+        <div class="error-feedback" *ngIf="form.controls['email'].hasError('required')">
+            Please enter your Email
+        </div>
     </div>
      <div class="mb-3">
         <input class="form-control bg-body-secondary" placeholder="Password" formControlName="password">
+        <div class="error-feedback" *ngIf="form.get('password')?.touched">
+            <div *ngIf="form.get('password')?.hasError('required')">Password is required.</div>
+            <div *ngIf="form.get('password')?.hasError('minlength')">Password must be at least 6 characters.</div>
+            <div *ngIf="form.get('password')?.hasError('pattern')">
+                Password must contain at least:
+                <ul>
+                <li>1 uppercase letter</li>
+                <li>1 lowercase letter</li>
+                <li>1 number</li>
+                <li>1 special character</li>
+                </ul>
+            </div>
+        </div>
     </div>
      <div class="mb-3">
         <input class="form-control bg-body-secondary" placeholder="Confirm password" formControlName="confirmPassword">
+        <div class="error-feedback" *ngIf="form.get('confirmPassword')?.hasError('passwordMismatch') && form.get('confirmPassword')?.touched">
+            Passwords do not match.
+        </div>
+
     </div>
      <div class="mb-3">
-        <button type="submit" class="btn btn-success w-100 rounded-3">Register</button>
+        <button type="submit" [disabled]="form.invalid" class="btn btn-success w-100 rounded-3">Register</button>
     </div>
+    <div *ngIf="submitSuccess">
+    {{ submitSuccess }}
+  </div>
 </form>
