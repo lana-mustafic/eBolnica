@@ -8,5 +8,7 @@ namespace eBolnicaAPI.Models.Entities
         public string LastName { get; set; }
 
         public string UserType { get; set; }
+
+        public string? LicenseNumber { get; set; }
     }
 }

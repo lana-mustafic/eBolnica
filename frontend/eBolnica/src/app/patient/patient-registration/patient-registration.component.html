@@ -1,4 +1,5 @@
-    <div class="mb-4 h2 text-success text-center">Sign up</div>
+<div class="page-container">
+    <div class="mb-4 h2 text-success text-center">Patient Registration</div>
 <form [formGroup]="form" (ngSubmit)="onSubmit()">
     <div class="mb-3">
         <input class="form-control bg-body-secondary" placeholder="First Name" formControlName="firstName">
@@ -18,8 +19,13 @@
             Please enter your Email
         </div>
     </div>
-     <div class="mb-3">
-        <input class="form-control bg-body-secondary" placeholder="Password" formControlName="password">
+     <div class="mb-3" position-relative>
+        <input class="form-control bg-body-secondary" [type]="hidePassword ? 'password' : 'text'" placeholder="Password" formControlName="password">
+        <i class="bi"
+            [ngClass]="hidePassword ? 'bi-eye' : 'bi-eye-slash'"
+            style="cursor: pointer; left:5%; position: relative;"
+            (click)="togglePasswordVisibility()">
+        </i>
         <div class="error-feedback" *ngIf="form.get('password')?.touched">
             <div *ngIf="form.get('password')?.hasError('required')">Password is required.</div>
             <div *ngIf="form.get('password')?.hasError('minlength')">Password must be at least 6 characters.</div>
@@ -35,16 +41,17 @@
         </div>
     </div>
      <div class="mb-3">
-        <input class="form-control bg-body-secondary" placeholder="Confirm password" formControlName="confirmPassword">
+        <input class="form-control bg-body-secondary" type="password"  placeholder="Confirm password" formControlName="confirmPassword">
         <div class="error-feedback" *ngIf="form.get('confirmPassword')?.hasError('passwordMismatch') && form.get('confirmPassword')?.touched">
             Passwords do not match.
         </div>
 
     </div>
      <div class="mb-3">
-        <button type="submit" [disabled]="form.invalid" class="btn btn-success w-100 rounded-3">Register</button>
+        <button type="submit" [disabled]="form.invalid" class="btn btn-success rounded-3">Register</button>
     </div>
     <div *ngIf="submitSuccess">
     {{ submitSuccess }}
   </div>
 </form>
+</div>

@@ -10,7 +10,10 @@ export class AuthService {
 
   baseUrl = 'http://localhost:5004'
 
-  createUser(formData:any){
+  createPatient(formData:any){
     return this.http.post(this.baseUrl+'/api/accounts/patient-registration',formData);
+  }
+  createDoctor(formData:any){
+    return this.http.post(this.baseUrl+'/api/accounts/doctor-registration',formData);
   }
 }

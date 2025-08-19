@@ -4,6 +4,7 @@ using eBolnicaAPI.Models.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace eBolnicaAPI.Controllers
 {
@@ -21,22 +22,22 @@ namespace eBolnicaAPI.Controllers
         }
 
         [HttpPost("patient-registration")]
-        public async Task<IActionResult> RegisterPatient([FromBody] UserRegistrationDto userForRegistration)
+        public async Task<IActionResult> RegisterPatient([FromBody] PatientRegistrationDto patientForRegistration)
         {
-            if (userForRegistration == null || !ModelState.IsValid)
+            if (patientForRegistration == null || !ModelState.IsValid)
                 return BadRequest(ModelState);
 
 
             var user = new AppUser
             {
-                Email = userForRegistration.Email,
-                UserName = userForRegistration.Email,
-                FirstName = userForRegistration.FirstName,
-                LastName = userForRegistration.LastName,
+                Email = patientForRegistration.Email,
+                UserName = patientForRegistration.Email,
+                FirstName = patientForRegistration.FirstName,
+                LastName = patientForRegistration.LastName,
                 UserType = "Patient"
             };
 
-            var result = await _userManager.CreateAsync(user, userForRegistration.Password);
+            var result = await _userManager.CreateAsync(user, patientForRegistration.Password);
 
             if (!result.Succeeded)
             {
@@ -54,6 +55,56 @@ namespace eBolnicaAPI.Controllers
             await _dbcontext.SaveChangesAsync();
 
             return Ok(new { message = "Patient registered successfully" });
+
+        }
+
+        [HttpPost("doctor-registration")]
+        public async Task<IActionResult> RegisterDoctor([FromBody] DoctorRegistrationDto doctorForRegistration)
+        {
+            if (doctorForRegistration == null || !ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            bool licenseExist =await _dbcontext.Doctors.AnyAsync(d=>d.LicenseNumber==doctorForRegistration.LicenseNumber);
+
+            if (licenseExist)
+            {
+                var error = new IdentityError
+                {
+                    Code = "LicenseNumberExists",
+                    Description="License Number is already in use."
+                };
+
+                return BadRequest(error);
+            }
+            var user = new AppUser
+            {
+                Email = doctorForRegistration.Email,
+                UserName = doctorForRegistration.Email,
+                FirstName = doctorForRegistration.FirstName,
+                LastName = doctorForRegistration.LastName,
+                LicenseNumber = doctorForRegistration.LicenseNumber,
+                UserType = "Doctor"
+            };
+
+            var result = await _userManager.CreateAsync(user, doctorForRegistration.Password);
+
+            if (!result.Succeeded)
+            {
+                return BadRequest(result.Errors);
+            }
+
+            var doctor = new Doctor
+            {
+                AppUserId = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                LicenseNumber= user.LicenseNumber,
+            };
+
+            _dbcontext.Doctors.Add(doctor);
+            await _dbcontext.SaveChangesAsync();
+
+            return Ok(new { message = "Doctor registered successfully" });
 
         }
     }

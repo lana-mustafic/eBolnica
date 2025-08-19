@@ -1,6 +1,22 @@
 [
   {
     "ContainingType": "eBolnicaAPI.Controllers.AccountsController",
+    "Method": "RegisterDoctor",
+    "RelativePath": "api/accounts/doctor-registration",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "doctorForRegistration",
+        "Type": "eBolnicaAPI.Models.DTOs.DoctorRegistrationDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "eBolnicaAPI.Controllers.AccountsController",
     "Method": "RegisterPatient",
     "RelativePath": "api/accounts/patient-registration",
     "HttpMethod": "POST",
@@ -8,8 +24,8 @@
     "Order": 0,
     "Parameters": [
       {
-        "Name": "userForRegistration",
-        "Type": "eBolnicaAPI.Models.DTOs.UserRegistrationDto",
+        "Name": "patientForRegistration",
+        "Type": "eBolnicaAPI.Models.DTOs.PatientRegistrationDto",
         "IsRequired": true
       }
     ],

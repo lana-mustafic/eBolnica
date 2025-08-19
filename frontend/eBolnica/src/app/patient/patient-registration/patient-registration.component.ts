@@ -5,10 +5,11 @@ import { AuthService } from '../../shared/services/auth.service';
 
 
 @Component({
-  selector: 'app-registration',
+  selector: 'patient-registration',
+  standalone: true,
   imports: [ReactiveFormsModule,CommonModule],
-  templateUrl: './registration.component.html',
-  styleUrl: './registration.component.css'
+  templateUrl: './patient-registration.component.html',
+  styleUrl: './patient-registration.component.css'
 })
 export class RegistrationComponent {
   form: FormGroup;
@@ -27,6 +28,7 @@ export class RegistrationComponent {
 
     return null;
   }
+  
 
   constructor(private formBuilder: FormBuilder, private authService:AuthService) {
     this.form = this.formBuilder.group({
@@ -40,12 +42,17 @@ export class RegistrationComponent {
     }, {validators:this.passwordMatchValidator});
   }
 
+  hidePassword: boolean = true;
+  
+  togglePasswordVisibility() {
+  this.hidePassword = !this.hidePassword;
+}
 
   onSubmit(){
   this.submitSuccess = null;
   if (this.form.valid) {
       this.errorMessage = null;
-      this.authService.createUser(this.form.value).subscribe({
+      this.authService.createPatient(this.form.value).subscribe({
         next: (response) => {
           console.log('Success:', response);
           this.submitSuccess= "Registration successful";
