@@ -99,8 +99,10 @@ namespace eBolnicaAPI.Controllers
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 LicenseNumber= user.LicenseNumber,
+                RegistrationStatus="Pending"
             };
 
+            
             _dbcontext.Doctors.Add(doctor);
             await _dbcontext.SaveChangesAsync();
 

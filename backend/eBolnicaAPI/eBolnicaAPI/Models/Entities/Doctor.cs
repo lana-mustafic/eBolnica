@@ -18,6 +18,7 @@ namespace eBolnicaAPI.Models.Entities
         public string AppUserId { get; set; }
         public AppUser AppUser { get; set; }
 
+        public string RegistrationStatus { get; set; }
         public string? PhoneNumber { get; set; }
 
         public string? Specialization { get; set; }
