@@ -1,6 +1,7 @@
 ﻿using eBolnicaAPI.Data;
 using eBolnicaAPI.Models.DTOs;
 using eBolnicaAPI.Models.Entities;
+using eBolnicaAPI.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,11 +15,13 @@ namespace eBolnicaAPI.Controllers
     {
         private readonly UserManager<AppUser> _userManager;
         private readonly AppDbContext _dbcontext;
+        private readonly IJwtService _jwtService;
 
-        public AccountsController(AppDbContext dbcontext,UserManager<AppUser> userManager)
+        public AccountsController(AppDbContext dbcontext,UserManager<AppUser> userManager, IJwtService jwtService)
         {
             _dbcontext = dbcontext;
             _userManager = userManager;
+            _jwtService = jwtService;
         }
 
         [HttpPost("patient-registration")]
@@ -109,5 +112,20 @@ namespace eBolnicaAPI.Controllers
             return Ok(new { message = "Doctor registered successfully" });
 
         }
+
+        [HttpPost("user-login")]
+        public async Task<IActionResult> UserLogin([FromBody] UserLoginDto login)
+        {
+            var user = await _userManager.FindByEmailAsync(login.Email);
+            if (user == null || !await _userManager.CheckPasswordAsync(user, login.Password))
+            {
+                return Unauthorized("Invalid login attempt");
+            }
+
+            var token = _jwtService.GenerateToken(user);
+
+            return Ok(new {Token = token});
+        }
+
     }
 }
