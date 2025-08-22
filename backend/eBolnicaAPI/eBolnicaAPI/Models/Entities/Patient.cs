@@ -30,5 +30,8 @@ namespace eBolnicaAPI.Models.Entities
         public string Allergies { get; set; } = string.Empty;
 
         public bool IsAdmitted { get; set; } = false;
+
+        // Navigation property: One Patient can have many Appointments
+        public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
     }
 }

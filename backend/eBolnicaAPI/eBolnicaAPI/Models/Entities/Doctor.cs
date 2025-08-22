@@ -27,5 +27,9 @@ namespace eBolnicaAPI.Models.Entities
         public int YearsOfExperience { get; set; }
 
         public bool IsActive { get; set; } = true;
+
+        // Navigation property: One Doctor can have many Appointments
+        public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
+
     }
 }

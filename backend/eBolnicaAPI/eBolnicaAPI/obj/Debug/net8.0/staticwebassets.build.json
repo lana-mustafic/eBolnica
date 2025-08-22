@@ -1,11 +1,12 @@
 {
   "Version": 1,
-  "Hash": "4yLD/tGSkiRAQYt+Jn3MaX9MOb1Ez/33Zmh2RNaxY/4=",
+  "Hash": "6CO2Fhny/Db9sKoIiXn2Z3U187U/XxxW2/7z8IqllXQ=",
   "Source": "eBolnicaAPI",
   "BasePath": "_content/eBolnicaAPI",
   "Mode": "Default",
   "ManifestType": "Build",
   "ReferencedProjectsConfiguration": [],
   "DiscoveryPatterns": [],
-  "Assets": []
+  "Assets": [],
+  "Endpoints": []
 }
