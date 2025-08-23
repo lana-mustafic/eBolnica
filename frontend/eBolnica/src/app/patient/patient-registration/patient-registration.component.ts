@@ -32,8 +32,8 @@ export class RegistrationComponent {
 
   constructor(private formBuilder: FormBuilder, private authService:AuthService) {
     this.form = this.formBuilder.group({
-      firstName: ['', Validators.required],
-      lastName: ['', Validators.required],
+      firstName: ['', [Validators.required, Validators.pattern(/^[A-Z][a-zA-Z]*$/), Validators.minLength(3)]],
+      lastName: ['', [Validators.required, Validators.pattern(/^[A-Z][a-zA-Z]*$/), Validators.minLength(3)]],
       email: ['', [Validators.required,Validators.email]],
       password: ['', [Validators.required,
                       Validators.minLength(6),
@@ -59,7 +59,10 @@ export class RegistrationComponent {
           this.form.reset();
         },
         error: (err) => {
-          console.error('Error:', err);
+          console.error('Registration failed:', err);
+          if(err.status===400){
+            this.errorMessage='E-mail already in use';
+          }
         }
       });
 }

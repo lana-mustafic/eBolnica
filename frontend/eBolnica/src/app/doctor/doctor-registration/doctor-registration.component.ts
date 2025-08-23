@@ -29,8 +29,8 @@ export class DoctorRegistrationComponent {
 
   constructor(private formBuilder:FormBuilder, private authService:AuthService){
     this.form = this.formBuilder.group({
-      firstName:['', Validators.required],
-      lastName:['', Validators.required],
+      firstName: ['', [Validators.required, Validators.pattern(/^[A-Z][a-zA-Z]*$/), Validators.minLength(3)]],
+      lastName: ['', [Validators.required, Validators.pattern(/^[A-Z][a-zA-Z]*$/), Validators.minLength(3)]],
       licenseNumber:['', Validators.required],
       email:['', [Validators.required, Validators.email]],
       password:['', [Validators.required,
@@ -53,11 +53,14 @@ export class DoctorRegistrationComponent {
       this.authService.createDoctor(this.form.value).subscribe({
         next:(response)=>{
           console.log('Success', response);
-          this.submitSuccess="Registration successful";
+          this.submitSuccess="Registration successful (Approval pending)";
           this.form.reset();
         },
         error:(err)=>{
           console.error('Error', err);
+          if(err.status===400){
+            this.errorMessage='E-mail already in use';
+          }
         }
       });
     }

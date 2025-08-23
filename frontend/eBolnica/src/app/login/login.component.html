@@ -2,14 +2,17 @@
     <div class="mb-4 h2 text-success text-center">User Login</div>
 <form>
     <div class="mb-3">
-        <input class="form-control bg-body-secondary" placeholder="Email">
+        <input  type="email" name="email"  class="form-control bg-body-secondary" placeholder="Email" [(ngModel)]="loginData.email">
     </div>
     <div class="mb-3">
-        <input class="form-control bg-body-secondary" placeholder="Password">
+        <input type="password" name="password" class="form-control bg-body-secondary" placeholder="Password" [(ngModel)]="loginData.password">
     </div>
     <div class="mb-3">
-        <button type="submit" class="btn btn-success rounded-3">Login</button>
+        <button (click)="onLogin()" [disabled]="!loginData.email || !loginData.password" type="submit" class="btn btn-success rounded-3">Login</button>
     </div>
+    <div *ngIf="errorMessage" class="text-danger mt-2">
+    {{ errorMessage }}
+  </div>
 </form>
 
 </div>

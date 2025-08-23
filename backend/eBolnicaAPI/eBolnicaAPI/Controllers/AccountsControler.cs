@@ -117,11 +117,20 @@ namespace eBolnicaAPI.Controllers
         public async Task<IActionResult> UserLogin([FromBody] UserLoginDto login)
         {
             var user = await _userManager.FindByEmailAsync(login.Email);
+
             if (user == null || !await _userManager.CheckPasswordAsync(user, login.Password))
             {
                 return Unauthorized("Invalid login attempt");
             }
+            if(user.UserType == "Doctor")
+            {
+                var doctor = await _dbcontext.Doctors.FirstOrDefaultAsync(d => d.AppUserId == user.Id);
 
+                if (doctor == null || doctor.RegistrationStatus?.Trim().Equals("Pending", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    return Forbid("Your account is pending approval.");
+                }
+            }
             var token = _jwtService.GenerateToken(user);
 
             return Ok(new {Token = token});
