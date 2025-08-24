@@ -1,7 +1,8 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { jwtDecode } from 'jwt-decode';
+import { Router } from '@angular/router';
 
 interface JwtTokenPayload {
   UserType: string;
@@ -12,6 +13,8 @@ interface JwtTokenPayload {
   providedIn: 'root'
 })
 export class AuthService {
+
+  private router = inject(Router);
 
   constructor(private http:HttpClient) {}
 
@@ -45,6 +48,11 @@ export class AuthService {
     catch{
       return null;
     }
+  }
+
+  logout():void{
+    localStorage.removeItem('jwtToken');
+    this.router.navigate(['/user-login']);
   }
 
   isLoggedIn():boolean{

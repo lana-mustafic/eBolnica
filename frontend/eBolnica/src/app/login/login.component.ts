@@ -34,11 +34,11 @@ export class LoginComponent {
             const role = this.authService.getUserType();
 
             if(role==='Admin'){
-              this.router.navigateByUrl('/');
+              this.router.navigateByUrl('/admin-dashboard');
             }else if(role==='Doctor'){
-              this.router.navigateByUrl('/register-doctor');
+              this.router.navigateByUrl('/');
             }else if(role==='Patient'){
-              this.router.navigateByUrl('/register-patient');
+              this.router.navigateByUrl('/');
             }
           },
           error: (err) =>{

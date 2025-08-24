@@ -126,9 +126,9 @@ namespace eBolnicaAPI.Controllers
             {
                 var doctor = await _dbcontext.Doctors.FirstOrDefaultAsync(d => d.AppUserId == user.Id);
 
-                if (doctor == null || doctor.RegistrationStatus?.Equals("Pending") == true)
+                if (doctor == null || !string.Equals(doctor.RegistrationStatus, "Approved", StringComparison.OrdinalIgnoreCase))
                 {
-                    return Forbid("Your account is pending approval.");
+                    return Forbid("Your account is not approved.");
                 }
             }
             var token = _jwtService.GenerateToken(user);
