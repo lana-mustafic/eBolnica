@@ -24,7 +24,10 @@ namespace eBolnicaAPI.Middleware
             catch (Exception ex)
             {
                 var logger = context.RequestServices.GetService<ILogger<ExceptionHandlerMiddleware>>();
-                logger?.LogError(ex, "An unhandled exception occurred");
+
+                // Enhanced error logging with more context
+                logger?.LogError(ex, "Unhandled exception occurred while processing {Method} {Path}",
+                    context.Request.Method, context.Request.Path);
 
                 await HandleExceptionAsync(context, ex);
             }

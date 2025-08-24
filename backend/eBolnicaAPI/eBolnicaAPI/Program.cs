@@ -7,42 +7,40 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add services to the container.
 builder.Services.AddControllers();
-
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Configure logging
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+builder.Logging.AddEventSourceLogger();
 
 // Register the Database Context
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-
-// ---------------------------------------------------------------
-// REGISTER YOUR REPOSITORY AND SERVICE FOR DEPENDENCY INJECTION
-// ---------------------------------------------------------------
+// Register Repositories and Services
 builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
-
 builder.Services.AddScoped<IMedicalRecordRepository, MedicalRecordRepository>();
 builder.Services.AddScoped<IMedicalRecordService, MedicalRecordService>();
-
 builder.Services.AddScoped<IPrescriptionRepository, PrescriptionRepository>();
 builder.Services.AddScoped<IPrescriptionService, PrescriptionService>();
-
 builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
 builder.Services.AddScoped<IDepartmentService, DepartmentService>();
-// ---------------------------------------------------------------
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 
-    // ADD DATA SEEDING HERE 
+    // Data seeding
     using (var scope = app.Services.CreateScope())
     {
         var services = scope.ServiceProvider;
@@ -60,10 +58,14 @@ if (app.Environment.IsDevelopment())
     }
 }
 
-//  Use Global Error Handling Middleware (Keep this line)
+// ADD REQUEST LOGGING MIDDLEWARE 
+app.UseRequestLogging();
+
+// Use Global Error Handling Middleware
 app.UseGlobalErrorHandling();
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+
 app.Run();

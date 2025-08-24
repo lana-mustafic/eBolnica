@@ -4,11 +4,14 @@ namespace eBolnicaAPI.Middleware
 {
     public static class GlobalErrorHandlingExtensions
     {
-        // ONLY this method - no service registration method
+        public static IApplicationBuilder UseRequestLogging(this IApplicationBuilder app)
+        {
+            return app.UseMiddleware<RequestLoggingMiddleware>();
+        }
+
         public static IApplicationBuilder UseGlobalErrorHandling(this IApplicationBuilder app)
         {
-            app.UseMiddleware<ExceptionHandlerMiddleware>();
-            return app;
+            return app.UseMiddleware<ExceptionHandlerMiddleware>();
         }
     }
 }

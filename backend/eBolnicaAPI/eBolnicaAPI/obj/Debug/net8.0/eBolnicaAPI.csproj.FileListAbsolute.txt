@@ -339,4 +339,3 @@ C:\Users\User SC\Source\Repos\eBolnica\backend\eBolnicaAPI\eBolnicaAPI\obj\Debug
 C:\Users\User SC\Source\Repos\eBolnica\backend\eBolnicaAPI\eBolnicaAPI\obj\Debug\net8.0\eBolnicaAPI.pdb
 C:\Users\User SC\Source\Repos\eBolnica\backend\eBolnicaAPI\eBolnicaAPI\obj\Debug\net8.0\eBolnicaAPI.genruntimeconfig.cache
 C:\Users\User SC\Source\Repos\eBolnica\backend\eBolnicaAPI\eBolnicaAPI\obj\Debug\net8.0\ref\eBolnicaAPI.dll
-C:\Users\User SC\Source\Repos\eBolnica\backend\eBolnicaAPI\eBolnicaAPI\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
