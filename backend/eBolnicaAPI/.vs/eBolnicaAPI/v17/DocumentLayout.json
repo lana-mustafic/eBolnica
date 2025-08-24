@@ -7,48 +7,16 @@
       "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\user sc\\source\\repos\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\data\\appointmentrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\data\\appointmentrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\user sc\\source\\repos\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\models\\services\\appointmentservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\models\\services\\appointmentservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\user sc\\source\\repos\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\data\\interfaces\\iappointmentrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\data\\interfaces\\iappointmentrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\user sc\\source\\repos\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\models\\interfaces\\iappointmentservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\models\\interfaces\\iappointmentservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\user sc\\source\\repos\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\data\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\data\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\user sc\\source\\repos\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\models\\entities\\medicalrecord.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\models\\entities\\medicalrecord.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\user sc\\source\\repos\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\models\\entities\\appointment.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\models\\entities\\appointment.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\user sc\\source\\repos\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\migrations\\20250822195636_addappointmenttableandrelations.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\migrations\\20250822195636_addappointmenttableandrelations.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\user sc\\source\\repos\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\models\\entities\\patient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\models\\entities\\patient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\user sc\\source\\repos\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\user sc\\source\\repos\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\models\\entities\\doctor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\models\\entities\\doctor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\user sc\\source\\repos\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\migrations\\20250613165757_initial migration.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\migrations\\20250613165757_initial migration.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -58,64 +26,46 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 6,
+          "SelectedChildIndex": 3,
           "Children": [
             {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
-            },
-            {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{1c64b9c2-e352-428e-a56d-0ace190b99a6}"
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "MedicalRecord.cs",
+              "DocumentMoniker": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\Entities\\MedicalRecord.cs",
+              "RelativeDocumentMoniker": "eBolnicaAPI\\Models\\Entities\\MedicalRecord.cs",
+              "ToolTip": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\Entities\\MedicalRecord.cs",
+              "RelativeToolTip": "eBolnicaAPI\\Models\\Entities\\MedicalRecord.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAjAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-24T14:33:29.965Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 2,
-              "Title": "AppointmentService.cs",
-              "DocumentMoniker": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\Services\\AppointmentService.cs",
-              "RelativeDocumentMoniker": "eBolnicaAPI\\Models\\Services\\AppointmentService.cs",
-              "ToolTip": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\Services\\AppointmentService.cs",
-              "RelativeToolTip": "eBolnicaAPI\\Models\\Services\\AppointmentService.cs",
-              "ViewState": "AgIAACgAAAAAAAAAAAAAAEwAAAABAAAAAAAAAA==",
+              "Title": "Appointment.cs",
+              "DocumentMoniker": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\Entities\\Appointment.cs",
+              "RelativeDocumentMoniker": "eBolnicaAPI\\Models\\Entities\\Appointment.cs",
+              "ToolTip": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\Entities\\Appointment.cs",
+              "RelativeToolTip": "eBolnicaAPI\\Models\\Entities\\Appointment.cs",
+              "ViewState": "AgIAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-22T20:56:00.973Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "IAppointmentService.cs",
-              "DocumentMoniker": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\Interfaces\\IAppointmentService.cs",
-              "RelativeDocumentMoniker": "eBolnicaAPI\\Models\\Interfaces\\IAppointmentService.cs",
-              "ToolTip": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\Interfaces\\IAppointmentService.cs",
-              "RelativeToolTip": "eBolnicaAPI\\Models\\Interfaces\\IAppointmentService.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-22T20:55:08Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "AppointmentRepository.cs",
-              "DocumentMoniker": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Data\\AppointmentRepository.cs",
-              "RelativeDocumentMoniker": "eBolnicaAPI\\Data\\AppointmentRepository.cs",
-              "ToolTip": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Data\\AppointmentRepository.cs",
-              "RelativeToolTip": "eBolnicaAPI\\Data\\AppointmentRepository.cs",
-              "ViewState": "AgIAABAAAAAAAAAAAAAAAAwAAAAJAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-22T20:52:31.128Z",
+              "WhenOpened": "2025-08-24T14:33:26.334Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 3,
-              "Title": "IAppointmentRepository.cs",
-              "DocumentMoniker": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Data\\Interfaces\\IAppointmentRepository.cs",
-              "RelativeDocumentMoniker": "eBolnicaAPI\\Data\\Interfaces\\IAppointmentRepository.cs",
-              "ToolTip": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Data\\Interfaces\\IAppointmentRepository.cs",
-              "RelativeToolTip": "eBolnicaAPI\\Data\\Interfaces\\IAppointmentRepository.cs",
-              "ViewState": "AgIAAAQAAAAAAAAAAAAuwAkAAAAfAAAAAAAAAA==",
+              "Title": "Patient.cs",
+              "DocumentMoniker": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\Entities\\Patient.cs",
+              "RelativeDocumentMoniker": "eBolnicaAPI\\Models\\Entities\\Patient.cs",
+              "ToolTip": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\Entities\\Patient.cs",
+              "RelativeToolTip": "eBolnicaAPI\\Models\\Entities\\Patient.cs",
+              "ViewState": "AgIAABkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-22T20:51:34.962Z"
+              "WhenOpened": "2025-08-24T14:33:20.213Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -125,94 +75,18 @@
               "RelativeDocumentMoniker": "eBolnicaAPI\\Program.cs",
               "ToolTip": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Program.cs",
               "RelativeToolTip": "eBolnicaAPI\\Program.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAkAAAAAAAAAAAAIwBwAAAAkAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-13T16:50:21.864Z",
+              "WhenOpened": "2025-08-24T14:33:11.884Z",
               "EditorCaption": ""
             },
             {
-              "$type": "Document",
-              "DocumentIndex": 8,
-              "Title": "Patient.cs",
-              "DocumentMoniker": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\Entities\\Patient.cs",
-              "RelativeDocumentMoniker": "eBolnicaAPI\\Models\\Entities\\Patient.cs",
-              "ToolTip": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\Entities\\Patient.cs",
-              "RelativeToolTip": "eBolnicaAPI\\Models\\Entities\\Patient.cs",
-              "ViewState": "AgIAABUAAAAAAAAAAAAYwCIAAABlAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-22T19:54:11.289Z"
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
             },
             {
-              "$type": "Document",
-              "DocumentIndex": 10,
-              "Title": "Doctor.cs",
-              "DocumentMoniker": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\Entities\\Doctor.cs",
-              "RelativeDocumentMoniker": "eBolnicaAPI\\Models\\Entities\\Doctor.cs",
-              "ToolTip": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\Entities\\Doctor.cs",
-              "RelativeToolTip": "eBolnicaAPI\\Models\\Entities\\Doctor.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB0AAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-22T19:53:32.252Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "Appointment.cs",
-              "DocumentMoniker": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\Entities\\Appointment.cs",
-              "RelativeDocumentMoniker": "eBolnicaAPI\\Models\\Entities\\Appointment.cs",
-              "ToolTip": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\Entities\\Appointment.cs",
-              "RelativeToolTip": "eBolnicaAPI\\Models\\Entities\\Appointment.cs",
-              "ViewState": "AgIAAAcAAAAAAAAAAAAAACAAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-22T19:51:41.028Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 11,
-              "Title": "20250613165757_initial migration.cs",
-              "DocumentMoniker": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Migrations\\20250613165757_initial migration.cs",
-              "RelativeDocumentMoniker": "eBolnicaAPI\\Migrations\\20250613165757_initial migration.cs",
-              "ToolTip": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Migrations\\20250613165757_initial migration.cs",
-              "RelativeToolTip": "eBolnicaAPI\\Migrations\\20250613165757_initial migration.cs",
-              "ViewState": "AgIAACAAAAAAAAAAAAAQwAgAAAAZAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-13T16:57:57.982Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 9,
-              "Title": "appsettings.json",
-              "DocumentMoniker": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\appsettings.json",
-              "RelativeDocumentMoniker": "eBolnicaAPI\\appsettings.json",
-              "ToolTip": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\appsettings.json",
-              "RelativeToolTip": "eBolnicaAPI\\appsettings.json",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2025-06-13T16:47:22.709Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "AppDbContext.cs",
-              "DocumentMoniker": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Data\\AppDbContext.cs",
-              "RelativeDocumentMoniker": "eBolnicaAPI\\Data\\AppDbContext.cs",
-              "ToolTip": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Data\\AppDbContext.cs",
-              "RelativeToolTip": "eBolnicaAPI\\Data\\AppDbContext.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAEAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-13T16:30:22.456Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 7,
-              "Title": "20250822195636_AddAppointmentTableAndRelations.cs",
-              "DocumentMoniker": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Migrations\\20250822195636_AddAppointmentTableAndRelations.cs",
-              "RelativeDocumentMoniker": "eBolnicaAPI\\Migrations\\20250822195636_AddAppointmentTableAndRelations.cs",
-              "ToolTip": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Migrations\\20250822195636_AddAppointmentTableAndRelations.cs",
-              "RelativeToolTip": "eBolnicaAPI\\Migrations\\20250822195636_AddAppointmentTableAndRelations.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-22T19:56:36.265Z"
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c64b9c2-e352-428e-a56d-0ace190b99a6}"
             }
           ]
         }
