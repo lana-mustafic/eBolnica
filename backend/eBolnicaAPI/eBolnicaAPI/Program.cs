@@ -1,20 +1,22 @@
 using eBolnicaAPI.Data;
 using eBolnicaAPI.Data.Interfaces;
+using eBolnicaAPI.Middleware;
 using eBolnicaAPI.Models.Interfaces;
 using eBolnicaAPI.Models.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Register the Database Context
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 
 // ---------------------------------------------------------------
 // REGISTER YOUR REPOSITORY AND SERVICE FOR DEPENDENCY INJECTION
@@ -40,7 +42,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 
-    //  ADD DATA SEEDING HERE 
+    // ADD DATA SEEDING HERE 
     using (var scope = app.Services.CreateScope())
     {
         var services = scope.ServiceProvider;
@@ -57,6 +59,9 @@ if (app.Environment.IsDevelopment())
         }
     }
 }
+
+//  Use Global Error Handling Middleware (Keep this line)
+app.UseGlobalErrorHandling();
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
