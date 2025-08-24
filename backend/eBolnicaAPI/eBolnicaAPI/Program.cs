@@ -1,5 +1,5 @@
 using eBolnicaAPI.Data;
-using eBolnicaAPI.Data.Interfaces; // Add this using statement
+using eBolnicaAPI.Data.Interfaces; 
 using eBolnicaAPI.Models.Interfaces;
 using eBolnicaAPI.Models.Services;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +21,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // ---------------------------------------------------------------
 builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+builder.Services.AddScoped<IMedicalRecordRepository, MedicalRecordRepository>();
+builder.Services.AddScoped<IMedicalRecordService, MedicalRecordService>();
 // ---------------------------------------------------------------
 
 var app = builder.Build();

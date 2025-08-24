@@ -11,3 +11,4 @@ namespace eBolnicaAPI.Models.Interfaces
         Task<bool> DeleteAppointmentAsync(int id);
     }
 }
+
