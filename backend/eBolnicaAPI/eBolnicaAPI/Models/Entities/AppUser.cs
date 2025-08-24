@@ -10,5 +10,8 @@ namespace eBolnicaAPI.Models.Entities
         public string UserType { get; set; }
 
         public string? LicenseNumber { get; set; }
+
+        public Doctor? Doctor { get; set; }
+        public Patient? Patient { get; set; }
     }
 }
