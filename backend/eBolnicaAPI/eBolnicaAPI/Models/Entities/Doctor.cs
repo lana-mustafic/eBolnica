@@ -30,6 +30,7 @@ namespace eBolnicaAPI.Models.Entities
 
         // Navigation property: One Doctor can have many Appointments
         public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
+        public virtual ICollection<Prescription> Prescriptions { get; set; } = new List<Prescription>();
 
     }
 }
