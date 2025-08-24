@@ -333,7 +333,6 @@ C:\Users\User SC\Source\Repos\eBolnica\backend\eBolnicaAPI\eBolnicaAPI\obj\Debug
 C:\Users\User SC\Source\Repos\eBolnica\backend\eBolnicaAPI\eBolnicaAPI\obj\Debug\net8.0\staticwebassets\msbuild.buildMultiTargeting.eBolnicaAPI.props
 C:\Users\User SC\Source\Repos\eBolnica\backend\eBolnicaAPI\eBolnicaAPI\obj\Debug\net8.0\staticwebassets\msbuild.buildTransitive.eBolnicaAPI.props
 C:\Users\User SC\Source\Repos\eBolnica\backend\eBolnicaAPI\eBolnicaAPI\obj\Debug\net8.0\staticwebassets.pack.json
-C:\Users\User SC\Source\Repos\eBolnica\backend\eBolnicaAPI\eBolnicaAPI\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
 C:\Users\User SC\Source\Repos\eBolnica\backend\eBolnicaAPI\eBolnicaAPI\obj\Debug\net8.0\eBolnica.29B0B2E2.Up2Date
 C:\Users\User SC\Source\Repos\eBolnica\backend\eBolnicaAPI\eBolnicaAPI\obj\Debug\net8.0\eBolnicaAPI.dll
 C:\Users\User SC\Source\Repos\eBolnica\backend\eBolnicaAPI\eBolnicaAPI\obj\Debug\net8.0\refint\eBolnicaAPI.dll
