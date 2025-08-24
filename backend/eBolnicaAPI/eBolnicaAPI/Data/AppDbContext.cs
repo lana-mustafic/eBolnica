@@ -14,6 +14,7 @@ namespace eBolnicaAPI.Data
         public DbSet<Appointment> Appointments { get; set; } = null!;
         public DbSet<MedicalRecord> MedicalRecords { get; set; } = null!;
         public DbSet<Prescription> Prescriptions { get; set; } = null!;
+        public DbSet<Department> Departments { get; set; } = null!;
     }
 }
 
