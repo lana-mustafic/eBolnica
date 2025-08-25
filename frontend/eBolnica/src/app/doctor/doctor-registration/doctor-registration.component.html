@@ -1,0 +1,77 @@
+<div class="page-container">
+    <div class="mb-4 h2 text-success text-center">Doctor Registration</div>
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="mb-3">
+        <input class="form-control bg-body-secondary" placeholder="First Name" formControlName="firstName">
+        <div class="error-feedback" *ngIf="form.get('firstName')?.touched">
+        <div *ngIf="form.get('firstName')?.hasError('required')">
+            Please enter your first name
+        </div>
+        <div *ngIf="form.get('firstName')?.hasError('pattern')">
+            Must start with capital letter and only contain letters
+        </div>
+    </div>
+    </div>
+    <div class="mb-3">
+        <input class="form-control bg-body-secondary" placeholder="Last Name" formControlName="lastName">
+        <div class="error-feedback" *ngIf="form.get('lastName')?.touched">
+        <div *ngIf="form.get('lastName')?.hasError('required')">
+            Please enter your last name
+        </div>
+        <div *ngIf="form.get('lastName')?.hasError('pattern')">
+            Must start with capital letter and only contain letters
+        </div>
+    </div>
+    </div>
+    <div class="mb-3">
+        <input class="form-control bg-body-secondary" placeholder="License Number" formControlName="licenseNumber">
+        <div class="error-feedback" *ngIf="form.controls['licenseNumber'].hasError('required')">
+            Please enter your license number
+        </div>
+    </div>
+     <div class="mb-3">
+        <input class="form-control bg-body-secondary" placeholder="Email" formControlName="email">
+        <div class="error-feedback" *ngIf="form.get('email')?.invalid">
+            <div *ngIf="form.controls['email'].hasError('required')"></div>
+            Please enter your Email
+        </div>
+    </div>
+     <div class="mb-3">
+        <input class="form-control bg-body-secondary" [type]="hidePassword ? 'password' : 'text'" placeholder="Password" formControlName="password">
+        <i class="bi"
+            [ngClass]="hidePassword ? 'bi-eye' : 'bi-eye-slash'"
+            style="cursor: pointer; left:5%; position: relative;"
+            (click)="togglePasswordVisibility()">
+        </i>
+        <div class="error-feedback" *ngIf="form.get('password')?.touched">
+            <div *ngIf="form.get('password')?.hasError('required')">Password is required</div>
+            <div *ngIf="form.get('password')?.hasError('minlength')">Password must be at least 6 characters</div>
+            <div *ngIf="form.get('password')?.hasError('pattern')">
+                Password must contain at least:
+                <ul>
+                <li>1 uppercase letter</li>
+                <li>1 lowercase letter</li>
+                <li>1 number</li>
+                <li>1 special character</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+     <div class="mb-3">
+        <input class="form-control bg-body-secondary" type="password" placeholder="Confirm password" formControlName="confirmPassword">
+        <div class="error-feedback" *ngIf="form.get('confirmPassword')?.hasError('passwordMismatch') && form.get('confirmPassword')?.touched">
+            Passwords do not match
+        </div>
+
+    </div>
+     <div class="mb-3">
+        <button type="submit" [disabled]="form.invalid" class="btn btn-success rounded-3">Register</button>
+    </div>
+    <div *ngIf="submitSuccess">
+    {{ submitSuccess }}
+    </div>
+    <div *ngIf="errorMessage" class="text-danger mt-2">
+    {{errorMessage}}
+    </div>
+</form>
+</div>

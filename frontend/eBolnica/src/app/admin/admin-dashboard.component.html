@@ -1,0 +1,39 @@
+<h2>Admin Dashboard</h2>
+  
+<div style="text-align: right; margin-bottom: 10px;">
+  <button (click)="onLogout()">Logout</button>
+</div>
+
+<table border="1" cellpadding="8">
+  <thead>
+    <tr>
+      <th>First Name</th>
+      <th>Last Name</th>
+      <th>Email</th>
+      <th>Role</th>
+      <th>Status</th>
+      <th>Change Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let user of users">
+      <td>{{ user.firstName }}</td>
+      <td>{{ user.lastName }}</td>
+      <td>{{ user.email }}</td>
+      <td>{{ user.userType }}</td>
+      <td>{{ user.doctorInfo?.registrationStatus || 'N/A' }}</td>
+      <td>
+        <ng-container *ngIf="user.userType === 'Doctor'">
+      <button (click)="changeStatus(user, 'Approved')" 
+              [disabled]="user.doctorInfo?.registrationStatus === 'Approved'">
+        Approve
+      </button>
+      <button (click)="changeStatus(user, 'Rejected')" 
+              [disabled]="user.doctorInfo?.registrationStatus === 'Rejected'">
+        Reject
+      </button>
+        </ng-container>
+      </td>
+    </tr>
+  </tbody>
+</table>

@@ -13,7 +13,9 @@ namespace eBolnicaAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
     [Migration("20250613165757_initial migration")]
+#pragma warning disable CS8981 // The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
     partial class initialmigration
+#pragma warning restore CS8981 // The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
