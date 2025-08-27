@@ -25,6 +25,7 @@ namespace eBolnicaAPI.Models.Entities
 
         public string LicenseNumber { get; set; }
 
-        public int? YearsOfExperience { get; set; }
+        public DateTime? BirthDate { get; set; }
+        public string? Address { get; set; }
     }
 }

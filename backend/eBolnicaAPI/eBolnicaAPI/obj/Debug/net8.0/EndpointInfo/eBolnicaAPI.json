@@ -151,6 +151,18 @@
         }
       }
     },
+    "/api/doctor/doctor-data": {
+      "get": {
+        "tags": [
+          "Doctor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/register": {
       "post": {
         "tags": [

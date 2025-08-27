@@ -1,4 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
+import { DoctorService } from '../../../shared/services/doctor/doctor.service';
+import { DoctorDto } from '../../../models/doctor.dto';
 
 @Component({
   selector: 'app-doctor-profile',
@@ -9,4 +11,18 @@ import { Component } from '@angular/core';
 })
 export class DoctorProfileComponent {
 
+  private doctorService = inject(DoctorService);
+
+  doctor?: DoctorDto;
+
+  ngOnInit():void{
+      this.doctorService.getDoctorData().subscribe({
+        next: (data) =>{
+          this.doctor = data;
+        }, 
+        error: (err) =>{
+          console.error('Error loading doctor data', err);
+        }
+      })
+  }
 }

@@ -5,7 +5,7 @@ import { jwtDecode } from 'jwt-decode';
 import { Router } from '@angular/router';
 
 interface JwtTokenPayload {
-  UserType: string;
+  role: string;
   exp: number;
   firstName:string;
   lastName:string;
@@ -45,7 +45,7 @@ export class AuthService {
     try{
         const decoded = jwtDecode<JwtTokenPayload>(token);
         console.log('Decoded JWT:', decoded);
-        return decoded.UserType;
+        return decoded.role;
     }
     catch{
       return null;
