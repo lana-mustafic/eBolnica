@@ -1,8 +1,4 @@
 <h2>Admin Dashboard</h2>
-  
-<div style="text-align: right; margin-bottom: 10px;">
-  <button (click)="onLogout()">Logout</button>
-</div>
 
 <table border="1" cellpadding="8">
   <thead>
@@ -24,11 +20,11 @@
       <td>{{ user.doctorInfo?.registrationStatus || 'N/A' }}</td>
       <td>
         <ng-container *ngIf="user.userType === 'Doctor'">
-      <button (click)="changeStatus(user, 'Approved')" 
+      <button class="btn" (click)="changeStatus(user, 'Approved')" 
               [disabled]="user.doctorInfo?.registrationStatus === 'Approved'">
         Approve
       </button>
-      <button (click)="changeStatus(user, 'Rejected')" 
+      <button class="btn" (click)="changeStatus(user, 'Rejected')" 
               [disabled]="user.doctorInfo?.registrationStatus === 'Rejected'">
         Reject
       </button>
@@ -37,3 +33,10 @@
     </tr>
   </tbody>
 </table>
+
+<nav class="navbar d-flex justify-content-end p-2">
+  <button *ngIf="authService.isLoggedIn()"
+          class="btn btn-danger"
+          (click)="authService.logout()">
+    Logout
+  </button>

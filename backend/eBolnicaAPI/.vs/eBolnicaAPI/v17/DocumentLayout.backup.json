@@ -3,6 +3,10 @@
   "WorkspaceRootPath": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\kolan\\desktop\\rs1 ebolnica\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\services\\jwtservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\services\\jwtservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\kolan\\desktop\\rs1 ebolnica\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\controllers\\admincontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\controllers\\admincontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -22,11 +26,24 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 1,
+          "SelectedChildIndex": 0,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 0,
+              "Title": "JwtService.cs",
+              "DocumentMoniker": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Services\\JwtService.cs",
+              "RelativeDocumentMoniker": "eBolnicaAPI\\Services\\JwtService.cs",
+              "ToolTip": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Services\\JwtService.cs",
+              "RelativeToolTip": "eBolnicaAPI\\Services\\JwtService.cs",
+              "ViewState": "AgIAAA0AAAAAAAAAAAA1wBkAAAA1AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-26T18:24:45.62Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
               "Title": "UserOverviewDto.cs",
               "DocumentMoniker": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\DTOs\\UserOverviewDto.cs",
               "RelativeDocumentMoniker": "eBolnicaAPI\\Models\\DTOs\\UserOverviewDto.cs",
@@ -39,26 +56,26 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "AdminController.cs",
               "DocumentMoniker": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Controllers\\AdminController.cs",
               "RelativeDocumentMoniker": "eBolnicaAPI\\Controllers\\AdminController.cs",
               "ToolTip": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Controllers\\AdminController.cs",
               "RelativeToolTip": "eBolnicaAPI\\Controllers\\AdminController.cs",
-              "ViewState": "AgIAAA8AAAAAAAAAAAAuwCAAAAAYAAAAAAAAAA==",
+              "ViewState": "AgIAAAEAAAAAAAAAAAAmwDMAAAAfAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-08-24T12:33:55.841Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 3,
               "Title": "AccountsControler.cs",
               "DocumentMoniker": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Controllers\\AccountsControler.cs",
               "RelativeDocumentMoniker": "eBolnicaAPI\\Controllers\\AccountsControler.cs",
               "ToolTip": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Controllers\\AccountsControler.cs",
               "RelativeToolTip": "eBolnicaAPI\\Controllers\\AccountsControler.cs",
-              "ViewState": "AgIAABMAAAAAAAAAAAA1wIIAAABHAAAAAAAAAA==",
+              "ViewState": "AgIAAD4AAAAAAAAAAAAQwIkAAAAEAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-08-22T17:40:08.02Z",
               "EditorCaption": ""

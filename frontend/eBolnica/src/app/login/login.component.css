@@ -2,10 +2,6 @@
     position: relative;
     left: 5%;
 }
-html, body {
-  height: 100%;
-  margin: 0;
-}
 .login-container {
   position: absolute;
   top: 20%;
@@ -21,8 +17,6 @@ html, body {
     width: 90%;
     left: 5%;
 }
-.btn{
-    position: relative;
-    width: 30%;
-    left: 5%;
+.ml-5percent {
+  margin-left: 5%;
 }

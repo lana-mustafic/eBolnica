@@ -16,7 +16,7 @@ export class AdminDashboardComponent implements OnInit{
   status = ['Pending','Approved','Rejected'];  
 
   private adminService = inject(AdminService);
-  private authService = inject(AuthService);
+  public authService = inject(AuthService);
 
   ngOnInit(): void {
     this.loadUsers();

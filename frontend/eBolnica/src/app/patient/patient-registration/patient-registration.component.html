@@ -1,3 +1,4 @@
+<button class="btn" routerLink="/">Home</button>
 <div class="page-container">
     <div class="mb-4 h2 text-success text-center">Patient Registration</div>
 <form [formGroup]="form" (ngSubmit)="onSubmit()">
@@ -59,7 +60,7 @@
 
     </div>
     <div class="mb-3">
-        <button type="submit" [disabled]="form.invalid" class="btn btn-success rounded-3">Register</button>
+        <button type="submit" [disabled]="form.invalid" class="btn btn-success rounded-3 btn ml-5">Register</button>
     </div>
     <div *ngIf="submitSuccess">
     {{ submitSuccess }}
