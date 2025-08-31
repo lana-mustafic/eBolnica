@@ -27,7 +27,6 @@ namespace eBolnicaAPI.Controllers
         {
             var users = await _dbContext.AppUsers.Include(u=>u.Doctor).Include(u=>u.Patient).Select(u => new
             {
-                u.Doctor.AppUserId,
                 u.FirstName,
                 u.LastName,
                 u.Email,

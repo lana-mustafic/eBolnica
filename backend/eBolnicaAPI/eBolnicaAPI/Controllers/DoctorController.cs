@@ -1,4 +1,5 @@
 ﻿using eBolnicaAPI.Data;
+using eBolnicaAPI.Models.DTOs;
 using eBolnicaAPI.Models.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -57,6 +58,45 @@ namespace eBolnicaAPI.Controllers
                 doctorData.AppUser.Email
             });
             
+        }
+
+        [HttpPut("edit-doctor")]
+        [Authorize(Roles="Doctor")]
+        public async Task<IActionResult> EditDoctor(int id, [FromBody] DoctorUpdateDto UpdatedDoctorDto)
+        {
+            var doctorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (doctorId == null)
+            {
+                return Unauthorized();
+            }
+
+
+            var existingDoctor = await _dbContext.Doctors.Include(d => d.AppUser).FirstOrDefaultAsync(d=>d.AppUserId==doctorId);
+
+            if (existingDoctor == null)
+            {
+                return NotFound();
+            }
+
+            existingDoctor.FirstName= UpdatedDoctorDto.FirstName;
+            existingDoctor.LastName= UpdatedDoctorDto.LastName;
+            existingDoctor.BirthDate= UpdatedDoctorDto.BirthDate;
+            existingDoctor.PhoneNumber= UpdatedDoctorDto.PhoneNumber;
+            existingDoctor.Address= UpdatedDoctorDto.Address;
+            existingDoctor.Specialization= UpdatedDoctorDto.Specialization;
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+
+            }
+
+            await _dbContext.SaveChangesAsync();
+
+
+            return Ok(UpdatedDoctorDto);
+
         }
     }
 }
