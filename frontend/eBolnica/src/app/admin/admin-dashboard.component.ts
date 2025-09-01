@@ -28,6 +28,7 @@ export class AdminDashboardComponent implements OnInit{
 
   loadUsers(): void{
     this.adminService.getAllUsers(this.page, this.pageSize, this.userType?? undefined).subscribe(res=>{
+      console.log("Backend response:", res);
       this.users=res.users;
       this.totalCount=res.totalCount;
     }
@@ -50,14 +51,14 @@ export class AdminDashboardComponent implements OnInit{
 }
 
   changeStatus(user:any, status:string){
-    this.adminService.updateRegistrationStatus(user.appUserId, status).subscribe({
+    this.adminService.updateRegistrationStatus(user.id, status).subscribe({
       next: (res) =>{
-        user.doctorInfo.registrationStatus = status;
+        user.doctorInfo.registrationStatus = status;     
         console.log(res.message);
       },
       error: (err) =>{
         console.error(err.message);
-      }
+      } 
     })
   }
 

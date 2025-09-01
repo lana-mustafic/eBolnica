@@ -46,6 +46,7 @@ namespace eBolnicaAPI.Controllers
 
             var users = await query.OrderBy(u=>u.FirstName).Skip((page-1)*pageSize).Take(pageSize).Select(u => new
             {
+                u.Id,
                 u.FirstName,
                 u.LastName,
                 u.Email,
@@ -69,7 +70,6 @@ namespace eBolnicaAPI.Controllers
         }
 
         [HttpPut("update-registration-status/{AppUserId}")]
-        [Authorize(Roles="Admin")]
         public async Task<IActionResult> UpdateRegistrationStatus(string AppUserId, [FromBody]UpdateRegistrationStatusDto dto)
         {
 
