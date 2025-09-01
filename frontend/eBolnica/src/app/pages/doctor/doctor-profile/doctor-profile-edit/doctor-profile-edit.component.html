@@ -1,0 +1,46 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <ul>
+        <p>First name:</p>
+        <input type="text" formControlName="firstName">
+        <div *ngIf="form.get('firstName')?.invalid && form.get('firstName')?.touched">
+        <div *ngIf="form.get('firstName')?.errors?.['required']">First Name is required.</div>
+        <div *ngIf="form.get('firstName')?.errors?.['pattern']">First Name must start with a capital letter and contain only letters.</div>
+        </div>
+      </ul>
+      <ul>
+        <p>Last name:</p>
+        <input type="text" formControlName="lastName">
+        <div *ngIf="form.get('lastName')?.invalid && form.get('lastName')?.touched">
+        <div *ngIf="form.get('lastName')?.errors?.['required']">Last Name is required.</div>
+        <div *ngIf="form.get('lastName')?.errors?.['pattern']">Last Name must start with a capital letter and contain only letters.</div>
+        </div>
+      </ul>
+      <ul>
+        <p>Phone number:</p>
+        <input type="text" formControlName="phoneNumber">
+      </ul>
+      <ul>
+        <p>Specialization:</p>
+        <input type="text" formControlName="specialization">
+        <div *ngIf="form.get('specialization')?.invalid && form.get('specialization')?.touched">
+        <div *ngIf="form.get('specialization')?.errors?.['required']">Specialization is required.</div>
+        <div *ngIf="form.get('specialization')?.errors?.['pattern']">Specialization must start with a capital letter and contain only letters.</div>
+        </div>
+      </ul>
+      <ul>
+        <p>Birth date:</p>
+        <input type="date" formControlName="birthDate">
+        <div *ngIf="form.get('birthDate')?.invalid && form.get('birthDate')?.touched">
+          <div *ngIf="form.get('birthDate')?.errors?.['required']">Birth date is required.</div>
+        </div>
+      </ul>
+      <ul>
+        <p>Address:</p>
+        <input type="text" formControlName="address">
+        <div *ngIf="form.get('address')?.invalid && form.get('address')?.touched">
+          <div *ngIf="form.get('address')?.errors?.['required']">Address is required.</div>
+        </div>
+      </ul>
+
+      <button type="submit">Save</button>
+    </form>

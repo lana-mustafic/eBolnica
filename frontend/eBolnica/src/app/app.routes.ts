@@ -9,6 +9,7 @@ import { DoctorDashboardComponent } from './pages/doctor/doctor-dashboard/doctor
 import { roleGuard } from './shared/guards/role.guard';
 import { noauthGuard } from './shared/guards/noauth.guard';
 import { DoctorProfileComponent } from './pages/doctor/doctor-profile/doctor-profile.component';
+import { DoctorProfileEditComponent } from './pages/doctor/doctor-profile/doctor-profile-edit/doctor-profile-edit.component';
 
 export const routes: Routes = [
     {path: '', component:HomeComponent,canActivate:[noauthGuard],pathMatch: 'full', title:'Home'},
@@ -17,6 +18,7 @@ export const routes: Routes = [
     {path: 'user-login', component:LoginComponent,canActivate:[noauthGuard], title:'LogIn'},
     {path: 'admin-dashboard', component:AdminDashboardComponent, canActivate:[authGuard, roleGuard], data:{role:'Admin'},title:'Admin Dashboard'},
     {path: 'doctor-dashboard', component:DoctorDashboardComponent, canActivate:[authGuard, roleGuard ], data: { role: 'Doctor'}, title:'Doctor Dashboard'},
-    {path: 'doctor-profile', component:DoctorProfileComponent, canActivate:[authGuard, roleGuard ], data: { role: 'Doctor'}, title:'Doctor Profile'}
+    {path: 'doctor-profile', component:DoctorProfileComponent, canActivate:[authGuard, roleGuard ], data: { role: 'Doctor'}, title:'Doctor Profile'},
+    {path: 'doctor-profile-edit', component:DoctorProfileEditComponent, canActivate:[authGuard, roleGuard], data: {role: 'Doctor'}, title:"Edit doctor profile"}
 ];
     
