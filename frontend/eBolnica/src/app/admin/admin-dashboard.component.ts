@@ -14,7 +14,11 @@ import { AuthService } from '../shared/services/auth.service';
 export class AdminDashboardComponent implements OnInit{
   users: any[]=[];
   status = ['Pending','Approved','Rejected'];  
-
+  totalCount = 0;
+  page = 1;
+  pageSize = 10;
+  userType: string | null = null;
+  
   private adminService = inject(AdminService);
   public authService = inject(AuthService);
 
@@ -22,11 +26,28 @@ export class AdminDashboardComponent implements OnInit{
     this.loadUsers();
   }
 
-  loadUsers(){
-    this.adminService.getAllUsers().subscribe(data=>{
-      this.users = data;
-    });
+  loadUsers(): void{
+    this.adminService.getAllUsers(this.page, this.pageSize, this.userType?? undefined).subscribe(res=>{
+      this.users=res.users;
+      this.totalCount=res.totalCount;
+    }
+    );
   }
+
+  onPageChange(newPage: number): void {
+    this.page = newPage;
+    this.loadUsers();
+  }
+
+  onFilterChange(type: string): void {
+    this.userType = type || null;
+    this.page = 1;
+    this.loadUsers();
+  }
+
+  get totalPages(): number {
+  return Math.ceil(this.totalCount / this.pageSize);
+}
 
   changeStatus(user:any, status:string){
     this.adminService.updateRegistrationStatus(user.appUserId, status).subscribe({
