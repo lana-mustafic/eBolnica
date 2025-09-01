@@ -91,16 +91,11 @@
   {
     "ContainingType": "eBolnicaAPI.Controllers.DoctorController",
     "Method": "EditDoctor",
-    "RelativePath": "api/doctor/edit-doctor/{id}",
+    "RelativePath": "api/doctor/edit-doctor",
     "HttpMethod": "PUT",
     "IsController": true,
     "Order": 0,
     "Parameters": [
-      {
-        "Name": "id",
-        "Type": "System.Int32",
-        "IsRequired": true
-      },
       {
         "Name": "UpdatedDoctorDto",
         "Type": "eBolnicaAPI.Models.DTOs.DoctorUpdateDto",

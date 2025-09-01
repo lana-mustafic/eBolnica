@@ -163,21 +163,10 @@
         }
       }
     },
-    "/api/doctor/edit-doctor/{id}": {
+    "/api/doctor/edit-doctor": {
       "put": {
         "tags": [
           "Doctor"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
         ],
         "requestBody": {
           "content": {
@@ -713,7 +702,6 @@
           },
           "phoneNumber": {
             "type": "string",
-            "format": "tel",
             "nullable": true
           },
           "address": {

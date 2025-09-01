@@ -53,6 +53,7 @@ namespace eBolnicaAPI.Controllers
                 doctorData.LastName,
                 doctorData.PhoneNumber,
                 doctorData.Specialization,
+                doctorData.AppUser.LicenseNumber,
                 doctorData.BirthDate,
                 doctorData.Address,
                 doctorData.AppUser.Email
@@ -62,7 +63,7 @@ namespace eBolnicaAPI.Controllers
 
         [HttpPut("edit-doctor")]
         [Authorize(Roles="Doctor")]
-        public async Task<IActionResult> EditDoctor(int id, [FromBody] DoctorUpdateDto UpdatedDoctorDto)
+        public async Task<IActionResult> EditDoctor([FromBody] DoctorUpdateDto UpdatedDoctorDto)
         {
             var doctorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
