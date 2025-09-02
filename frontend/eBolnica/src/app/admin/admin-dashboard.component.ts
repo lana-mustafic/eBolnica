@@ -3,6 +3,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../shared/services/admin.service';
 import { AuthService } from '../shared/services/auth.service';
+import { UserOverview } from '../models/user-overview.dto';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -12,13 +13,13 @@ import { AuthService } from '../shared/services/auth.service';
   styleUrl: './admin-dashboard.component.css'
 })
 export class AdminDashboardComponent implements OnInit{
-  users: any[]=[];
+  users:  UserOverview[] = [];
   status = ['Pending','Approved','Rejected'];  
   totalCount = 0;
   page = 1;
   pageSize = 10;
   userType: string | null = null;
-  
+
   private adminService = inject(AdminService);
   public authService = inject(AuthService);
 
@@ -51,9 +52,9 @@ export class AdminDashboardComponent implements OnInit{
 }
 
   changeStatus(user:any, status:string){
-    this.adminService.updateRegistrationStatus(user.id, status).subscribe({
+    this.adminService.updateRegistrationStatus(user.appUserId, status).subscribe({
       next: (res) =>{
-        user.doctorInfo.registrationStatus = status;     
+        user.registrationStatus = status;     
         console.log(res.message);
       },
       error: (err) =>{

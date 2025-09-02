@@ -44,21 +44,17 @@ namespace eBolnicaAPI.Controllers
 
             var totalCount = await query.CountAsync();
 
-            var users = await query.OrderBy(u=>u.FirstName).Skip((page-1)*pageSize).Take(pageSize).Select(u => new
+            var users = await query.OrderBy(u=>u.FirstName).Skip((page-1)*pageSize).Take(pageSize).Select(u => new UserOverviewDto
             {
-                u.Id,
-                u.FirstName,
-                u.LastName,
-                u.Email,
-                u.UserType,
+                AppUserId = u.Id,
+                FirstName = u.FirstName,
+                LastName = u.LastName,
+                Email = u.Email,
+                UserType = u.UserType,
+                RegistrationStatus = u.UserType == "Doctor" ? u.Doctor.RegistrationStatus : null,
+                LicenseNumber = u.UserType == "Doctor" ? u.Doctor.LicenseNumber : null
 
-                DoctorInfo = u.UserType=="Doctor" ? new
-                {
-                    u.Doctor.LicenseNumber,
-                    u.Doctor.RegistrationStatus
-                } : null
-
-            }).ToListAsync();
+            }).ToListAsync();   
 
             return Ok(new
             {

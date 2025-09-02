@@ -3,6 +3,7 @@ import { DoctorDto } from '../../../models/doctor.dto';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { updateDoctorDto } from '../../../models/update-doctor.dto';
+import { DoctorDataDto } from '../../../models/doctor-data.dto';
 
 @Injectable({
   providedIn: 'root'
@@ -14,7 +15,7 @@ export class DoctorService {
   private http = inject(HttpClient);
 
   getDoctorData(): Observable<DoctorDto>{
-    return this.http.get<DoctorDto>(this.apiUrl+'/doctor-data');
+    return this.http.get<DoctorDataDto>(this.apiUrl+'/doctor-data');
   }
 
   editDoctorData(updatedDoctor: updateDoctorDto):Observable<updateDoctorDto>{

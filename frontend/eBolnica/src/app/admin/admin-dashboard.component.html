@@ -26,15 +26,15 @@
       <td>{{ user.lastName }}</td>
       <td>{{ user.email }}</td>
       <td>{{ user.userType }}</td>
-      <td>{{ user.doctorInfo?.registrationStatus || 'N/A' }}</td>
+      <td>{{ user?.registrationStatus || 'N/A' }}</td>
       <td>
         <ng-container *ngIf="user.userType === 'Doctor'">
       <button class="btn" (click)="changeStatus(user, 'Approved')" 
-              [disabled]="user.doctorInfo?.registrationStatus === 'Approved'">
+              [disabled]="user?.registrationStatus === 'Approved'">
         Approve
       </button>
       <button class="btn" (click)="changeStatus(user, 'Rejected')" 
-              [disabled]="user.doctorInfo?.registrationStatus === 'Rejected'">
+              [disabled]="user?.registrationStatus === 'Rejected'">
         Reject
       </button>
         </ng-container>

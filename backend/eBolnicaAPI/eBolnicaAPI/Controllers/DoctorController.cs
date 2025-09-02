@@ -29,7 +29,7 @@ namespace eBolnicaAPI.Controllers
         public async Task<IActionResult> GetDoctorData()
         {
             var doctorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            Console.WriteLine("Doctor ID iz tokena: " + doctorId);
+            Console.WriteLine("Doctor ID from token: " + doctorId);
 
             if (doctorId == null)
             {
@@ -47,17 +47,19 @@ namespace eBolnicaAPI.Controllers
                 return NotFound("Doctor not found");
             }
 
-            return Ok(new
+            var dto = new DoctorDataDbo
             {
-                doctorData.FirstName,
-                doctorData.LastName,
-                doctorData.PhoneNumber,
-                doctorData.Specialization,
-                doctorData.AppUser.LicenseNumber,
-                doctorData.BirthDate,
-                doctorData.Address,
-                doctorData.AppUser.Email
-            });
+                FirstName = doctorData.FirstName,
+                LastName = doctorData.LastName,
+                PhoneNumber = doctorData.PhoneNumber,
+                Specialization = doctorData.Specialization,
+                LicenseNumber = doctorData.AppUser.LicenseNumber,
+                BirthDate = (DateTime)doctorData.BirthDate,
+                Address = doctorData.Address,
+                Email = doctorData.AppUser.Email
+            };
+
+            return Ok(dto);
             
         }
 
