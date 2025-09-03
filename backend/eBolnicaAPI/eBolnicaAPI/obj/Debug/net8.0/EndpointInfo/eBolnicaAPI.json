@@ -1,8 +1,8 @@
 {
   "openapi": "3.0.1",
   "info": {
-    "title": "eBolnicaAPI",
-    "version": "1.0"
+    "title": "eBolnica",
+    "version": "v1"
   },
   "paths": {
     "/api/accounts/patient-registration": {
@@ -214,6 +214,18 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/doctor/list-patients": {
+      "get": {
+        "tags": [
+          "Doctor"
+        ],
         "responses": {
           "200": {
             "description": "Success"
@@ -1026,6 +1038,19 @@
         },
         "additionalProperties": false
       }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "apiKey",
+        "description": "Input JWT token in format: Bearer {your token}",
+        "name": "Authorization",
+        "in": "header"
+      }
     }
-  }
+  },
+  "security": [
+    {
+      "Bearer": [ ]
+    }
+  ]
 }

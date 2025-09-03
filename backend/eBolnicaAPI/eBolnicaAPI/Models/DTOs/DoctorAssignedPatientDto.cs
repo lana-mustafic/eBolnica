@@ -1,25 +1,17 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using eBolnicaAPI.Models.Entities;
+using System.ComponentModel.DataAnnotations;
 
-namespace eBolnicaAPI.Models.Entities
+namespace eBolnicaAPI.Models.DTOs
 {
-    public class Patient
+    public class DoctorAssignedPatientDto
     {
-        [Key]
         public int Id { get; set; }
 
-        [Required]
         public string FirstName { get; set; }
 
-        [Required]
         public string LastName { get; set; }
 
-        [Required]
-        public string AppUserId { get; set; }
-        public AppUser AppUser { get; set; }
-
-        public int? DoctorId { get; set; }
-
-        public Doctor Doctor { get; set; }
+        public int DoctorId { get; set; }
 
         public DateTime? DateOfBirth { get; set; }
 

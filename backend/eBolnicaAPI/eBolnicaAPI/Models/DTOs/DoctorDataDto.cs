@@ -1,6 +1,6 @@
 ﻿namespace eBolnicaAPI.Models.DTOs
 {
-    public class DoctorDataDbo
+    public class DoctorDataDto
     {
         public string FirstName { get; set; }
         

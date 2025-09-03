@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("eBolnicaAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0a0c144b240ab85b94f2f42d6ace2e98928b57c4")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+adadd86345a27c57b3fdb0fed51abe64e125791b")]
 [assembly: System.Reflection.AssemblyProductAttribute("eBolnicaAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("eBolnicaAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -47,7 +47,7 @@ namespace eBolnicaAPI.Controllers
                 return NotFound("Doctor not found");
             }
 
-            var dto = new DoctorDataDbo
+            var dto = new DoctorDataDto
             {
                 FirstName = doctorData.FirstName,
                 LastName = doctorData.LastName,
@@ -100,6 +100,46 @@ namespace eBolnicaAPI.Controllers
 
             return Ok(UpdatedDoctorDto);
 
+        }
+
+        [HttpGet("list-patients")]
+        [Authorize(Roles ="Doctor")]
+        public async Task<IActionResult> GetDoctorAssignedPatient()
+        {
+            var doctorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (doctorId == null)
+            {
+                return Unauthorized();
+            }
+
+            var doctor = await _dbContext.Doctors.FirstOrDefaultAsync(d => d.AppUserId == doctorId);
+
+            if(doctor == null)
+            {
+                return NotFound();
+            }
+
+            var patients = await _dbContext.Patients.Where(p => p.DoctorId == doctor.Id).ToListAsync();
+
+            if (!patients.Any())
+                return NotFound("No patients assigned to this doctor.");
+
+            var dtoList = patients.Select(p=> new DoctorAssignedPatientDto
+            {
+                Id = p.Id,
+                DoctorId = (int)p.DoctorId,
+                FirstName= p.FirstName,
+                LastName= p.LastName,
+                DateOfBirth = p.DateOfBirth,
+                Gender = p.Gender,
+                PhoneNumber = p.PhoneNumber,
+                Address = p.Address,
+                BloodType = p.BloodType,
+                MedicalRecordId = p.MedicalRecordId
+            }).ToList();
+
+            return Ok(dtoList);
         }
     }
 }
