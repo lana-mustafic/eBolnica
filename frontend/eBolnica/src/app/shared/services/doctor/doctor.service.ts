@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { updateDoctorDto } from '../../../models/update-doctor.dto';
 import { DoctorDataDto } from '../../../models/doctor-data.dto';
+import { DoctorAssignedPatientDto } from '../../../models/doctor-patients.dto';
 
 @Injectable({
   providedIn: 'root'
@@ -22,4 +23,7 @@ export class DoctorService {
     return this.http.put<updateDoctorDto>(this.apiUrl+'/edit-doctor',updatedDoctor);
   }
 
+  getAssignedPatients(){
+    return this.http.get<DoctorAssignedPatientDto[]>(this.apiUrl+'/list-patients');
+  }
 }

@@ -1,0 +1,36 @@
+<h2>Patients</h2>
+
+<table border="1" cellpadding="8">
+  <thead>
+    <tr>
+      <th>First Name</th>
+      <th>Last Name</th>
+      <th>Date of birth</th>
+      <th>Gender</th>
+      <th>Medical record id</th>
+      <th>Blood type</th>
+      <th>Address</th>
+      <th>Phone number</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let patient of assignedPatients">
+      <td>{{ patient.firstName }}</td>
+      <td>{{ patient.lastName }}</td>
+      <td>{{ patient.dateOfBirth }}</td>
+      <td>{{ patient.gender }}</td>
+      <td>{{ patient.medicalRecordId }}</td>
+      <td>{{ patient.bloodType }}</td>
+      <td>{{ patient.address }}</td>
+      <td>{{ patient.phoneNumber }}</td>
+    </tr>
+  </tbody>
+</table>
+
+
+<nav class="navbar d-flex justify-content-end p-2">
+  <button *ngIf="authService.isLoggedIn()"
+          class="btn btn-danger"
+          (click)="authService.logout()">
+    Logout
+  </button>

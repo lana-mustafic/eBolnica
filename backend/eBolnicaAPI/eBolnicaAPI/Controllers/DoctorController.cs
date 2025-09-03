@@ -137,7 +137,7 @@ namespace eBolnicaAPI.Controllers
                 Address = p.Address,
                 BloodType = p.BloodType,
                 MedicalRecordId = p.MedicalRecordId
-            }).ToList();
+            }).ToList();    
 
             return Ok(dtoList);
         }
