@@ -4,10 +4,11 @@ import { DoctorDto } from '../../../models/doctor.dto';
 import { RouterModule } from '@angular/router'; 
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DoctorProfileEditComponent } from './doctor-profile-edit/doctor-profile-edit.component';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-doctor-profile',
-  imports: [RouterModule, MatDialogModule],
+  imports: [RouterModule, MatDialogModule,CommonModule],
   standalone:true,
   templateUrl: './doctor-profile.component.html',
   styleUrl: './doctor-profile.component.css'

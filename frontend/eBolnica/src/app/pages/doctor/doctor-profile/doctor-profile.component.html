@@ -5,7 +5,7 @@
     <h3 class="text-lg font-medium text-gray-700 mb-3">Basic Information</h3>
     <div class="space-y-2">
       <div class="font-semibold text-gray-600">Full Name: {{doctor?.firstName}} {{doctor?.lastName}}</div>
-      <div class="font-semibold text-gray-600">Birth date: {{doctor?.birthDate}}</div>
+      <div class="font-semibold text-gray-600">Birth date: {{doctor?.birthDate  | date:'dd.MM.yyyy'}}</div>
       <div class="font-semibold text-gray-600">Specialization: {{doctor?.specialization}}</div>
       <div class="font-semibold text-gray-600">License Number: {{doctor?.licenseNumber}}</div>
     </div>

@@ -11,6 +11,7 @@ namespace eBolnicaAPI.Data
             string doctorPassword = "Doctor123!";
             string patientPassword = "Patient123!";
 
+
             var doctors = new[] { "d1", "d2", "d3" };
             var patients = new[] { "p1", "p2", "p3" };
 
@@ -19,7 +20,6 @@ namespace eBolnicaAPI.Data
                 var user = await userManager.FindByIdAsync(id);
                 if (user != null)
                 {
-                    await userManager.RemovePasswordAsync(user);
                     await userManager.AddPasswordAsync(user, doctorPassword);
                 }
             }
@@ -29,9 +29,14 @@ namespace eBolnicaAPI.Data
                 var user = await userManager.FindByIdAsync(id);
                 if (user != null)
                 {
-                    await userManager.RemovePasswordAsync(user);
                     await userManager.AddPasswordAsync(user, patientPassword);
                 }
+            }
+
+            var admin = await userManager.FindByNameAsync("admin@gmail.com");
+            if (admin != null && string.IsNullOrEmpty(admin.PasswordHash))
+            {
+                await userManager.AddPasswordAsync(admin, "Admin123!");
             }
         }
     }

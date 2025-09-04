@@ -12,7 +12,7 @@ using eBolnicaAPI.Data;
 namespace eBolnicaAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250904141215_Init")]
+    [Migration("20250904144810_Init")]
     partial class Init
     {
         /// <inheritdoc />
@@ -536,7 +536,7 @@ namespace eBolnicaAPI.Migrations
                             BloodType = "0",
                             DateOfBirth = new DateTime(1992, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 1,
-                            FirstName = "Griffin",
+                            FirstName = "Peter",
                             Gender = "Male",
                             LastName = "Griffin",
                             MedicalRecordId = "MRID3",

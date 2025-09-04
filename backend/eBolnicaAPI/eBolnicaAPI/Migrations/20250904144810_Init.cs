@@ -251,7 +251,7 @@ namespace eBolnicaAPI.Migrations
                 {
                     { 1, "Address1", "p1", "A", new DateTime(1990, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Ismet", "Male", null, "Horo", "MRID1", "061100103" },
                     { 2, "Address2", "p2", "B", new DateTime(1991, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Elon", "Female", null, "Musk", "MRID2", "061100104" },
-                    { 3, "Address3", "p3", "0", new DateTime(1992, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Griffin", "Male", null, "Griffin", "MRID3", "061100105" }
+                    { 3, "Address3", "p3", "0", new DateTime(1992, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Peter", "Male", null, "Griffin", "MRID3", "061100105" }
                 });
 
             migrationBuilder.CreateIndex(
