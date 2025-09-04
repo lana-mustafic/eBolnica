@@ -3,40 +3,16 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
+#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
+
 namespace eBolnicaAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class IdentityTablesCreation : Migration
+    public partial class Init : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "Email",
-                table: "Patients");
-
-            migrationBuilder.DropColumn(
-                name: "Email",
-                table: "Doctors");
-
-            migrationBuilder.DropColumn(
-                name: "IsActive",
-                table: "Doctors");
-
-            migrationBuilder.AddColumn<string>(
-                name: "UserId",
-                table: "Patients",
-                type: "nvarchar(450)",
-                nullable: false,
-                defaultValue: "");
-
-            migrationBuilder.AddColumn<string>(
-                name: "UserId",
-                table: "Doctors",
-                type: "nvarchar(450)",
-                nullable: false,
-                defaultValue: "");
-
             migrationBuilder.CreateTable(
                 name: "AspNetRoles",
                 columns: table => new
@@ -58,6 +34,8 @@ namespace eBolnicaAPI.Migrations
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     FirstName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     LastName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UserType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LicenseNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
@@ -184,17 +162,97 @@ namespace eBolnicaAPI.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Patients_UserId",
-                table: "Patients",
-                column: "UserId",
-                unique: true);
+            migrationBuilder.CreateTable(
+                name: "Doctors",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    FirstName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LastName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    AppUserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    RegistrationStatus = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Specialization = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    LicenseNumber = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    BirthDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Address = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Doctors", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Doctors_AspNetUsers_AppUserId",
+                        column: x => x.AppUserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id");
+                });
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Doctors_UserId",
+            migrationBuilder.CreateTable(
+                name: "Patients",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    FirstName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LastName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    AppUserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    DoctorId = table.Column<int>(type: "int", nullable: true),
+                    DateOfBirth = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Gender = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Address = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    BloodType = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    MedicalRecordId = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    IsAdmitted = table.Column<bool>(type: "bit", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Patients", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Patients_AspNetUsers_AppUserId",
+                        column: x => x.AppUserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Patients_Doctors_DoctorId",
+                        column: x => x.DoctorId,
+                        principalTable: "Doctors",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.InsertData(
+                table: "AspNetUsers",
+                columns: new[] { "Id", "AccessFailedCount", "ConcurrencyStamp", "Email", "EmailConfirmed", "FirstName", "LastName", "LicenseNumber", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "SecurityStamp", "TwoFactorEnabled", "UserName", "UserType" },
+                values: new object[,]
+                {
+                    { "d1", 0, "fixed-guid-1", "marko@gmail.com", false, "Marko", "Marković", "L1", true, null, "MARKO@GMAIL.COM", "MARKO@GMAIL.COM", null, "061100100", false, "fixed-guid-2", false, "marko@gmail.com", "Doctor" },
+                    { "d2", 0, "fixed-guid-1", "senad@gmail.com", false, "Senad", "Husić", "L2", true, null, "SENAD@GMAIL.COM", "SENAD@GMAIL.COM", null, "061100101", false, "fixed-guid-2", false, "senad@gmail.com", "Doctor" },
+                    { "d3", 0, "fixed-guid-1", "petar@gmail.com", false, "Petar", "Petrović", "L3", true, null, "PETAR@GMAIL.COM", "PETAR@GMAIL.COM", null, "061100102", false, "fixed-guid-2", false, "petar@gmail.com", "Doctor" },
+                    { "p1", 0, "fixed-guid-1", "ismet@gmail.com", false, "Ismet", "Horo", null, true, null, "ISMET@GMAIL.COM", "ISMET@GMAIL.COM", null, "061100103", false, "fixed-guid-2", false, "ismet@gmail.com", "Patient" },
+                    { "p2", 0, "fixed-guid-1", "elon@gmail.com", false, "Elon", "Musk", null, true, null, "ELON@GMAIL.COM", "ELON@GMAIL.COM", null, "061100104", false, "fixed-guid-2", false, "elon@gmail.com", "Patient" },
+                    { "p3", 0, "fixed-guid-1", "peter@gmail.com", false, "Peter", "Griffin", null, true, null, "PETER@GMAIL.COM", "PETER@GMAIL.COM", null, "061100105", false, "fixed-guid-2", false, "peter@gmail.com", "Patient" }
+                });
+
+            migrationBuilder.InsertData(
                 table: "Doctors",
-                column: "UserId",
-                unique: true);
+                columns: new[] { "Id", "Address", "AppUserId", "BirthDate", "FirstName", "LastName", "LicenseNumber", "PhoneNumber", "RegistrationStatus", "Specialization" },
+                values: new object[,]
+                {
+                    { 1, "Address1", "d1", new DateTime(1995, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), "Marko", "Marković", "L1", "061100100", "Approved", "Cardiology" },
+                    { 2, "Address2", "d2", new DateTime(1993, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), "Senad", "Husić", "L2", "061100101", "Approved", "Neurology" },
+                    { 3, "Address3", "d3", new DateTime(1991, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), "Petar", "Petrović", "L3", "061100102", "Approved", "Psychiatry" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Patients",
+                columns: new[] { "Id", "Address", "AppUserId", "BloodType", "DateOfBirth", "DoctorId", "FirstName", "Gender", "IsAdmitted", "LastName", "MedicalRecordId", "PhoneNumber" },
+                values: new object[,]
+                {
+                    { 1, "Address1", "p1", "A", new DateTime(1990, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Ismet", "Male", null, "Horo", "MRID1", "061100103" },
+                    { 2, "Address2", "p2", "B", new DateTime(1991, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Elon", "Female", null, "Musk", "MRID2", "061100104" },
+                    { 3, "Address3", "p3", "0", new DateTime(1992, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Griffin", "Male", null, "Griffin", "MRID3", "061100105" }
+                });
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
@@ -235,34 +293,27 @@ namespace eBolnicaAPI.Migrations
                 unique: true,
                 filter: "[NormalizedUserName] IS NOT NULL");
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_Doctors_AspNetUsers_UserId",
+            migrationBuilder.CreateIndex(
+                name: "IX_Doctors_AppUserId",
                 table: "Doctors",
-                column: "UserId",
-                principalTable: "AspNetUsers",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
+                column: "AppUserId",
+                unique: true);
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_Patients_AspNetUsers_UserId",
+            migrationBuilder.CreateIndex(
+                name: "IX_Patients_AppUserId",
                 table: "Patients",
-                column: "UserId",
-                principalTable: "AspNetUsers",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
+                column: "AppUserId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Patients_DoctorId",
+                table: "Patients",
+                column: "DoctorId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_Doctors_AspNetUsers_UserId",
-                table: "Doctors");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_Patients_AspNetUsers_UserId",
-                table: "Patients");
-
             migrationBuilder.DropTable(
                 name: "AspNetRoleClaims");
 
@@ -279,47 +330,16 @@ namespace eBolnicaAPI.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
+                name: "Patients");
+
+            migrationBuilder.DropTable(
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
+                name: "Doctors");
+
+            migrationBuilder.DropTable(
                 name: "AspNetUsers");
-
-            migrationBuilder.DropIndex(
-                name: "IX_Patients_UserId",
-                table: "Patients");
-
-            migrationBuilder.DropIndex(
-                name: "IX_Doctors_UserId",
-                table: "Doctors");
-
-            migrationBuilder.DropColumn(
-                name: "UserId",
-                table: "Patients");
-
-            migrationBuilder.DropColumn(
-                name: "UserId",
-                table: "Doctors");
-
-            migrationBuilder.AddColumn<string>(
-                name: "Email",
-                table: "Patients",
-                type: "nvarchar(max)",
-                nullable: false,
-                defaultValue: "");
-
-            migrationBuilder.AddColumn<string>(
-                name: "Email",
-                table: "Doctors",
-                type: "nvarchar(max)",
-                nullable: false,
-                defaultValue: "");
-
-            migrationBuilder.AddColumn<bool>(
-                name: "IsActive",
-                table: "Doctors",
-                type: "bit",
-                nullable: false,
-                defaultValue: false);
         }
     }
 }

@@ -12,8 +12,8 @@ using eBolnicaAPI.Data;
 namespace eBolnicaAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250819161118_DoctorEntityEdit")]
-    partial class DoctorEntityEdit
+    [Migration("20250904141215_Init")]
+    partial class Init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -236,6 +236,125 @@ namespace eBolnicaAPI.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "d1",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "fixed-guid-1",
+                            Email = "marko@gmail.com",
+                            EmailConfirmed = false,
+                            FirstName = "Marko",
+                            LastName = "Marković",
+                            LicenseNumber = "L1",
+                            LockoutEnabled = true,
+                            NormalizedEmail = "MARKO@GMAIL.COM",
+                            NormalizedUserName = "MARKO@GMAIL.COM",
+                            PhoneNumber = "061100100",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "fixed-guid-2",
+                            TwoFactorEnabled = false,
+                            UserName = "marko@gmail.com",
+                            UserType = "Doctor"
+                        },
+                        new
+                        {
+                            Id = "d2",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "fixed-guid-1",
+                            Email = "senad@gmail.com",
+                            EmailConfirmed = false,
+                            FirstName = "Senad",
+                            LastName = "Husić",
+                            LicenseNumber = "L2",
+                            LockoutEnabled = true,
+                            NormalizedEmail = "SENAD@GMAIL.COM",
+                            NormalizedUserName = "SENAD@GMAIL.COM",
+                            PhoneNumber = "061100101",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "fixed-guid-2",
+                            TwoFactorEnabled = false,
+                            UserName = "senad@gmail.com",
+                            UserType = "Doctor"
+                        },
+                        new
+                        {
+                            Id = "d3",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "fixed-guid-1",
+                            Email = "petar@gmail.com",
+                            EmailConfirmed = false,
+                            FirstName = "Petar",
+                            LastName = "Petrović",
+                            LicenseNumber = "L3",
+                            LockoutEnabled = true,
+                            NormalizedEmail = "PETAR@GMAIL.COM",
+                            NormalizedUserName = "PETAR@GMAIL.COM",
+                            PhoneNumber = "061100102",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "fixed-guid-2",
+                            TwoFactorEnabled = false,
+                            UserName = "petar@gmail.com",
+                            UserType = "Doctor"
+                        },
+                        new
+                        {
+                            Id = "p1",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "fixed-guid-1",
+                            Email = "ismet@gmail.com",
+                            EmailConfirmed = false,
+                            FirstName = "Ismet",
+                            LastName = "Horo",
+                            LockoutEnabled = true,
+                            NormalizedEmail = "ISMET@GMAIL.COM",
+                            NormalizedUserName = "ISMET@GMAIL.COM",
+                            PhoneNumber = "061100103",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "fixed-guid-2",
+                            TwoFactorEnabled = false,
+                            UserName = "ismet@gmail.com",
+                            UserType = "Patient"
+                        },
+                        new
+                        {
+                            Id = "p2",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "fixed-guid-1",
+                            Email = "elon@gmail.com",
+                            EmailConfirmed = false,
+                            FirstName = "Elon",
+                            LastName = "Musk",
+                            LockoutEnabled = true,
+                            NormalizedEmail = "ELON@GMAIL.COM",
+                            NormalizedUserName = "ELON@GMAIL.COM",
+                            PhoneNumber = "061100104",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "fixed-guid-2",
+                            TwoFactorEnabled = false,
+                            UserName = "elon@gmail.com",
+                            UserType = "Patient"
+                        },
+                        new
+                        {
+                            Id = "p3",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "fixed-guid-1",
+                            Email = "peter@gmail.com",
+                            EmailConfirmed = false,
+                            FirstName = "Peter",
+                            LastName = "Griffin",
+                            LockoutEnabled = true,
+                            NormalizedEmail = "PETER@GMAIL.COM",
+                            NormalizedUserName = "PETER@GMAIL.COM",
+                            PhoneNumber = "061100105",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "fixed-guid-2",
+                            TwoFactorEnabled = false,
+                            UserName = "peter@gmail.com",
+                            UserType = "Patient"
+                        });
                 });
 
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.Doctor", b =>
@@ -246,9 +365,15 @@ namespace eBolnicaAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Address")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("AppUserId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("BirthDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
@@ -272,14 +397,53 @@ namespace eBolnicaAPI.Migrations
                     b.Property<string>("Specialization")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("YearsOfExperience")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("AppUserId");
+                    b.HasIndex("AppUserId")
+                        .IsUnique();
 
                     b.ToTable("Doctors");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Address = "Address1",
+                            AppUserId = "d1",
+                            BirthDate = new DateTime(1995, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            FirstName = "Marko",
+                            LastName = "Marković",
+                            LicenseNumber = "L1",
+                            PhoneNumber = "061100100",
+                            RegistrationStatus = "Approved",
+                            Specialization = "Cardiology"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Address = "Address2",
+                            AppUserId = "d2",
+                            BirthDate = new DateTime(1993, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            FirstName = "Senad",
+                            LastName = "Husić",
+                            LicenseNumber = "L2",
+                            PhoneNumber = "061100101",
+                            RegistrationStatus = "Approved",
+                            Specialization = "Neurology"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Address = "Address3",
+                            AppUserId = "d3",
+                            BirthDate = new DateTime(1991, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            FirstName = "Petar",
+                            LastName = "Petrović",
+                            LicenseNumber = "L3",
+                            PhoneNumber = "061100102",
+                            RegistrationStatus = "Approved",
+                            Specialization = "Psychiatry"
+                        });
                 });
 
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.Patient", b =>
@@ -302,6 +466,9 @@ namespace eBolnicaAPI.Migrations
 
                     b.Property<DateTime?>("DateOfBirth")
                         .HasColumnType("datetime2");
+
+                    b.Property<int?>("DoctorId")
+                        .HasColumnType("int");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
@@ -328,7 +495,53 @@ namespace eBolnicaAPI.Migrations
                     b.HasIndex("AppUserId")
                         .IsUnique();
 
+                    b.HasIndex("DoctorId");
+
                     b.ToTable("Patients");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Address = "Address1",
+                            AppUserId = "p1",
+                            BloodType = "A",
+                            DateOfBirth = new DateTime(1990, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DoctorId = 1,
+                            FirstName = "Ismet",
+                            Gender = "Male",
+                            LastName = "Horo",
+                            MedicalRecordId = "MRID1",
+                            PhoneNumber = "061100103"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Address = "Address2",
+                            AppUserId = "p2",
+                            BloodType = "B",
+                            DateOfBirth = new DateTime(1991, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DoctorId = 1,
+                            FirstName = "Elon",
+                            Gender = "Female",
+                            LastName = "Musk",
+                            MedicalRecordId = "MRID2",
+                            PhoneNumber = "061100104"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Address = "Address3",
+                            AppUserId = "p3",
+                            BloodType = "0",
+                            DateOfBirth = new DateTime(1992, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DoctorId = 1,
+                            FirstName = "Griffin",
+                            Gender = "Male",
+                            LastName = "Griffin",
+                            MedicalRecordId = "MRID3",
+                            PhoneNumber = "061100105"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -385,9 +598,9 @@ namespace eBolnicaAPI.Migrations
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.Doctor", b =>
                 {
                     b.HasOne("eBolnicaAPI.Models.Entities.AppUser", "AppUser")
-                        .WithMany()
-                        .HasForeignKey("AppUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .WithOne("Doctor")
+                        .HasForeignKey("eBolnicaAPI.Models.Entities.Doctor", "AppUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("AppUser");
@@ -396,12 +609,31 @@ namespace eBolnicaAPI.Migrations
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.Patient", b =>
                 {
                     b.HasOne("eBolnicaAPI.Models.Entities.AppUser", "AppUser")
-                        .WithOne()
+                        .WithOne("Patient")
                         .HasForeignKey("eBolnicaAPI.Models.Entities.Patient", "AppUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("eBolnicaAPI.Models.Entities.Doctor", "Doctor")
+                        .WithMany("Patients")
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("AppUser");
+
+                    b.Navigation("Doctor");
+                });
+
+            modelBuilder.Entity("eBolnicaAPI.Models.Entities.AppUser", b =>
+                {
+                    b.Navigation("Doctor");
+
+                    b.Navigation("Patient");
+                });
+
+            modelBuilder.Entity("eBolnicaAPI.Models.Entities.Doctor", b =>
+                {
+                    b.Navigation("Patients");
                 });
 #pragma warning restore 612, 618
         }
