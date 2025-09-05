@@ -17,6 +17,10 @@ namespace eBolnicaAPI.Models.Entities
         public string AppUserId { get; set; }
         public AppUser AppUser { get; set; }
 
+        public int? DoctorId { get; set; }
+
+        public Doctor Doctor { get; set; }
+
         public DateTime? DateOfBirth { get; set; }
 
         public string? Gender { get; set; }

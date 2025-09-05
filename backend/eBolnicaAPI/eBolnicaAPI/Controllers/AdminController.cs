@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Runtime.CompilerServices;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.OpenApi.Validations;
 
 namespace eBolnicaAPI.Controllers
 {
@@ -23,30 +26,49 @@ namespace eBolnicaAPI.Controllers
         }
 
         [HttpGet("list-users")]
-        public async Task<IActionResult> GetUsers()
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetUsers(
+                int page = 1,
+                int pageSize=10,
+                string? userType = null
+            )
         {
-            var users = await _dbContext.AppUsers.Include(u=>u.Doctor).Include(u=>u.Patient).Select(u => new
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            var query = _dbContext.AppUsers.Where(u => u.Id != currentUserId).Include(u => u.Doctor).Include(u => u.Patient).AsQueryable();
+
+            if (!string.IsNullOrEmpty(userType))
             {
-                u.Doctor.AppUserId,
-                u.FirstName,
-                u.LastName,
-                u.Email,
-                u.UserType,
+                query=query.Where(u=>u.UserType == userType);
+            }
 
-                DoctorInfo = u.UserType=="Doctor" ? new
-                {
-                    u.Doctor.LicenseNumber,
-                    u.Doctor.RegistrationStatus
-                } : null
+            var totalCount = await query.CountAsync();
 
-            }).ToListAsync();
+            var users = await query.OrderBy(u=>u.FirstName).Skip((page-1)*pageSize).Take(pageSize).Select(u => new UserOverviewDto
+            {
+                AppUserId = u.Id,
+                FirstName = u.FirstName,
+                LastName = u.LastName,
+                Email = u.Email,
+                UserType = u.UserType,
+                RegistrationStatus = u.UserType == "Doctor" ? u.Doctor.RegistrationStatus : null,
+                LicenseNumber = u.UserType == "Doctor" ? u.Doctor.LicenseNumber : null
 
-            return Ok(users);
+            }).ToListAsync();   
+
+            return Ok(new
+            {
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                Users = users
+            });
         }
 
         [HttpPut("update-registration-status/{AppUserId}")]
         public async Task<IActionResult> UpdateRegistrationStatus(string AppUserId, [FromBody]UpdateRegistrationStatusDto dto)
         {
+
             var doctor = await _dbContext.Doctors.FirstOrDefaultAsync(d=>d.AppUserId == AppUserId);
 
             if (doctor == null)

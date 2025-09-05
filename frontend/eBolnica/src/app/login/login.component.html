@@ -1,3 +1,4 @@
+<button class="btn" routerLink="/">Home</button>
 <div class="login-container">
     <div class="mb-4 h2 text-success text-center">User Login</div>
 <form>
@@ -8,11 +9,10 @@
         <input type="password" name="password" class="form-control bg-body-secondary" placeholder="Password" [(ngModel)]="loginData.password">
     </div>
     <div class="mb-3">
-        <button (click)="onLogin()" [disabled]="!loginData.email || !loginData.password" type="submit" class="btn btn-success rounded-3">Login</button>
+        <button (click)="onLogin()" [disabled]="!loginData.email || !loginData.password" type="submit" class="btn btn-success rounded-3 btn ml-5percent">Login</button>
     </div>
     <div *ngIf="errorMessage" class="text-danger mt-2">
     {{ errorMessage }}
   </div>
 </form>
-
 </div>

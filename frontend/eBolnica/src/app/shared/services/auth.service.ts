@@ -5,8 +5,10 @@ import { jwtDecode } from 'jwt-decode';
 import { Router } from '@angular/router';
 
 interface JwtTokenPayload {
-  UserType: string;
+  role: string;
   exp: number;
+  firstName:string;
+  lastName:string;
 }
 
 @Injectable({
@@ -43,7 +45,7 @@ export class AuthService {
     try{
         const decoded = jwtDecode<JwtTokenPayload>(token);
         console.log('Decoded JWT:', decoded);
-        return decoded.UserType;
+        return decoded.role;
     }
     catch{
       return null;
@@ -52,10 +54,29 @@ export class AuthService {
 
   logout():void{
     localStorage.removeItem('jwtToken');
-    this.router.navigate(['/user-login']);
+    this.router.navigate(['/']);
   }
 
   isLoggedIn():boolean{
     return !!this.getToken();
   }
+
+  roleCheck(userRole: string): boolean {
+  const expectedRole = this.getUserType();
+  console.log('roleCheck → required:', userRole, ' user has:', expectedRole);
+  return expectedRole === userRole;
+  }
+
+  userLoggedInfo():string|null{
+    const token = this.getToken();
+    if(!token){
+      return null;
+    }
+    const decoded = jwtDecode<JwtTokenPayload>(token);
+     if (decoded.firstName && decoded.lastName) {
+    return `${decoded.firstName} ${decoded.lastName}`;
+  }
+  return null;
+  }
+
 }

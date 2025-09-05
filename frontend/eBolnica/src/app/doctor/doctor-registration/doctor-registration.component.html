@@ -1,3 +1,4 @@
+<button class="btn" routerLink="/">Home</button>
 <div class="page-container">
     <div class="mb-4 h2 text-success text-center">Doctor Registration</div>
 <form [formGroup]="form" (ngSubmit)="onSubmit()">
@@ -25,15 +26,15 @@
     </div>
     <div class="mb-3">
         <input class="form-control bg-body-secondary" placeholder="License Number" formControlName="licenseNumber">
-        <div class="error-feedback" *ngIf="form.controls['licenseNumber'].hasError('required')">
-            Please enter your license number
+             <div class="error-feedback" *ngIf="form.get('licenseNumber')?.touched && form.get('licenseNumber')?.hasError('required')">
+                Please enter your license number
+  </div>
         </div>
-    </div>
      <div class="mb-3">
         <input class="form-control bg-body-secondary" placeholder="Email" formControlName="email">
-        <div class="error-feedback" *ngIf="form.get('email')?.invalid">
-            <div *ngIf="form.controls['email'].hasError('required')"></div>
-            Please enter your Email
+        <div class="error-feedback"
+            *ngIf="form.get('email')?.touched && form.get('email')?.hasError('email')">
+                Please enter a valid Email address
         </div>
     </div>
      <div class="mb-3">
@@ -65,7 +66,7 @@
 
     </div>
      <div class="mb-3">
-        <button type="submit" [disabled]="form.invalid" class="btn btn-success rounded-3">Register</button>
+        <button type="submit" [disabled]="form.invalid" class="btn btn-success rounded-3 btn ml-5">Register</button>
     </div>
     <div *ngIf="submitSuccess">
     {{ submitSuccess }}

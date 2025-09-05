@@ -2,11 +2,12 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AbstractControl, Form, FormBuilder, FormGroup, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
 import { AuthService } from '../../shared/services/auth.service';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-doctor-registration',
   standalone: true,
-  imports: [ReactiveFormsModule,CommonModule],
+  imports: [ReactiveFormsModule,CommonModule,RouterModule],
   templateUrl: './doctor-registration.component.html',
   styleUrl: './doctor-registration.component.css'
 })

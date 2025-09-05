@@ -18,6 +18,7 @@ namespace eBolnicaAPI.Models.Entities
         public string AppUserId { get; set; }
         public AppUser AppUser { get; set; }
 
+        public ICollection<Patient> Patients { get; set; } = new List<Patient>();
         public string RegistrationStatus { get; set; }
         public string? PhoneNumber { get; set; }
 
@@ -25,6 +26,7 @@ namespace eBolnicaAPI.Models.Entities
 
         public string LicenseNumber { get; set; }
 
-        public int? YearsOfExperience { get; set; }
+        public DateTime? BirthDate { get; set; }
+        public string? Address { get; set; }
     }
 }

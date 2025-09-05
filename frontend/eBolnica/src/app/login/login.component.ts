@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, CommonModule],
+  imports: [FormsModule, CommonModule, RouterModule],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css'
 })
@@ -22,8 +23,10 @@ export class LoginComponent {
     };
     errorMessage: string | null = null;
 
-    private router=inject(Router);
-    private authService=inject(AuthService);
+    public router=inject(Router);
+    public authService=inject(AuthService);
+
+    
 
     onLogin(){
         this.authService.login(this.loginData.email,this.loginData.password).subscribe({
@@ -36,7 +39,7 @@ export class LoginComponent {
             if(role==='Admin'){
               this.router.navigateByUrl('/admin-dashboard');
             }else if(role==='Doctor'){
-              this.router.navigateByUrl('/');
+              this.router.navigateByUrl('/doctor-dashboard');
             }else if(role==='Patient'){
               this.router.navigateByUrl('/');
             }
@@ -52,6 +55,5 @@ export class LoginComponent {
         })
       }
       
-
 }
 
