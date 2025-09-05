@@ -24,11 +24,11 @@
         </div>
     </div>
     </div>
-     <div class="mb-3">
+      <div class="mb-3">
         <input class="form-control bg-body-secondary" placeholder="Email" formControlName="email">
-        <div class="error-feedback" *ngIf="form.get('email')?.invalid">
-            <div *ngIf="form.controls['email'].hasError('required')"></div>
-            Please enter your Email
+        <div class="error-feedback"
+            *ngIf="form.get('email')?.touched && form.get('email')?.hasError('email')">
+                Please enter a valid Email address
         </div>
     </div>
      <div class="mb-3">
