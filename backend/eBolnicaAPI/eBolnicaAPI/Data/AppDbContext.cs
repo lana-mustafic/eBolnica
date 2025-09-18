@@ -1,4 +1,4 @@
-﻿    using eBolnicaAPI.Models.Entities;
+﻿using eBolnicaAPI.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
@@ -177,6 +177,10 @@ namespace eBolnicaAPI.Data
     public DbSet<Doctor> Doctors { get; set; }
     public DbSet<Patient> Patients { get; set; }
     public DbSet<AppUser> AppUsers { get; set; }
+
+    public DbSet<MedicalRecord> MedicalRecords { get; set; }
+
+    public DbSet<MedicalReport> MedicalReports { get; set; }
     }
 }
 

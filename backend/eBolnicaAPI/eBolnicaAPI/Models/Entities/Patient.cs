@@ -31,7 +31,7 @@ namespace eBolnicaAPI.Models.Entities
 
         public string? BloodType { get; set; }
 
-        public string? MedicalRecordId { get; set; }
+        public MedicalRecord MedicalRecord { get; set; }
 
         public bool? IsAdmitted { get; set; }
     }
