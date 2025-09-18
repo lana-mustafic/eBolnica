@@ -203,7 +203,6 @@ namespace eBolnicaAPI.Migrations
                     PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Address = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     BloodType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    MedicalRecordId = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     IsAdmitted = table.Column<bool>(type: "bit", nullable: true)
                 },
                 constraints: table =>
@@ -219,6 +218,62 @@ namespace eBolnicaAPI.Migrations
                         column: x => x.DoctorId,
                         principalTable: "Doctors",
                         principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MedicalRecords",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PatientId = table.Column<int>(type: "int", nullable: false),
+                    RecordNumber = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    MedicalRecordId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MedicalRecords", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MedicalRecords_MedicalRecords_MedicalRecordId",
+                        column: x => x.MedicalRecordId,
+                        principalTable: "MedicalRecords",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_MedicalRecords_Patients_PatientId",
+                        column: x => x.PatientId,
+                        principalTable: "Patients",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MedicalReports",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    MedicalRecordId = table.Column<int>(type: "int", nullable: false),
+                    DoctorId = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Diagnosis = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Symptoms = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Therapy = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MedicalReports", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MedicalReports_Doctors_DoctorId",
+                        column: x => x.DoctorId,
+                        principalTable: "Doctors",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_MedicalReports_MedicalRecords_MedicalRecordId",
+                        column: x => x.MedicalRecordId,
+                        principalTable: "MedicalRecords",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.InsertData(
@@ -246,12 +301,12 @@ namespace eBolnicaAPI.Migrations
 
             migrationBuilder.InsertData(
                 table: "Patients",
-                columns: new[] { "Id", "Address", "AppUserId", "BloodType", "DateOfBirth", "DoctorId", "FirstName", "Gender", "IsAdmitted", "LastName", "MedicalRecordId", "PhoneNumber" },
+                columns: new[] { "Id", "Address", "AppUserId", "BloodType", "DateOfBirth", "DoctorId", "FirstName", "Gender", "IsAdmitted", "LastName", "PhoneNumber" },
                 values: new object[,]
                 {
-                    { 1, "Address1", "p1", "A", new DateTime(1990, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Ismet", "Male", null, "Horo", "MRID1", "061100103" },
-                    { 2, "Address2", "p2", "B", new DateTime(1991, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Elon", "Female", null, "Musk", "MRID2", "061100104" },
-                    { 3, "Address3", "p3", "0", new DateTime(1992, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Peter", "Male", null, "Griffin", "MRID3", "061100105" }
+                    { 1, "Address1", "p1", "A", new DateTime(1990, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Ismet", "Male", null, "Horo", "061100103" },
+                    { 2, "Address2", "p2", "B", new DateTime(1991, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Elon", "Female", null, "Musk", "061100104" },
+                    { 3, "Address3", "p3", "0", new DateTime(1992, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Peter", "Male", null, "Griffin", "061100105" }
                 });
 
             migrationBuilder.CreateIndex(
@@ -300,6 +355,27 @@ namespace eBolnicaAPI.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_MedicalRecords_MedicalRecordId",
+                table: "MedicalRecords",
+                column: "MedicalRecordId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MedicalRecords_PatientId",
+                table: "MedicalRecords",
+                column: "PatientId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MedicalReports_DoctorId",
+                table: "MedicalReports",
+                column: "DoctorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MedicalReports_MedicalRecordId",
+                table: "MedicalReports",
+                column: "MedicalRecordId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Patients_AppUserId",
                 table: "Patients",
                 column: "AppUserId",
@@ -330,10 +406,16 @@ namespace eBolnicaAPI.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "Patients");
+                name: "MedicalReports");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
+
+            migrationBuilder.DropTable(
+                name: "MedicalRecords");
+
+            migrationBuilder.DropTable(
+                name: "Patients");
 
             migrationBuilder.DropTable(
                 name: "Doctors");

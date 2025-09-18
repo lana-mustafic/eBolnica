@@ -443,6 +443,72 @@ namespace eBolnicaAPI.Migrations
                         });
                 });
 
+            modelBuilder.Entity("eBolnicaAPI.Models.Entities.MedicalRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("MedicalRecordId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PatientId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RecordNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MedicalRecordId");
+
+                    b.HasIndex("PatientId")
+                        .IsUnique();
+
+                    b.ToTable("MedicalRecords");
+                });
+
+            modelBuilder.Entity("eBolnicaAPI.Models.Entities.MedicalReport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Diagnosis")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DoctorId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MedicalRecordId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Symptoms")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Therapy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("MedicalRecordId");
+
+                    b.ToTable("MedicalReports");
+                });
+
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.Patient", b =>
                 {
                     b.Property<int>("Id")
@@ -481,9 +547,6 @@ namespace eBolnicaAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("MedicalRecordId")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("nvarchar(max)");
 
@@ -508,7 +571,6 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Ismet",
                             Gender = "Male",
                             LastName = "Horo",
-                            MedicalRecordId = "MRID1",
                             PhoneNumber = "061100103"
                         },
                         new
@@ -522,7 +584,6 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Elon",
                             Gender = "Female",
                             LastName = "Musk",
-                            MedicalRecordId = "MRID2",
                             PhoneNumber = "061100104"
                         },
                         new
@@ -536,7 +597,6 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Peter",
                             Gender = "Male",
                             LastName = "Griffin",
-                            MedicalRecordId = "MRID3",
                             PhoneNumber = "061100105"
                         });
                 });
@@ -603,6 +663,40 @@ namespace eBolnicaAPI.Migrations
                     b.Navigation("AppUser");
                 });
 
+            modelBuilder.Entity("eBolnicaAPI.Models.Entities.MedicalRecord", b =>
+                {
+                    b.HasOne("eBolnicaAPI.Models.Entities.MedicalRecord", null)
+                        .WithMany("Reports")
+                        .HasForeignKey("MedicalRecordId");
+
+                    b.HasOne("eBolnicaAPI.Models.Entities.Patient", "Patient")
+                        .WithOne("MedicalRecord")
+                        .HasForeignKey("eBolnicaAPI.Models.Entities.MedicalRecord", "PatientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Patient");
+                });
+
+            modelBuilder.Entity("eBolnicaAPI.Models.Entities.MedicalReport", b =>
+                {
+                    b.HasOne("eBolnicaAPI.Models.Entities.Doctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("eBolnicaAPI.Models.Entities.MedicalRecord", "MedicalRecord")
+                        .WithMany()
+                        .HasForeignKey("MedicalRecordId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("MedicalRecord");
+                });
+
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.Patient", b =>
                 {
                     b.HasOne("eBolnicaAPI.Models.Entities.AppUser", "AppUser")
@@ -631,6 +725,17 @@ namespace eBolnicaAPI.Migrations
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.Doctor", b =>
                 {
                     b.Navigation("Patients");
+                });
+
+            modelBuilder.Entity("eBolnicaAPI.Models.Entities.MedicalRecord", b =>
+                {
+                    b.Navigation("Reports");
+                });
+
+            modelBuilder.Entity("eBolnicaAPI.Models.Entities.Patient", b =>
+                {
+                    b.Navigation("MedicalRecord")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

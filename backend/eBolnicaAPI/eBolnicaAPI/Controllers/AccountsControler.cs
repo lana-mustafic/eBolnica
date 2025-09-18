@@ -57,6 +57,15 @@ namespace eBolnicaAPI.Controllers
             _dbcontext.Patients.Add(patient);
             await _dbcontext.SaveChangesAsync();
 
+            var record = new MedicalRecord
+            {
+                PatientId = patient.Id,
+                RecordNumber = $"MR-{DateTime.Now:yyyy}-{patient.Id}",
+            };
+
+            _dbcontext.MedicalRecords.Add(record);
+            await _dbcontext.SaveChangesAsync();
+
             return Ok(new { message = "Patient registered successfully" });
 
         }

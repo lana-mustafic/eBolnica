@@ -167,9 +167,9 @@ namespace eBolnicaAPI.Data
                 );
 
             modelBuilder.Entity<Patient>().HasData(
-                new Patient { Id = 1, FirstName = patient1.FirstName, LastName = patient1.LastName, AppUserId = "p1", Gender="Male",Address = "Address1", DateOfBirth = new DateTime(1990, 3, 15), MedicalRecordId="MRID1", BloodType="A", DoctorId=1, PhoneNumber=patient1.PhoneNumber },
-                new Patient { Id = 2, FirstName =patient2.FirstName, LastName = patient2.LastName, AppUserId = "p2", Gender="Female",Address = "Address2", DateOfBirth = new DateTime(1991, 3, 15), MedicalRecordId = "MRID2", BloodType = "B", DoctorId = 1, PhoneNumber=patient2.PhoneNumber },
-                new Patient { Id = 3, FirstName = patient3.FirstName, LastName =patient3.LastName, AppUserId = "p3", Gender="Male", Address = "Address3", DateOfBirth = new DateTime(1992, 3, 15), MedicalRecordId = "MRID3", BloodType = "0", DoctorId = 1, PhoneNumber=patient3.PhoneNumber }
+                new Patient { Id = 1, FirstName = patient1.FirstName, LastName = patient1.LastName, AppUserId = "p1", Gender="Male",Address = "Address1", DateOfBirth = new DateTime(1990, 3, 15), BloodType="A", DoctorId=1, PhoneNumber=patient1.PhoneNumber },
+                new Patient { Id = 2, FirstName =patient2.FirstName, LastName = patient2.LastName, AppUserId = "p2", Gender="Female",Address = "Address2", DateOfBirth = new DateTime(1991, 3, 15), BloodType = "B", DoctorId = 1, PhoneNumber=patient2.PhoneNumber },
+                new Patient { Id = 3, FirstName = patient3.FirstName, LastName =patient3.LastName, AppUserId = "p3", Gender="Male", Address = "Address3", DateOfBirth = new DateTime(1992, 3, 15), BloodType = "0", DoctorId = 1, PhoneNumber=patient3.PhoneNumber }
                 );
 
         }

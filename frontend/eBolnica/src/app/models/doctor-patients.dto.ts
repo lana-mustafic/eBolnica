@@ -8,6 +8,5 @@ export interface DoctorAssignedPatientDto {
   phoneNumber?: string;
   address?: string;
   bloodType?: string;
-  medicalRecordId?: string;
   isAdmitted?: boolean;
 }
