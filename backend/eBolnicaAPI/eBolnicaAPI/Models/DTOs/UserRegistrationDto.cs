@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using eBolnicaAPI.Models.Entities;
+using System.ComponentModel.DataAnnotations;
 
 namespace eBolnicaAPI.Models.DTOs
 {
@@ -21,6 +22,9 @@ namespace eBolnicaAPI.Models.DTOs
         [Required(ErrorMessage = "Confirm Password is required.")]
         [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
         public string ConfirmPassword { get; set; }
+
+        public int DoctorId { get; set; }
+
     }
     public class DoctorRegistrationDto
     {

@@ -165,5 +165,19 @@ namespace eBolnicaAPI.Controllers
 
             return Ok(report.Id);
         }
+
+        [HttpGet("GetAllDoctors")]
+        public async Task<IActionResult> GetDoctors()
+        {
+
+            var doctors = await _dbContext.Doctors.Select(d => new DoctorListDto
+            {
+                Id = d.Id,
+                FirstName = d.FirstName,
+                LastName = d.LastName,
+            }).ToListAsync();
+
+            return Ok(doctors);
+        }
     }
 }

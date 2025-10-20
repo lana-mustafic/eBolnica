@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { updateDoctorDto } from '../../../models/update-doctor.dto';
 import { DoctorDataDto } from '../../../models/doctor-data.dto';
 import { DoctorAssignedPatientDto } from '../../../models/doctor-patients.dto';
+import { DoctorListDto } from '../../../models/doctor-list.dto';
 
 @Injectable({
   providedIn: 'root'
@@ -25,5 +26,9 @@ export class DoctorService {
 
   getAssignedPatients(){
     return this.http.get<DoctorAssignedPatientDto[]>(this.apiUrl+'/list-patients');
+  }
+
+  getAllDoctors(): Observable<DoctorListDto[]>{
+    return this.http.get<DoctorListDto[]>(this.apiUrl+'/GetAllDoctors')
   }
 }

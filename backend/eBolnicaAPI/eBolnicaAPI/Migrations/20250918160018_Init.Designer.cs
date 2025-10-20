@@ -12,7 +12,7 @@ using eBolnicaAPI.Data;
 namespace eBolnicaAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250918150102_Init")]
+    [Migration("20250918160018_Init")]
     partial class Init
     {
         /// <inheritdoc />
@@ -238,6 +238,25 @@ namespace eBolnicaAPI.Migrations
                     b.ToTable("AspNetUsers", (string)null);
 
                     b.HasData(
+                        new
+                        {
+                            Id = "a1",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "fixed-guid-3",
+                            Email = "admin@gmail.com",
+                            EmailConfirmed = true,
+                            FirstName = "Admin",
+                            LastName = "User",
+                            LockoutEnabled = true,
+                            NormalizedEmail = "ADMIN@GMAIL.COM",
+                            NormalizedUserName = "ADMIN@GMAIL.COM",
+                            PhoneNumber = "061000000",
+                            PhoneNumberConfirmed = true,
+                            SecurityStamp = "fixed-guid-3",
+                            TwoFactorEnabled = false,
+                            UserName = "admin@gmail.com",
+                            UserType = "Admin"
+                        },
                         new
                         {
                             Id = "d1",
@@ -472,6 +491,26 @@ namespace eBolnicaAPI.Migrations
                         .IsUnique();
 
                     b.ToTable("MedicalRecords");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            PatientId = 1,
+                            RecordNumber = "MR-2025-p1"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            PatientId = 2,
+                            RecordNumber = "MR-2025-p2"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            PatientId = 3,
+                            RecordNumber = "MR-2025-p3"
+                        });
                 });
 
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.MedicalReport", b =>

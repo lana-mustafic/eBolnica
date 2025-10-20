@@ -122,6 +122,16 @@
   },
   {
     "ContainingType": "eBolnicaAPI.Controllers.DoctorController",
+    "Method": "GetDoctors",
+    "RelativePath": "api/doctor/GetAllDoctors",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "eBolnicaAPI.Controllers.DoctorController",
     "Method": "GetDoctorAssignedPatient",
     "RelativePath": "api/doctor/list-patients",
     "HttpMethod": "GET",

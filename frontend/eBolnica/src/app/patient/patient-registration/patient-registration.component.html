@@ -57,7 +57,13 @@
         <div class="error-feedback" *ngIf="form.get('confirmPassword')?.hasError('passwordMismatch') && form.get('confirmPassword')?.touched">
             Passwords do not match
         </div>
+    </div>
 
+    <div class="mb-3">
+        <label>Select doctor:</label>
+        <select formControlName="doctorId">
+            <option *ngFor = "let d of doctors" [value]="d.id">{{d.firstName + ' ' + d.lastName}}</option>
+        </select>
     </div>
     <div class="mb-3">
         <button type="submit" [disabled]="form.invalid" class="btn btn-success rounded-3 btn ml-5">Register</button>

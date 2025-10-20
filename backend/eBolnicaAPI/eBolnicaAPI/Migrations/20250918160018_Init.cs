@@ -281,6 +281,7 @@ namespace eBolnicaAPI.Migrations
                 columns: new[] { "Id", "AccessFailedCount", "ConcurrencyStamp", "Email", "EmailConfirmed", "FirstName", "LastName", "LicenseNumber", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "SecurityStamp", "TwoFactorEnabled", "UserName", "UserType" },
                 values: new object[,]
                 {
+                    { "a1", 0, "fixed-guid-3", "admin@gmail.com", true, "Admin", "User", null, true, null, "ADMIN@GMAIL.COM", "ADMIN@GMAIL.COM", null, "061000000", true, "fixed-guid-3", false, "admin@gmail.com", "Admin" },
                     { "d1", 0, "fixed-guid-1", "marko@gmail.com", false, "Marko", "Marković", "L1", true, null, "MARKO@GMAIL.COM", "MARKO@GMAIL.COM", null, "061100100", false, "fixed-guid-2", false, "marko@gmail.com", "Doctor" },
                     { "d2", 0, "fixed-guid-1", "senad@gmail.com", false, "Senad", "Husić", "L2", true, null, "SENAD@GMAIL.COM", "SENAD@GMAIL.COM", null, "061100101", false, "fixed-guid-2", false, "senad@gmail.com", "Doctor" },
                     { "d3", 0, "fixed-guid-1", "petar@gmail.com", false, "Petar", "Petrović", "L3", true, null, "PETAR@GMAIL.COM", "PETAR@GMAIL.COM", null, "061100102", false, "fixed-guid-2", false, "petar@gmail.com", "Doctor" },
@@ -307,6 +308,16 @@ namespace eBolnicaAPI.Migrations
                     { 1, "Address1", "p1", "A", new DateTime(1990, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Ismet", "Male", null, "Horo", "061100103" },
                     { 2, "Address2", "p2", "B", new DateTime(1991, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Elon", "Female", null, "Musk", "061100104" },
                     { 3, "Address3", "p3", "0", new DateTime(1992, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Peter", "Male", null, "Griffin", "061100105" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "MedicalRecords",
+                columns: new[] { "Id", "MedicalRecordId", "PatientId", "RecordNumber" },
+                values: new object[,]
+                {
+                    { 1, null, 1, "MR-2025-p1" },
+                    { 2, null, 2, "MR-2025-p2" },
+                    { 3, null, 3, "MR-2025-p3" }
                 });
 
             migrationBuilder.CreateIndex(

@@ -31,13 +31,15 @@ namespace eBolnicaAPI.Controllers
                 return BadRequest(ModelState);
 
 
+            var doctor = await _dbcontext.Doctors.FindAsync(patientForRegistration.DoctorId);
+
             var user = new AppUser
             {
                 Email = patientForRegistration.Email,
                 UserName = patientForRegistration.Email,
                 FirstName = patientForRegistration.FirstName,
                 LastName = patientForRegistration.LastName,
-                UserType = "Patient"
+                UserType = "Patient",
             };
 
             var result = await _userManager.CreateAsync(user, patientForRegistration.Password);
@@ -52,6 +54,7 @@ namespace eBolnicaAPI.Controllers
                 AppUserId = user.Id,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
+                DoctorId = doctor.Id
             };
 
             _dbcontext.Patients.Add(patient);

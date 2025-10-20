@@ -10,6 +10,6 @@
 
         public string RecordNumber { get; set; }
 
-        public ICollection<MedicalRecord> Reports { get; set; }
+        public ICollection<MedicalReport> Reports { get; set; }
     }
 }

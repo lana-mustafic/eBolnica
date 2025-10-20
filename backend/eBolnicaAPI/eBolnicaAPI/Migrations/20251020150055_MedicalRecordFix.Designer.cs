@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using eBolnicaAPI.Data;
 
@@ -11,9 +12,11 @@ using eBolnicaAPI.Data;
 namespace eBolnicaAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251020150055_MedicalRecordFix")]
+    partial class MedicalRecordFix
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -418,7 +421,7 @@ namespace eBolnicaAPI.Migrations
                     b.HasIndex("AppUserId")
                         .IsUnique();
 
-                    b.ToTable("Doctors", (string)null);
+                    b.ToTable("Doctors");
 
                     b.HasData(
                         new
@@ -482,7 +485,7 @@ namespace eBolnicaAPI.Migrations
                     b.HasIndex("PatientId")
                         .IsUnique();
 
-                    b.ToTable("MedicalRecords", (string)null);
+                    b.ToTable("MedicalRecords");
 
                     b.HasData(
                         new
@@ -540,7 +543,7 @@ namespace eBolnicaAPI.Migrations
 
                     b.HasIndex("MedicalRecordId");
 
-                    b.ToTable("MedicalReports", (string)null);
+                    b.ToTable("MedicalReports");
                 });
 
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.Patient", b =>
@@ -591,7 +594,7 @@ namespace eBolnicaAPI.Migrations
 
                     b.HasIndex("DoctorId");
 
-                    b.ToTable("Patients", (string)null);
+                    b.ToTable("Patients");
 
                     b.HasData(
                         new

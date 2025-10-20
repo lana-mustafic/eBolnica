@@ -32,6 +32,28 @@ namespace eBolnicaAPI.Data
                 .HasForeignKey(p => p.DoctorId)
                 .OnDelete(DeleteBehavior.NoAction);
 
+            var admin = new AppUser
+            {
+                Id = "a1",
+                FirstName = "Admin",
+                LastName = "User",
+                UserName = "admin@gmail.com",
+                NormalizedUserName = "ADMIN@GMAIL.COM",
+                Email = "admin@gmail.com",
+                NormalizedEmail = "ADMIN@GMAIL.COM",
+                EmailConfirmed = true,
+                PhoneNumber = "061000000",
+                PhoneNumberConfirmed = true,
+                TwoFactorEnabled = false,
+                LockoutEnabled = true,
+                AccessFailedCount = 0,
+                UserType = "Admin",
+                LicenseNumber = null,
+                ConcurrencyStamp = "fixed-guid-3",
+                SecurityStamp = "fixed-guid-3"
+            };
+
+
             var doctor1 = new AppUser
             {
                 Id = "d1",
@@ -158,7 +180,9 @@ namespace eBolnicaAPI.Data
                 SecurityStamp = "fixed-guid-2"
             };
 
+            modelBuilder.Entity<AppUser>().HasData(admin);
             modelBuilder.Entity<AppUser>().HasData(doctor1, doctor2, doctor3, patient1, patient2, patient3);
+
 
             modelBuilder.Entity<Doctor>().HasData(
                 new Doctor { Id = 1,FirstName=doctor1.FirstName, LastName=doctor1.LastName, AppUserId = "d1", Specialization="Cardiology",RegistrationStatus="Approved", Address="Address1", BirthDate= new DateTime(1995, 3, 15), LicenseNumber=doctor1.LicenseNumber, PhoneNumber=doctor1.PhoneNumber },
@@ -171,6 +195,12 @@ namespace eBolnicaAPI.Data
                 new Patient { Id = 2, FirstName =patient2.FirstName, LastName = patient2.LastName, AppUserId = "p2", Gender="Female",Address = "Address2", DateOfBirth = new DateTime(1991, 3, 15), BloodType = "B", DoctorId = 1, PhoneNumber=patient2.PhoneNumber },
                 new Patient { Id = 3, FirstName = patient3.FirstName, LastName =patient3.LastName, AppUserId = "p3", Gender="Male", Address = "Address3", DateOfBirth = new DateTime(1992, 3, 15), BloodType = "0", DoctorId = 1, PhoneNumber=patient3.PhoneNumber }
                 );
+
+            modelBuilder.Entity<MedicalRecord>().HasData(
+                new MedicalRecord { Id = 1, PatientId = 1, RecordNumber = $"MR-{DateTime.Now:yyyy}-p1" },
+                new MedicalRecord { Id = 2, PatientId = 2, RecordNumber = $"MR-{DateTime.Now:yyyy}-p2" },
+                new MedicalRecord { Id = 3, PatientId = 3, RecordNumber = $"MR-{DateTime.Now:yyyy}-p3" }
+            );
 
         }
 

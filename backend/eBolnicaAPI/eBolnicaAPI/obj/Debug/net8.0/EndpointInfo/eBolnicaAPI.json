@@ -275,6 +275,18 @@
         }
       }
     },
+    "/api/doctor/GetAllDoctors": {
+      "get": {
+        "tags": [
+          "Doctor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/register": {
       "post": {
         "tags": [
@@ -950,6 +962,10 @@
           "confirmPassword": {
             "minLength": 1,
             "type": "string"
+          },
+          "doctorId": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
