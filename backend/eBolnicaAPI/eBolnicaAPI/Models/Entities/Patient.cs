@@ -34,5 +34,14 @@ namespace eBolnicaAPI.Models.Entities
         public string? MedicalRecordId { get; set; }
 
         public bool? IsAdmitted { get; set; }
+        public bool IsAdmitted { get; set; } = false;
+
+        // Navigation property: One Patient can have many Appointments
+        public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
+
+        // Navigation property: One Patient can have many MedicalRecords
+        public virtual ICollection<MedicalRecord> MedicalRecords { get; set; } = new List<MedicalRecord>();
+        // Navigation property: One Patient can have many Prescriptions
+        public virtual ICollection<Prescription> Prescriptions { get; set; } = new List<Prescription>();
     }
 }

@@ -1,0 +1,36 @@
+# Build and Visual Studio cache folders
+.vs/
+.vscode/
+bin/
+obj/
+out/
+Debug/
+Release/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Auto-generated files
+*.log
+*.tlog
+*.cache
+*.pdb
+*.exe
+*.dll
+
+# NuGet packages
+*.nupkg
+*.snupkg
+*.nuspec
+*.psmdcp
+*.ps1
+packages/
+*.vspscc
+*.vssscc
+
+# Dotnet build
+project.lock.json
+artifacts/
