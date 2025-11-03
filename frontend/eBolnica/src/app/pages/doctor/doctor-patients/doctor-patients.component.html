@@ -1,0 +1,47 @@
+<h2>Patients</h2>
+
+
+<div class="filters">
+  <input type="text" placeholder="First Name" [(ngModel)]="filters.firstName">
+  <input type="text" placeholder="Last Name" [(ngModel)]="filters.lastName">
+  <select [(ngModel)]="filters.gender">
+    <option value="">Gender</option>
+    <option value="Male">Male</option>
+    <option value="Female">Female</option>
+  </select>
+  <select [(ngModel)]="filters.bloodType">
+    <option value="">Blood type</option>
+    <option value="A">A</option>
+    <option value="B">B</option>
+    <option value="AB">AB</option>
+    <option value="0">0</option>
+  </select>
+  <input type="number" placeholder="Birth Year" [(ngModel)]="filters.birthYear">
+</div>
+
+<table border="1" cellpadding="8">
+  <thead>
+    <tr>
+      <th>First Name</th>
+      <th>Last Name</th>
+      <th>Date of birth</th>
+      <th>Gender</th>
+      <th>Medical record id</th>
+      <th>Blood type</th>
+      <th>Address</th>
+      <th>Phone number</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let patient of filteredPatients()">
+      <td>{{ patient.firstName }}</td>
+      <td>{{ patient.lastName }}</td>
+      <td>{{ patient.dateOfBirth  | date:'dd.MM.yyyy'}}</td>
+      <td>{{ patient.gender }}</td>
+      <td>{{ patient.medicalRecordId }}</td>
+      <td>{{ patient.bloodType }}</td>
+      <td>{{ patient.address }}</td>
+      <td>{{ patient.phoneNumber }}</td>
+    </tr>
+  </tbody>
+</table>

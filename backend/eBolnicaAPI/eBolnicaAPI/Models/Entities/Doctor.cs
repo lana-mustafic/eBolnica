@@ -10,22 +10,22 @@ namespace eBolnicaAPI.Models.Entities
         public int Id { get; set; }
 
         [Required]
-        public string FirstName { get; set; } = string.Empty;
+        public string FirstName { get; set; }
 
         [Required]
-        public string LastName { get; set; } = string.Empty;
+        public string LastName { get; set; }
 
         [Required]
-        [EmailAddress]
-        public string Email { get; set; } = string.Empty;
+        public string AppUserId { get; set; }
+        public AppUser AppUser { get; set; }
 
-        public string PhoneNumber { get; set; } = string.Empty;
+        public ICollection<Patient> Patients { get; set; } = new List<Patient>();
+        public string RegistrationStatus { get; set; }
+        public string? PhoneNumber { get; set; }
 
-        public string Specialization { get; set; } = string.Empty;
+        public string? Specialization { get; set; }
 
-        public string LicenseNumber { get; set; } = string.Empty;
-
-        public int YearsOfExperience { get; set; }
+        public string LicenseNumber { get; set; }
 
         public bool IsActive { get; set; } = true;
 
@@ -38,5 +38,7 @@ namespace eBolnicaAPI.Models.Entities
         [ForeignKey("DepartmentId")]
         public virtual Department Department { get; set; } = null!;
 
+        public DateTime? BirthDate { get; set; }
+        public string? Address { get; set; }
     }
 }

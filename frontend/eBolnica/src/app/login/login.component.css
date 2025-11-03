@@ -1,0 +1,22 @@
+.error-feedback{
+    position: relative;
+    left: 5%;
+}
+.login-container {
+  position: absolute;
+  top: 20%;
+  left: 40%;
+  width: 20%; 
+  background-color: white;
+  border-radius: 1%;
+  justify-content: center;
+  align-items: center; 
+}
+.form-control{
+    position: relative;
+    width: 90%;
+    left: 5%;
+}
+.ml-5percent {
+  margin-left: 5%;
+}
