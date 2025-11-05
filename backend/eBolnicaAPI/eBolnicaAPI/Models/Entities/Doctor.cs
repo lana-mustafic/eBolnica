@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace eBolnicaAPI.Models.Entities
@@ -26,17 +25,6 @@ namespace eBolnicaAPI.Models.Entities
         public string? Specialization { get; set; }
 
         public string LicenseNumber { get; set; }
-
-        public bool IsActive { get; set; } = true;
-
-        // Navigation property: One Doctor can have many Appointments
-        public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
-        public virtual ICollection<Prescription> Prescriptions { get; set; } = new List<Prescription>();
-
-        public int DepartmentId { get; set; }
-
-        [ForeignKey("DepartmentId")]
-        public virtual Department Department { get; set; } = null!;
 
         public DateTime? BirthDate { get; set; }
         public string? Address { get; set; }
