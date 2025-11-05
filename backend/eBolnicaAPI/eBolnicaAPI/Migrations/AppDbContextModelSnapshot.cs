@@ -176,7 +176,7 @@ namespace eBolnicaAPI.Migrations
 
                     b.Property<string>("FirstName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -443,39 +443,6 @@ namespace eBolnicaAPI.Migrations
                         });
                 });
 
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.MedicalRecord", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Diagnosis")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Notes")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("PatientId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("RecordDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Treatment")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PatientId");
-
-                    b.ToTable("MedicalRecords");
-                });
-
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.Patient", b =>
                 {
                     b.Property<int>("Id")
@@ -664,133 +631,6 @@ namespace eBolnicaAPI.Migrations
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.Doctor", b =>
                 {
                     b.Navigation("Patients");
-                });
-
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.Prescription", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("DatePrescribed")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("DoctorId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Dosage")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("ExpirationDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Instructions")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Medication")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("PatientId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RefillsRemaining")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DoctorId");
-
-                    b.HasIndex("PatientId");
-
-                    b.ToTable("Prescriptions");
-                });
-
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.Appointment", b =>
-                {
-                    b.HasOne("eBolnicaAPI.Models.Entities.Doctor", "Doctor")
-                        .WithMany("Appointments")
-                        .HasForeignKey("DoctorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("eBolnicaAPI.Models.Entities.Patient", "Patient")
-                        .WithMany("Appointments")
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Doctor");
-
-                    b.Navigation("Patient");
-                });
-
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.Doctor", b =>
-                {
-                    b.HasOne("eBolnicaAPI.Models.Entities.Department", "Department")
-                        .WithMany("Doctors")
-                        .HasForeignKey("DepartmentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Department");
-                });
-
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.MedicalRecord", b =>
-                {
-                    b.HasOne("eBolnicaAPI.Models.Entities.Patient", "Patient")
-                        .WithMany("MedicalRecords")
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Patient");
-                });
-
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.Prescription", b =>
-                {
-                    b.HasOne("eBolnicaAPI.Models.Entities.Doctor", "Doctor")
-                        .WithMany("Prescriptions")
-                        .HasForeignKey("DoctorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("eBolnicaAPI.Models.Entities.Patient", "Patient")
-                        .WithMany("Prescriptions")
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Doctor");
-
-                    b.Navigation("Patient");
-                });
-
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.Department", b =>
-                {
-                    b.Navigation("Doctors");
-                });
-
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.Doctor", b =>
-                {
-                    b.Navigation("Appointments");
-
-                    b.Navigation("Prescriptions");
-                });
-
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.Patient", b =>
-                {
-                    b.Navigation("Appointments");
-
-                    b.Navigation("MedicalRecords");
-
-                    b.Navigation("Prescriptions");
                 });
 #pragma warning restore 612, 618
         }
