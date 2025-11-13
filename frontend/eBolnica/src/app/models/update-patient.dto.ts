@@ -1,8 +1,6 @@
-export interface CreatePatientDto {
+export interface UpdatePatientDto {
   firstName: string;
   lastName: string;
-  email: string;
-  password: string;
   dateOfBirth?: string;
   gender?: string;
   phoneNumber?: string;
@@ -10,3 +8,4 @@ export interface CreatePatientDto {
   bloodType?: string;
   medicalRecordId?: string;
 }
+

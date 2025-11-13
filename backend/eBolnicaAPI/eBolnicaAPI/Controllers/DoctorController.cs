@@ -141,5 +141,200 @@ namespace eBolnicaAPI.Controllers
 
             return Ok(dtoList);
         }
+
+        [HttpPost("create-patient")]
+        [Authorize(Roles = "Doctor")]
+        public async Task<IActionResult> CreatePatient([FromBody] CreatePatientDto createPatientDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var doctorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (doctorId == null)
+            {
+                return Unauthorized();
+            }
+
+            var doctor = await _dbContext.Doctors.FirstOrDefaultAsync(d => d.AppUserId == doctorId);
+
+            if (doctor == null)
+            {
+                return NotFound("Doctor not found");
+            }
+
+            // Check if email already exists
+            var existingUser = await _userManager.FindByEmailAsync(createPatientDto.Email);
+            if (existingUser != null)
+            {
+                return BadRequest(new { message = "Email already exists." });
+            }
+
+            // Create AppUser
+            var user = new AppUser
+            {
+                Email = createPatientDto.Email,
+                UserName = createPatientDto.Email,
+                FirstName = createPatientDto.FirstName,
+                LastName = createPatientDto.LastName,
+                UserType = "Patient"
+            };
+
+            var result = await _userManager.CreateAsync(user, createPatientDto.Password);
+
+            if (!result.Succeeded)
+            {
+                return BadRequest(result.Errors);
+            }
+
+            // Create Patient
+            var patient = new Patient
+            {
+                AppUserId = user.Id,
+                FirstName = createPatientDto.FirstName,
+                LastName = createPatientDto.LastName,
+                DoctorId = doctor.Id,
+                DateOfBirth = createPatientDto.DateOfBirth,
+                Gender = createPatientDto.Gender,
+                PhoneNumber = createPatientDto.PhoneNumber,
+                Address = createPatientDto.Address,
+                BloodType = createPatientDto.BloodType,
+                MedicalRecordId = createPatientDto.MedicalRecordId
+            };
+
+            _dbContext.Patients.Add(patient);
+            await _dbContext.SaveChangesAsync();
+
+            var responseDto = new DoctorAssignedPatientDto
+            {
+                Id = patient.Id,
+                DoctorId = doctor.Id,
+                FirstName = patient.FirstName,
+                LastName = patient.LastName,
+                DateOfBirth = patient.DateOfBirth,
+                Gender = patient.Gender,
+                PhoneNumber = patient.PhoneNumber,
+                Address = patient.Address,
+                BloodType = patient.BloodType,
+                MedicalRecordId = patient.MedicalRecordId
+            };
+
+            return Ok(responseDto);
+        }
+
+        [HttpPut("update-patient/{patientId}")]
+        [Authorize(Roles = "Doctor")]
+        public async Task<IActionResult> UpdatePatient(int patientId, [FromBody] UpdatePatientDto updatePatientDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var doctorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (doctorId == null)
+            {
+                return Unauthorized();
+            }
+
+            var doctor = await _dbContext.Doctors.FirstOrDefaultAsync(d => d.AppUserId == doctorId);
+
+            if (doctor == null)
+            {
+                return NotFound("Doctor not found");
+            }
+
+            var patient = await _dbContext.Patients.FirstOrDefaultAsync(p => p.Id == patientId && p.DoctorId == doctor.Id);
+
+            if (patient == null)
+            {
+                return NotFound("Patient not found or not assigned to this doctor");
+            }
+
+            // Update patient fields
+            patient.FirstName = updatePatientDto.FirstName;
+            patient.LastName = updatePatientDto.LastName;
+            patient.DateOfBirth = updatePatientDto.DateOfBirth;
+            patient.Gender = updatePatientDto.Gender;
+            patient.PhoneNumber = updatePatientDto.PhoneNumber;
+            patient.Address = updatePatientDto.Address;
+            patient.BloodType = updatePatientDto.BloodType;
+            patient.MedicalRecordId = updatePatientDto.MedicalRecordId;
+
+            // Update AppUser
+            var appUser = await _userManager.FindByIdAsync(patient.AppUserId);
+            if (appUser != null)
+            {
+                appUser.FirstName = updatePatientDto.FirstName;
+                appUser.LastName = updatePatientDto.LastName;
+                await _userManager.UpdateAsync(appUser);
+            }
+
+            await _dbContext.SaveChangesAsync();
+
+            var responseDto = new DoctorAssignedPatientDto
+            {
+                Id = patient.Id,
+                DoctorId = doctor.Id,
+                FirstName = patient.FirstName,
+                LastName = patient.LastName,
+                DateOfBirth = patient.DateOfBirth,
+                Gender = patient.Gender,
+                PhoneNumber = patient.PhoneNumber,
+                Address = patient.Address,
+                BloodType = patient.BloodType,
+                MedicalRecordId = patient.MedicalRecordId
+            };
+
+            return Ok(responseDto);
+        }
+
+        [HttpDelete("delete-patient/{patientId}")]
+        [Authorize(Roles = "Doctor")]
+        public async Task<IActionResult> DeletePatient(int patientId)
+        {
+            var doctorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (doctorId == null)
+            {
+                return Unauthorized();
+            }
+
+            var doctor = await _dbContext.Doctors.FirstOrDefaultAsync(d => d.AppUserId == doctorId);
+
+            if (doctor == null)
+            {
+                return NotFound("Doctor not found");
+            }
+
+            var patient = await _dbContext.Patients
+                .Include(p => p.AppUser)
+                .FirstOrDefaultAsync(p => p.Id == patientId && p.DoctorId == doctor.Id);
+
+            if (patient == null)
+            {
+                return NotFound("Patient not found or not assigned to this doctor");
+            }
+
+            // First, remove the Patient entity
+            _dbContext.Patients.Remove(patient);
+            await _dbContext.SaveChangesAsync();
+
+            // Then, delete the AppUser if it exists
+            if (patient.AppUser != null)
+            {
+                var deleteResult = await _userManager.DeleteAsync(patient.AppUser);
+                if (!deleteResult.Succeeded)
+                {
+                    // If user deletion fails, log the errors but patient is already deleted
+                    return BadRequest(new { message = "Patient deleted but user deletion failed", errors = deleteResult.Errors });
+                }
+            }
+
+            return Ok(new { message = "Patient deleted successfully" });
+        }
     }
 }
