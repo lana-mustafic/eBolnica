@@ -47,11 +47,19 @@ namespace eBolnicaAPI.Controllers
                 return BadRequest(result.Errors);
             }
 
+            // Refresh user to get the generated ID
+            user = await _userManager.FindByEmailAsync(user.Email);
+            if (user == null)
+            {
+                return BadRequest(new { message = "Failed to retrieve created user." });
+            }
+
             var patient = new Patient
             {
                 AppUserId = user.Id,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
+                DoctorId = null // Explicitly set to null for unassigned patients
             };
 
             _dbcontext.Patients.Add(patient);

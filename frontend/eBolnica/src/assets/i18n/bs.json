@@ -1,0 +1,48 @@
+{
+  "patientRegistration": {
+    "title": "Registracija pacijenta",
+    "subtitle": "Kreirajte svoj nalog za upravljanje zdravstvenim zapisima",
+    "home": "Početna",
+    "firstName": "Ime",
+    "lastName": "Prezime",
+    "email": "Email adresa",
+    "password": "Lozinka",
+    "confirmPassword": "Potvrdite lozinku",
+    "required": "*",
+    "enterFirstName": "Unesite vaše ime",
+    "enterLastName": "Unesite vaše prezime",
+    "enterEmail": "Unesite vašu email adresu",
+    "enterPassword": "Unesite vašu lozinku",
+    "confirmPasswordPlaceholder": "Potvrdite vašu lozinku",
+    "createAccount": "Kreiraj nalog",
+    "alreadyHaveAccount": "Već imate nalog?",
+    "signIn": "Prijavite se",
+    "errors": {
+      "firstNameRequired": "Molimo unesite vaše ime",
+      "firstNamePattern": "Mora počinjati velikim slovom i sadržavati samo slova",
+      "firstNameMinLength": "Ime mora imati najmanje 3 karaktera",
+      "lastNameRequired": "Molimo unesite vaše prezime",
+      "lastNamePattern": "Mora počinjati velikim slovom i sadržavati samo slova",
+      "lastNameMinLength": "Prezime mora imati najmanje 3 karaktera",
+      "emailInvalid": "Molimo unesite važeću email adresu",
+      "passwordRequired": "Lozinka je obavezna",
+      "passwordMinLength": "Lozinka mora imati najmanje 6 karaktera",
+      "passwordPattern": "Lozinka mora sadržavati najmanje:",
+      "passwordUppercase": "1 veliko slovo",
+      "passwordLowercase": "1 malo slovo",
+      "passwordNumber": "1 broj",
+      "passwordSpecial": "1 specijalni karakter",
+      "passwordMismatch": "Lozinke se ne poklapaju",
+      "emailInUse": "Email adresa je već u upotrebi"
+    },
+    "success": {
+      "registrationSuccessful": "Registracija uspješna"
+    },
+    "language": {
+      "select": "Odaberite jezik",
+      "english": "Engleski",
+      "bosnian": "Bosanski"
+    }
+  }
+}
+

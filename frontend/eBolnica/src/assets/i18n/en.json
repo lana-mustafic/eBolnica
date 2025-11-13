@@ -1,0 +1,48 @@
+{
+  "patientRegistration": {
+    "title": "Patient Registration",
+    "subtitle": "Create your account to manage your health records",
+    "home": "Home",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Email Address",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "required": "*",
+    "enterFirstName": "Enter your first name",
+    "enterLastName": "Enter your last name",
+    "enterEmail": "Enter your email address",
+    "enterPassword": "Enter your password",
+    "confirmPasswordPlaceholder": "Confirm your password",
+    "createAccount": "Create Account",
+    "alreadyHaveAccount": "Already have an account?",
+    "signIn": "Sign In",
+    "errors": {
+      "firstNameRequired": "Please enter your first name",
+      "firstNamePattern": "Must start with capital letter and only contain letters",
+      "firstNameMinLength": "First name must be at least 3 characters",
+      "lastNameRequired": "Please enter your last name",
+      "lastNamePattern": "Must start with capital letter and only contain letters",
+      "lastNameMinLength": "Last name must be at least 3 characters",
+      "emailInvalid": "Please enter a valid email address",
+      "passwordRequired": "Password is required",
+      "passwordMinLength": "Password must be at least 6 characters",
+      "passwordPattern": "Password must contain at least:",
+      "passwordUppercase": "1 uppercase letter",
+      "passwordLowercase": "1 lowercase letter",
+      "passwordNumber": "1 number",
+      "passwordSpecial": "1 special character",
+      "passwordMismatch": "Passwords do not match",
+      "emailInUse": "E-mail already in use"
+    },
+    "success": {
+      "registrationSuccessful": "Registration successful"
+    },
+    "language": {
+      "select": "Select Language",
+      "english": "English",
+      "bosnian": "Bosnian"
+    }
+  }
+}
+
