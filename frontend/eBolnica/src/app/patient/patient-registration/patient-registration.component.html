@@ -1,85 +1,94 @@
 <div class="auth-container">
   <div class="auth-card">
     <div class="auth-header">
-      <a routerLink="/" class="home-link">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-          <polyline points="9 22 9 12 15 12 15 22"></polyline>
-        </svg>
-        Home
-      </a>
-      <h1 class="auth-title">Patient Registration</h1>
-      <p class="auth-subtitle">Create your account to manage your health records</p>
+      <div class="header-top">
+        <a routerLink="/" class="home-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+          {{ t('patientRegistration.home') }}
+        </a>
+        <div class="language-selector">
+          <label for="languageSelect">{{ t('patientRegistration.language.select') }}:</label>
+          <select id="languageSelect" [value]="currentLanguage" (change)="changeLanguage($any($event.target).value)">
+            <option value="en">{{ t('patientRegistration.language.english') }}</option>
+            <option value="bs">{{ t('patientRegistration.language.bosnian') }}</option>
+          </select>
+        </div>
+      </div>
+      <h1 class="auth-title">{{ t('patientRegistration.title') }}</h1>
+      <p class="auth-subtitle">{{ t('patientRegistration.subtitle') }}</p>
     </div>
 
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="auth-form">
       <div class="form-group">
-        <label for="firstName">First Name <span class="required">*</span></label>
+        <label for="firstName">{{ t('patientRegistration.firstName') }} <span class="required">{{ t('patientRegistration.required') }}</span></label>
         <input 
           type="text" 
           id="firstName"
           class="form-input"
           [class.error]="form.get('firstName')?.invalid && form.get('firstName')?.touched"
-          placeholder="Enter your first name"
+          [placeholder]="t('patientRegistration.enterFirstName')"
           formControlName="firstName">
         <div class="error-message" *ngIf="form.get('firstName')?.touched">
           <div *ngIf="form.get('firstName')?.hasError('required')">
-            Please enter your first name
+            {{ t('patientRegistration.errors.firstNameRequired') }}
           </div>
           <div *ngIf="form.get('firstName')?.hasError('pattern')">
-            Must start with capital letter and only contain letters
+            {{ t('patientRegistration.errors.firstNamePattern') }}
           </div>
           <div *ngIf="form.get('firstName')?.hasError('minlength')">
-            First name must be at least 3 characters
+            {{ t('patientRegistration.errors.firstNameMinLength') }}
           </div>
         </div>
       </div>
 
       <div class="form-group">
-        <label for="lastName">Last Name <span class="required">*</span></label>
+        <label for="lastName">{{ t('patientRegistration.lastName') }} <span class="required">{{ t('patientRegistration.required') }}</span></label>
         <input 
           type="text" 
           id="lastName"
           class="form-input"
           [class.error]="form.get('lastName')?.invalid && form.get('lastName')?.touched"
-          placeholder="Enter your last name"
+          [placeholder]="t('patientRegistration.enterLastName')"
           formControlName="lastName">
         <div class="error-message" *ngIf="form.get('lastName')?.touched">
           <div *ngIf="form.get('lastName')?.hasError('required')">
-            Please enter your last name
+            {{ t('patientRegistration.errors.lastNameRequired') }}
           </div>
           <div *ngIf="form.get('lastName')?.hasError('pattern')">
-            Must start with capital letter and only contain letters
+            {{ t('patientRegistration.errors.lastNamePattern') }}
           </div>
           <div *ngIf="form.get('lastName')?.hasError('minlength')">
-            Last name must be at least 3 characters
+            {{ t('patientRegistration.errors.lastNameMinLength') }}
           </div>
         </div>
       </div>
 
       <div class="form-group">
-        <label for="email">Email Address <span class="required">*</span></label>
+        <label for="email">{{ t('patientRegistration.email') }} <span class="required">{{ t('patientRegistration.required') }}</span></label>
         <input 
           type="email" 
           id="email"
           class="form-input"
           [class.error]="form.get('email')?.invalid && form.get('email')?.touched"
-          placeholder="Enter your email address"
+          [placeholder]="t('patientRegistration.enterEmail')"
           formControlName="email">
         <div class="error-message" *ngIf="form.get('email')?.touched && form.get('email')?.hasError('email')">
-          Please enter a valid email address
+          {{ t('patientRegistration.errors.emailInvalid') }}
         </div>
       </div>
 
       <div class="form-group">
-        <label for="password">Password <span class="required">*</span></label>
+        <label for="password">{{ t('patientRegistration.password') }} <span class="required">{{ t('patientRegistration.required') }}</span></label>
         <div class="password-input-wrapper">
           <input 
-            type="password" 
+            [type]="hidePassword ? 'password' : 'text'"
             id="password"
             class="form-input"
             [class.error]="form.get('password')?.invalid && form.get('password')?.touched"
-            placeholder="Enter your password"
+            [placeholder]="t('patientRegistration.enterPassword')"
             formControlName="password">
           <button 
             type="button" 
@@ -97,31 +106,31 @@
           </button>
         </div>
         <div class="error-message" *ngIf="form.get('password')?.touched">
-          <div *ngIf="form.get('password')?.hasError('required')">Password is required</div>
-          <div *ngIf="form.get('password')?.hasError('minlength')">Password must be at least 6 characters</div>
+          <div *ngIf="form.get('password')?.hasError('required')">{{ t('patientRegistration.errors.passwordRequired') }}</div>
+          <div *ngIf="form.get('password')?.hasError('minlength')">{{ t('patientRegistration.errors.passwordMinLength') }}</div>
           <div *ngIf="form.get('password')?.hasError('pattern')">
-            Password must contain at least:
+            {{ t('patientRegistration.errors.passwordPattern') }}
             <ul class="password-requirements">
-              <li>1 uppercase letter</li>
-              <li>1 lowercase letter</li>
-              <li>1 number</li>
-              <li>1 special character</li>
+              <li>{{ t('patientRegistration.errors.passwordUppercase') }}</li>
+              <li>{{ t('patientRegistration.errors.passwordLowercase') }}</li>
+              <li>{{ t('patientRegistration.errors.passwordNumber') }}</li>
+              <li>{{ t('patientRegistration.errors.passwordSpecial') }}</li>
             </ul>
           </div>
         </div>
       </div>
 
       <div class="form-group">
-        <label for="confirmPassword">Confirm Password <span class="required">*</span></label>
+        <label for="confirmPassword">{{ t('patientRegistration.confirmPassword') }} <span class="required">{{ t('patientRegistration.required') }}</span></label>
         <input 
           type="password" 
           id="confirmPassword"
           class="form-input"
           [class.error]="form.get('confirmPassword')?.hasError('passwordMismatch') && form.get('confirmPassword')?.touched"
-          placeholder="Confirm your password"
+          [placeholder]="t('patientRegistration.confirmPasswordPlaceholder')"
           formControlName="confirmPassword">
         <div class="error-message" *ngIf="form.get('confirmPassword')?.hasError('passwordMismatch') && form.get('confirmPassword')?.touched">
-          Passwords do not match
+          {{ t('patientRegistration.errors.passwordMismatch') }}
         </div>
       </div>
 
@@ -137,7 +146,7 @@
         type="submit" 
         class="btn btn-primary"
         [disabled]="form.invalid">
-        <span>Create Account</span>
+        <span>{{ t('patientRegistration.createAccount') }}</span>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M5 12h14"></path>
           <polyline points="12 5 19 12 12 19"></polyline>
@@ -146,8 +155,8 @@
     </form>
 
     <div class="auth-footer">
-      <p>Already have an account? 
-        <a routerLink="/user-login" class="auth-link">Sign In</a>
+      <p>{{ t('patientRegistration.alreadyHaveAccount') }} 
+        <a routerLink="/user-login" class="auth-link">{{ t('patientRegistration.signIn') }}</a>
       </p>
     </div>
   </div>

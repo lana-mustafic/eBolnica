@@ -56,7 +56,7 @@
               "RelativeDocumentMoniker": "eBolnicaAPI\\Controllers\\AccountsControler.cs",
               "ToolTip": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Controllers\\AccountsControler.cs",
               "RelativeToolTip": "eBolnicaAPI\\Controllers\\AccountsControler.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAxAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-13T00:59:33.658Z",
               "EditorCaption": ""
@@ -71,8 +71,7 @@
               "RelativeToolTip": "eBolnicaAPI\\Controllers\\AdminController.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-13T00:59:31.827Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-13T00:59:31.827Z"
             },
             {
               "$type": "Document",
@@ -108,8 +107,7 @@
               "RelativeToolTip": "eBolnicaAPI\\Data\\DbInitializer.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-13T00:07:14.923Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-13T00:07:14.923Z"
             },
             {
               "$type": "Document",
