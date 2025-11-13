@@ -1,73 +1,154 @@
-<button class="btn" routerLink="/">Home</button>
-<div class="page-container">
-    <div class="mb-4 h2 text-success text-center">Patient Registration</div>
-<form [formGroup]="form" (ngSubmit)="onSubmit()">
-    <div class="mb-3">
-        <input class="form-control bg-body-secondary" placeholder="First Name" formControlName="firstName">
-        <div class="error-feedback" *ngIf="form.get('firstName')?.touched">
-        <div *ngIf="form.get('firstName')?.hasError('required')">
-            Please enter your first name
-        </div>
-        <div *ngIf="form.get('firstName')?.hasError('pattern')">
-            Must start with capital letter and only contain letters
-        </div>
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-header">
+      <a routerLink="/" class="home-link">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+        Home
+      </a>
+      <h1 class="auth-title">Patient Registration</h1>
+      <p class="auth-subtitle">Create your account to manage your health records</p>
     </div>
-    </div>
-    <div class="mb-3">
-        <input class="form-control bg-body-secondary" placeholder="Last Name" formControlName="lastName">
-        <div class="error-feedback" *ngIf="form.get('lastName')?.touched">
-        <div *ngIf="form.get('lastName')?.hasError('required')">
-            Please enter your last name
-        </div>
-        <div *ngIf="form.get('lastName')?.hasError('pattern')">
-            Must start with capital letter and only contain letters
-        </div>
-    </div>
-    </div>
-      <div class="mb-3">
-        <input class="form-control bg-body-secondary" placeholder="Email" formControlName="email">
-        <div class="error-feedback"
-            *ngIf="form.get('email')?.touched && form.get('email')?.hasError('email')">
-                Please enter a valid Email address
-        </div>
-    </div>
-     <div class="mb-3">
-        <input class="form-control bg-body-secondary" [type]="hidePassword ? 'password' : 'text'" placeholder="Password" formControlName="password">
-        <i class="bi"
-            [ngClass]="hidePassword ? 'bi-eye' : 'bi-eye-slash'"
-            style="cursor: pointer; left:5%; position: relative;"
-            (click)="togglePasswordVisibility()">
-        </i>
-        <div class="error-feedback" *ngIf="form.get('password')?.touched">
-            <div *ngIf="form.get('password')?.hasError('required')">Password is required</div>
-            <div *ngIf="form.get('password')?.hasError('minlength')">Password must be at least 6 characters</div>
-            <div *ngIf="form.get('password')?.hasError('pattern')">
-                Password must contain at least:
-                <ul>
-                <li>1 uppercase letter</li>
-                <li>1 lowercase letter</li>
-                <li>1 number</li>
-                <li>1 special character</li>
-                </ul>
-            </div>
-        </div>
-    </div>
-     <div class="mb-3">
-        <input class="form-control bg-body-secondary" type="password" placeholder="Confirm password" formControlName="confirmPassword">
-        <div class="error-feedback" *ngIf="form.get('confirmPassword')?.hasError('passwordMismatch') && form.get('confirmPassword')?.touched">
-            Passwords do not match
-        </div>
 
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="auth-form">
+      <div class="form-group">
+        <label for="firstName">First Name <span class="required">*</span></label>
+        <input 
+          type="text" 
+          id="firstName"
+          class="form-input"
+          [class.error]="form.get('firstName')?.invalid && form.get('firstName')?.touched"
+          placeholder="Enter your first name"
+          formControlName="firstName">
+        <div class="error-message" *ngIf="form.get('firstName')?.touched">
+          <div *ngIf="form.get('firstName')?.hasError('required')">
+            Please enter your first name
+          </div>
+          <div *ngIf="form.get('firstName')?.hasError('pattern')">
+            Must start with capital letter and only contain letters
+          </div>
+          <div *ngIf="form.get('firstName')?.hasError('minlength')">
+            First name must be at least 3 characters
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="lastName">Last Name <span class="required">*</span></label>
+        <input 
+          type="text" 
+          id="lastName"
+          class="form-input"
+          [class.error]="form.get('lastName')?.invalid && form.get('lastName')?.touched"
+          placeholder="Enter your last name"
+          formControlName="lastName">
+        <div class="error-message" *ngIf="form.get('lastName')?.touched">
+          <div *ngIf="form.get('lastName')?.hasError('required')">
+            Please enter your last name
+          </div>
+          <div *ngIf="form.get('lastName')?.hasError('pattern')">
+            Must start with capital letter and only contain letters
+          </div>
+          <div *ngIf="form.get('lastName')?.hasError('minlength')">
+            Last name must be at least 3 characters
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address <span class="required">*</span></label>
+        <input 
+          type="email" 
+          id="email"
+          class="form-input"
+          [class.error]="form.get('email')?.invalid && form.get('email')?.touched"
+          placeholder="Enter your email address"
+          formControlName="email">
+        <div class="error-message" *ngIf="form.get('email')?.touched && form.get('email')?.hasError('email')">
+          Please enter a valid email address
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password <span class="required">*</span></label>
+        <div class="password-input-wrapper">
+          <input 
+            type="password" 
+            id="password"
+            class="form-input"
+            [class.error]="form.get('password')?.invalid && form.get('password')?.touched"
+            placeholder="Enter your password"
+            formControlName="password">
+          <button 
+            type="button" 
+            class="password-toggle"
+            (click)="togglePasswordVisibility()"
+            [attr.aria-label]="hidePassword ? 'Show password' : 'Hide password'">
+            <svg *ngIf="hidePassword" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <svg *ngIf="!hidePassword" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+              <line x1="1" y1="1" x2="23" y2="23"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="error-message" *ngIf="form.get('password')?.touched">
+          <div *ngIf="form.get('password')?.hasError('required')">Password is required</div>
+          <div *ngIf="form.get('password')?.hasError('minlength')">Password must be at least 6 characters</div>
+          <div *ngIf="form.get('password')?.hasError('pattern')">
+            Password must contain at least:
+            <ul class="password-requirements">
+              <li>1 uppercase letter</li>
+              <li>1 lowercase letter</li>
+              <li>1 number</li>
+              <li>1 special character</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword">Confirm Password <span class="required">*</span></label>
+        <input 
+          type="password" 
+          id="confirmPassword"
+          class="form-input"
+          [class.error]="form.get('confirmPassword')?.hasError('passwordMismatch') && form.get('confirmPassword')?.touched"
+          placeholder="Confirm your password"
+          formControlName="confirmPassword">
+        <div class="error-message" *ngIf="form.get('confirmPassword')?.hasError('passwordMismatch') && form.get('confirmPassword')?.touched">
+          Passwords do not match
+        </div>
+      </div>
+
+      <div class="success-message" *ngIf="submitSuccess">
+        {{ submitSuccess }}
+      </div>
+
+      <div class="error-message" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </div>
+
+      <button 
+        type="submit" 
+        class="btn btn-primary"
+        [disabled]="form.invalid">
+        <span>Create Account</span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14"></path>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <p>Already have an account? 
+        <a routerLink="/user-login" class="auth-link">Sign In</a>
+      </p>
     </div>
-    <div class="mb-3">
-        <button type="submit" [disabled]="form.invalid" class="btn btn-success rounded-3 btn ml-5">Register</button>
-    </div>
-    <div *ngIf="submitSuccess">
-    {{ submitSuccess }}
-    </div>
-    <div *ngIf="errorMessage" class="text-danger mt-2">
-    {{errorMessage}}
-    </div>
-</form>
+  </div>
 </div>
-            

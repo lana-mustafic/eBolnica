@@ -1,46 +1,109 @@
-<form [formGroup]="form" (ngSubmit)="onSubmit()">
-      <ul>
-        <p>First name:</p>
-        <input type="text" formControlName="firstName">
-        <div *ngIf="form.get('firstName')?.invalid && form.get('firstName')?.touched">
-        <div *ngIf="form.get('firstName')?.errors?.['required']">First Name is required.</div>
-        <div *ngIf="form.get('firstName')?.errors?.['pattern']">First Name must start with a capital letter and contain only letters.</div>
-        </div>
-      </ul>
-      <ul>
-        <p>Last name:</p>
-        <input type="text" formControlName="lastName">
-        <div *ngIf="form.get('lastName')?.invalid && form.get('lastName')?.touched">
-        <div *ngIf="form.get('lastName')?.errors?.['required']">Last Name is required.</div>
-        <div *ngIf="form.get('lastName')?.errors?.['pattern']">Last Name must start with a capital letter and contain only letters.</div>
-        </div>
-      </ul>
-      <ul>
-        <p>Phone number:</p>
-        <input type="text" formControlName="phoneNumber">
-      </ul>
-      <ul>
-        <p>Specialization:</p>
-        <input type="text" formControlName="specialization">
-        <div *ngIf="form.get('specialization')?.invalid && form.get('specialization')?.touched">
-        <div *ngIf="form.get('specialization')?.errors?.['required']">Specialization is required.</div>
-        <div *ngIf="form.get('specialization')?.errors?.['pattern']">Specialization must start with a capital letter and contain only letters.</div>
-        </div>
-      </ul>
-      <ul>
-        <p>Birth date:</p>
-        <input type="date" formControlName="birthDate">
-        <div *ngIf="form.get('birthDate')?.invalid && form.get('birthDate')?.touched">
-          <div *ngIf="form.get('birthDate')?.errors?.['required']">Birth date is required.</div>
-        </div>
-      </ul>
-      <ul>
-        <p>Address:</p>
-        <input type="text" formControlName="address">
-        <div *ngIf="form.get('address')?.invalid && form.get('address')?.touched">
-          <div *ngIf="form.get('address')?.errors?.['required']">Address is required.</div>
-        </div>
-      </ul>
+<div class="edit-container">
+  <div class="edit-card">
+    <div class="edit-header">
+      <h2 class="edit-title">Edit Profile</h2>
+    </div>
 
-      <button type="submit" class="btn btn-primary offset-sm-1">Save</button>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="edit-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="firstName">First Name <span class="required">*</span></label>
+          <input 
+            type="text" 
+            id="firstName"
+            class="form-input"
+            [class.error]="form.get('firstName')?.invalid && form.get('firstName')?.touched"
+            placeholder="Enter first name"
+            formControlName="firstName">
+          <div class="error-message" *ngIf="form.get('firstName')?.invalid && form.get('firstName')?.touched">
+            <div *ngIf="form.get('firstName')?.errors?.['required']">First Name is required.</div>
+            <div *ngIf="form.get('firstName')?.errors?.['pattern']">First Name must start with a capital letter and contain only letters.</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="lastName">Last Name <span class="required">*</span></label>
+          <input 
+            type="text" 
+            id="lastName"
+            class="form-input"
+            [class.error]="form.get('lastName')?.invalid && form.get('lastName')?.touched"
+            placeholder="Enter last name"
+            formControlName="lastName">
+          <div class="error-message" *ngIf="form.get('lastName')?.invalid && form.get('lastName')?.touched">
+            <div *ngIf="form.get('lastName')?.errors?.['required']">Last Name is required.</div>
+            <div *ngIf="form.get('lastName')?.errors?.['pattern']">Last Name must start with a capital letter and contain only letters.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="phoneNumber">Phone Number</label>
+          <input 
+            type="text" 
+            id="phoneNumber"
+            class="form-input"
+            placeholder="Enter phone number"
+            formControlName="phoneNumber">
+        </div>
+
+        <div class="form-group">
+          <label for="specialization">Specialization <span class="required">*</span></label>
+          <input 
+            type="text" 
+            id="specialization"
+            class="form-input"
+            [class.error]="form.get('specialization')?.invalid && form.get('specialization')?.touched"
+            placeholder="Enter specialization"
+            formControlName="specialization">
+          <div class="error-message" *ngIf="form.get('specialization')?.invalid && form.get('specialization')?.touched">
+            <div *ngIf="form.get('specialization')?.errors?.['required']">Specialization is required.</div>
+            <div *ngIf="form.get('specialization')?.errors?.['pattern']">Specialization must start with a capital letter and contain only letters.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="birthDate">Birth Date <span class="required">*</span></label>
+          <input 
+            type="date" 
+            id="birthDate"
+            class="form-input"
+            [class.error]="form.get('birthDate')?.invalid && form.get('birthDate')?.touched"
+            formControlName="birthDate">
+          <div class="error-message" *ngIf="form.get('birthDate')?.invalid && form.get('birthDate')?.touched">
+            <div *ngIf="form.get('birthDate')?.errors?.['required']">Birth date is required.</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="address">Address <span class="required">*</span></label>
+          <input 
+            type="text" 
+            id="address"
+            class="form-input"
+            [class.error]="form.get('address')?.invalid && form.get('address')?.touched"
+            placeholder="Enter address"
+            formControlName="address">
+          <div class="error-message" *ngIf="form.get('address')?.invalid && form.get('address')?.touched">
+            <div *ngIf="form.get('address')?.errors?.['required']">Address is required.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="cancel()">Cancel</button>
+        <button type="submit" class="btn btn-primary" [disabled]="form.invalid">
+          <span>Save Changes</span>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+        </button>
+      </div>
     </form>
+  </div>
+</div>

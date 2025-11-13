@@ -48,4 +48,8 @@ export class DoctorProfileEditComponent {
       })
     }
   }
+
+  cancel(){
+    this.dialogRef.close(false);
+  }
 }

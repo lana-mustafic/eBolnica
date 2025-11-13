@@ -93,4 +93,37 @@ namespace eBolnicaAPI.Models.DTOs
         [StringLength(50, ErrorMessage = "Medical record ID cannot exceed 50 characters.")]
         public string? MedicalRecordId { get; set; }
     }
+
+    public class PatientSearchDto
+    {
+        public int Id { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public string Email { get; set; }
+        public int? DoctorId { get; set; }
+    }
+
+    public class AssignPatientDto
+    {
+        [Required(ErrorMessage = "Patient ID is required.")]
+        public int PatientId { get; set; }
+
+        public DateTime? DateOfBirth { get; set; }
+
+        [StringLength(10, ErrorMessage = "Gender cannot exceed 10 characters.")]
+        public string? Gender { get; set; }
+
+        [Phone(ErrorMessage = "Invalid phone number format.")]
+        [StringLength(20, ErrorMessage = "Phone number cannot exceed 20 characters.")]
+        public string? PhoneNumber { get; set; }
+
+        [StringLength(200, ErrorMessage = "Address cannot exceed 200 characters.")]
+        public string? Address { get; set; }
+
+        [StringLength(5, ErrorMessage = "Blood type cannot exceed 5 characters.")]
+        public string? BloodType { get; set; }
+
+        [StringLength(50, ErrorMessage = "Medical record ID cannot exceed 50 characters.")]
+        public string? MedicalRecordId { get; set; }
+    }
 }

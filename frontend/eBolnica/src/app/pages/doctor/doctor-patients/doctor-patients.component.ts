@@ -4,12 +4,14 @@ import { DoctorAssignedPatientDto } from '../../../models/doctor-patients.dto';
 import { AuthService } from '../../../shared/services/auth.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { CreatePatientDto } from '../../../models/create-patient.dto';
 import { UpdatePatientDto } from '../../../models/update-patient.dto';
+import { PatientWizardComponent } from '../patient-wizard/patient-wizard.component';
 
 @Component({
   selector: 'app-doctor-patients',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, PatientWizardComponent],
   standalone: true,
   templateUrl: './doctor-patients.component.html',
   styleUrl: './doctor-patients.component.css'
@@ -88,11 +90,6 @@ export class DoctorPatientsComponent {
   }
 
   openAddForm() {
-    this.patientForm.reset();
-    this.patientForm.get('password')?.setValidators([Validators.required, Validators.minLength(6)]);
-    this.patientForm.get('password')?.updateValueAndValidity();
-    this.patientForm.get('email')?.setValidators([Validators.required, Validators.email]);
-    this.patientForm.get('email')?.updateValueAndValidity();
     this.showAddForm = true;
     this.showEditForm = false;
     this.errorMessage = null;
@@ -134,6 +131,12 @@ export class DoctorPatientsComponent {
     this.successMessage = null;
   }
 
+  onPatientCreated() {
+    this.successMessage = 'Patient created successfully';
+    this.closeForms();
+    this.loadPatients();
+  }
+
   onSubmit() {
     if (this.patientForm.valid) {
       this.isLoading = true;
@@ -142,40 +145,7 @@ export class DoctorPatientsComponent {
 
       const formValue = this.patientForm.value;
 
-      if (this.showAddForm) {
-        const createDto: CreatePatientDto = {
-          firstName: formValue.firstName,
-          lastName: formValue.lastName,
-          email: formValue.email,
-          password: formValue.password,
-          dateOfBirth: formValue.dateOfBirth || undefined,
-          gender: formValue.gender || undefined,
-          phoneNumber: formValue.phoneNumber || undefined,
-          address: formValue.address || undefined,
-          bloodType: formValue.bloodType || undefined,
-          medicalRecordId: formValue.medicalRecordId || undefined
-        };
-
-        this.doctorService.createPatient(createDto).subscribe({
-          next: () => {
-            this.isLoading = false;
-            this.successMessage = 'Patient created successfully';
-            this.closeForms();
-            this.loadPatients();
-          },
-          error: (err) => {
-            this.isLoading = false;
-            if (err.error?.message) {
-              this.errorMessage = err.error.message;
-            } else if (err.error?.errors) {
-              const errors = Object.values(err.error.errors).flat();
-              this.errorMessage = errors.join(', ');
-            } else {
-              this.errorMessage = 'Error creating patient';
-            }
-          }
-        });
-      } else if (this.showEditForm && this.editingPatient) {
+      if (this.showEditForm && this.editingPatient) {
         const updateDto: UpdatePatientDto = {
           firstName: formValue.firstName,
           lastName: formValue.lastName,

@@ -336,5 +336,120 @@ namespace eBolnicaAPI.Controllers
 
             return Ok(new { message = "Patient deleted successfully" });
         }
+
+        [HttpGet("search-patients")]
+        [Authorize(Roles = "Doctor")]
+        public async Task<IActionResult> SearchPatients([FromQuery] string? searchTerm)
+        {
+            var doctorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (doctorId == null)
+            {
+                return Unauthorized();
+            }
+
+            var doctor = await _dbContext.Doctors.FirstOrDefaultAsync(d => d.AppUserId == doctorId);
+
+            if (doctor == null)
+            {
+                return NotFound("Doctor not found");
+            }
+
+            // Get all patients that are not assigned to this doctor
+            var query = _dbContext.Patients
+                .Include(p => p.AppUser)
+                .Where(p => p.DoctorId == null || p.DoctorId != doctor.Id)
+                .Where(p => p.AppUser != null); // Ensure AppUser exists
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                searchTerm = searchTerm.Trim().ToLower();
+                query = query.Where(p =>
+                    (p.FirstName != null && p.FirstName.ToLower().Contains(searchTerm)) ||
+                    (p.LastName != null && p.LastName.ToLower().Contains(searchTerm)) ||
+                    (p.AppUser != null && p.AppUser.Email != null && p.AppUser.Email.ToLower().Contains(searchTerm)));
+            }
+
+            var patients = await query
+                .OrderBy(p => p.FirstName)
+                .ThenBy(p => p.LastName)
+                .Select(p => new PatientSearchDto
+                {
+                    Id = p.Id,
+                    FirstName = p.FirstName ?? "",
+                    LastName = p.LastName ?? "",
+                    Email = p.AppUser != null && p.AppUser.Email != null ? p.AppUser.Email : "",
+                    DoctorId = p.DoctorId
+                })
+                .Take(20)
+                .ToListAsync();
+
+            return Ok(patients);
+        }
+
+        [HttpPost("assign-patient")]
+        [Authorize(Roles = "Doctor")]
+        public async Task<IActionResult> AssignPatient([FromBody] AssignPatientDto assignPatientDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var doctorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (doctorId == null)
+            {
+                return Unauthorized();
+            }
+
+            var doctor = await _dbContext.Doctors.FirstOrDefaultAsync(d => d.AppUserId == doctorId);
+
+            if (doctor == null)
+            {
+                return NotFound("Doctor not found");
+            }
+
+            var patient = await _dbContext.Patients
+                .FirstOrDefaultAsync(p => p.Id == assignPatientDto.PatientId);
+
+            if (patient == null)
+            {
+                return NotFound("Patient not found");
+            }
+
+            // Check if patient is already assigned to another doctor
+            if (patient.DoctorId != null && patient.DoctorId != doctor.Id)
+            {
+                return BadRequest(new { message = "Patient is already assigned to another doctor." });
+            }
+
+            // Assign patient to doctor and update details
+            patient.DoctorId = doctor.Id;
+            patient.DateOfBirth = assignPatientDto.DateOfBirth ?? patient.DateOfBirth;
+            patient.Gender = assignPatientDto.Gender ?? patient.Gender;
+            patient.PhoneNumber = assignPatientDto.PhoneNumber ?? patient.PhoneNumber;
+            patient.Address = assignPatientDto.Address ?? patient.Address;
+            patient.BloodType = assignPatientDto.BloodType ?? patient.BloodType;
+            patient.MedicalRecordId = assignPatientDto.MedicalRecordId ?? patient.MedicalRecordId;
+
+            await _dbContext.SaveChangesAsync();
+
+            var responseDto = new DoctorAssignedPatientDto
+            {
+                Id = patient.Id,
+                DoctorId = doctor.Id,
+                FirstName = patient.FirstName,
+                LastName = patient.LastName,
+                DateOfBirth = patient.DateOfBirth,
+                Gender = patient.Gender,
+                PhoneNumber = patient.PhoneNumber,
+                Address = patient.Address,
+                BloodType = patient.BloodType,
+                MedicalRecordId = patient.MedicalRecordId
+            };
+
+            return Ok(responseDto);
+        }
     }
 }
