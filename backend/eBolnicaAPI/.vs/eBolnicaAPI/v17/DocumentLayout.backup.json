@@ -3,6 +3,10 @@
   "WorkspaceRootPath": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{93CDE43F-B691-40BC-8ECF-F677358E4E27}|eBolnicaAPI\\eBolnicaAPI.Tests\\eBolnicaAPI.Tests.csproj|c:\\users\\user sc\\source\\repos\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\ebolnicaapi.tests\\doctorcontrollertests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{93CDE43F-B691-40BC-8ECF-F677358E4E27}|eBolnicaAPI\\eBolnicaAPI.Tests\\eBolnicaAPI.Tests.csproj|solutionrelative:ebolnicaapi\\ebolnicaapi.tests\\doctorcontrollertests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\user sc\\source\\repos\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\controllers\\accountscontroler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\controllers\\accountscontroler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -42,28 +46,41 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 1,
+          "SelectedChildIndex": 0,
           "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "DoctorControllerTests.cs",
+              "DocumentMoniker": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\eBolnicaAPI.Tests\\DoctorControllerTests.cs",
+              "RelativeDocumentMoniker": "eBolnicaAPI\\eBolnicaAPI.Tests\\DoctorControllerTests.cs",
+              "ToolTip": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\eBolnicaAPI.Tests\\DoctorControllerTests.cs",
+              "RelativeToolTip": "eBolnicaAPI\\eBolnicaAPI.Tests\\DoctorControllerTests.cs",
+              "ViewState": "AgIAAHUBAAAAAAAAAAAAALcAAAAWAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-13T02:51:07.599Z",
+              "EditorCaption": ""
+            },
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "AccountsControler.cs",
               "DocumentMoniker": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Controllers\\AccountsControler.cs",
               "RelativeDocumentMoniker": "eBolnicaAPI\\Controllers\\AccountsControler.cs",
               "ToolTip": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Controllers\\AccountsControler.cs",
               "RelativeToolTip": "eBolnicaAPI\\Controllers\\AccountsControler.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAxAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-13T00:59:33.658Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 2,
               "Title": "AdminController.cs",
               "DocumentMoniker": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Controllers\\AdminController.cs",
               "RelativeDocumentMoniker": "eBolnicaAPI\\Controllers\\AdminController.cs",
@@ -71,12 +88,11 @@
               "RelativeToolTip": "eBolnicaAPI\\Controllers\\AdminController.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-13T00:59:31.827Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-13T00:59:31.827Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 5,
               "Title": "Patient.cs",
               "DocumentMoniker": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\Entities\\Patient.cs",
               "RelativeDocumentMoniker": "eBolnicaAPI\\Models\\Entities\\Patient.cs",
@@ -88,7 +104,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 4,
               "Title": "DoctorController.cs",
               "DocumentMoniker": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Controllers\\DoctorController.cs",
               "RelativeDocumentMoniker": "eBolnicaAPI\\Controllers\\DoctorController.cs",
@@ -100,7 +116,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 3,
               "Title": "DbInitializer.cs",
               "DocumentMoniker": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Data\\DbInitializer.cs",
               "RelativeDocumentMoniker": "eBolnicaAPI\\Data\\DbInitializer.cs",
@@ -108,12 +124,11 @@
               "RelativeToolTip": "eBolnicaAPI\\Data\\DbInitializer.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-13T00:07:14.923Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-13T00:07:14.923Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 6,
               "Title": "AppDbContext.cs",
               "DocumentMoniker": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Data\\AppDbContext.cs",
               "RelativeDocumentMoniker": "eBolnicaAPI\\Data\\AppDbContext.cs",
@@ -125,7 +140,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 8,
               "Title": "DoctorAssignedPatientDto.cs",
               "DocumentMoniker": "C:\\Users\\User SC\\source\\repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\DTOs\\DoctorAssignedPatientDto.cs",
               "RelativeDocumentMoniker": "eBolnicaAPI\\Models\\DTOs\\DoctorAssignedPatientDto.cs",
@@ -137,7 +152,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 7,
               "Title": "eBolnicaAPI.csproj",
               "DocumentMoniker": "C:\\Users\\User SC\\Source\\Repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\eBolnicaAPI.csproj",
               "RelativeDocumentMoniker": "eBolnicaAPI\\eBolnicaAPI.csproj",

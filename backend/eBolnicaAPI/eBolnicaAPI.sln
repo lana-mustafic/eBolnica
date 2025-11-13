@@ -10,6 +10,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "eBolnicaAPI", "eBolnicaAPI", "{33AF9998-9E4F-4DD3-9905-7B4B69338717}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "eBolnicaAPI.Tests", "eBolnicaAPI\eBolnicaAPI.Tests\eBolnicaAPI.Tests.csproj", "{93CDE43F-B691-40BC-8ECF-F677358E4E27}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,11 +24,19 @@ Global
 		{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{93CDE43F-B691-40BC-8ECF-F677358E4E27}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{93CDE43F-B691-40BC-8ECF-F677358E4E27}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{93CDE43F-B691-40BC-8ECF-F677358E4E27}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{93CDE43F-B691-40BC-8ECF-F677358E4E27}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5F9DCA16-F670-4FE2-9B19-61F288AF9C23}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{7938A61D-FCBE-4CDB-AE11-8D906549AEB5} = {33AF9998-9E4F-4DD3-9905-7B4B69338717}
+		{93CDE43F-B691-40BC-8ECF-F677358E4E27} = {33AF9998-9E4F-4DD3-9905-7B4B69338717}
 	EndGlobalSection
 EndGlobal

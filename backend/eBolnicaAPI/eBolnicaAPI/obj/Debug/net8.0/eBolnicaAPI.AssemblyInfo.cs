@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("eBolnicaAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7b3acd23d3b8750176eeb07c0bd50faf44b81101")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+36f219afecb6377ff2e0bcc0a0b26a2bc32717f8")]
 [assembly: System.Reflection.AssemblyProductAttribute("eBolnicaAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("eBolnicaAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
