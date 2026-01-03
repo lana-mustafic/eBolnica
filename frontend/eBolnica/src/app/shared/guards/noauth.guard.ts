@@ -15,7 +15,7 @@ export const noauthGuard: CanActivateFn = (route, state) => {
     let redirectPath='/';
     if(role==='Admin') redirectPath = '/admin-dashboard';
     else if(role==='Doctor') redirectPath='/doctor-dashboard';
-    else if(role==='Patient') redirectPath='/';
+    else if(role==='Patient') redirectPath='/patient-dashboard';
     
     return router.createUrlTree([redirectPath]);
   }

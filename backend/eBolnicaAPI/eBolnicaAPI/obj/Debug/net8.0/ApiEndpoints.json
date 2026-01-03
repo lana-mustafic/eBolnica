@@ -96,6 +96,54 @@
   },
   {
     "ContainingType": "eBolnicaAPI.Controllers.DoctorController",
+    "Method": "AssignPatient",
+    "RelativePath": "api/doctor/assign-patient",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "assignPatientDto",
+        "Type": "eBolnicaAPI.Models.DTOs.AssignPatientDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "eBolnicaAPI.Controllers.DoctorController",
+    "Method": "CreatePatient",
+    "RelativePath": "api/doctor/create-patient",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "createPatientDto",
+        "Type": "eBolnicaAPI.Models.DTOs.CreatePatientDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "eBolnicaAPI.Controllers.DoctorController",
+    "Method": "DeletePatient",
+    "RelativePath": "api/doctor/delete-patient/{patientId}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "patientId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "eBolnicaAPI.Controllers.DoctorController",
     "Method": "GetDoctorData",
     "RelativePath": "api/doctor/doctor-data",
     "HttpMethod": "GET",
@@ -124,6 +172,53 @@
     "ContainingType": "eBolnicaAPI.Controllers.DoctorController",
     "Method": "GetDoctorAssignedPatient",
     "RelativePath": "api/doctor/list-patients",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "eBolnicaAPI.Controllers.DoctorController",
+    "Method": "SearchPatients",
+    "RelativePath": "api/doctor/search-patients",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "searchTerm",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "eBolnicaAPI.Controllers.DoctorController",
+    "Method": "UpdatePatient",
+    "RelativePath": "api/doctor/update-patient/{patientId}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "patientId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "updatePatientDto",
+        "Type": "eBolnicaAPI.Models.DTOs.UpdatePatientDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "eBolnicaAPI.Controllers.PatientController",
+    "Method": "GetPatientData",
+    "RelativePath": "api/patient/patient-data",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
