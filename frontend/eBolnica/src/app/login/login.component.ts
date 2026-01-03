@@ -41,7 +41,7 @@ export class LoginComponent {
             }else if(role==='Doctor'){
               this.router.navigateByUrl('/doctor-dashboard');
             }else if(role==='Patient'){
-              this.router.navigateByUrl('/');
+              this.router.navigateByUrl('/patient-dashboard');
             }
           },
           error: (err) =>{

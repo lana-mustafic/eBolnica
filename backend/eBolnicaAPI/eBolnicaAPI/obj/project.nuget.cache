@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "q+q+NBWAX3s=",
+  "dgSpecHash": "y0ifzsdfY3w=",
   "success": true,
-  "projectFilePath": "C:\\Users\\User SC\\Source\\Repos\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\eBolnicaAPI.csproj",
+  "projectFilePath": "C:\\Users\\User SC\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\eBolnicaAPI.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\User SC\\.nuget\\packages\\automapper\\15.0.1\\automapper.15.0.1.nupkg.sha512",
     "C:\\Users\\User SC\\.nuget\\packages\\azure.core\\1.38.0\\azure.core.1.38.0.nupkg.sha512",
