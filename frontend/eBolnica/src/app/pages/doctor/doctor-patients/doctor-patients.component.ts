@@ -4,6 +4,7 @@ import { DoctorAssignedPatientDto } from '../../../models/doctor-patients.dto';
 import { AuthService } from '../../../shared/services/auth.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-doctor-patients',
@@ -16,6 +17,7 @@ export class DoctorPatientsComponent {
 
   doctorService = inject(DoctorService);
   authService = inject(AuthService);
+  router = inject(Router);
   assignedPatients: DoctorAssignedPatientDto[] = [];
 
    filters = {
@@ -54,6 +56,10 @@ export class DoctorPatientsComponent {
       && yearMatch;
   });
 }
+
+  openMedicalRecord(patient:any){
+    this.router.navigate(['medical-record', patient.id]);
+  }
 
 }
 

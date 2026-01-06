@@ -3,28 +3,24 @@
   "WorkspaceRootPath": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\kolan\\desktop\\rs1 ebolnica\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\controllers\\accountscontroler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\controllers\\accountscontroler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\kolan\\desktop\\rs1 ebolnica\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\controllers\\medicalrecordcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\controllers\\medicalrecordcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\kolan\\desktop\\rs1 ebolnica\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\models\\dtos\\medicalrecorddto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\models\\dtos\\medicalrecorddto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\kolan\\desktop\\rs1 ebolnica\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\models\\entities\\medicalrecord.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\models\\entities\\medicalrecord.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\kolan\\desktop\\rs1 ebolnica\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\controllers\\doctorcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\controllers\\doctorcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\kolan\\desktop\\rs1 ebolnica\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\models\\dtos\\userregistrationdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\models\\dtos\\userregistrationdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\kolan\\desktop\\rs1 ebolnica\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\models\\dtos\\doctorlistdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\models\\dtos\\doctorlistdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\kolan\\desktop\\rs1 ebolnica\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\models\\entities\\doctor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\models\\entities\\doctor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|c:\\users\\kolan\\desktop\\rs1 ebolnica\\ebolnica\\backend\\ebolnicaapi\\ebolnicaapi\\models\\entities\\patient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{7938A61D-FCBE-4CDB-AE11-8D906549AEB5}|eBolnicaAPI\\eBolnicaAPI.csproj|solutionrelative:ebolnicaapi\\models\\entities\\patient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -34,8 +30,60 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 5,
+          "SelectedChildIndex": 1,
           "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "MedicalRecordDto.cs",
+              "DocumentMoniker": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\DTOs\\MedicalRecordDto.cs",
+              "RelativeDocumentMoniker": "eBolnicaAPI\\Models\\DTOs\\MedicalRecordDto.cs",
+              "ToolTip": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\DTOs\\MedicalRecordDto.cs",
+              "RelativeToolTip": "eBolnicaAPI\\Models\\DTOs\\MedicalRecordDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-13T17:06:38.642Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "MedicalRecordController.cs",
+              "DocumentMoniker": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Controllers\\MedicalRecordController.cs",
+              "RelativeDocumentMoniker": "eBolnicaAPI\\Controllers\\MedicalRecordController.cs",
+              "ToolTip": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Controllers\\MedicalRecordController.cs",
+              "RelativeToolTip": "eBolnicaAPI\\Controllers\\MedicalRecordController.cs",
+              "ViewState": "AgIAAAsAAAAAAAAAAAAQwB4AAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-13T16:59:33.279Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "DoctorController.cs",
+              "DocumentMoniker": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Controllers\\DoctorController.cs",
+              "RelativeDocumentMoniker": "eBolnicaAPI\\Controllers\\DoctorController.cs",
+              "ToolTip": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Controllers\\DoctorController.cs",
+              "RelativeToolTip": "eBolnicaAPI\\Controllers\\DoctorController.cs",
+              "ViewState": "AgIAAAwAAAAAAAAAAAAAAB0AAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-13T16:09:53.224Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "MedicalRecord.cs",
+              "DocumentMoniker": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\Entities\\MedicalRecord.cs",
+              "RelativeDocumentMoniker": "eBolnicaAPI\\Models\\Entities\\MedicalRecord.cs",
+              "ToolTip": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\Entities\\MedicalRecord.cs",
+              "RelativeToolTip": "eBolnicaAPI\\Models\\Entities\\MedicalRecord.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-13T16:09:06.253Z",
+              "EditorCaption": ""
+            },
             {
               "$type": "Document",
               "DocumentIndex": 4,
@@ -44,74 +92,9 @@
               "RelativeDocumentMoniker": "eBolnicaAPI\\Models\\Entities\\Doctor.cs",
               "ToolTip": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\Entities\\Doctor.cs",
               "RelativeToolTip": "eBolnicaAPI\\Models\\Entities\\Doctor.cs",
-              "ViewState": "AgIAAAgAAAAAAAAAAAAQwB4AAAAFAAAAAAAAAA==",
+              "ViewState": "AgIAAAgAAAAAAAAAAAAxwB4AAAAFAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-10-20T15:28:50.619Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "DoctorListDto.cs",
-              "DocumentMoniker": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\DTOs\\DoctorListDto.cs",
-              "RelativeDocumentMoniker": "eBolnicaAPI\\Models\\DTOs\\DoctorListDto.cs",
-              "ToolTip": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\DTOs\\DoctorListDto.cs",
-              "RelativeToolTip": "eBolnicaAPI\\Models\\DTOs\\DoctorListDto.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAVAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-20T15:28:46.101Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "DoctorController.cs",
-              "DocumentMoniker": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Controllers\\DoctorController.cs",
-              "RelativeDocumentMoniker": "eBolnicaAPI\\Controllers\\DoctorController.cs",
-              "ToolTip": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Controllers\\DoctorController.cs",
-              "RelativeToolTip": "eBolnicaAPI\\Controllers\\DoctorController.cs",
-              "ViewState": "AgIAAEYAAAAAAAAAAAAmwKkAAAA0AAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-20T15:25:32.232Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "Patient.cs",
-              "DocumentMoniker": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\Entities\\Patient.cs",
-              "RelativeDocumentMoniker": "eBolnicaAPI\\Models\\Entities\\Patient.cs",
-              "ToolTip": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\Entities\\Patient.cs",
-              "RelativeToolTip": "eBolnicaAPI\\Models\\Entities\\Patient.cs",
-              "ViewState": "AgIAABMAAAAAAAAAAAAcwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-20T15:23:38.471Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "UserRegistrationDto.cs",
-              "DocumentMoniker": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\DTOs\\UserRegistrationDto.cs",
-              "RelativeDocumentMoniker": "eBolnicaAPI\\Models\\DTOs\\UserRegistrationDto.cs",
-              "ToolTip": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Models\\DTOs\\UserRegistrationDto.cs",
-              "RelativeToolTip": "eBolnicaAPI\\Models\\DTOs\\UserRegistrationDto.cs",
-              "ViewState": "AgIAABUAAAAAAAAAAAAwwBoAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-20T15:22:31.187Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "AccountsControler.cs",
-              "DocumentMoniker": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Controllers\\AccountsControler.cs",
-              "RelativeDocumentMoniker": "eBolnicaAPI\\Controllers\\AccountsControler.cs",
-              "ToolTip": "C:\\Users\\kolan\\Desktop\\RS1 EBOLNICA\\eBolnica\\backend\\eBolnicaAPI\\eBolnicaAPI\\Controllers\\AccountsControler.cs",
-              "RelativeToolTip": "eBolnicaAPI\\Controllers\\AccountsControler.cs",
-              "ViewState": "AgIAACoAAAAAAAAAAAAowDkAAAAOAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-20T15:19:01.794Z",
               "EditorCaption": ""
             }
           ]

@@ -162,6 +162,22 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "eBolnicaAPI.Controllers.MedicalRecordController",
+    "Method": "GetMedicalRecordById",
+    "RelativePath": "api/patient/medical-record/{id}/medical-records",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "Microsoft.AspNetCore.Routing.IdentityApiEndpointRouteBuilderExtensions\u002B\u003C\u003Ec__1\u00601[[eBolnicaAPI.Models.Entities.AppUser, eBolnicaAPI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
     "Method": "\u003CMapIdentityApi\u003Eb__1_3",
     "RelativePath": "confirmEmail",
