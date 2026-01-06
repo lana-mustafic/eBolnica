@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { AbstractControl, Form, FormBuilder, FormGroup, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
 import { AuthService } from '../../shared/services/auth.service';
 import { RouterModule } from '@angular/router';
+import { I18nService, Language } from '../../shared/services/i18n.service';
 import { DoctorService } from '../../shared/services/doctor/doctor.service';
 import { DoctorListDto } from '../../models/doctor-list.dto';
 
@@ -14,11 +15,16 @@ import { DoctorListDto } from '../../models/doctor-list.dto';
   templateUrl: './patient-registration.component.html',
   styleUrl: './patient-registration.component.css'
 })
-export class RegistrationComponent implements OnInit{
+export class RegistrationComponent implements OnInit implements OnInit{
   form: FormGroup;
   isSubmitted:boolean = false;
   errorMessage:string | null = null;
   submitSuccess:string | null = null;
+  
+  i18nService = inject(I18nService);
+  cdr = inject(ChangeDetectorRef);
+  currentLanguage: Language = 'en';
+  translationsLoaded = false;
  
 
 
@@ -63,6 +69,32 @@ export class RegistrationComponent implements OnInit{
     }, {validators:this.passwordMatchValidator});
   }
 
+  ngOnInit(): void {
+    // Set initial language
+    this.currentLanguage = this.i18nService.getCurrentLanguageValue();
+    this.translationsLoaded = this.i18nService.isTranslationsLoaded();
+    
+    // Subscribe to language changes
+    this.i18nService.getCurrentLanguage().subscribe(lang => {
+      this.currentLanguage = lang;
+      this.cdr.detectChanges();
+    });
+    
+    // Subscribe to translations loaded
+    this.i18nService.getTranslationsLoaded().subscribe(loaded => {
+      this.translationsLoaded = loaded;
+      this.cdr.detectChanges();
+    });
+  }
+
+  changeLanguage(lang: Language): void {
+    this.i18nService.setLanguage(lang);
+  }
+
+  t(key: string): string {
+    return this.i18nService.translate(key);
+  }
+
   hidePassword: boolean = true;
   
   togglePasswordVisibility() {
@@ -76,13 +108,13 @@ export class RegistrationComponent implements OnInit{
       this.authService.createPatient(this.form.value).subscribe({
         next: (response) => {
           console.log('Success:', response);
-          this.submitSuccess= "Registration successful";
+          this.submitSuccess = this.t('patientRegistration.success.registrationSuccessful');
           this.form.reset();
         },
         error: (err) => {
           console.error('Registration failed:', err);
           if(err.status===400){
-            this.errorMessage='E-mail already in use';
+            this.errorMessage = this.t('patientRegistration.errors.emailInUse');
           }
         }
       });

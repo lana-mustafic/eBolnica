@@ -180,9 +180,196 @@ namespace eBolnicaAPI.Data
                 SecurityStamp = "fixed-guid-2"
             };
 
-            modelBuilder.Entity<AppUser>().HasData(admin);
-            modelBuilder.Entity<AppUser>().HasData(doctor1, doctor2, doctor3, patient1, patient2, patient3);
+            var patient4 = new AppUser
+            {
+                Id = "p4",
+                FirstName = "Ana",
+                LastName = "Jovanović",
+                UserName = "ana@gmail.com",
+                NormalizedUserName = "ANA@GMAIL.COM",
+                Email = "ana@gmail.com",
+                NormalizedEmail = "ANA@GMAIL.COM",
+                EmailConfirmed = false,
+                PhoneNumber = "061100106",
+                PhoneNumberConfirmed = false,
+                TwoFactorEnabled = false,
+                LockoutEnabled = true,
+                AccessFailedCount = 0,
+                UserType = "Patient",
+                LicenseNumber = null,
+                ConcurrencyStamp = "fixed-guid-1",
+                SecurityStamp = "fixed-guid-2"
+            };
 
+            var patient5 = new AppUser
+            {
+                Id = "p5",
+                FirstName = "Marko",
+                LastName = "Nikolić",
+                UserName = "marko.patient@gmail.com",
+                NormalizedUserName = "MARKO.PATIENT@GMAIL.COM",
+                Email = "marko.patient@gmail.com",
+                NormalizedEmail = "MARKO.PATIENT@GMAIL.COM",
+                EmailConfirmed = false,
+                PhoneNumber = "061100107",
+                PhoneNumberConfirmed = false,
+                TwoFactorEnabled = false,
+                LockoutEnabled = true,
+                AccessFailedCount = 0,
+                UserType = "Patient",
+                LicenseNumber = null,
+                ConcurrencyStamp = "fixed-guid-1",
+                SecurityStamp = "fixed-guid-2"
+            };
+
+            var patient6 = new AppUser
+            {
+                Id = "p6",
+                FirstName = "Sara",
+                LastName = "Stojanović",
+                UserName = "sara@gmail.com",
+                NormalizedUserName = "SARA@GMAIL.COM",
+                Email = "sara@gmail.com",
+                NormalizedEmail = "SARA@GMAIL.COM",
+                EmailConfirmed = false,
+                PhoneNumber = "061100108",
+                PhoneNumberConfirmed = false,
+                TwoFactorEnabled = false,
+                LockoutEnabled = true,
+                AccessFailedCount = 0,
+                UserType = "Patient",
+                LicenseNumber = null,
+                ConcurrencyStamp = "fixed-guid-1",
+                SecurityStamp = "fixed-guid-2"
+            };
+
+            var patient7 = new AppUser
+            {
+                Id = "p7",
+                FirstName = "Nikola",
+                LastName = "Popović",
+                UserName = "nikola@gmail.com",
+                NormalizedUserName = "NIKOLA@GMAIL.COM",
+                Email = "nikola@gmail.com",
+                NormalizedEmail = "NIKOLA@GMAIL.COM",
+                EmailConfirmed = false,
+                PhoneNumber = "061100109",
+                PhoneNumberConfirmed = false,
+                TwoFactorEnabled = false,
+                LockoutEnabled = true,
+                AccessFailedCount = 0,
+                UserType = "Patient",
+                LicenseNumber = null,
+                ConcurrencyStamp = "fixed-guid-1",
+                SecurityStamp = "fixed-guid-2"
+            };
+
+            var patient8 = new AppUser
+            {
+                Id = "p8",
+                FirstName = "Jovana",
+                LastName = "Milošević",
+                UserName = "jovana@gmail.com",
+                NormalizedUserName = "JOVANA@GMAIL.COM",
+                Email = "jovana@gmail.com",
+                NormalizedEmail = "JOVANA@GMAIL.COM",
+                EmailConfirmed = false,
+                PhoneNumber = "061100110",
+                PhoneNumberConfirmed = false,
+                TwoFactorEnabled = false,
+                LockoutEnabled = true,
+                AccessFailedCount = 0,
+                UserType = "Patient",
+                LicenseNumber = null,
+                ConcurrencyStamp = "fixed-guid-1",
+                SecurityStamp = "fixed-guid-2"
+            };
+
+            var patient9 = new AppUser
+            {
+                Id = "p9",
+                FirstName = "Stefan",
+                LastName = "Đorđević",
+                UserName = "stefan@gmail.com",
+                NormalizedUserName = "STEFAN@GMAIL.COM",
+                Email = "stefan@gmail.com",
+                NormalizedEmail = "STEFAN@GMAIL.COM",
+                EmailConfirmed = false,
+                PhoneNumber = "061100111",
+                PhoneNumberConfirmed = false,
+                TwoFactorEnabled = false,
+                LockoutEnabled = true,
+                AccessFailedCount = 0,
+                UserType = "Patient",
+                LicenseNumber = null,
+                ConcurrencyStamp = "fixed-guid-1",
+                SecurityStamp = "fixed-guid-2"
+            };
+
+            var patient10 = new AppUser
+            {
+                Id = "p10",
+                FirstName = "Milica",
+                LastName = "Radić",
+                UserName = "milica@gmail.com",
+                NormalizedUserName = "MILICA@GMAIL.COM",
+                Email = "milica@gmail.com",
+                NormalizedEmail = "MILICA@GMAIL.COM",
+                EmailConfirmed = false,
+                PhoneNumber = "061100112",
+                PhoneNumberConfirmed = false,
+                TwoFactorEnabled = false,
+                LockoutEnabled = true,
+                AccessFailedCount = 0,
+                UserType = "Patient",
+                LicenseNumber = null,
+                ConcurrencyStamp = "fixed-guid-1",
+                SecurityStamp = "fixed-guid-2"
+            };
+
+            var patient11 = new AppUser
+            {
+                Id = "p11",
+                FirstName = "Luka",
+                LastName = "Stefanović",
+                UserName = "luka@gmail.com",
+                NormalizedUserName = "LUKA@GMAIL.COM",
+                Email = "luka@gmail.com",
+                NormalizedEmail = "LUKA@GMAIL.COM",
+                EmailConfirmed = false,
+                PhoneNumber = "061100113",
+                PhoneNumberConfirmed = false,
+                TwoFactorEnabled = false,
+                LockoutEnabled = true,
+                AccessFailedCount = 0,
+                UserType = "Patient",
+                LicenseNumber = null,
+                ConcurrencyStamp = "fixed-guid-1",
+                SecurityStamp = "fixed-guid-2"
+            };
+
+            var patient12 = new AppUser
+            {
+                Id = "p12",
+                FirstName = "Teodora",
+                LastName = "Lazić",
+                UserName = "teodora@gmail.com",
+                NormalizedUserName = "TEODORA@GMAIL.COM",
+                Email = "teodora@gmail.com",
+                NormalizedEmail = "TEODORA@GMAIL.COM",
+                EmailConfirmed = false,
+                PhoneNumber = "061100114",
+                PhoneNumberConfirmed = false,
+                TwoFactorEnabled = false,
+                LockoutEnabled = true,
+                AccessFailedCount = 0,
+                UserType = "Patient",
+                LicenseNumber = null,
+                ConcurrencyStamp = "fixed-guid-1",
+                SecurityStamp = "fixed-guid-2"
+            };
+
+            modelBuilder.Entity<AppUser>().HasData(doctor1, doctor2, doctor3, patient1, patient2, patient3, patient4, patient5, patient6, patient7, patient8, patient9, patient10, patient11, patient12);
 
             modelBuilder.Entity<Doctor>().HasData(
                 new Doctor { Id = 1,FirstName=doctor1.FirstName, LastName=doctor1.LastName, AppUserId = "d1", Specialization="Cardiology",RegistrationStatus="Approved", Address="Address1", BirthDate= new DateTime(1995, 3, 15), LicenseNumber=doctor1.LicenseNumber, PhoneNumber=doctor1.PhoneNumber },
@@ -191,16 +378,19 @@ namespace eBolnicaAPI.Data
                 );
 
             modelBuilder.Entity<Patient>().HasData(
-                new Patient { Id = 1, FirstName = patient1.FirstName, LastName = patient1.LastName, AppUserId = "p1", Gender="Male",Address = "Address1", DateOfBirth = new DateTime(1990, 3, 15), BloodType="A", DoctorId=1, PhoneNumber=patient1.PhoneNumber },
-                new Patient { Id = 2, FirstName =patient2.FirstName, LastName = patient2.LastName, AppUserId = "p2", Gender="Female",Address = "Address2", DateOfBirth = new DateTime(1991, 3, 15), BloodType = "B", DoctorId = 1, PhoneNumber=patient2.PhoneNumber },
-                new Patient { Id = 3, FirstName = patient3.FirstName, LastName =patient3.LastName, AppUserId = "p3", Gender="Male", Address = "Address3", DateOfBirth = new DateTime(1992, 3, 15), BloodType = "0", DoctorId = 1, PhoneNumber=patient3.PhoneNumber }
+                new Patient { Id = 1, FirstName = patient1.FirstName, LastName = patient1.LastName, AppUserId = "p1", Gender="Male",Address = "Address1", DateOfBirth = new DateTime(1990, 3, 15), MedicalRecordId="MRID1", BloodType="A+", DoctorId=1, PhoneNumber=patient1.PhoneNumber },
+                new Patient { Id = 2, FirstName =patient2.FirstName, LastName = patient2.LastName, AppUserId = "p2", Gender="Female",Address = "Address2", DateOfBirth = new DateTime(1991, 3, 15), MedicalRecordId = "MRID2", BloodType = "B+", DoctorId = 1, PhoneNumber=patient2.PhoneNumber },
+                new Patient { Id = 3, FirstName = patient3.FirstName, LastName =patient3.LastName, AppUserId = "p3", Gender="Other", Address = "Address3", DateOfBirth = new DateTime(1992, 3, 14), MedicalRecordId = "MRID3", BloodType = "AB+", DoctorId = 1, PhoneNumber=patient3.PhoneNumber },
+                new Patient { Id = 4, FirstName = patient4.FirstName, LastName = patient4.LastName, AppUserId = "p4", Gender="Female", Address = "Bulevar Kralja Aleksandra 15", DateOfBirth = new DateTime(1988, 5, 20), MedicalRecordId = "MRID4", BloodType = "O+", DoctorId = 1, PhoneNumber=patient4.PhoneNumber },
+                new Patient { Id = 5, FirstName = patient5.FirstName, LastName = patient5.LastName, AppUserId = "p5", Gender="Male", Address = "Knez Mihailova 25", DateOfBirth = new DateTime(1985, 7, 10), MedicalRecordId = "MRID5", BloodType = "A-", DoctorId = 2, PhoneNumber=patient5.PhoneNumber },
+                new Patient { Id = 6, FirstName = patient6.FirstName, LastName = patient6.LastName, AppUserId = "p6", Gender="Female", Address = "Nemanjina 10", DateOfBirth = new DateTime(1993, 9, 5), MedicalRecordId = "MRID6", BloodType = "B-", DoctorId = 2, PhoneNumber=patient6.PhoneNumber },
+                new Patient { Id = 7, FirstName = patient7.FirstName, LastName = patient7.LastName, AppUserId = "p7", Gender="Male", Address = "Terazije 5", DateOfBirth = new DateTime(1987, 11, 18), MedicalRecordId = "MRID7", BloodType = "O-", DoctorId = 2, PhoneNumber=patient7.PhoneNumber },
+                new Patient { Id = 8, FirstName = patient8.FirstName, LastName = patient8.LastName, AppUserId = "p8", Gender="Female", Address = "Vračar 20", DateOfBirth = new DateTime(1994, 12, 25), MedicalRecordId = "MRID8", BloodType = "AB-", DoctorId = 3, PhoneNumber=patient8.PhoneNumber },
+                new Patient { Id = 9, FirstName = patient9.FirstName, LastName = patient9.LastName, AppUserId = "p9", Gender="Male", Address = "Svetog Save 45", DateOfBirth = new DateTime(1989, 2, 12), MedicalRecordId = "MRID9", BloodType = "A+", DoctorId = 1, PhoneNumber=patient9.PhoneNumber },
+                new Patient { Id = 10, FirstName = patient10.FirstName, LastName = patient10.LastName, AppUserId = "p10", Gender="Female", Address = "Kralja Milana 30", DateOfBirth = new DateTime(1995, 6, 8), MedicalRecordId = "MRID10", BloodType = "B+", DoctorId = 1, PhoneNumber=patient10.PhoneNumber },
+                new Patient { Id = 11, FirstName = patient11.FirstName, LastName = patient11.LastName, AppUserId = "p11", Gender="Male", Address = "Obilićev venac 12", DateOfBirth = new DateTime(1986, 8, 22), MedicalRecordId = "MRID11", BloodType = "O+", DoctorId = 1, PhoneNumber=patient11.PhoneNumber },
+                new Patient { Id = 12, FirstName = patient12.FirstName, LastName = patient12.LastName, AppUserId = "p12", Gender="Female", Address = "Dunavska 8", DateOfBirth = new DateTime(1996, 4, 30), MedicalRecordId = "MRID12", BloodType = "AB+", DoctorId = 1, PhoneNumber=patient12.PhoneNumber }
                 );
-
-            modelBuilder.Entity<MedicalRecord>().HasData(
-                new MedicalRecord { Id = 1, PatientId = 1, RecordNumber = $"MR-{DateTime.Now:yyyy}-p1" },
-                new MedicalRecord { Id = 2, PatientId = 2, RecordNumber = $"MR-{DateTime.Now:yyyy}-p2" },
-                new MedicalRecord { Id = 3, PatientId = 3, RecordNumber = $"MR-{DateTime.Now:yyyy}-p3" }
-            );
 
         }
 

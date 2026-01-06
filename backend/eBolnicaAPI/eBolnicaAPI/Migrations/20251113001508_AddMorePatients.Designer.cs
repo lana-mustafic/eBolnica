@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using eBolnicaAPI.Data;
 
@@ -11,9 +12,11 @@ using eBolnicaAPI.Data;
 namespace eBolnicaAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251113001508_AddMorePatients")]
+    partial class AddMorePatients
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -235,25 +238,6 @@ namespace eBolnicaAPI.Migrations
                     b.ToTable("AspNetUsers", (string)null);
 
                     b.HasData(
-                        new
-                        {
-                            Id = "a1",
-                            AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-3",
-                            Email = "admin@gmail.com",
-                            EmailConfirmed = true,
-                            FirstName = "Admin",
-                            LastName = "User",
-                            LockoutEnabled = true,
-                            NormalizedEmail = "ADMIN@GMAIL.COM",
-                            NormalizedUserName = "ADMIN@GMAIL.COM",
-                            PhoneNumber = "061000000",
-                            PhoneNumberConfirmed = true,
-                            SecurityStamp = "fixed-guid-3",
-                            TwoFactorEnabled = false,
-                            UserName = "admin@gmail.com",
-                            UserType = "Admin"
-                        },
                         new
                         {
                             Id = "d1",
@@ -589,7 +573,7 @@ namespace eBolnicaAPI.Migrations
                     b.HasIndex("AppUserId")
                         .IsUnique();
 
-                    b.ToTable("Doctors", (string)null);
+                    b.ToTable("Doctors");
 
                     b.HasData(
                         new
@@ -633,87 +617,6 @@ namespace eBolnicaAPI.Migrations
                         });
                 });
 
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.MedicalRecord", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("PatientId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("RecordNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PatientId")
-                        .IsUnique();
-
-                    b.ToTable("MedicalRecords", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            PatientId = 1,
-                            RecordNumber = "MR-2025-p1"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            PatientId = 2,
-                            RecordNumber = "MR-2025-p2"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            PatientId = 3,
-                            RecordNumber = "MR-2025-p3"
-                        });
-                });
-
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.MedicalReport", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Diagnosis")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("DoctorId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MedicalRecordId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Symptoms")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Therapy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DoctorId");
-
-                    b.HasIndex("MedicalRecordId");
-
-                    b.ToTable("MedicalReports", (string)null);
-                });
-
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.Patient", b =>
                 {
                     b.Property<int>("Id")
@@ -752,6 +655,9 @@ namespace eBolnicaAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("MedicalRecordId")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("nvarchar(max)");
 
@@ -762,7 +668,7 @@ namespace eBolnicaAPI.Migrations
 
                     b.HasIndex("DoctorId");
 
-                    b.ToTable("Patients", (string)null);
+                    b.ToTable("Patients");
 
                     b.HasData(
                         new
@@ -776,6 +682,7 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Ismet",
                             Gender = "Male",
                             LastName = "Horo",
+                            MedicalRecordId = "MRID1",
                             PhoneNumber = "061100103"
                         },
                         new
@@ -789,6 +696,7 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Elon",
                             Gender = "Female",
                             LastName = "Musk",
+                            MedicalRecordId = "MRID2",
                             PhoneNumber = "061100104"
                         },
                         new
@@ -802,6 +710,7 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Peter",
                             Gender = "Other",
                             LastName = "Griffin",
+                            MedicalRecordId = "MRID3",
                             PhoneNumber = "061100105"
                         },
                         new
@@ -994,36 +903,6 @@ namespace eBolnicaAPI.Migrations
                     b.Navigation("AppUser");
                 });
 
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.MedicalRecord", b =>
-                {
-                    b.HasOne("eBolnicaAPI.Models.Entities.Patient", "Patient")
-                        .WithOne("MedicalRecord")
-                        .HasForeignKey("eBolnicaAPI.Models.Entities.MedicalRecord", "PatientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Patient");
-                });
-
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.MedicalReport", b =>
-                {
-                    b.HasOne("eBolnicaAPI.Models.Entities.Doctor", "Doctor")
-                        .WithMany()
-                        .HasForeignKey("DoctorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("eBolnicaAPI.Models.Entities.MedicalRecord", "MedicalRecord")
-                        .WithMany("Reports")
-                        .HasForeignKey("MedicalRecordId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Doctor");
-
-                    b.Navigation("MedicalRecord");
-                });
-
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.Patient", b =>
                 {
                     b.HasOne("eBolnicaAPI.Models.Entities.AppUser", "AppUser")
@@ -1052,17 +931,6 @@ namespace eBolnicaAPI.Migrations
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.Doctor", b =>
                 {
                     b.Navigation("Patients");
-                });
-
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.MedicalRecord", b =>
-                {
-                    b.Navigation("Reports");
-                });
-
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.Patient", b =>
-                {
-                    b.Navigation("MedicalRecord")
-                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

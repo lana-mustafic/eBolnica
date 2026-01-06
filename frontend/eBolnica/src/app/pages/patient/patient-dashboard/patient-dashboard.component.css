@@ -58,50 +58,52 @@
   height: 18px;
 }
 
-.dashboard-nav {
-  background: white;
-  border-bottom: 2px solid #e2e8f0;
-  padding: 0 2rem;
-  display: flex;
-  gap: 0.5rem;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.nav-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 1rem 1.5rem;
-  color: #718096;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 0.95rem;
-  border-bottom: 3px solid transparent;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.nav-link:hover {
-  color: #667eea;
-  background: #f7fafc;
-}
-
-.nav-link.active {
-  color: #667eea;
-  border-bottom-color: #667eea;
-  background: #f7fafc;
-}
-
-.nav-link svg {
-  width: 20px;
-  height: 20px;
-}
-
 .dashboard-content {
   max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
+}
+
+.patient-info-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  max-width: 600px;
+}
+
+.patient-info-card h2 {
+  color: #2d3748;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 1rem;
+}
+
+.info-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.info-item label {
+  color: #718096;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.info-item span {
+  color: #2d3748;
+  font-size: 1.125rem;
+  font-weight: 500;
 }
 
 @media (max-width: 768px) {
@@ -115,18 +117,12 @@
     align-items: flex-start;
   }
 
-  .dashboard-nav {
-    padding: 0 1rem;
-    overflow-x: auto;
-  }
-
-  .nav-link {
-    padding: 0.875rem 1rem;
-    white-space: nowrap;
-  }
-
   .dashboard-content {
     padding: 1.5rem 1rem;
+  }
+
+  .patient-info-card {
+    padding: 1.5rem;
   }
 }
 
