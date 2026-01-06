@@ -132,6 +132,22 @@
         <div class="error-message" *ngIf="form.get('confirmPassword')?.hasError('passwordMismatch') && form.get('confirmPassword')?.touched">
           {{ t('patientRegistration.errors.passwordMismatch') }}
         </div>
+    </div>
+
+    <div class="mb-3">
+        <label>Select doctor:</label>
+        <select formControlName="doctorId">
+            <option *ngFor = "let d of doctors" [value]="d.id">{{d.firstName + ' ' + d.lastName}}</option>
+        </select>
+    </div>
+    <div class="mb-3">
+        <button type="submit" [disabled]="form.invalid" class="btn btn-success rounded-3 btn ml-5">Register</button>
+    </div>
+    <div *ngIf="submitSuccess">
+    {{ submitSuccess }}
+    </div>
+    <div *ngIf="errorMessage" class="text-danger mt-2">
+    {{errorMessage}}
       </div>
 
       <div class="success-message" *ngIf="submitSuccess">

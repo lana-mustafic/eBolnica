@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using eBolnicaAPI.Data;
 
@@ -11,9 +12,11 @@ using eBolnicaAPI.Data;
 namespace eBolnicaAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251020150055_MedicalRecordFix")]
+    partial class MedicalRecordFix
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -370,177 +373,6 @@ namespace eBolnicaAPI.Migrations
                             TwoFactorEnabled = false,
                             UserName = "peter@gmail.com",
                             UserType = "Patient"
-                        },
-                        new
-                        {
-                            Id = "p4",
-                            AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
-                            Email = "ana@gmail.com",
-                            EmailConfirmed = false,
-                            FirstName = "Ana",
-                            LastName = "Jovanović",
-                            LockoutEnabled = true,
-                            NormalizedEmail = "ANA@GMAIL.COM",
-                            NormalizedUserName = "ANA@GMAIL.COM",
-                            PhoneNumber = "061100106",
-                            PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
-                            TwoFactorEnabled = false,
-                            UserName = "ana@gmail.com",
-                            UserType = "Patient"
-                        },
-                        new
-                        {
-                            Id = "p5",
-                            AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
-                            Email = "marko.patient@gmail.com",
-                            EmailConfirmed = false,
-                            FirstName = "Marko",
-                            LastName = "Nikolić",
-                            LockoutEnabled = true,
-                            NormalizedEmail = "MARKO.PATIENT@GMAIL.COM",
-                            NormalizedUserName = "MARKO.PATIENT@GMAIL.COM",
-                            PhoneNumber = "061100107",
-                            PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
-                            TwoFactorEnabled = false,
-                            UserName = "marko.patient@gmail.com",
-                            UserType = "Patient"
-                        },
-                        new
-                        {
-                            Id = "p6",
-                            AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
-                            Email = "sara@gmail.com",
-                            EmailConfirmed = false,
-                            FirstName = "Sara",
-                            LastName = "Stojanović",
-                            LockoutEnabled = true,
-                            NormalizedEmail = "SARA@GMAIL.COM",
-                            NormalizedUserName = "SARA@GMAIL.COM",
-                            PhoneNumber = "061100108",
-                            PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
-                            TwoFactorEnabled = false,
-                            UserName = "sara@gmail.com",
-                            UserType = "Patient"
-                        },
-                        new
-                        {
-                            Id = "p7",
-                            AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
-                            Email = "nikola@gmail.com",
-                            EmailConfirmed = false,
-                            FirstName = "Nikola",
-                            LastName = "Popović",
-                            LockoutEnabled = true,
-                            NormalizedEmail = "NIKOLA@GMAIL.COM",
-                            NormalizedUserName = "NIKOLA@GMAIL.COM",
-                            PhoneNumber = "061100109",
-                            PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
-                            TwoFactorEnabled = false,
-                            UserName = "nikola@gmail.com",
-                            UserType = "Patient"
-                        },
-                        new
-                        {
-                            Id = "p8",
-                            AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
-                            Email = "jovana@gmail.com",
-                            EmailConfirmed = false,
-                            FirstName = "Jovana",
-                            LastName = "Milošević",
-                            LockoutEnabled = true,
-                            NormalizedEmail = "JOVANA@GMAIL.COM",
-                            NormalizedUserName = "JOVANA@GMAIL.COM",
-                            PhoneNumber = "061100110",
-                            PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
-                            TwoFactorEnabled = false,
-                            UserName = "jovana@gmail.com",
-                            UserType = "Patient"
-                        },
-                        new
-                        {
-                            Id = "p9",
-                            AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
-                            Email = "stefan@gmail.com",
-                            EmailConfirmed = false,
-                            FirstName = "Stefan",
-                            LastName = "Đorđević",
-                            LockoutEnabled = true,
-                            NormalizedEmail = "STEFAN@GMAIL.COM",
-                            NormalizedUserName = "STEFAN@GMAIL.COM",
-                            PhoneNumber = "061100111",
-                            PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
-                            TwoFactorEnabled = false,
-                            UserName = "stefan@gmail.com",
-                            UserType = "Patient"
-                        },
-                        new
-                        {
-                            Id = "p10",
-                            AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
-                            Email = "milica@gmail.com",
-                            EmailConfirmed = false,
-                            FirstName = "Milica",
-                            LastName = "Radić",
-                            LockoutEnabled = true,
-                            NormalizedEmail = "MILICA@GMAIL.COM",
-                            NormalizedUserName = "MILICA@GMAIL.COM",
-                            PhoneNumber = "061100112",
-                            PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
-                            TwoFactorEnabled = false,
-                            UserName = "milica@gmail.com",
-                            UserType = "Patient"
-                        },
-                        new
-                        {
-                            Id = "p11",
-                            AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
-                            Email = "luka@gmail.com",
-                            EmailConfirmed = false,
-                            FirstName = "Luka",
-                            LastName = "Stefanović",
-                            LockoutEnabled = true,
-                            NormalizedEmail = "LUKA@GMAIL.COM",
-                            NormalizedUserName = "LUKA@GMAIL.COM",
-                            PhoneNumber = "061100113",
-                            PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
-                            TwoFactorEnabled = false,
-                            UserName = "luka@gmail.com",
-                            UserType = "Patient"
-                        },
-                        new
-                        {
-                            Id = "p12",
-                            AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
-                            Email = "teodora@gmail.com",
-                            EmailConfirmed = false,
-                            FirstName = "Teodora",
-                            LastName = "Lazić",
-                            LockoutEnabled = true,
-                            NormalizedEmail = "TEODORA@GMAIL.COM",
-                            NormalizedUserName = "TEODORA@GMAIL.COM",
-                            PhoneNumber = "061100114",
-                            PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
-                            TwoFactorEnabled = false,
-                            UserName = "teodora@gmail.com",
-                            UserType = "Patient"
                         });
                 });
 
@@ -589,7 +421,7 @@ namespace eBolnicaAPI.Migrations
                     b.HasIndex("AppUserId")
                         .IsUnique();
 
-                    b.ToTable("Doctors", (string)null);
+                    b.ToTable("Doctors");
 
                     b.HasData(
                         new
@@ -653,7 +485,7 @@ namespace eBolnicaAPI.Migrations
                     b.HasIndex("PatientId")
                         .IsUnique();
 
-                    b.ToTable("MedicalRecords", (string)null);
+                    b.ToTable("MedicalRecords");
 
                     b.HasData(
                         new
@@ -711,7 +543,7 @@ namespace eBolnicaAPI.Migrations
 
                     b.HasIndex("MedicalRecordId");
 
-                    b.ToTable("MedicalReports", (string)null);
+                    b.ToTable("MedicalReports");
                 });
 
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.Patient", b =>
@@ -762,7 +594,7 @@ namespace eBolnicaAPI.Migrations
 
                     b.HasIndex("DoctorId");
 
-                    b.ToTable("Patients", (string)null);
+                    b.ToTable("Patients");
 
                     b.HasData(
                         new
@@ -770,7 +602,7 @@ namespace eBolnicaAPI.Migrations
                             Id = 1,
                             Address = "Address1",
                             AppUserId = "p1",
-                            BloodType = "A+",
+                            BloodType = "A",
                             DateOfBirth = new DateTime(1990, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 1,
                             FirstName = "Ismet",
@@ -783,7 +615,7 @@ namespace eBolnicaAPI.Migrations
                             Id = 2,
                             Address = "Address2",
                             AppUserId = "p2",
-                            BloodType = "B+",
+                            BloodType = "B",
                             DateOfBirth = new DateTime(1991, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 1,
                             FirstName = "Elon",
@@ -796,139 +628,13 @@ namespace eBolnicaAPI.Migrations
                             Id = 3,
                             Address = "Address3",
                             AppUserId = "p3",
-                            BloodType = "AB+",
-                            DateOfBirth = new DateTime(1992, 3, 14, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            BloodType = "0",
+                            DateOfBirth = new DateTime(1992, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 1,
                             FirstName = "Peter",
-                            Gender = "Other",
+                            Gender = "Male",
                             LastName = "Griffin",
                             PhoneNumber = "061100105"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Address = "Bulevar Kralja Aleksandra 15",
-                            AppUserId = "p4",
-                            BloodType = "O+",
-                            DateOfBirth = new DateTime(1988, 5, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DoctorId = 1,
-                            FirstName = "Ana",
-                            Gender = "Female",
-                            LastName = "Jovanović",
-                            MedicalRecordId = "MRID4",
-                            PhoneNumber = "061100106"
-                        },
-                        new
-                        {
-                            Id = 5,
-                            Address = "Knez Mihailova 25",
-                            AppUserId = "p5",
-                            BloodType = "A-",
-                            DateOfBirth = new DateTime(1985, 7, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DoctorId = 2,
-                            FirstName = "Marko",
-                            Gender = "Male",
-                            LastName = "Nikolić",
-                            MedicalRecordId = "MRID5",
-                            PhoneNumber = "061100107"
-                        },
-                        new
-                        {
-                            Id = 6,
-                            Address = "Nemanjina 10",
-                            AppUserId = "p6",
-                            BloodType = "B-",
-                            DateOfBirth = new DateTime(1993, 9, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DoctorId = 2,
-                            FirstName = "Sara",
-                            Gender = "Female",
-                            LastName = "Stojanović",
-                            MedicalRecordId = "MRID6",
-                            PhoneNumber = "061100108"
-                        },
-                        new
-                        {
-                            Id = 7,
-                            Address = "Terazije 5",
-                            AppUserId = "p7",
-                            BloodType = "O-",
-                            DateOfBirth = new DateTime(1987, 11, 18, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DoctorId = 2,
-                            FirstName = "Nikola",
-                            Gender = "Male",
-                            LastName = "Popović",
-                            MedicalRecordId = "MRID7",
-                            PhoneNumber = "061100109"
-                        },
-                        new
-                        {
-                            Id = 8,
-                            Address = "Vračar 20",
-                            AppUserId = "p8",
-                            BloodType = "AB-",
-                            DateOfBirth = new DateTime(1994, 12, 25, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DoctorId = 3,
-                            FirstName = "Jovana",
-                            Gender = "Female",
-                            LastName = "Milošević",
-                            MedicalRecordId = "MRID8",
-                            PhoneNumber = "061100110"
-                        },
-                        new
-                        {
-                            Id = 9,
-                            Address = "Svetog Save 45",
-                            AppUserId = "p9",
-                            BloodType = "A+",
-                            DateOfBirth = new DateTime(1989, 2, 12, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DoctorId = 1,
-                            FirstName = "Stefan",
-                            Gender = "Male",
-                            LastName = "Đorđević",
-                            MedicalRecordId = "MRID9",
-                            PhoneNumber = "061100111"
-                        },
-                        new
-                        {
-                            Id = 10,
-                            Address = "Kralja Milana 30",
-                            AppUserId = "p10",
-                            BloodType = "B+",
-                            DateOfBirth = new DateTime(1995, 6, 8, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DoctorId = 1,
-                            FirstName = "Milica",
-                            Gender = "Female",
-                            LastName = "Radić",
-                            MedicalRecordId = "MRID10",
-                            PhoneNumber = "061100112"
-                        },
-                        new
-                        {
-                            Id = 11,
-                            Address = "Obilićev venac 12",
-                            AppUserId = "p11",
-                            BloodType = "O+",
-                            DateOfBirth = new DateTime(1986, 8, 22, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DoctorId = 1,
-                            FirstName = "Luka",
-                            Gender = "Male",
-                            LastName = "Stefanović",
-                            MedicalRecordId = "MRID11",
-                            PhoneNumber = "061100113"
-                        },
-                        new
-                        {
-                            Id = 12,
-                            Address = "Dunavska 8",
-                            AppUserId = "p12",
-                            BloodType = "AB+",
-                            DateOfBirth = new DateTime(1996, 4, 30, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DoctorId = 1,
-                            FirstName = "Teodora",
-                            Gender = "Female",
-                            LastName = "Lazić",
-                            MedicalRecordId = "MRID12",
-                            PhoneNumber = "061100114"
                         });
                 });
 

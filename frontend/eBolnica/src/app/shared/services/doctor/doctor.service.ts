@@ -9,6 +9,7 @@ import { CreatePatientDto } from '../../../models/create-patient.dto';
 import { UpdatePatientDto } from '../../../models/update-patient.dto';
 import { PatientSearchDto } from '../../../models/patient-search.dto';
 import { AssignPatientDto } from '../../../models/assign-patient.dto';
+import { DoctorListDto } from '../../../models/doctor-list.dto';
 
 @Injectable({
   providedIn: 'root'
@@ -53,5 +54,9 @@ export class DoctorService {
 
   assignPatient(assignData: AssignPatientDto): Observable<DoctorAssignedPatientDto> {
     return this.http.post<DoctorAssignedPatientDto>(this.apiUrl+'/assign-patient', assignData);
+  }
+
+  getAllDoctors(): Observable<DoctorListDto[]>{
+    return this.http.get<DoctorListDto[]>(this.apiUrl+'/GetAllDoctors')
   }
 }

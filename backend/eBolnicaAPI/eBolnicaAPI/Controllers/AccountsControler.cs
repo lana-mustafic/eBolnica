@@ -31,13 +31,15 @@ namespace eBolnicaAPI.Controllers
                 return BadRequest(ModelState);
 
 
+            var doctor = await _dbcontext.Doctors.FindAsync(patientForRegistration.DoctorId);
+
             var user = new AppUser
             {
                 Email = patientForRegistration.Email,
                 UserName = patientForRegistration.Email,
                 FirstName = patientForRegistration.FirstName,
                 LastName = patientForRegistration.LastName,
-                UserType = "Patient"
+                UserType = "Patient",
             };
 
             var result = await _userManager.CreateAsync(user, patientForRegistration.Password);
@@ -59,10 +61,19 @@ namespace eBolnicaAPI.Controllers
                 AppUserId = user.Id,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
-                DoctorId = null // Explicitly set to null for unassigned patients
+                DoctorId = doctor.Id
             };
 
             _dbcontext.Patients.Add(patient);
+            await _dbcontext.SaveChangesAsync();
+
+            var record = new MedicalRecord
+            {
+                PatientId = patient.Id,
+                RecordNumber = $"MR-{DateTime.Now:yyyy}-{patient.Id}",
+            };
+
+            _dbcontext.MedicalRecords.Add(record);
             await _dbcontext.SaveChangesAsync();
 
             return Ok(new { message = "Patient registered successfully" });

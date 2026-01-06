@@ -1,0 +1,114 @@
+# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+
+# Compiled output
+/dist
+/tmp
+/out-tsc
+/bazel-out
+
+# Node
+/node_modules
+npm-debug.log
+yarn-error.log
+
+# IDEs and editors
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/*
+
+# Miscellaneous
+/.angular/cache
+.sass-cache/
+/connect.lock
+/coverage
+/libpeerconnection.log
+testem.log
+/typings
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Build output
+bin/
+obj/
+Debug/
+Release/
+
+# User-specific files
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio working files
+.vs/
+*.vscode/
+
+# Test results
+TestResult*/
+*.trx
+*.coverage
+*.coveragexml
+
+# NuGet
+*.nupkg
+packages/
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+
+# Logs
+*.log
+
+# Cache / temp
+*.cache
+*.dbmdl
+*.bak
+*.ldf
+*.mdf
+
+# IDE cache files
+*.v2
+dtbcache.v2
+
+*.sqlite
+VSWorkspaceState.json
+ProjectSettings.json
+
+# Visual Studio cache
+.vs/
+v17/
+*.wsuo
+*.sqlite
+VSWorkspaceState.json
+DocumentLayout.json
+
+# Build artefacts
+bin/
+obj/
+
+# User-specific files
+*.user
+
+
+backend/eBolnicaAPI/.vs/eBolnicaAPI/v17
+backend/eBolnicaAPI/.vs
+backend/eBolnicaAPI/eBolnicaAPI/bin/Debug/net8.0
+backend/eBolnicaAPI/eBolnicaAPI/obj
+frontend/eBolnica/.angular
+frontend/eBolnica/dist
+frontend/eBolnica/node_modules

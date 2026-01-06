@@ -4,6 +4,9 @@ import { AbstractControl, Form, FormBuilder, FormGroup, ReactiveFormsModule, Val
 import { AuthService } from '../../shared/services/auth.service';
 import { RouterModule } from '@angular/router';
 import { I18nService, Language } from '../../shared/services/i18n.service';
+import { DoctorService } from '../../shared/services/doctor/doctor.service';
+import { DoctorListDto } from '../../models/doctor-list.dto';
+
 
 @Component({
   selector: 'patient-registration',
@@ -12,7 +15,7 @@ import { I18nService, Language } from '../../shared/services/i18n.service';
   templateUrl: './patient-registration.component.html',
   styleUrl: './patient-registration.component.css'
 })
-export class RegistrationComponent implements OnInit {
+export class RegistrationComponent implements OnInit implements OnInit{
   form: FormGroup;
   isSubmitted:boolean = false;
   errorMessage:string | null = null;
@@ -22,6 +25,23 @@ export class RegistrationComponent implements OnInit {
   cdr = inject(ChangeDetectorRef);
   currentLanguage: Language = 'en';
   translationsLoaded = false;
+ 
+
+
+  private doctorService = inject(DoctorService);
+
+   doctors: DoctorListDto[] =[];
+
+  ngOnInit(): void{
+    this.loadDoctors();
+  }
+
+  loadDoctors(): void{
+    this.doctorService.getAllDoctors().subscribe({
+      next: (data) => this.doctors = data,
+      error: (err) => alert('Unable to load doctor list')
+    });
+  }
 
   passwordMatchValidator:ValidatorFn = (control:AbstractControl):null =>{
     const password = control.get('password')
@@ -44,7 +64,8 @@ export class RegistrationComponent implements OnInit {
       password: ['', [Validators.required,
                       Validators.minLength(6),
                       Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).+$/)]],
-      confirmPassword: ['']
+      confirmPassword: [''],
+      doctorId: [''], 
     }, {validators:this.passwordMatchValidator});
   }
 

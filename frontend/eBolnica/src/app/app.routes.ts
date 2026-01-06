@@ -12,6 +12,7 @@ import { DoctorProfileComponent } from './pages/doctor/doctor-profile/doctor-pro
 import { DoctorProfileEditComponent } from './pages/doctor/doctor-profile/doctor-profile-edit/doctor-profile-edit.component';
 import { DoctorPatientsComponent } from './pages/doctor/doctor-patients/doctor-patients.component';
 import { PatientDashboardComponent } from './pages/patient/patient-dashboard/patient-dashboard.component';
+import { MedicalRecordComponent } from './pages/doctor/doctor-patients/medical-record/medical-record.component';
 
 export const routes: Routes = [
     {path: '', component:HomeComponent,canActivate:[noauthGuard],pathMatch: 'full', title:'Home'},
@@ -24,5 +25,6 @@ export const routes: Routes = [
     {path: 'doctor-profile-edit', component:DoctorProfileEditComponent, canActivate:[authGuard, roleGuard], data: {role: 'Doctor'}, title:"Edit doctor profile"},
     {path: 'doctor-patients', component:DoctorPatientsComponent, canActivate:[authGuard, roleGuard], data: {role: 'Doctor'}, title:"List assigned patients"},
     {path: 'patient-dashboard', component:PatientDashboardComponent, canActivate:[authGuard, roleGuard], data: {role: 'Patient'}, title:'Patient Dashboard'}
+    {path: 'medical-record/:patientId', component:MedicalRecordComponent, canActivate:[authGuard, roleGuard], data: {role: 'Doctor'}, title:"Open medical record"}
 ];
     

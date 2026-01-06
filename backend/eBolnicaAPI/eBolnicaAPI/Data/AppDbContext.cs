@@ -1,4 +1,4 @@
-﻿    using eBolnicaAPI.Models.Entities;
+﻿using eBolnicaAPI.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
@@ -31,6 +31,28 @@ namespace eBolnicaAPI.Data
                 .WithMany(d => d.Patients)
                 .HasForeignKey(p => p.DoctorId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            var admin = new AppUser
+            {
+                Id = "a1",
+                FirstName = "Admin",
+                LastName = "User",
+                UserName = "admin@gmail.com",
+                NormalizedUserName = "ADMIN@GMAIL.COM",
+                Email = "admin@gmail.com",
+                NormalizedEmail = "ADMIN@GMAIL.COM",
+                EmailConfirmed = true,
+                PhoneNumber = "061000000",
+                PhoneNumberConfirmed = true,
+                TwoFactorEnabled = false,
+                LockoutEnabled = true,
+                AccessFailedCount = 0,
+                UserType = "Admin",
+                LicenseNumber = null,
+                ConcurrencyStamp = "fixed-guid-3",
+                SecurityStamp = "fixed-guid-3"
+            };
+
 
             var doctor1 = new AppUser
             {
@@ -375,6 +397,10 @@ namespace eBolnicaAPI.Data
     public DbSet<Doctor> Doctors { get; set; }
     public DbSet<Patient> Patients { get; set; }
     public DbSet<AppUser> AppUsers { get; set; }
+
+    public DbSet<MedicalRecord> MedicalRecords { get; set; }
+
+    public DbSet<MedicalReport> MedicalReports { get; set; }
     }
 }
 

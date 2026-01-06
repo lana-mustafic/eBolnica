@@ -32,12 +32,6 @@ namespace eBolnicaAPI.Data
                     await userManager.AddPasswordAsync(user, patientPassword);
                 }
             }
-
-            var admin = await userManager.FindByNameAsync("admin@gmail.com");
-            if (admin != null && string.IsNullOrEmpty(admin.PasswordHash))
-            {
-                await userManager.AddPasswordAsync(admin, "Admin123!");
-            }
         }
     }
 }
