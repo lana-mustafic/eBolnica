@@ -15,7 +15,7 @@ import { DoctorListDto } from '../../models/doctor-list.dto';
   templateUrl: './patient-registration.component.html',
   styleUrl: './patient-registration.component.css'
 })
-export class RegistrationComponent implements OnInit implements OnInit{
+export class RegistrationComponent implements OnInit{
   form: FormGroup;
   isSubmitted:boolean = false;
   errorMessage:string | null = null;
@@ -31,10 +31,6 @@ export class RegistrationComponent implements OnInit implements OnInit{
   private doctorService = inject(DoctorService);
 
    doctors: DoctorListDto[] =[];
-
-  ngOnInit(): void{
-    this.loadDoctors();
-  }
 
   loadDoctors(): void{
     this.doctorService.getAllDoctors().subscribe({
@@ -70,6 +66,8 @@ export class RegistrationComponent implements OnInit implements OnInit{
   }
 
   ngOnInit(): void {
+    this.loadDoctors();
+
     // Set initial language
     this.currentLanguage = this.i18nService.getCurrentLanguageValue();
     this.translationsLoaded = this.i18nService.isTranslationsLoaded();
