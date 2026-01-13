@@ -369,7 +369,7 @@ namespace eBolnicaAPI.Data
                 SecurityStamp = "fixed-guid-2"
             };
 
-            modelBuilder.Entity<AppUser>().HasData(doctor1, doctor2, doctor3, patient1, patient2, patient3, patient4, patient5, patient6, patient7, patient8, patient9, patient10, patient11, patient12);
+            modelBuilder.Entity<AppUser>().HasData(admin, doctor1, doctor2, doctor3, patient1, patient2, patient3, patient4, patient5, patient6, patient7, patient8, patient9, patient10, patient11, patient12);
 
             modelBuilder.Entity<Doctor>().HasData(
                 new Doctor { Id = 1,FirstName=doctor1.FirstName, LastName=doctor1.LastName, AppUserId = "d1", Specialization="Cardiology",RegistrationStatus="Approved", Address="Address1", BirthDate= new DateTime(1995, 3, 15), LicenseNumber=doctor1.LicenseNumber, PhoneNumber=doctor1.PhoneNumber },
@@ -391,6 +391,7 @@ namespace eBolnicaAPI.Data
                 new Patient { Id = 11, FirstName = patient11.FirstName, LastName = patient11.LastName, AppUserId = "p11", Gender="Male", Address = "Obilićev venac 12", DateOfBirth = new DateTime(1986, 8, 22), MedicalRecordId = "MRID11", BloodType = "O+", DoctorId = 1, PhoneNumber=patient11.PhoneNumber },
                 new Patient { Id = 12, FirstName = patient12.FirstName, LastName = patient12.LastName, AppUserId = "p12", Gender="Female", Address = "Dunavska 8", DateOfBirth = new DateTime(1996, 4, 30), MedicalRecordId = "MRID12", BloodType = "AB+", DoctorId = 1, PhoneNumber=patient12.PhoneNumber }
                 );
+
 
         }
 

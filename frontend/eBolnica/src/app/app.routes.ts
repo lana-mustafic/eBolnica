@@ -24,7 +24,7 @@ export const routes: Routes = [
     {path: 'doctor-profile', component:DoctorProfileComponent, canActivate:[authGuard, roleGuard ], data: { role: 'Doctor'}, title:'Doctor Profile'},
     {path: 'doctor-profile-edit', component:DoctorProfileEditComponent, canActivate:[authGuard, roleGuard], data: {role: 'Doctor'}, title:"Edit doctor profile"},
     {path: 'doctor-patients', component:DoctorPatientsComponent, canActivate:[authGuard, roleGuard], data: {role: 'Doctor'}, title:"List assigned patients"},
-    {path: 'patient-dashboard', component:PatientDashboardComponent, canActivate:[authGuard, roleGuard], data: {role: 'Patient'}, title:'Patient Dashboard'}
+    {path: 'patient-dashboard', component:PatientDashboardComponent, canActivate:[authGuard, roleGuard], data: {role: 'Patient'}, title:'Patient Dashboard'},
     {path: 'medical-record/:patientId', component:MedicalRecordComponent, canActivate:[authGuard, roleGuard], data: {role: 'Doctor'}, title:"Open medical record"}
 ];
     

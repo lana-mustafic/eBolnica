@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace eBolnicaAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class Init : Migration
+    public partial class Update1 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -203,6 +203,7 @@ namespace eBolnicaAPI.Migrations
                     PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Address = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     BloodType = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    MedicalRecordId = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsAdmitted = table.Column<bool>(type: "bit", nullable: true)
                 },
                 constraints: table =>
@@ -227,17 +228,11 @@ namespace eBolnicaAPI.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     PatientId = table.Column<int>(type: "int", nullable: false),
-                    RecordNumber = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    MedicalRecordId = table.Column<int>(type: "int", nullable: true)
+                    RecordNumber = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_MedicalRecords", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_MedicalRecords_MedicalRecords_MedicalRecordId",
-                        column: x => x.MedicalRecordId,
-                        principalTable: "MedicalRecords",
-                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_MedicalRecords_Patients_PatientId",
                         column: x => x.PatientId,
@@ -286,8 +281,17 @@ namespace eBolnicaAPI.Migrations
                     { "d2", 0, "fixed-guid-1", "senad@gmail.com", false, "Senad", "Husić", "L2", true, null, "SENAD@GMAIL.COM", "SENAD@GMAIL.COM", null, "061100101", false, "fixed-guid-2", false, "senad@gmail.com", "Doctor" },
                     { "d3", 0, "fixed-guid-1", "petar@gmail.com", false, "Petar", "Petrović", "L3", true, null, "PETAR@GMAIL.COM", "PETAR@GMAIL.COM", null, "061100102", false, "fixed-guid-2", false, "petar@gmail.com", "Doctor" },
                     { "p1", 0, "fixed-guid-1", "ismet@gmail.com", false, "Ismet", "Horo", null, true, null, "ISMET@GMAIL.COM", "ISMET@GMAIL.COM", null, "061100103", false, "fixed-guid-2", false, "ismet@gmail.com", "Patient" },
+                    { "p10", 0, "fixed-guid-1", "milica@gmail.com", false, "Milica", "Radić", null, true, null, "MILICA@GMAIL.COM", "MILICA@GMAIL.COM", null, "061100112", false, "fixed-guid-2", false, "milica@gmail.com", "Patient" },
+                    { "p11", 0, "fixed-guid-1", "luka@gmail.com", false, "Luka", "Stefanović", null, true, null, "LUKA@GMAIL.COM", "LUKA@GMAIL.COM", null, "061100113", false, "fixed-guid-2", false, "luka@gmail.com", "Patient" },
+                    { "p12", 0, "fixed-guid-1", "teodora@gmail.com", false, "Teodora", "Lazić", null, true, null, "TEODORA@GMAIL.COM", "TEODORA@GMAIL.COM", null, "061100114", false, "fixed-guid-2", false, "teodora@gmail.com", "Patient" },
                     { "p2", 0, "fixed-guid-1", "elon@gmail.com", false, "Elon", "Musk", null, true, null, "ELON@GMAIL.COM", "ELON@GMAIL.COM", null, "061100104", false, "fixed-guid-2", false, "elon@gmail.com", "Patient" },
-                    { "p3", 0, "fixed-guid-1", "peter@gmail.com", false, "Peter", "Griffin", null, true, null, "PETER@GMAIL.COM", "PETER@GMAIL.COM", null, "061100105", false, "fixed-guid-2", false, "peter@gmail.com", "Patient" }
+                    { "p3", 0, "fixed-guid-1", "peter@gmail.com", false, "Peter", "Griffin", null, true, null, "PETER@GMAIL.COM", "PETER@GMAIL.COM", null, "061100105", false, "fixed-guid-2", false, "peter@gmail.com", "Patient" },
+                    { "p4", 0, "fixed-guid-1", "ana@gmail.com", false, "Ana", "Jovanović", null, true, null, "ANA@GMAIL.COM", "ANA@GMAIL.COM", null, "061100106", false, "fixed-guid-2", false, "ana@gmail.com", "Patient" },
+                    { "p5", 0, "fixed-guid-1", "marko.patient@gmail.com", false, "Marko", "Nikolić", null, true, null, "MARKO.PATIENT@GMAIL.COM", "MARKO.PATIENT@GMAIL.COM", null, "061100107", false, "fixed-guid-2", false, "marko.patient@gmail.com", "Patient" },
+                    { "p6", 0, "fixed-guid-1", "sara@gmail.com", false, "Sara", "Stojanović", null, true, null, "SARA@GMAIL.COM", "SARA@GMAIL.COM", null, "061100108", false, "fixed-guid-2", false, "sara@gmail.com", "Patient" },
+                    { "p7", 0, "fixed-guid-1", "nikola@gmail.com", false, "Nikola", "Popović", null, true, null, "NIKOLA@GMAIL.COM", "NIKOLA@GMAIL.COM", null, "061100109", false, "fixed-guid-2", false, "nikola@gmail.com", "Patient" },
+                    { "p8", 0, "fixed-guid-1", "jovana@gmail.com", false, "Jovana", "Milošević", null, true, null, "JOVANA@GMAIL.COM", "JOVANA@GMAIL.COM", null, "061100110", false, "fixed-guid-2", false, "jovana@gmail.com", "Patient" },
+                    { "p9", 0, "fixed-guid-1", "stefan@gmail.com", false, "Stefan", "Đorđević", null, true, null, "STEFAN@GMAIL.COM", "STEFAN@GMAIL.COM", null, "061100111", false, "fixed-guid-2", false, "stefan@gmail.com", "Patient" }
                 });
 
             migrationBuilder.InsertData(
@@ -302,22 +306,21 @@ namespace eBolnicaAPI.Migrations
 
             migrationBuilder.InsertData(
                 table: "Patients",
-                columns: new[] { "Id", "Address", "AppUserId", "BloodType", "DateOfBirth", "DoctorId", "FirstName", "Gender", "IsAdmitted", "LastName", "PhoneNumber" },
+                columns: new[] { "Id", "Address", "AppUserId", "BloodType", "DateOfBirth", "DoctorId", "FirstName", "Gender", "IsAdmitted", "LastName", "MedicalRecordId", "PhoneNumber" },
                 values: new object[,]
                 {
-                    { 1, "Address1", "p1", "A", new DateTime(1990, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Ismet", "Male", null, "Horo", "061100103" },
-                    { 2, "Address2", "p2", "B", new DateTime(1991, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Elon", "Female", null, "Musk", "061100104" },
-                    { 3, "Address3", "p3", "0", new DateTime(1992, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Peter", "Male", null, "Griffin", "061100105" }
-                });
-
-            migrationBuilder.InsertData(
-                table: "MedicalRecords",
-                columns: new[] { "Id", "MedicalRecordId", "PatientId", "RecordNumber" },
-                values: new object[,]
-                {
-                    { 1, null, 1, "MR-2025-p1" },
-                    { 2, null, 2, "MR-2025-p2" },
-                    { 3, null, 3, "MR-2025-p3" }
+                    { 1, "Address1", "p1", "A+", new DateTime(1990, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Ismet", "Male", null, "Horo", "MRID1", "061100103" },
+                    { 2, "Address2", "p2", "B+", new DateTime(1991, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Elon", "Female", null, "Musk", "MRID2", "061100104" },
+                    { 3, "Address3", "p3", "AB+", new DateTime(1992, 3, 14, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Peter", "Other", null, "Griffin", "MRID3", "061100105" },
+                    { 4, "Bulevar Kralja Aleksandra 15", "p4", "O+", new DateTime(1988, 5, 20, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Ana", "Female", null, "Jovanović", "MRID4", "061100106" },
+                    { 5, "Knez Mihailova 25", "p5", "A-", new DateTime(1985, 7, 10, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "Marko", "Male", null, "Nikolić", "MRID5", "061100107" },
+                    { 6, "Nemanjina 10", "p6", "B-", new DateTime(1993, 9, 5, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "Sara", "Female", null, "Stojanović", "MRID6", "061100108" },
+                    { 7, "Terazije 5", "p7", "O-", new DateTime(1987, 11, 18, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "Nikola", "Male", null, "Popović", "MRID7", "061100109" },
+                    { 8, "Vračar 20", "p8", "AB-", new DateTime(1994, 12, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), 3, "Jovana", "Female", null, "Milošević", "MRID8", "061100110" },
+                    { 9, "Svetog Save 45", "p9", "A+", new DateTime(1989, 2, 12, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Stefan", "Male", null, "Đorđević", "MRID9", "061100111" },
+                    { 10, "Kralja Milana 30", "p10", "B+", new DateTime(1995, 6, 8, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Milica", "Female", null, "Radić", "MRID10", "061100112" },
+                    { 11, "Obilićev venac 12", "p11", "O+", new DateTime(1986, 8, 22, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Luka", "Male", null, "Stefanović", "MRID11", "061100113" },
+                    { 12, "Dunavska 8", "p12", "AB+", new DateTime(1996, 4, 30, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Teodora", "Female", null, "Lazić", "MRID12", "061100114" }
                 });
 
             migrationBuilder.CreateIndex(
@@ -364,11 +367,6 @@ namespace eBolnicaAPI.Migrations
                 table: "Doctors",
                 column: "AppUserId",
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_MedicalRecords_MedicalRecordId",
-                table: "MedicalRecords",
-                column: "MedicalRecordId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MedicalRecords_PatientId",

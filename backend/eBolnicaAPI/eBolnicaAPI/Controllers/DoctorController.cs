@@ -135,7 +135,8 @@ namespace eBolnicaAPI.Controllers
                 Gender = p.Gender,
                 PhoneNumber = p.PhoneNumber,
                 Address = p.Address,
-                BloodType = p.BloodType
+                BloodType = p.BloodType,
+                MedicalRecordId = p.MedicalRecordId,
             }).ToList();    
 
             return Ok(dtoList);

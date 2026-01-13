@@ -589,7 +589,7 @@ namespace eBolnicaAPI.Migrations
                     b.HasIndex("AppUserId")
                         .IsUnique();
 
-                    b.ToTable("Doctors", (string)null);
+                    b.ToTable("Doctors");
 
                     b.HasData(
                         new
@@ -653,27 +653,7 @@ namespace eBolnicaAPI.Migrations
                     b.HasIndex("PatientId")
                         .IsUnique();
 
-                    b.ToTable("MedicalRecords", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            PatientId = 1,
-                            RecordNumber = "MR-2025-p1"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            PatientId = 2,
-                            RecordNumber = "MR-2025-p2"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            PatientId = 3,
-                            RecordNumber = "MR-2025-p3"
-                        });
+                    b.ToTable("MedicalRecords");
                 });
 
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.MedicalReport", b =>
@@ -711,7 +691,7 @@ namespace eBolnicaAPI.Migrations
 
                     b.HasIndex("MedicalRecordId");
 
-                    b.ToTable("MedicalReports", (string)null);
+                    b.ToTable("MedicalReports");
                 });
 
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.Patient", b =>
@@ -752,6 +732,10 @@ namespace eBolnicaAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("MedicalRecordId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("nvarchar(max)");
 
@@ -762,7 +746,7 @@ namespace eBolnicaAPI.Migrations
 
                     b.HasIndex("DoctorId");
 
-                    b.ToTable("Patients", (string)null);
+                    b.ToTable("Patients");
 
                     b.HasData(
                         new
@@ -776,6 +760,7 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Ismet",
                             Gender = "Male",
                             LastName = "Horo",
+                            MedicalRecordId = "MRID1",
                             PhoneNumber = "061100103"
                         },
                         new
@@ -789,6 +774,7 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Elon",
                             Gender = "Female",
                             LastName = "Musk",
+                            MedicalRecordId = "MRID2",
                             PhoneNumber = "061100104"
                         },
                         new
@@ -802,6 +788,7 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Peter",
                             Gender = "Other",
                             LastName = "Griffin",
+                            MedicalRecordId = "MRID3",
                             PhoneNumber = "061100105"
                         },
                         new
