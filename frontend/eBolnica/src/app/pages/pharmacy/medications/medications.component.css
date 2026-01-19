@@ -387,7 +387,7 @@ table tbody tr:hover {
 .pagination-container {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.25rem;
   margin-top: 2rem;
   padding: 1.5rem;
   background: white;
@@ -399,35 +399,120 @@ table tbody tr:hover {
   color: #718096;
   font-size: 0.9rem;
   text-align: center;
+  font-weight: 500;
 }
 
 .pagination-controls {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
-.pagination-buttons {
+/* Page Size Selector */
+.page-size-wrapper {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
+.page-size-label {
+  color: #4a5568;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.page-size-select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: white;
+  color: #2d3748;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 80px;
+}
+
+.page-size-select:hover {
+  border-color: #cbd5e0;
+}
+
+.page-size-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Navigation Buttons */
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  background: white;
+  color: #4a5568;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 2.75rem;
+}
+
+.btn-nav:hover:not(:disabled) {
+  background: #f7fafc;
+  border-color: #cbd5e0;
+  transform: translateY(-1px);
+}
+
+.btn-nav:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-nav:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f7fafc;
+}
+
+.btn-nav svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.btn-text {
+  white-space: nowrap;
+}
+
+/* Page Numbers */
 .page-numbers {
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .page-btn {
-  min-width: 2.5rem;
-  height: 2.5rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
   padding: 0.5rem;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   font-size: 0.9rem;
+  font-weight: 500;
   background: white;
   color: #4a5568;
   cursor: pointer;
@@ -443,16 +528,34 @@ table tbody tr:hover {
   transform: translateY(-1px);
 }
 
-.page-btn.btn-secondary {
+.page-btn:focus:not(:disabled):not(.ellipsis) {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.page-btn.btn-active {
   background: #667eea;
   color: white;
   border-color: #667eea;
   font-weight: 600;
+  cursor: default;
 }
 
-.page-btn.btn-secondary:hover:not(:disabled) {
-  background: #5568d3;
-  border-color: #5568d3;
+.page-btn.btn-active:hover {
+  background: #667eea;
+  transform: none;
+}
+
+.page-btn.btn-outline {
+  background: white;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+}
+
+.page-btn.btn-outline:hover:not(:disabled) {
+  background: #f7fafc;
+  border-color: #cbd5e0;
 }
 
 .page-btn.ellipsis {
@@ -460,7 +563,14 @@ table tbody tr:hover {
   border: none;
   background: transparent;
   min-width: auto;
-  padding: 0 0.25rem;
+  padding: 0 0.5rem;
+  color: #718096;
+  font-weight: normal;
+}
+
+.page-btn.ellipsis:hover {
+  background: transparent;
+  transform: none;
 }
 
 .page-btn:disabled {
@@ -468,64 +578,115 @@ table tbody tr:hover {
   cursor: not-allowed;
 }
 
-.page-size-select {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.page-size-select:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
+/* Page Info */
 .page-info {
   color: #4a5568;
   font-size: 0.9rem;
   font-weight: 500;
-  padding: 0 0.5rem;
   white-space: nowrap;
+  text-align: right;
 }
 
-.btn-outline {
-  background: white;
-  color: #4a5568;
-  border: 1px solid #e2e8f0;
+.page-current {
+  font-weight: 700;
+  color: #667eea;
 }
 
-.btn-outline:hover:not(:disabled) {
-  background: #f7fafc;
-  border-color: #cbd5e0;
+.page-total {
+  font-weight: 600;
+}
+
+/* Responsive Design */
+@media (max-width: 991px) {
+  .pagination-controls {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .page-size-wrapper {
+    justify-content: center;
+  }
+
+  .pagination-buttons {
+    order: 2;
+  }
+
+  .page-info {
+    text-align: center;
+    order: 3;
+  }
 }
 
 @media (max-width: 768px) {
   .pagination-container {
     padding: 1rem;
+    gap: 1rem;
   }
 
-  .pagination-controls {
+  .pagination-info {
+    font-size: 0.85rem;
+  }
+
+  .page-size-wrapper {
     flex-direction: column;
-    gap: 1rem;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .page-size-label {
+    text-align: center;
+  }
+
+  .page-size-select {
+    width: 100%;
   }
 
   .pagination-buttons {
     width: 100%;
+    gap: 0.5rem;
+  }
+
+  .btn-nav {
+    flex: 1;
+    min-width: 0;
     justify-content: center;
-    flex-wrap: wrap;
+  }
+
+  .btn-nav .btn-text {
+    display: none;
   }
 
   .page-numbers {
-    flex-wrap: wrap;
+    width: 100%;
     justify-content: center;
+    gap: 0.25rem;
+  }
+
+  .page-btn {
+    min-width: 2.5rem;
+    height: 2.5rem;
+    font-size: 0.85rem;
   }
 
   .page-info {
-    text-align: center;
-    width: 100%;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .pagination-container {
+    padding: 0.75rem;
+  }
+
+  .page-btn {
+    min-width: 2.25rem;
+    height: 2.25rem;
+    padding: 0.375rem;
+    font-size: 0.8rem;
+  }
+
+  .btn-nav {
+    min-height: 2.5rem;
+    padding: 0.5rem 0.75rem;
   }
 }

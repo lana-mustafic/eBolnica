@@ -226,6 +226,13 @@ export class MedicationsComponent implements OnInit {
     return pageNum === '...';
   }
 
+  /**
+   * TrackBy function for page numbers to improve performance
+   */
+  trackByPageNum(index: number, pageNum: number | string): number | string {
+    return pageNum;
+  }
+
   deleteMedication(medication: MedicationDto): void {
     if (confirm(`Are you sure you want to delete "${medication.name}"? This action cannot be undone.`)) {
       this.isLoading = true;
