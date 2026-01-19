@@ -83,7 +83,7 @@
   </div>
 
   <!-- Empty State -->
-  <div *ngIf="!isLoading && filteredMedications.length === 0" class="empty-state">
+  <div *ngIf="!isLoading && medications.length === 0" class="empty-state">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
       <circle cx="12" cy="10" r="3"></circle>
@@ -101,7 +101,7 @@
   </div>
 
   <!-- Medications Table -->
-  <div *ngIf="!isLoading && filteredMedications.length > 0" class="table-container">
+  <div *ngIf="!isLoading && medications.length > 0" class="table-container">
     <table>
       <thead>
         <tr>
@@ -117,7 +117,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let medication of filteredMedications">
+        <tr *ngFor="let medication of medications">
           <td class="medication-name">{{ medication.name }}</td>
           <td>{{ medication.genericName || '-' }}</td>
           <td>{{ medication.manufacturer || '-' }}</td>
@@ -151,31 +151,55 @@
     <!-- Pagination -->
     <div class="pagination-container" *ngIf="totalPages > 1">
       <div class="pagination-info">
-        Showing {{ (page - 1) * pageSize + 1 }} - {{ Math.min(page * pageSize, totalCount) }} of {{ totalCount }} medications
+        Showing {{ (currentPage - 1) * pageSize + 1 }} - {{ Math.min(currentPage * pageSize, totalCount) }} of {{ totalCount }} medications
       </div>
       <div class="pagination-controls">
-        <select [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange($event)" class="page-size-select">
+        <select [(ngModel)]="pageSize" (ngModelChange)="changePageSize($event)" class="page-size-select">
           <option [value]="5">5 per page</option>
           <option [value]="10">10 per page</option>
           <option [value]="20">20 per page</option>
           <option [value]="50">50 per page</option>
         </select>
         
-        <button 
-          class="btn btn-secondary"
-          (click)="onPageChange(page - 1)"
-          [disabled]="page === 1">
-          Previous
-        </button>
+        <div class="pagination-buttons">
+          <button 
+            class="btn btn-secondary"
+            (click)="previousPage()"
+            [disabled]="currentPage === 1"
+            title="Previous page">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+            Previous
+          </button>
+          
+          <div class="page-numbers">
+            <button
+              *ngFor="let pageNum of getPageNumbers()"
+              class="btn page-btn"
+              [class.btn-secondary]="pageNum === currentPage"
+              [class.btn-outline]="pageNum !== currentPage"
+              [class.ellipsis]="isEllipsis(pageNum)"
+              [disabled]="isEllipsis(pageNum)"
+              (click)="onPageNumberClick(pageNum)"
+              [title]="isEllipsis(pageNum) ? '' : 'Go to page ' + pageNum">
+              {{ pageNum }}
+            </button>
+          </div>
+          
+          <button 
+            class="btn btn-secondary"
+            (click)="nextPage()"
+            [disabled]="currentPage >= totalPages"
+            title="Next page">
+            Next
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+        </div>
         
-        <span class="page-info">Page {{ page }} of {{ totalPages }}</span>
-        
-        <button 
-          class="btn btn-secondary"
-          (click)="onPageChange(page + 1)"
-          [disabled]="page >= totalPages">
-          Next
-        </button>
+        <span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
       </div>
     </div>
   </div>

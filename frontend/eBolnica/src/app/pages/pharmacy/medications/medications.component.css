@@ -386,8 +386,8 @@ table tbody tr:hover {
 /* Pagination */
 .pagination-container {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 1rem;
   margin-top: 2rem;
   padding: 1.5rem;
   background: white;
@@ -398,12 +398,74 @@ table tbody tr:hover {
 .pagination-info {
   color: #718096;
   font-size: 0.9rem;
+  text-align: center;
 }
 
 .pagination-controls {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
   align-items: center;
   gap: 1rem;
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.page-numbers {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.page-btn {
+  min-width: 2.5rem;
+  height: 2.5rem;
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: white;
+  color: #4a5568;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-btn:hover:not(:disabled):not(.ellipsis) {
+  background: #f7fafc;
+  border-color: #cbd5e0;
+  transform: translateY(-1px);
+}
+
+.page-btn.btn-secondary {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+  font-weight: 600;
+}
+
+.page-btn.btn-secondary:hover:not(:disabled) {
+  background: #5568d3;
+  border-color: #5568d3;
+}
+
+.page-btn.ellipsis {
+  cursor: default;
+  border: none;
+  background: transparent;
+  min-width: auto;
+  padding: 0 0.25rem;
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .page-size-select {
@@ -427,16 +489,43 @@ table tbody tr:hover {
   font-size: 0.9rem;
   font-weight: 500;
   padding: 0 0.5rem;
+  white-space: nowrap;
+}
+
+.btn-outline {
+  background: white;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: #f7fafc;
+  border-color: #cbd5e0;
 }
 
 @media (max-width: 768px) {
   .pagination-container {
+    padding: 1rem;
+  }
+
+  .pagination-controls {
     flex-direction: column;
     gap: 1rem;
   }
 
-  .pagination-controls {
+  .pagination-buttons {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .page-numbers {
     flex-wrap: wrap;
     justify-content: center;
+  }
+
+  .page-info {
+    text-align: center;
+    width: 100%;
   }
 }

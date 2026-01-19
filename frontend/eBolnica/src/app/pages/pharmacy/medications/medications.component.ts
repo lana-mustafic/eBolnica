@@ -17,13 +17,12 @@ export class MedicationsComponent implements OnInit {
   private pharmacyService = inject(PharmacyService);
 
   medications: MedicationDto[] = [];
-  filteredMedications: MedicationDto[] = [];
   isLoading: boolean = false;
   errorMessage: string | null = null;
   successMessage: string | null = null;
 
   // Pagination
-  page: number = 1;
+  currentPage: number = 1;
   pageSize: number = 10;
   totalCount: number = 0;
   totalPages: number = 0;
@@ -50,7 +49,7 @@ export class MedicationsComponent implements OnInit {
       distinctUntilChanged()
     ).subscribe(searchTerm => {
       this.searchTerm = searchTerm;
-      this.page = 1; // Reset to first page on search
+      this.currentPage = 1; // Reset to first page on search
       this.loadMedications();
     });
   }
@@ -62,7 +61,7 @@ export class MedicationsComponent implements OnInit {
     // Build filter parameters object
     // Map UI filter values to API format: "Low Stock" -> "low stock", "Out of Stock" -> "out of stock"
     const filters: MedicationFilterParams = {
-      page: this.page,
+      page: this.currentPage,
       pageSize: this.pageSize
     };
 
@@ -91,14 +90,12 @@ export class MedicationsComponent implements OnInit {
     ).subscribe({
       next: (response) => {
         this.medications = response.data;
-        this.filteredMedications = response.data; // For backwards compatibility
         this.totalCount = response.totalCount;
         this.totalPages = response.totalPages;
-        this.page = response.page;
+        this.currentPage = response.page;
         this.pageSize = response.pageSize;
         
-        // Extract categories from all medications (we might need to load all for this)
-        // For now, extract from current page
+        // Extract categories from current page medications
         this.extractCategories();
       },
       error: (error) => {
@@ -108,9 +105,10 @@ export class MedicationsComponent implements OnInit {
     });
   }
 
-  extractCategories(): void {
-    // Extract categories from current page
-    // Note: This might not show all categories. Consider loading all medications once for categories
+  private extractCategories(): void {
+    // Extract unique categories from current page medications
+    // Note: This shows categories from current page only
+    // For complete category list, could load all medications once or use separate endpoint
     const categorySet = new Set<string>();
     this.medications.forEach(med => {
       if (med.category) {
@@ -125,7 +123,7 @@ export class MedicationsComponent implements OnInit {
   }
 
   onFilterChange(): void {
-    this.page = 1; // Reset to first page on filter change
+    this.currentPage = 1; // Reset to first page on filter change
     this.loadMedications();
   }
 
@@ -135,21 +133,97 @@ export class MedicationsComponent implements OnInit {
     this.selectedStockStatus = '';
     this.selectedRequiresPrescription = '';
     this.selectedActiveStatus = '';
-    this.page = 1;
+    this.currentPage = 1;
     this.loadMedications();
   }
 
-  onPageChange(newPage: number): void {
-    if (newPage >= 1 && newPage <= this.totalPages) {
-      this.page = newPage;
+  // Pagination methods
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
       this.loadMedications();
+      // Scroll to top of table
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
 
-  onPageSizeChange(newPageSize: number): void {
-    this.pageSize = newPageSize;
-    this.page = 1; // Reset to first page when changing page size
+  previousPage(): void {
+    if (this.currentPage > 1) {
+      this.goToPage(this.currentPage - 1);
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.goToPage(this.currentPage + 1);
+    }
+  }
+
+  changePageSize(size: number): void {
+    this.pageSize = size;
+    this.currentPage = 1; // Reset to first page when changing page size
     this.loadMedications();
+  }
+
+  /**
+   * Generate smart pagination array with ellipsis for many pages
+   * Returns array of page numbers and ellipsis strings
+   * Example: [1, 2, 3, '...', 10] or [1, '...', 8, 9, 10]
+   */
+  getPageNumbers(): (number | string)[] {
+    const pages: (number | string)[] = [];
+    const maxVisiblePages = 7;
+
+    if (this.totalPages <= maxVisiblePages) {
+      // Show all pages if few pages
+      for (let i = 1; i <= this.totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Smart pagination with ellipsis
+      if (this.currentPage <= 4) {
+        // Near beginning: 1, 2, 3, 4, 5, ..., last
+        for (let i = 1; i <= 5; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(this.totalPages);
+      } else if (this.currentPage >= this.totalPages - 3) {
+        // Near end: 1, ..., last-4, last-3, last-2, last-1, last
+        pages.push(1);
+        pages.push('...');
+        for (let i = this.totalPages - 4; i <= this.totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        // Middle: 1, ..., current-1, current, current+1, ..., last
+        pages.push(1);
+        pages.push('...');
+        pages.push(this.currentPage - 1);
+        pages.push(this.currentPage);
+        pages.push(this.currentPage + 1);
+        pages.push('...');
+        pages.push(this.totalPages);
+      }
+    }
+
+    return pages;
+  }
+
+  /**
+   * Handle page number click - only navigate if it's a number
+   */
+  onPageNumberClick(pageNum: number | string): void {
+    if (typeof pageNum === 'number') {
+      this.goToPage(pageNum);
+    }
+  }
+
+  /**
+   * Check if page number is ellipsis
+   */
+  isEllipsis(pageNum: number | string): boolean {
+    return pageNum === '...';
   }
 
   deleteMedication(medication: MedicationDto): void {
