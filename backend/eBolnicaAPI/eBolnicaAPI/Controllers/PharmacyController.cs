@@ -26,22 +26,98 @@ namespace eBolnicaAPI.Controllers
 
         [HttpGet("medications")]
         [Authorize(Roles = "Pharmacist")]
-        public async Task<IActionResult> GetMedications([FromQuery] string? category = null, [FromQuery] string? search = null)
+        public async Task<IActionResult> GetMedications(
+            [FromQuery] string? category = null,
+            [FromQuery] string? search = null,
+            [FromQuery] string? stockStatus = null,
+            [FromQuery] bool? requiresPrescription = null,
+            [FromQuery] bool? isActive = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
         {
-            var query = _context.Medications.Where(m => m.IsActive);
+            // Start with base query
+            var query = _context.Medications.AsQueryable();
 
+            // Filter 1: Active Status
+            // Default behavior: show only active medications (isActive=null means use default)
+            // If isActive has a value (true/false), apply that filter
+            // To show all medications, frontend should explicitly pass isActive=null or handle it differently
+            // For backwards compatibility and default behavior, we show active only when not specified
+            if (isActive.HasValue)
+            {
+                query = query.Where(m => m.IsActive == isActive.Value);
+            }
+            else
+            {
+                // Default: show only active medications when isActive is not provided
+                query = query.Where(m => m.IsActive);
+            }
+
+            // Filter 2: Category (exact match, case-insensitive)
             if (!string.IsNullOrEmpty(category))
             {
-                query = query.Where(m => m.Category == category);
+                query = query.Where(m => m.Category != null && m.Category.ToLower() == category.ToLower());
             }
 
+            // Filter 3: Search (across Name, GenericName, and Manufacturer - case-insensitive)
             if (!string.IsNullOrEmpty(search))
             {
-                query = query.Where(m => m.Name.Contains(search) || (m.GenericName != null && m.GenericName.Contains(search)));
+                var searchTerm = search.ToLower();
+                query = query.Where(m =>
+                    m.Name.ToLower().Contains(searchTerm) ||
+                    (m.GenericName != null && m.GenericName.ToLower().Contains(searchTerm)) ||
+                    (m.Manufacturer != null && m.Manufacturer.ToLower().Contains(searchTerm))
+                );
             }
 
-            var medications = await query.OrderBy(m => m.Name).ToListAsync();
+            // Filter 4: Stock Status
+            if (!string.IsNullOrEmpty(stockStatus))
+            {
+                var status = stockStatus.ToLower();
+                switch (status)
+                {
+                    case "low stock":
+                        query = query.Where(m => m.StockQuantity < m.MinimumStockLevel && m.StockQuantity > 0);
+                        break;
+                    case "out of stock":
+                        query = query.Where(m => m.StockQuantity == 0);
+                        break;
+                    case "normal stock":
+                        query = query.Where(m => m.StockQuantity >= m.MinimumStockLevel);
+                        break;
+                    // If invalid stockStatus, ignore the filter
+                }
+            }
 
+            // Filter 5: Requires Prescription
+            if (requiresPrescription.HasValue)
+            {
+                query = query.Where(m => m.RequiresPrescription == requiresPrescription.Value);
+            }
+
+            // Get total count before pagination
+            var totalCount = await query.CountAsync();
+
+            // Validate and clamp pageSize (5-100 range)
+            pageSize = Math.Clamp(pageSize, 5, 100);
+
+            // Validate page (must be >= 1)
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            // Calculate skip amount
+            var skipAmount = (page - 1) * pageSize;
+
+            // Apply ordering, skip, and take
+            var medications = await query
+                .OrderBy(m => m.Name)
+                .Skip(skipAmount)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // Map to DTOs
             var dtoList = medications.Select(m => new MedicationDto
             {
                 Id = m.Id,
@@ -63,7 +139,18 @@ namespace eBolnicaAPI.Controllers
                 UpdatedAt = m.UpdatedAt
             }).ToList();
 
-            return Ok(dtoList);
+            // Calculate total pages
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+            // Return paginated response (consistent with AdminController pattern)
+            return Ok(new
+            {
+                data = dtoList,
+                totalCount = totalCount,
+                page = page,
+                pageSize = pageSize,
+                totalPages = totalPages
+            });
         }
 
         [HttpGet("medications/{id}")]

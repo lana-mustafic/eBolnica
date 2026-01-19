@@ -7,6 +7,7 @@ import { PharmacistDataDto } from '../../../models/pharmacist-data.dto';
 import { PrescriptionDto } from '../../../models/prescription.dto';
 import { PrescriptionCreateDto } from '../../../models/prescription-create.dto';
 import { PrescriptionDispenseDto } from '../../../models/prescription-dispense.dto';
+import { PagedResponse } from '../../../models/paged-response.dto';
 
 @Injectable({
   providedIn: 'root'
@@ -17,15 +18,36 @@ export class PharmacyService {
   private http = inject(HttpClient);
 
   // Medications CRUD
-  getAllMedications(category?: string, search?: string): Observable<MedicationDto[]> {
-    let params = new HttpParams();
+  getAllMedications(
+    category?: string,
+    search?: string,
+    stockStatus?: string,
+    requiresPrescription?: boolean | null,
+    isActive?: boolean | null,
+    page: number = 1,
+    pageSize: number = 10
+  ): Observable<PagedResponse<MedicationDto>> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('pageSize', pageSize.toString());
+    
     if (category) {
       params = params.set('category', category);
     }
     if (search) {
       params = params.set('search', search);
     }
-    return this.http.get<MedicationDto[]>(this.apiUrl + '/medications', { params });
+    if (stockStatus) {
+      params = params.set('stockStatus', stockStatus);
+    }
+    if (requiresPrescription !== undefined && requiresPrescription !== null) {
+      params = params.set('requiresPrescription', requiresPrescription.toString());
+    }
+    if (isActive !== undefined && isActive !== null) {
+      params = params.set('isActive', isActive.toString());
+    }
+    
+    return this.http.get<PagedResponse<MedicationDto>>(this.apiUrl + '/medications', { params });
   }
 
   getMedicationById(id: number): Observable<MedicationDto> {

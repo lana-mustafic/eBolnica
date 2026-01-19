@@ -46,13 +46,13 @@ export class PharmacyDashboardComponent implements OnInit {
     this.errorMessage = null;
 
     forkJoin({
-      medications: this.pharmacyService.getAllMedications(),
+      medications: this.pharmacyService.getAllMedications(undefined, undefined, undefined, undefined, true, 1, 1000),
       prescriptions: this.pharmacyService.getPrescriptions()
     }).pipe(
       finalize(() => this.isLoading = false)
     ).subscribe({
       next: (data) => {
-        this.medications = data.medications;
+        this.medications = data.medications.data;
         this.prescriptions = data.prescriptions;
         this.calculateMetrics();
         this.recentPrescriptions = this.getRecentPrescriptions();

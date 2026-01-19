@@ -61,14 +61,14 @@ export class PrescriptionDetailComponent implements OnInit {
 
     forkJoin({
       prescription: this.pharmacyService.getPrescriptionById(this.prescriptionId),
-      medications: this.pharmacyService.getAllMedications(),
+      medications: this.pharmacyService.getAllMedications(undefined, undefined, undefined, undefined, true, 1, 1000),
       pharmacistData: this.pharmacyService.getPharmacistData()
     }).pipe(
       finalize(() => this.isLoading = false)
     ).subscribe({
       next: (data) => {
         this.prescription = data.prescription;
-        this.medications = data.medications;
+        this.medications = data.medications.data;
         this.pharmacistData = data.pharmacistData;
       },
       error: (error) => {

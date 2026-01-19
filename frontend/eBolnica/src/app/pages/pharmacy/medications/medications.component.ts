@@ -22,6 +22,12 @@ export class MedicationsComponent implements OnInit {
   errorMessage: string | null = null;
   successMessage: string | null = null;
 
+  // Pagination
+  page: number = 1;
+  pageSize: number = 10;
+  totalCount: number = 0;
+  totalPages: number = 0;
+
   // Search
   searchTerm: string = '';
   private searchSubject = new Subject<string>();
@@ -44,7 +50,8 @@ export class MedicationsComponent implements OnInit {
       distinctUntilChanged()
     ).subscribe(searchTerm => {
       this.searchTerm = searchTerm;
-      this.applyFilters();
+      this.page = 1; // Reset to first page on search
+      this.loadMedications();
     });
   }
 
@@ -52,13 +59,39 @@ export class MedicationsComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = null;
 
-    this.pharmacyService.getAllMedications().pipe(
+    // Convert filter values to API parameters
+    // Map UI filter values to API format: "Low Stock" -> "low stock", "Out of Stock" -> "out of stock"
+    let stockStatus: string | undefined = undefined;
+    if (this.selectedStockStatus) {
+      stockStatus = this.selectedStockStatus.toLowerCase();
+    }
+    const requiresPrescription = this.selectedRequiresPrescription ? 
+      (this.selectedRequiresPrescription === 'Yes') : undefined;
+    const isActive = this.selectedActiveStatus ? 
+      (this.selectedActiveStatus === 'Active') : undefined;
+
+    this.pharmacyService.getAllMedications(
+      this.selectedCategory || undefined,
+      this.searchTerm.trim() || undefined,
+      stockStatus,
+      requiresPrescription,
+      isActive,
+      this.page,
+      this.pageSize
+    ).pipe(
       finalize(() => this.isLoading = false)
     ).subscribe({
-      next: (medications) => {
-        this.medications = medications;
+      next: (response) => {
+        this.medications = response.data;
+        this.filteredMedications = response.data; // For backwards compatibility
+        this.totalCount = response.totalCount;
+        this.totalPages = response.totalPages;
+        this.page = response.page;
+        this.pageSize = response.pageSize;
+        
+        // Extract categories from all medications (we might need to load all for this)
+        // For now, extract from current page
         this.extractCategories();
-        this.applyFilters();
       },
       error: (error) => {
         this.errorMessage = 'Failed to load medications. Please try again later.';
@@ -68,6 +101,8 @@ export class MedicationsComponent implements OnInit {
   }
 
   extractCategories(): void {
+    // Extract categories from current page
+    // Note: This might not show all categories. Consider loading all medications once for categories
     const categorySet = new Set<string>();
     this.medications.forEach(med => {
       if (med.category) {
@@ -82,7 +117,8 @@ export class MedicationsComponent implements OnInit {
   }
 
   onFilterChange(): void {
-    this.applyFilters();
+    this.page = 1; // Reset to first page on filter change
+    this.loadMedications();
   }
 
   clearFilters(): void {
@@ -91,59 +127,21 @@ export class MedicationsComponent implements OnInit {
     this.selectedStockStatus = '';
     this.selectedRequiresPrescription = '';
     this.selectedActiveStatus = '';
-    this.applyFilters();
+    this.page = 1;
+    this.loadMedications();
   }
 
-  applyFilters(): void {
-    let filtered = [...this.medications];
-
-    // Search filter
-    if (this.searchTerm.trim()) {
-      const search = this.searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(med => 
-        med.name.toLowerCase().includes(search) ||
-        (med.genericName && med.genericName.toLowerCase().includes(search)) ||
-        (med.manufacturer && med.manufacturer.toLowerCase().includes(search))
-      );
+  onPageChange(newPage: number): void {
+    if (newPage >= 1 && newPage <= this.totalPages) {
+      this.page = newPage;
+      this.loadMedications();
     }
+  }
 
-    // Category filter
-    if (this.selectedCategory) {
-      filtered = filtered.filter(med => med.category === this.selectedCategory);
-    }
-
-    // Stock status filter
-    if (this.selectedStockStatus) {
-      switch (this.selectedStockStatus) {
-        case 'Low Stock':
-          filtered = filtered.filter(med => 
-            med.isActive && med.stockQuantity < med.minimumStockLevel
-          );
-          break;
-        case 'Out of Stock':
-          filtered = filtered.filter(med => med.stockQuantity === 0);
-          break;
-        case 'Normal Stock':
-          filtered = filtered.filter(med => 
-            med.isActive && med.stockQuantity >= med.minimumStockLevel
-          );
-          break;
-      }
-    }
-
-    // Requires prescription filter
-    if (this.selectedRequiresPrescription) {
-      const requires = this.selectedRequiresPrescription === 'Yes';
-      filtered = filtered.filter(med => med.requiresPrescription === requires);
-    }
-
-    // Active status filter
-    if (this.selectedActiveStatus) {
-      const isActive = this.selectedActiveStatus === 'Active';
-      filtered = filtered.filter(med => med.isActive === isActive);
-    }
-
-    this.filteredMedications = filtered;
+  onPageSizeChange(newPageSize: number): void {
+    this.pageSize = newPageSize;
+    this.page = 1; // Reset to first page when changing page size
+    this.loadMedications();
   }
 
   deleteMedication(medication: MedicationDto): void {
@@ -214,4 +212,7 @@ export class MedicationsComponent implements OnInit {
       currency: 'USD'
     }).format(amount);
   }
+
+  // Expose Math to template
+  Math = Math;
 }

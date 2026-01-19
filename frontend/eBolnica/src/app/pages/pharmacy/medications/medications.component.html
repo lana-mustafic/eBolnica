@@ -147,5 +147,36 @@
         </tr>
       </tbody>
     </table>
+
+    <!-- Pagination -->
+    <div class="pagination-container" *ngIf="totalPages > 1">
+      <div class="pagination-info">
+        Showing {{ (page - 1) * pageSize + 1 }} - {{ Math.min(page * pageSize, totalCount) }} of {{ totalCount }} medications
+      </div>
+      <div class="pagination-controls">
+        <select [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange($event)" class="page-size-select">
+          <option [value]="5">5 per page</option>
+          <option [value]="10">10 per page</option>
+          <option [value]="20">20 per page</option>
+          <option [value]="50">50 per page</option>
+        </select>
+        
+        <button 
+          class="btn btn-secondary"
+          (click)="onPageChange(page - 1)"
+          [disabled]="page === 1">
+          Previous
+        </button>
+        
+        <span class="page-info">Page {{ page }} of {{ totalPages }}</span>
+        
+        <button 
+          class="btn btn-secondary"
+          (click)="onPageChange(page + 1)"
+          [disabled]="page >= totalPages">
+          Next
+        </button>
+      </div>
+    </div>
   </div>
 </div>
