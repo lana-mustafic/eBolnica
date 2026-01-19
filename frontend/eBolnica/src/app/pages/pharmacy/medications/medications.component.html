@@ -1,0 +1,151 @@
+<div class="medications-container">
+  <div class="header-section">
+    <div class="header-left">
+      <h2>Medications</h2>
+    </div>
+    <a routerLink="/pharmacy/medications/new" class="btn btn-primary">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      Add New Medication
+    </a>
+  </div>
+
+  <!-- Messages -->
+  <div class="message success" *ngIf="successMessage">
+    {{ successMessage }}
+  </div>
+
+  <div class="message error" *ngIf="errorMessage">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Search and Filters -->
+  <div class="search-filters-section">
+    <div class="search-box">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <path d="m21 21-4.35-4.35"></path>
+      </svg>
+      <input 
+        type="text" 
+        placeholder="Search by name, generic name, or manufacturer..."
+        [value]="searchTerm"
+        (input)="onSearchChange($any($event.target).value)"
+        class="search-input">
+      <button 
+        *ngIf="searchTerm" 
+        class="clear-search"
+        (click)="onSearchChange(''); searchTerm = ''">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="filters">
+      <select [(ngModel)]="selectedCategory" (ngModelChange)="onFilterChange()">
+        <option value="">All Categories</option>
+        <option *ngFor="let category of categories" [value]="category">{{ category }}</option>
+      </select>
+
+      <select [(ngModel)]="selectedStockStatus" (ngModelChange)="onFilterChange()">
+        <option value="">All Stock Status</option>
+        <option value="Low Stock">Low Stock</option>
+        <option value="Out of Stock">Out of Stock</option>
+        <option value="Normal Stock">Normal Stock</option>
+      </select>
+
+      <select [(ngModel)]="selectedRequiresPrescription" (ngModelChange)="onFilterChange()">
+        <option value="">All Prescription Types</option>
+        <option value="Yes">Requires Prescription</option>
+        <option value="No">No Prescription Required</option>
+      </select>
+
+      <select [(ngModel)]="selectedActiveStatus" (ngModelChange)="onFilterChange()">
+        <option value="">All Status</option>
+        <option value="Active">Active</option>
+        <option value="Inactive">Inactive</option>
+      </select>
+
+      <button class="btn btn-secondary" (click)="clearFilters()" *ngIf="searchTerm || selectedCategory || selectedStockStatus || selectedRequiresPrescription || selectedActiveStatus">
+        Clear Filters
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading medications...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && filteredMedications.length === 0" class="empty-state">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+      <circle cx="12" cy="10" r="3"></circle>
+    </svg>
+    <h3>No medications found</h3>
+    <p *ngIf="searchTerm || selectedCategory || selectedStockStatus || selectedRequiresPrescription || selectedActiveStatus">
+      Try adjusting your search or filters.
+    </p>
+    <p *ngIf="!searchTerm && !selectedCategory && !selectedStockStatus && !selectedRequiresPrescription && !selectedActiveStatus">
+      Get started by adding your first medication.
+    </p>
+    <a routerLink="/pharmacy/medications/new" class="btn btn-primary" *ngIf="!searchTerm && !selectedCategory && !selectedStockStatus && !selectedRequiresPrescription && !selectedActiveStatus">
+      Add Medication
+    </a>
+  </div>
+
+  <!-- Medications Table -->
+  <div *ngIf="!isLoading && filteredMedications.length > 0" class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Generic Name</th>
+          <th>Manufacturer</th>
+          <th>Category</th>
+          <th>Price</th>
+          <th>Stock</th>
+          <th>Expiry Date</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let medication of filteredMedications">
+          <td class="medication-name">{{ medication.name }}</td>
+          <td>{{ medication.genericName || '-' }}</td>
+          <td>{{ medication.manufacturer || '-' }}</td>
+          <td>{{ medication.category || '-' }}</td>
+          <td>{{ formatCurrency(medication.price) }}</td>
+          <td>
+            <span [class]="medication.stockQuantity < medication.minimumStockLevel ? 'stock-low' : ''">
+              {{ medication.stockQuantity }}
+            </span>
+            <span class="stock-min" *ngIf="medication.minimumStockLevel">
+              / min: {{ medication.minimumStockLevel }}
+            </span>
+          </td>
+          <td>{{ formatDate(medication.expiryDate) }}</td>
+          <td>
+            <span [class]="'status-badge ' + getStockStatus(medication).class">
+              {{ getStockStatus(medication).label }}
+            </span>
+            <span class="prescription-badge" *ngIf="medication.requiresPrescription" title="Requires Prescription">
+              Rx
+            </span>
+          </td>
+          <td class="actions">
+            <a [routerLink]="['/pharmacy/medications', medication.id, 'edit']" class="btn btn-edit">Edit</a>
+            <button class="btn btn-delete" (click)="deleteMedication(medication)" [disabled]="isLoading">Delete</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
