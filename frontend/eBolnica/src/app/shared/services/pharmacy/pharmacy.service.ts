@@ -9,6 +9,26 @@ import { PrescriptionCreateDto } from '../../../models/prescription-create.dto';
 import { PrescriptionDispenseDto } from '../../../models/prescription-dispense.dto';
 import { PagedResponse } from '../../../models/paged-response.dto';
 
+/**
+ * Filter parameters for medication queries
+ */
+export interface MedicationFilterParams {
+  /** Filter by category (exact match, case-insensitive) */
+  category?: string;
+  /** Search term for name, generic name, or manufacturer (case-insensitive) */
+  search?: string;
+  /** Stock status filter: 'low stock', 'out of stock', or 'normal stock' */
+  stockStatus?: string;
+  /** Filter by prescription requirement */
+  requiresPrescription?: boolean;
+  /** Filter by active status (default: true - show active only) */
+  isActive?: boolean;
+  /** Page number (1-based, default: 1) */
+  page?: number;
+  /** Items per page (default: 10, range: 5-100) */
+  pageSize?: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -18,36 +38,56 @@ export class PharmacyService {
   private http = inject(HttpClient);
 
   // Medications CRUD
-  getAllMedications(
-    category?: string,
-    search?: string,
-    stockStatus?: string,
-    requiresPrescription?: boolean | null,
-    isActive?: boolean | null,
-    page: number = 1,
-    pageSize: number = 10
-  ): Observable<PagedResponse<MedicationDto>> {
+  
+  /**
+   * Get medications with optional filtering and pagination
+   * @param filters Optional filter parameters object
+   * @returns Observable of paginated medication response
+   */
+  getAllMedications(filters?: MedicationFilterParams): Observable<PagedResponse<MedicationDto>> {
+    // Set defaults
+    const page = filters?.page || 1;
+    const pageSize = Math.max(5, Math.min(100, filters?.pageSize || 10)); // Clamp between 5-100
+    
+    // Build query parameters
     let params = new HttpParams()
       .set('page', page.toString())
       .set('pageSize', pageSize.toString());
     
-    if (category) {
-      params = params.set('category', category);
-    }
-    if (search) {
-      params = params.set('search', search);
-    }
-    if (stockStatus) {
-      params = params.set('stockStatus', stockStatus);
-    }
-    if (requiresPrescription !== undefined && requiresPrescription !== null) {
-      params = params.set('requiresPrescription', requiresPrescription.toString());
-    }
-    if (isActive !== undefined && isActive !== null) {
-      params = params.set('isActive', isActive.toString());
+    // Category filter
+    if (filters?.category) {
+      params = params.set('category', filters.category);
     }
     
-    return this.http.get<PagedResponse<MedicationDto>>(this.apiUrl + '/medications', { params });
+    // Search filter (trim and only add if not empty)
+    if (filters?.search) {
+      const searchTerm = filters.search.trim();
+      if (searchTerm) {
+        params = params.set('search', searchTerm);
+      }
+    }
+    
+    // Stock status filter
+    if (filters?.stockStatus) {
+      // Validate stock status values
+      const validStatuses = ['low stock', 'out of stock', 'normal stock'];
+      const normalizedStatus = filters.stockStatus.toLowerCase();
+      if (validStatuses.includes(normalizedStatus)) {
+        params = params.set('stockStatus', normalizedStatus);
+      }
+    }
+    
+    // Requires prescription filter (only add if explicitly provided)
+    if (filters?.requiresPrescription !== undefined && filters?.requiresPrescription !== null) {
+      params = params.set('requiresPrescription', filters.requiresPrescription.toString());
+    }
+    
+    // Active status filter (only add if explicitly provided, backend defaults to true if not provided)
+    if (filters?.isActive !== undefined && filters?.isActive !== null) {
+      params = params.set('isActive', filters.isActive.toString());
+    }
+    
+    return this.http.get<PagedResponse<MedicationDto>>(`${this.apiUrl}/medications`, { params });
   }
 
   getMedicationById(id: number): Observable<MedicationDto> {

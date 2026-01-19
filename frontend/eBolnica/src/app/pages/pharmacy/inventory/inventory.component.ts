@@ -59,7 +59,11 @@ export class InventoryComponent implements OnInit {
     this.errorMessage = null;
 
     // Load all active medications with large page size
-    this.pharmacyService.getAllMedications(undefined, undefined, undefined, undefined, true, 1, 1000).pipe(
+    this.pharmacyService.getAllMedications({
+      isActive: true,
+      page: 1,
+      pageSize: 1000
+    }).pipe(
       finalize(() => this.isLoading = false)
     ).subscribe({
       next: (response) => {

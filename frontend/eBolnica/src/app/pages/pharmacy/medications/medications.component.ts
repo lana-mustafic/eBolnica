@@ -2,7 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
+import { PharmacyService, MedicationFilterParams } from '../../../shared/services/pharmacy/pharmacy.service';
 import { MedicationDto } from '../../../models/medication.dto';
 import { Subject, debounceTime, distinctUntilChanged, finalize } from 'rxjs';
 
@@ -59,26 +59,34 @@ export class MedicationsComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = null;
 
-    // Convert filter values to API parameters
+    // Build filter parameters object
     // Map UI filter values to API format: "Low Stock" -> "low stock", "Out of Stock" -> "out of stock"
-    let stockStatus: string | undefined = undefined;
-    if (this.selectedStockStatus) {
-      stockStatus = this.selectedStockStatus.toLowerCase();
-    }
-    const requiresPrescription = this.selectedRequiresPrescription ? 
-      (this.selectedRequiresPrescription === 'Yes') : undefined;
-    const isActive = this.selectedActiveStatus ? 
-      (this.selectedActiveStatus === 'Active') : undefined;
+    const filters: MedicationFilterParams = {
+      page: this.page,
+      pageSize: this.pageSize
+    };
 
-    this.pharmacyService.getAllMedications(
-      this.selectedCategory || undefined,
-      this.searchTerm.trim() || undefined,
-      stockStatus,
-      requiresPrescription,
-      isActive,
-      this.page,
-      this.pageSize
-    ).pipe(
+    if (this.selectedCategory) {
+      filters.category = this.selectedCategory;
+    }
+
+    if (this.searchTerm.trim()) {
+      filters.search = this.searchTerm.trim();
+    }
+
+    if (this.selectedStockStatus) {
+      filters.stockStatus = this.selectedStockStatus.toLowerCase();
+    }
+
+    if (this.selectedRequiresPrescription) {
+      filters.requiresPrescription = this.selectedRequiresPrescription === 'Yes';
+    }
+
+    if (this.selectedActiveStatus) {
+      filters.isActive = this.selectedActiveStatus === 'Active';
+    }
+
+    this.pharmacyService.getAllMedications(filters).pipe(
       finalize(() => this.isLoading = false)
     ).subscribe({
       next: (response) => {

@@ -46,7 +46,11 @@ export class PharmacyDashboardComponent implements OnInit {
     this.errorMessage = null;
 
     forkJoin({
-      medications: this.pharmacyService.getAllMedications(undefined, undefined, undefined, undefined, true, 1, 1000),
+      medications: this.pharmacyService.getAllMedications({
+        isActive: true,
+        page: 1,
+        pageSize: 1000
+      }),
       prescriptions: this.pharmacyService.getPrescriptions()
     }).pipe(
       finalize(() => this.isLoading = false)

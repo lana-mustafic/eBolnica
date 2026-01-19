@@ -61,7 +61,11 @@ export class PrescriptionDetailComponent implements OnInit {
 
     forkJoin({
       prescription: this.pharmacyService.getPrescriptionById(this.prescriptionId),
-      medications: this.pharmacyService.getAllMedications(undefined, undefined, undefined, undefined, true, 1, 1000),
+      medications: this.pharmacyService.getAllMedications({
+        isActive: true,
+        page: 1,
+        pageSize: 1000
+      }),
       pharmacistData: this.pharmacyService.getPharmacistData()
     }).pipe(
       finalize(() => this.isLoading = false)
