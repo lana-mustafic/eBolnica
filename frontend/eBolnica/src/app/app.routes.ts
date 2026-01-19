@@ -16,6 +16,7 @@ import { MedicalRecordComponent } from './pages/doctor/doctor-patients/medical-r
 import { PharmacyDashboardComponent } from './pages/pharmacy/pharmacy-dashboard/pharmacy-dashboard.component';
 import { MedicationsComponent } from './pages/pharmacy/medications/medications.component';
 import { MedicationFormComponent } from './pages/pharmacy/medications/medication-form.component';
+import { MedicationWizardComponent } from './pages/pharmacy/medications/medication-wizard.component';
 import { PrescriptionsComponent } from './pages/pharmacy/prescriptions/prescriptions.component';
 import { PrescriptionDetailComponent } from './pages/pharmacy/prescriptions/prescription-detail.component';
 import { InventoryComponent } from './pages/pharmacy/inventory/inventory.component';
@@ -35,6 +36,7 @@ export const routes: Routes = [
     {path: 'pharmacy-dashboard', component:PharmacyDashboardComponent, canActivate:[authGuard, roleGuard], data: {role: 'Pharmacist'}, title:'Pharmacy Dashboard'},
     {path: 'pharmacy/medications', component:MedicationsComponent, canActivate:[authGuard, roleGuard], data: {role: 'Pharmacist'}, title:'Medications'},
     {path: 'pharmacy/medications/new', component:MedicationFormComponent, canActivate:[authGuard, roleGuard], data: {role: 'Pharmacist'}, title:'New Medication'},
+    {path: 'pharmacy/medications/wizard', component:MedicationWizardComponent, canActivate:[authGuard, roleGuard], data: {role: 'Pharmacist'}, title:'Add Medication Wizard'},
     {path: 'pharmacy/medications/:id/edit', component:MedicationFormComponent, canActivate:[authGuard, roleGuard], data: {role: 'Pharmacist'}, title:'Edit Medication'},
     {path: 'pharmacy/prescriptions', component:PrescriptionsComponent, canActivate:[authGuard, roleGuard], data: {role: 'Pharmacist'}, title:'Prescriptions'},
     {path: 'pharmacy/prescriptions/:id', component:PrescriptionDetailComponent, canActivate:[authGuard, roleGuard], data: {role: 'Pharmacist'}, title:'Prescription Details'},
