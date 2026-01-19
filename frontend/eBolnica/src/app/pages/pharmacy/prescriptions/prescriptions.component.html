@@ -1,0 +1,126 @@
+<div class="prescriptions-container">
+  <div class="header-section">
+    <h2>Prescriptions</h2>
+  </div>
+
+  <!-- Error Message -->
+  <div class="message error" *ngIf="errorMessage">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Status Filter Tabs -->
+  <div class="status-tabs">
+    <button 
+      *ngFor="let filter of statusFilters"
+      [class]="'status-tab ' + (selectedStatus === filter.value ? 'active' : '')"
+      (click)="onStatusFilterChange(filter.value)">
+      {{ filter.label }}
+      <span class="count-badge" *ngIf="filter.count > 0">{{ filter.count }}</span>
+    </button>
+  </div>
+
+  <!-- Search and Sort -->
+  <div class="search-sort-section">
+    <div class="search-box">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <path d="m21 21-4.35-4.35"></path>
+      </svg>
+      <input 
+        type="text" 
+        placeholder="Search by prescription number or patient name..."
+        [value]="searchTerm"
+        (input)="onSearchChange($any($event.target).value)"
+        class="search-input">
+      <button 
+        *ngIf="searchTerm" 
+        class="clear-search"
+        (click)="onSearchChange(''); searchTerm = ''">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="sort-controls">
+      <label>Sort by:</label>
+      <select [(ngModel)]="sortBy" (ngModelChange)="onSortChange(sortBy)">
+        <option value="date">Date</option>
+        <option value="number">Prescription Number</option>
+        <option value="status">Status</option>
+        <option value="amount">Total Amount</option>
+      </select>
+      <button class="sort-order-btn" (click)="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'; applyFilters()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class.asc]="sortOrder === 'asc'">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <polyline points="19 12 12 19 5 12"></polyline>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading prescriptions...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && filteredPrescriptions.length === 0" class="empty-state">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+      <polyline points="14 2 14 8 20 8"></polyline>
+      <line x1="16" y1="13" x2="8" y2="13"></line>
+      <line x1="16" y1="17" x2="8" y2="17"></line>
+    </svg>
+    <h3>No prescriptions found</h3>
+    <p *ngIf="searchTerm || selectedStatus !== 'All'">
+      Try adjusting your search or filter.
+    </p>
+    <p *ngIf="!searchTerm && selectedStatus === 'All'">
+      No prescriptions available.
+    </p>
+    <p *ngIf="selectedStatus === 'Pending' && !searchTerm" class="success-message">
+      All caught up! No pending prescriptions.
+    </p>
+  </div>
+
+  <!-- Prescriptions Table -->
+  <div *ngIf="!isLoading && filteredPrescriptions.length > 0" class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Prescription #</th>
+          <th>Patient</th>
+          <th>Doctor</th>
+          <th>Date Prescribed</th>
+          <th>Status</th>
+          <th>Total Amount</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let prescription of filteredPrescriptions" [class.pending-row]="prescription.status === 'Pending'">
+          <td>
+            <a [routerLink]="['/pharmacy/prescriptions', prescription.id]" class="prescription-link">
+              {{ prescription.prescriptionNumber }}
+            </a>
+          </td>
+          <td>{{ getPatientName(prescription) }}</td>
+          <td>{{ getDoctorName(prescription) }}</td>
+          <td>{{ formatDate(prescription.prescribedDate) }}</td>
+          <td>
+            <span [class]="'status-badge ' + getStatusClass(prescription.status)">
+              {{ prescription.status }}
+            </span>
+          </td>
+          <td class="amount">{{ formatCurrency(prescription.totalAmount) }}</td>
+          <td class="actions">
+            <a [routerLink]="['/pharmacy/prescriptions', prescription.id]" class="btn btn-view">View Details</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
