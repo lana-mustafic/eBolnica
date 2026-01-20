@@ -34,5 +34,20 @@ namespace eBolnicaAPI.Services
         /// Applies sorting to Prescription queries
         /// </summary>
         IQueryable<Prescription> ApplySorting(IQueryable<Prescription> query, string? sortBy, string? sortOrder);
+
+        /// <summary>
+        /// Builds a filtered query for medications based on PharmacyQueryParameters DTO
+        /// </summary>
+        IQueryable<Medication> GetFilteredMedications(IQueryable<Medication> baseQuery, PharmacyQueryParameters queryParams);
+
+        /// <summary>
+        /// Builds a filtered query for prescriptions based on PharmacyQueryParameters DTO
+        /// </summary>
+        IQueryable<Prescription> GetFilteredPrescriptions(IQueryable<Prescription> baseQuery, PharmacyQueryParameters queryParams);
+
+        /// <summary>
+        /// Builds a filtered query for inventory (medications) based on PharmacyQueryParameters DTO
+        /// </summary>
+        IQueryable<Medication> GetFilteredInventory(IQueryable<Medication> baseQuery, PharmacyQueryParameters queryParams);
     }
 }

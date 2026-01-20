@@ -1,3 +1,4 @@
+using eBolnicaAPI.Models.DTOs;
 using eBolnicaAPI.Models.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -290,5 +291,189 @@ namespace eBolnicaAPI.Services
                     return isDescending ? query.OrderByDescending(p => p.CreatedAt) : query.OrderBy(p => p.CreatedAt);
             }
         }
+
+        #region DTO-based Overloads
+
+        /// <summary>
+        /// Builds a filtered query for medications based on PharmacyQueryParameters DTO
+        /// </summary>
+        public IQueryable<Medication> GetFilteredMedications(IQueryable<Medication> baseQuery, PharmacyQueryParameters queryParams)
+        {
+            var query = baseQuery;
+
+            // String filters: Category
+            if (!string.IsNullOrEmpty(queryParams.Category))
+            {
+                var categoryValue = queryParams.Category.ToLower();
+                query = query.Where(m => m.Category != null && m.Category.ToLower() == categoryValue);
+            }
+
+            // String filters: Search
+            if (!string.IsNullOrEmpty(queryParams.SearchTerm))
+            {
+                var searchTerm = queryParams.SearchTerm.ToLower();
+                query = query.Where(m =>
+                    m.Name.ToLower().Contains(searchTerm) ||
+                    (m.GenericName != null && m.GenericName.ToLower().Contains(searchTerm)) ||
+                    (m.Manufacturer != null && m.Manufacturer.ToLower().Contains(searchTerm))
+                );
+            }
+
+            // String filters: Stock Status
+            if (!string.IsNullOrEmpty(queryParams.StockStatus))
+            {
+                var status = queryParams.StockStatus.ToLower();
+                switch (status)
+                {
+                    case "low stock":
+                        query = query.Where(m => m.StockQuantity < m.MinimumStockLevel && m.StockQuantity > 0);
+                        break;
+                    case "out of stock":
+                        query = query.Where(m => m.StockQuantity == 0);
+                        break;
+                    case "normal stock":
+                    case "in stock":
+                        query = query.Where(m => m.StockQuantity >= m.MinimumStockLevel);
+                        break;
+                }
+            }
+
+            // String filters: Status
+            if (!string.IsNullOrEmpty(queryParams.Status))
+            {
+                var statusValue = queryParams.Status.ToLower();
+                if (statusValue == "active")
+                {
+                    query = query.Where(m => m.IsActive);
+                }
+                else if (statusValue == "inactive" || statusValue == "discontinued")
+                {
+                    query = query.Where(m => !m.IsActive);
+                }
+            }
+
+            // Numeric filters: Price range
+            if (queryParams.MinPrice.HasValue)
+            {
+                query = query.Where(m => m.Price >= queryParams.MinPrice.Value);
+            }
+            if (queryParams.MaxPrice.HasValue)
+            {
+                query = query.Where(m => m.Price <= queryParams.MaxPrice.Value);
+            }
+
+            // Numeric filters: Stock quantity range
+            if (queryParams.MinStock.HasValue)
+            {
+                query = query.Where(m => m.StockQuantity >= queryParams.MinStock.Value);
+            }
+            if (queryParams.MaxStock.HasValue)
+            {
+                query = query.Where(m => m.StockQuantity <= queryParams.MaxStock.Value);
+            }
+
+            // Boolean filters
+            if (queryParams.RequiresPrescription.HasValue)
+            {
+                query = query.Where(m => m.RequiresPrescription == queryParams.RequiresPrescription.Value);
+            }
+            if (queryParams.IsActive.HasValue)
+            {
+                query = query.Where(m => m.IsActive == queryParams.IsActive.Value);
+            }
+
+            // Date filters: Created date range
+            if (queryParams.CreatedAfter.HasValue)
+            {
+                query = query.Where(m => m.CreatedAt >= queryParams.CreatedAfter.Value);
+            }
+            if (queryParams.CreatedBefore.HasValue)
+            {
+                query = query.Where(m => m.CreatedAt <= queryParams.CreatedBefore.Value);
+            }
+
+            // Date filters: Expiry date range
+            if (queryParams.ExpiryAfter.HasValue)
+            {
+                query = query.Where(m => m.ExpiryDate.HasValue && m.ExpiryDate.Value >= queryParams.ExpiryAfter.Value);
+            }
+            if (queryParams.ExpiryBefore.HasValue)
+            {
+                query = query.Where(m => m.ExpiryDate.HasValue && m.ExpiryDate.Value <= queryParams.ExpiryBefore.Value);
+            }
+
+            return query;
+        }
+
+        /// <summary>
+        /// Builds a filtered query for prescriptions based on PharmacyQueryParameters DTO
+        /// </summary>
+        public IQueryable<Prescription> GetFilteredPrescriptions(IQueryable<Prescription> baseQuery, PharmacyQueryParameters queryParams)
+        {
+            var query = baseQuery;
+
+            // String filters: Status
+            if (!string.IsNullOrEmpty(queryParams.Status))
+            {
+                query = query.Where(p => p.Status == queryParams.Status);
+            }
+
+            // Numeric filters: ID filters
+            if (queryParams.PatientId.HasValue)
+            {
+                query = query.Where(p => p.PatientId == queryParams.PatientId.Value);
+            }
+            if (queryParams.DoctorId.HasValue)
+            {
+                query = query.Where(p => p.DoctorId == queryParams.DoctorId.Value);
+            }
+            if (queryParams.PharmacistId.HasValue)
+            {
+                query = query.Where(p => p.PharmacistId == queryParams.PharmacistId.Value);
+            }
+
+            // Numeric filters: Amount range
+            if (queryParams.MinAmount.HasValue)
+            {
+                query = query.Where(p => p.TotalAmount >= queryParams.MinAmount.Value);
+            }
+            if (queryParams.MaxAmount.HasValue)
+            {
+                query = query.Where(p => p.TotalAmount <= queryParams.MaxAmount.Value);
+            }
+
+            // Date filters: Prescribed date range
+            if (queryParams.PrescribedAfter.HasValue)
+            {
+                query = query.Where(p => p.PrescribedDate >= queryParams.PrescribedAfter.Value);
+            }
+            if (queryParams.PrescribedBefore.HasValue)
+            {
+                query = query.Where(p => p.PrescribedDate <= queryParams.PrescribedBefore.Value);
+            }
+
+            // Date filters: Dispensed date range
+            if (queryParams.DispensedAfter.HasValue)
+            {
+                query = query.Where(p => p.DispensedDate.HasValue && p.DispensedDate.Value >= queryParams.DispensedAfter.Value);
+            }
+            if (queryParams.DispensedBefore.HasValue)
+            {
+                query = query.Where(p => p.DispensedDate.HasValue && p.DispensedDate.Value <= queryParams.DispensedBefore.Value);
+            }
+
+            return query;
+        }
+
+        /// <summary>
+        /// Builds a filtered query for inventory (medications) based on PharmacyQueryParameters DTO
+        /// </summary>
+        public IQueryable<Medication> GetFilteredInventory(IQueryable<Medication> baseQuery, PharmacyQueryParameters queryParams)
+        {
+            // Inventory uses the same filtering logic as medications
+            return GetFilteredMedications(baseQuery, queryParams);
+        }
+
+        #endregion
     }
 }

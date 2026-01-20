@@ -1056,6 +1056,35 @@ namespace eBolnicaAPI.Controllers
 
         #region Helper Methods
 
+        /// <summary>
+        /// Builds PharmacyQueryParameters from individual query parameters for backward compatibility
+        /// </summary>
+        private PharmacyQueryParameters BuildQueryParameters(
+            string? category = null,
+            string? search = null,
+            string? stockStatus = null,
+            bool? requiresPrescription = null,
+            bool? isActive = null,
+            int page = 1,
+            int pageNumber = 1,
+            int pageSize = 10,
+            string? sortBy = null,
+            string? sortOrder = "desc")
+        {
+            return new PharmacyQueryParameters
+            {
+                PageNumber = pageNumber != 1 ? pageNumber : (page != 1 ? page : 1),
+                PageSize = pageSize,
+                SortBy = sortBy,
+                SortOrder = sortOrder,
+                SearchTerm = search,
+                Category = category,
+                StockStatus = stockStatus,
+                RequiresPrescription = requiresPrescription,
+                IsActive = isActive
+            };
+        }
+
         private async Task<string> GeneratePrescriptionNumberAsync()
         {
             var year = DateTime.Now.Year;
