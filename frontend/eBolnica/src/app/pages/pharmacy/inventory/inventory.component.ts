@@ -26,6 +26,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   protected filterService = inject(PharmacyFilterService);
 
   inventoryItems: MedicationDto[] = [];
+  sortedInventoryItems: MedicationDto[] = []; // Client-side sorted items
   lowStockAlerts: MedicationDto[] = [];
   expiryAlerts: MedicationDto[] = [];
   isLoading: boolean = false;
@@ -123,8 +124,16 @@ export class InventoryComponent implements OnInit, OnDestroy {
         this.calculateSummaryStats();
         this.updateActiveFilters();
         this.errorMessage = null;
+        
+        // Apply client-side sorting after data loads
+        this.applyClientSideSort();
       }
     });
+    
+    // Initialize sortedInventoryItems if data is already loaded
+    if (this.inventoryItems.length > 0) {
+      this.applyClientSideSort();
+    }
   }
 
   ngOnDestroy(): void {
@@ -140,12 +149,13 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.selectedCategory = filters.category || '';
     this.currentPage = filters.pageNumber || 1;
     this.pageSize = filters.pageSize || 50;
-    if (filters.sortBy) this.sortColumn = filters.sortBy;
-    if (filters.sortOrder) this.sortOrder = filters.sortOrder as 'asc' | 'desc';
+    // Note: For client-side sorting, we preserve sort state but don't update via filters
+    // Sort state is maintained in component and applied locally
   }
 
   /**
    * Build PharmacyFilters from current UI state
+   * Note: Sort parameters are NOT included for client-side sorting
    */
   private buildFiltersFromUI(): Partial<PharmacyFilters> {
     const filters: Partial<PharmacyFilters> = {
@@ -161,13 +171,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
       filters.category = this.selectedCategory;
     }
 
-    // Add sort parameters
-    if (this.sortColumn) {
-      filters.sortBy = this.sortColumn;
-    }
-    if (this.sortOrder) {
-      filters.sortOrder = this.sortOrder;
-    }
+    // Sort parameters removed - using client-side sorting only
+    // This prevents unnecessary API calls when sorting
 
     return filters;
   }
@@ -280,11 +285,18 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.currentPage = 1;
     this.pageSize = 50; // Inventory uses larger page size
 
+    // Reset sort to defaults for client-side sorting
+    this.sortColumn = 'createdAt';
+    this.sortOrder = 'desc';
+
     // Update active filters display
     this.updateActiveFilters();
 
     // Show success feedback
     this.showClearSuccessMessage();
+    
+    // Apply default sort after clearing filters
+    this.applyClientSideSort();
   }
 
   /**
@@ -366,42 +378,170 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Handle column header sort click
-   * Maps frontend column names to backend sort field names
+   * Handle column header sort click - CLIENT-SIDE SORTING ONLY
+   * For inventory, sorting happens locally without API calls
    */
   onSort(column: string): void {
-    // Map frontend column names to backend field names
+    // Map frontend column names to actual property names
     const columnMapping: { [key: string]: string } = {
       'medicationName': 'name',
       'name': 'name',
-      'batchNumber': 'name', // Batch number not directly sortable, sort by name
+      'batchNumber': 'batchNumber',
       'quantity': 'stockQuantity',
       'stockQuantity': 'stockQuantity',
       'stock': 'stockQuantity',
       'expiryDate': 'expiryDate',
       'expiry': 'expiryDate',
-      'supplier': 'manufacturer', // Supplier maps to manufacturer
+      'supplier': 'manufacturer',
       'manufacturer': 'manufacturer',
-      'stockStatus': 'stockQuantity' // Status is derived, sort by quantity
+      'stockStatus': 'stockStatus'
     };
 
-    const backendColumn = columnMapping[column] || column;
+    const propertyName = columnMapping[column] || column;
 
-    if (this.sortColumn === backendColumn) {
+    if (this.sortColumn === propertyName) {
       // Toggle order if same column
       this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
     } else {
       // New column, default to ascending
-      this.sortColumn = backendColumn;
+      this.sortColumn = propertyName;
       this.sortOrder = 'asc';
     }
 
-    // Update filters with new sort parameters
-    this.updateFilters({ 
-      sortBy: this.sortColumn, 
-      sortOrder: this.sortOrder,
-      pageNumber: 1 // Reset to first page on sort
-    });
+    // Apply client-side sorting immediately
+    this.applyClientSideSort();
+  }
+
+  /**
+   * Apply client-side sorting to inventory items
+   */
+  private applyClientSideSort(): void {
+    if (!this.inventoryItems || this.inventoryItems.length === 0) {
+      this.sortedInventoryItems = [];
+      return;
+    }
+
+    if (!this.sortColumn) {
+      this.sortedInventoryItems = [...this.inventoryItems];
+      return;
+    }
+
+    try {
+      // Create a copy to avoid mutating the original array
+      this.sortedInventoryItems = [...this.inventoryItems].sort((a, b) => {
+        const aValue = this.getSortValue(a, this.sortColumn);
+        const bValue = this.getSortValue(b, this.sortColumn);
+
+        // Handle null/undefined values - place them at the end
+        if (aValue === null || aValue === undefined) return 1;
+        if (bValue === null || bValue === undefined) return -1;
+
+        // Handle different data types
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          return this.sortStrings(aValue, bValue, this.sortOrder);
+        } else if (typeof aValue === 'number' && typeof bValue === 'number') {
+          return this.sortNumbers(aValue, bValue, this.sortOrder);
+        } else if (aValue instanceof Date && bValue instanceof Date) {
+          return this.sortDates(aValue, bValue, this.sortOrder);
+        } else if (typeof aValue === 'string' || typeof bValue === 'string') {
+          // Mixed types - convert to string
+          return this.sortStrings(String(aValue), String(bValue), this.sortOrder);
+        }
+
+        // Default comparison
+        const comparison = aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+        return this.sortOrder === 'asc' ? comparison : -comparison;
+      });
+    } catch (error) {
+      console.error('Error sorting inventory:', error);
+      // Fallback to unsorted if error occurs
+      this.sortedInventoryItems = [...this.inventoryItems];
+    }
+  }
+
+  /**
+   * Get sort value for an item based on column name
+   * Handles special inventory columns
+   */
+  private getSortValue(item: MedicationDto, column: string): any {
+    switch (column) {
+      case 'stockStatus':
+        // Custom sort order: InStock (1) → LowStock (2) → OutOfStock (3)
+        const stockStatus = this.calculateStockStatus(item.stockQuantity, item.minimumStockLevel);
+        const statusOrder: { [key: string]: number } = {
+          'adequate': 1,
+          'low': 2,
+          'critical': 3,
+          'out-of-stock': 4
+        };
+        return statusOrder[stockStatus] || 5;
+
+      case 'batchNumber':
+        // Extract numbers for natural sorting: BATCH-001 → 1
+        const match = item.batchNumber?.match(/\d+/);
+        return match ? parseInt(match[0], 10) : 0;
+
+      case 'expiryDate':
+        return item.expiryDate ? new Date(item.expiryDate) : null;
+
+      case 'name':
+      case 'medicationName':
+        return item.name?.toLowerCase() || '';
+
+      case 'manufacturer':
+      case 'supplier':
+        return item.manufacturer?.toLowerCase() || '';
+
+      case 'category':
+        return item.category?.toLowerCase() || '';
+
+      case 'stockQuantity':
+      case 'quantity':
+        return item.stockQuantity || 0;
+
+      case 'price':
+        return item.price || 0;
+
+      case 'createdAt':
+        return item.createdAt ? new Date(item.createdAt) : null;
+
+      case 'updatedAt':
+        return item.updatedAt ? new Date(item.updatedAt) : null;
+
+      default:
+        // Try to access property directly
+        return (item as any)[column];
+    }
+  }
+
+  /**
+   * Sort strings (case-insensitive)
+   */
+  private sortStrings(a: string, b: string, order: 'asc' | 'desc'): number {
+    const aLower = (a || '').toString().toLowerCase();
+    const bLower = (b || '').toString().toLowerCase();
+
+    if (aLower < bLower) return order === 'asc' ? -1 : 1;
+    if (aLower > bLower) return order === 'asc' ? 1 : -1;
+    return 0;
+  }
+
+  /**
+   * Sort numbers
+   */
+  private sortNumbers(a: number, b: number, order: 'asc' | 'desc'): number {
+    const aNum = a || 0;
+    const bNum = b || 0;
+    return order === 'asc' ? aNum - bNum : bNum - aNum;
+  }
+
+  /**
+   * Sort dates
+   */
+  private sortDates(a: Date, b: Date, order: 'asc' | 'desc'): number {
+    const aDate = a ? new Date(a).getTime() : 0;
+    const bDate = b ? new Date(b).getTime() : 0;
+    return order === 'asc' ? aDate - bDate : bDate - aDate;
   }
 
   /**
@@ -411,7 +551,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
     const columnMapping: { [key: string]: string } = {
       'medicationName': 'name',
       'name': 'name',
-      'batchNumber': 'name',
+      'batchNumber': 'batchNumber',
       'quantity': 'stockQuantity',
       'stockQuantity': 'stockQuantity',
       'stock': 'stockQuantity',
@@ -419,11 +559,11 @@ export class InventoryComponent implements OnInit, OnDestroy {
       'expiry': 'expiryDate',
       'supplier': 'manufacturer',
       'manufacturer': 'manufacturer',
-      'stockStatus': 'stockQuantity'
+      'stockStatus': 'stockStatus'
     };
 
-    const backendColumn = columnMapping[column] || column;
-    if (this.sortColumn !== backendColumn) return '';
+    const propertyName = columnMapping[column] || column;
+    if (this.sortColumn !== propertyName) return '';
     return this.sortOrder === direction ? 'active' : '';
   }
 
@@ -434,7 +574,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
     const columnMapping: { [key: string]: string } = {
       'medicationName': 'name',
       'name': 'name',
-      'batchNumber': 'name',
+      'batchNumber': 'batchNumber',
       'quantity': 'stockQuantity',
       'stockQuantity': 'stockQuantity',
       'stock': 'stockQuantity',
@@ -442,11 +582,11 @@ export class InventoryComponent implements OnInit, OnDestroy {
       'expiry': 'expiryDate',
       'supplier': 'manufacturer',
       'manufacturer': 'manufacturer',
-      'stockStatus': 'stockQuantity'
+      'stockStatus': 'stockStatus'
     };
 
-    const backendColumn = columnMapping[column] || column;
-    if (this.sortColumn !== backendColumn) return 'none';
+    const propertyName = columnMapping[column] || column;
+    if (this.sortColumn !== propertyName) return 'none';
     return this.sortOrder === 'asc' ? 'ascending' : 'descending';
   }
 

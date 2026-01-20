@@ -235,7 +235,7 @@
           <th>Min Stock</th>
           <th (click)="onSort('stockStatus')"
               (keydown)="onSortKeydown($event, 'stockStatus')"
-              [class.sort-active]="sortColumn === 'stockQuantity'"
+              [class.sort-active]="sortColumn === 'stockStatus'"
               [attr.aria-sort]="getAriaSort('stockStatus')"
               [attr.aria-label]="'Sort by Stock Status'"
               tabindex="0"
@@ -266,7 +266,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let item of inventoryItems" [class]="getRowClass(item)">
+        <tr *ngFor="let item of sortedInventoryItems" [class]="getRowClass(item)">
           <td class="medication-name">
             <a [routerLink]="['/pharmacy/medications', item.id, 'edit']">{{ item.name }}</a>
             <span class="generic-name" *ngIf="item.genericName">{{ item.genericName }}</span>
