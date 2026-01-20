@@ -6,6 +6,7 @@ import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.serv
 import { PharmacyFilterService } from '../../../shared/services/pharmacy/pharmacy-filter.service';
 import { FilterSummaryComponent } from '../../../shared/components/filter-summary/filter-summary.component';
 import { ActiveFiltersComponent } from '../../../shared/components/active-filters/active-filters.component';
+import { SortStatusComponent } from '../../../shared/components/sort-status/sort-status.component';
 import { PrescriptionDto } from '../../../models/prescription.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { PagedResponse } from '../../../models/paged-response.dto';
@@ -15,7 +16,7 @@ import { TABLE_DEFAULT_SORTS } from '../../../constants/sort.constants';
 @Component({
   selector: 'app-prescriptions',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, FilterSummaryComponent, ActiveFiltersComponent],
+  imports: [CommonModule, FormsModule, RouterModule, FilterSummaryComponent, ActiveFiltersComponent, SortStatusComponent],
   templateUrl: './prescriptions.component.html',
   styleUrl: './prescriptions.component.css'
 })
