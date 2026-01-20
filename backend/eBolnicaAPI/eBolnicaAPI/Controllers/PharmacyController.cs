@@ -1,6 +1,7 @@
 using eBolnicaAPI.Data;
 using eBolnicaAPI.Models.DTOs;
 using eBolnicaAPI.Models.Entities;
+using eBolnicaAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -15,11 +16,13 @@ namespace eBolnicaAPI.Controllers
     {
         private readonly AppDbContext _context;
         private readonly UserManager<AppUser> _userManager;
+        private readonly IPharmacyService _pharmacyService;
 
-        public PharmacyController(AppDbContext context, UserManager<AppUser> userManager)
+        public PharmacyController(AppDbContext context, UserManager<AppUser> userManager, IPharmacyService pharmacyService)
         {
             _context = context;
             _userManager = userManager;
+            _pharmacyService = pharmacyService;
         }
 
         #region Medications CRUD
@@ -98,9 +101,9 @@ namespace eBolnicaAPI.Controllers
                 query = query.Where(m => m.RequiresPrescription == requiresPrescription.Value);
             }
 
-            // NEW: Apply dynamic filters from query parameters
+            // NEW: Apply dynamic filters from query parameters using PharmacyService
             // Supports filters like: minPrice=10, maxPrice=100, category=antibiotics, status=active
-            query = ApplyDynamicFilters(query, Request.Query);
+            query = _pharmacyService.GetFilteredMedications(query, Request.Query);
 
             // Get total count BEFORE pagination (for performance optimization)
             var totalCount = await query.CountAsync();
@@ -133,8 +136,8 @@ namespace eBolnicaAPI.Controllers
                 currentPage = totalPages;
             }
 
-            // NEW: Apply sorting
-            query = ApplySorting(query, sortBy, sortOrder);
+            // NEW: Apply sorting using PharmacyService
+            query = _pharmacyService.ApplySorting(query, sortBy, sortOrder);
 
             // Calculate Skip and Take values for server-side pagination
             // Skip = (pageNumber - 1) * pageSize
@@ -387,9 +390,9 @@ namespace eBolnicaAPI.Controllers
                 query = query.Where(p => p.Status == status);
             }
 
-            // NEW: Apply dynamic filters from query parameters
+            // NEW: Apply dynamic filters from query parameters using PharmacyService
             // Supports filters like: patientId=1, doctorId=2, minAmount=100, maxAmount=500
-            query = ApplyDynamicFilters(query, Request.Query);
+            query = _pharmacyService.GetFilteredPrescriptions(query, Request.Query);
 
             // Get total count BEFORE pagination (for performance optimization)
             var totalCount = await query.CountAsync();
@@ -418,8 +421,8 @@ namespace eBolnicaAPI.Controllers
                 pageNumber = totalPages;
             }
 
-            // Apply sorting
-            query = ApplySorting(query, sortBy, sortOrder);
+            // Apply sorting using PharmacyService
+            query = _pharmacyService.ApplySorting(query, sortBy, sortOrder);
 
             // Calculate Skip and Take values for server-side pagination
             // Skip = (pageNumber - 1) * pageSize
@@ -881,9 +884,9 @@ namespace eBolnicaAPI.Controllers
                 query = query.Where(m => m.Category == category);
             }
 
-            // NEW: Apply dynamic filters from query parameters
+            // NEW: Apply dynamic filters from query parameters using PharmacyService
             // Supports filters like: minPrice=10, maxPrice=100, minStock=5, requiresPrescription=true
-            query = ApplyDynamicFilters(query, Request.Query);
+            query = _pharmacyService.GetFilteredInventory(query, Request.Query);
 
             // Get total count BEFORE pagination (for performance optimization)
             var totalCount = await query.CountAsync();
@@ -918,8 +921,8 @@ namespace eBolnicaAPI.Controllers
                 pageNumber = totalPages;
             }
 
-            // Apply sorting
-            query = ApplySorting(query, sortBy, sortOrder);
+            // Apply sorting using PharmacyService
+            query = _pharmacyService.ApplySorting(query, sortBy, sortOrder);
 
             // Calculate Skip and Take values for server-side pagination
             // Skip = (pageNumber - 1) * pageSize
@@ -960,8 +963,8 @@ namespace eBolnicaAPI.Controllers
             {
                 paginatedQuery = paginatedQuery.Where(m => m.Category == category);
             }
-            paginatedQuery = ApplyDynamicFilters(paginatedQuery, Request.Query);
-            paginatedQuery = ApplySorting(paginatedQuery, sortBy, sortOrder);
+            paginatedQuery = _pharmacyService.GetFilteredInventory(paginatedQuery, Request.Query);
+            paginatedQuery = _pharmacyService.ApplySorting(paginatedQuery, sortBy, sortOrder);
             
             var medications = await paginatedQuery
                 .Skip(skipValue)
@@ -1074,178 +1077,6 @@ namespace eBolnicaAPI.Controllers
             return $"RX-{year}-{sequence.ToString("D4")}";
         }
 
-        /// <summary>
-        /// NEW: Applies dynamic filters from query parameters to Medication queries
-        /// Supports: minPrice, maxPrice, minStock, maxStock, requiresPrescription, isActive, category, status
-        /// </summary>
-        private IQueryable<Medication> ApplyDynamicFilters(IQueryable<Medication> query, Microsoft.AspNetCore.Http.IQueryCollection queryParams)
-        {
-            // Price filters
-            if (queryParams.ContainsKey("minPrice") && decimal.TryParse(queryParams["minPrice"], out decimal minPrice))
-            {
-                query = query.Where(m => m.Price >= minPrice);
-            }
-            if (queryParams.ContainsKey("maxPrice") && decimal.TryParse(queryParams["maxPrice"], out decimal maxPrice))
-            {
-                query = query.Where(m => m.Price <= maxPrice);
-            }
-
-            // Stock quantity filters
-            if (queryParams.ContainsKey("minStock") && int.TryParse(queryParams["minStock"], out int minStock))
-            {
-                query = query.Where(m => m.StockQuantity >= minStock);
-            }
-            if (queryParams.ContainsKey("maxStock") && int.TryParse(queryParams["maxStock"], out int maxStock))
-            {
-                query = query.Where(m => m.StockQuantity <= maxStock);
-            }
-
-            // Boolean filters
-            if (queryParams.ContainsKey("requiresPrescription") && bool.TryParse(queryParams["requiresPrescription"], out bool requiresPrescription))
-            {
-                query = query.Where(m => m.RequiresPrescription == requiresPrescription);
-            }
-            if (queryParams.ContainsKey("isActive") && bool.TryParse(queryParams["isActive"], out bool isActive))
-            {
-                query = query.Where(m => m.IsActive == isActive);
-            }
-
-            // String filters (case-insensitive)
-            if (queryParams.ContainsKey("category") && !string.IsNullOrEmpty(queryParams["category"]))
-            {
-                var categoryValue = queryParams["category"].ToString().ToLower();
-                query = query.Where(m => m.Category != null && m.Category.ToLower() == categoryValue);
-            }
-            if (queryParams.ContainsKey("status") && !string.IsNullOrEmpty(queryParams["status"]))
-            {
-                var statusValue = queryParams["status"].ToString().ToLower();
-                if (statusValue == "active")
-                {
-                    query = query.Where(m => m.IsActive);
-                }
-                else if (statusValue == "inactive")
-                {
-                    query = query.Where(m => !m.IsActive);
-                }
-            }
-
-            return query;
-        }
-
-        /// <summary>
-        /// NEW: Applies dynamic filters from query parameters to Prescription queries
-        /// Supports: patientId, doctorId, pharmacistId, minAmount, maxAmount, status
-        /// </summary>
-        private IQueryable<Prescription> ApplyDynamicFilters(IQueryable<Prescription> query, Microsoft.AspNetCore.Http.IQueryCollection queryParams)
-        {
-            // ID filters
-            if (queryParams.ContainsKey("patientId") && int.TryParse(queryParams["patientId"], out int patientId))
-            {
-                query = query.Where(p => p.PatientId == patientId);
-            }
-            if (queryParams.ContainsKey("doctorId") && int.TryParse(queryParams["doctorId"], out int doctorId))
-            {
-                query = query.Where(p => p.DoctorId == doctorId);
-            }
-            if (queryParams.ContainsKey("pharmacistId") && int.TryParse(queryParams["pharmacistId"], out int pharmacistId))
-            {
-                query = query.Where(p => p.PharmacistId == pharmacistId);
-            }
-
-            // Amount filters
-            if (queryParams.ContainsKey("minAmount") && decimal.TryParse(queryParams["minAmount"], out decimal minAmount))
-            {
-                query = query.Where(p => p.TotalAmount >= minAmount);
-            }
-            if (queryParams.ContainsKey("maxAmount") && decimal.TryParse(queryParams["maxAmount"], out decimal maxAmount))
-            {
-                query = query.Where(p => p.TotalAmount <= maxAmount);
-            }
-
-            // Status filter (case-insensitive)
-            if (queryParams.ContainsKey("status") && !string.IsNullOrEmpty(queryParams["status"]))
-            {
-                var statusValue = queryParams["status"].ToString();
-                query = query.Where(p => p.Status == statusValue);
-            }
-
-            return query;
-        }
-
-        /// <summary>
-        /// NEW: Applies sorting to Medication queries
-        /// Supported sortBy values: name, price, dateCreated, stockQuantity, category
-        /// </summary>
-        private IQueryable<Medication> ApplySorting(IQueryable<Medication> query, string? sortBy, string? sortOrder)
-        {
-            // Normalize sortOrder
-            var isAscending = string.IsNullOrEmpty(sortOrder) || sortOrder.ToLower() == "asc";
-            var isDescending = !string.IsNullOrEmpty(sortOrder) && sortOrder.ToLower() == "desc";
-
-            // Default sorting if sortBy is not provided
-            if (string.IsNullOrEmpty(sortBy))
-            {
-                return isDescending ? query.OrderByDescending(m => m.CreatedAt) : query.OrderBy(m => m.CreatedAt);
-            }
-
-            // Apply sorting based on sortBy parameter
-            switch (sortBy.ToLower())
-            {
-                case "name":
-                    return isAscending ? query.OrderBy(m => m.Name) : query.OrderByDescending(m => m.Name);
-                case "price":
-                    return isAscending ? query.OrderBy(m => m.Price) : query.OrderByDescending(m => m.Price);
-                case "datecreated":
-                case "createdat":
-                    return isAscending ? query.OrderBy(m => m.CreatedAt) : query.OrderByDescending(m => m.CreatedAt);
-                case "stockquantity":
-                case "stock":
-                    return isAscending ? query.OrderBy(m => m.StockQuantity) : query.OrderByDescending(m => m.StockQuantity);
-                case "category":
-                    return isAscending ? query.OrderBy(m => m.Category ?? "") : query.OrderByDescending(m => m.Category ?? "");
-                default:
-                    // Default to CreatedAt if invalid sortBy
-                    return isDescending ? query.OrderByDescending(m => m.CreatedAt) : query.OrderBy(m => m.CreatedAt);
-            }
-        }
-
-        /// <summary>
-        /// NEW: Applies sorting to Prescription queries
-        /// Supported sortBy values: dateCreated, totalAmount, prescriptionNumber, status, prescribedDate
-        /// </summary>
-        private IQueryable<Prescription> ApplySorting(IQueryable<Prescription> query, string? sortBy, string? sortOrder)
-        {
-            // Normalize sortOrder
-            var isAscending = string.IsNullOrEmpty(sortOrder) || sortOrder.ToLower() == "asc";
-            var isDescending = !string.IsNullOrEmpty(sortOrder) && sortOrder.ToLower() == "desc";
-
-            // Default sorting if sortBy is not provided
-            if (string.IsNullOrEmpty(sortBy))
-            {
-                return isDescending ? query.OrderByDescending(p => p.CreatedAt) : query.OrderBy(p => p.CreatedAt);
-            }
-
-            // Apply sorting based on sortBy parameter
-            switch (sortBy.ToLower())
-            {
-                case "datecreated":
-                case "createdat":
-                    return isAscending ? query.OrderBy(p => p.CreatedAt) : query.OrderByDescending(p => p.CreatedAt);
-                case "totalamount":
-                case "amount":
-                    return isAscending ? query.OrderBy(p => p.TotalAmount) : query.OrderByDescending(p => p.TotalAmount);
-                case "prescriptionnumber":
-                case "number":
-                    return isAscending ? query.OrderBy(p => p.PrescriptionNumber) : query.OrderByDescending(p => p.PrescriptionNumber);
-                case "status":
-                    return isAscending ? query.OrderBy(p => p.Status) : query.OrderByDescending(p => p.Status);
-                case "prescribeddate":
-                    return isAscending ? query.OrderBy(p => p.PrescribedDate) : query.OrderByDescending(p => p.PrescribedDate);
-                default:
-                    // Default to CreatedAt if invalid sortBy
-                    return isDescending ? query.OrderByDescending(p => p.CreatedAt) : query.OrderBy(p => p.CreatedAt);
-            }
-        }
 
         #endregion
     }

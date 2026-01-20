@@ -89,6 +89,7 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IPharmacyService, PharmacyService>();
 
 var app = builder.Build();
 
