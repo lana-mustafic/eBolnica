@@ -6,7 +6,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
+using System.Diagnostics;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace eBolnicaAPI.Controllers
 {
@@ -17,12 +21,24 @@ namespace eBolnicaAPI.Controllers
         private readonly AppDbContext _context;
         private readonly UserManager<AppUser> _userManager;
         private readonly IPharmacyService _pharmacyService;
+        private readonly ILogger<PharmacyController> _logger;
+        private readonly IMemoryCache _cache;
+        private readonly IConfiguration _configuration;
 
-        public PharmacyController(AppDbContext context, UserManager<AppUser> userManager, IPharmacyService pharmacyService)
+        public PharmacyController(
+            AppDbContext context, 
+            UserManager<AppUser> userManager, 
+            IPharmacyService pharmacyService,
+            ILogger<PharmacyController> logger,
+            IMemoryCache cache,
+            IConfiguration configuration)
         {
             _context = context;
             _userManager = userManager;
             _pharmacyService = pharmacyService;
+            _logger = logger;
+            _cache = cache;
+            _configuration = configuration;
         }
 
         #region Medications CRUD
@@ -82,8 +98,10 @@ namespace eBolnicaAPI.Controllers
             [FromQuery] string? sortBy = null,
             [FromQuery] string? sortOrder = "desc")
         {
-            // Start with base query
-            var query = _context.Medications.AsQueryable();
+            var stopwatch = Stopwatch.StartNew();
+            
+            // Start with optimized base query using AsNoTracking for read-only
+            var query = _context.Medications.AsNoTracking().AsQueryable();
 
             // Filter 1: Active Status
             // Default behavior: show only active medications (isActive=null means use default)
@@ -186,35 +204,44 @@ namespace eBolnicaAPI.Controllers
             var skipValue = (currentPage - 1) * pageSize;
             var takeValue = pageSize;
 
-            // Apply pagination at database level using Entity Framework
-            // Use AsNoTracking() for read-only queries to improve performance
-            var medications = await query
-                .AsNoTracking()
+            // Apply pagination with projection to DTO at database level for optimal performance
+            // This reduces memory usage and improves query performance
+            var dtoList = await query
                 .Skip(skipValue)
                 .Take(takeValue)
+                .Select(m => new MedicationDto
+                {
+                    Id = m.Id,
+                    Name = m.Name,
+                    GenericName = m.GenericName,
+                    Description = m.Description,
+                    Manufacturer = m.Manufacturer,
+                    Price = m.Price,
+                    StockQuantity = m.StockQuantity,
+                    MinimumStockLevel = m.MinimumStockLevel,
+                    ExpiryDate = m.ExpiryDate,
+                    BatchNumber = m.BatchNumber,
+                    IsActive = m.IsActive,
+                    RequiresPrescription = m.RequiresPrescription,
+                    Category = m.Category,
+                    DosageForm = m.DosageForm,
+                    Strength = m.Strength,
+                    CreatedAt = m.CreatedAt,
+                    UpdatedAt = m.UpdatedAt
+                })
                 .ToListAsync();
 
-            // Map to DTOs
-            var dtoList = medications.Select(m => new MedicationDto
-            {
-                Id = m.Id,
-                Name = m.Name,
-                GenericName = m.GenericName,
-                Description = m.Description,
-                Manufacturer = m.Manufacturer,
-                Price = m.Price,
-                StockQuantity = m.StockQuantity,
-                MinimumStockLevel = m.MinimumStockLevel,
-                ExpiryDate = m.ExpiryDate,
-                BatchNumber = m.BatchNumber,
-                IsActive = m.IsActive,
-                RequiresPrescription = m.RequiresPrescription,
-                Category = m.Category,
-                DosageForm = m.DosageForm,
-                Strength = m.Strength,
-                CreatedAt = m.CreatedAt,
-                UpdatedAt = m.UpdatedAt
-            }).ToList();
+            stopwatch.Stop();
+
+            // Log performance metrics
+            var activeFilters = GetActiveFilterCount(category, search, stockStatus, requiresPrescription, isActive);
+            _logger.LogInformation(
+                "Medications query executed in {ElapsedMs}ms. Filters: {FilterCount}, Results: {ResultCount}, Page: {Page}, PageSize: {PageSize}",
+                stopwatch.ElapsedMilliseconds,
+                activeFilters,
+                dtoList.Count,
+                currentPage,
+                pageSize);
 
             // Return paginated response using PaginatedResponse<T> class
             var response = new PaginatedResponse<MedicationDto>(
@@ -449,7 +476,12 @@ namespace eBolnicaAPI.Controllers
             [FromQuery] string? sortBy = null,
             [FromQuery] string? sortOrder = "desc")
         {
+            var stopwatch = Stopwatch.StartNew();
+            
+            // Use AsNoTracking and AsSplitQuery for optimal read-only performance
             var query = _context.Prescriptions
+                .AsNoTracking()
+                .AsSplitQuery()
                 .Include(p => p.Patient)
                     .ThenInclude(pat => pat.AppUser)
                 .Include(p => p.Doctor)
@@ -506,13 +538,11 @@ namespace eBolnicaAPI.Controllers
             var skipValue = (pageNumber - 1) * pageSize;
             var takeValue = pageSize;
 
-            // Apply pagination at database level using Entity Framework
-            var prescriptions = await query
+            // Apply pagination and projection at database level for optimal performance
+            var dtoList = await query
                 .Skip(skipValue)
                 .Take(takeValue)
-                .ToListAsync();
-
-            var dtoList = prescriptions.Select(p => new PrescriptionDto
+                .Select(p => new PrescriptionDto
             {
                 Id = p.Id,
                 PrescriptionNumber = p.PrescriptionNumber,
@@ -566,7 +596,20 @@ namespace eBolnicaAPI.Controllers
                     Instructions = pi.Instructions,
                     UnitPrice = pi.UnitPrice
                 }).ToList()
-            }).ToList();
+                })
+                .ToListAsync();
+
+            stopwatch.Stop();
+
+            // Log performance metrics
+            var activeFilters = GetActiveFilterCountPrescription(status);
+            _logger.LogInformation(
+                "Prescriptions query executed in {ElapsedMs}ms. Filters: {FilterCount}, Results: {ResultCount}, Page: {Page}, PageSize: {PageSize}",
+                stopwatch.ElapsedMilliseconds,
+                activeFilters,
+                dtoList.Count,
+                pageNumber,
+                pageSize);
 
             // Return paginated response using PaginatedResponse<T> class
             var response = new PaginatedResponse<PrescriptionDto>(
@@ -985,7 +1028,13 @@ namespace eBolnicaAPI.Controllers
             [FromQuery] string? sortBy = null,
             [FromQuery] string? sortOrder = "desc")
         {
-            var query = _context.Medications.Where(m => m.IsActive).AsQueryable();
+            var stopwatch = Stopwatch.StartNew();
+            
+            // Start with optimized base query using AsNoTracking for read-only
+            var query = _context.Medications
+                .AsNoTracking()
+                .Where(m => m.IsActive)
+                .AsQueryable();
 
             // Existing filter: Category
             if (!string.IsNullOrEmpty(category))
@@ -1043,64 +1092,67 @@ namespace eBolnicaAPI.Controllers
             // So we execute the query twice: once for all items (alerts), once with pagination (main result)
             // Note: This is necessary because alerts must reflect all matching items regardless of pagination
             
-            // First: Get all matching items for alerts calculation
-            var allMatchingMedications = await query.ToListAsync();
-            var allDtoList = allMatchingMedications.Select(m => new MedicationDto
-            {
-                Id = m.Id,
-                Name = m.Name,
-                GenericName = m.GenericName,
-                Description = m.Description,
-                Manufacturer = m.Manufacturer,
-                Price = m.Price,
-                StockQuantity = m.StockQuantity,
-                MinimumStockLevel = m.MinimumStockLevel,
-                ExpiryDate = m.ExpiryDate,
-                BatchNumber = m.BatchNumber,
-                IsActive = m.IsActive,
-                RequiresPrescription = m.RequiresPrescription,
-                Category = m.Category,
-                DosageForm = m.DosageForm,
-                Strength = m.Strength,
-                CreatedAt = m.CreatedAt,
-                UpdatedAt = m.UpdatedAt
-            }).ToList();
-
-            // Second: Apply pagination at database level using Entity Framework
-            // Rebuild query with same filters and sorting, then apply Skip/Take
-            var paginatedQuery = _context.Medications.Where(m => m.IsActive).AsQueryable();
-            if (!string.IsNullOrEmpty(category))
-            {
-                paginatedQuery = paginatedQuery.Where(m => m.Category == category);
-            }
-            paginatedQuery = _pharmacyService.GetFilteredInventory(paginatedQuery, Request.Query);
-            paginatedQuery = _pharmacyService.ApplySorting(paginatedQuery, sortBy, sortOrder);
-            
-            var medications = await paginatedQuery
-                .Skip(skipValue)
-                .Take(takeValue)
+            // First: Get all matching items for alerts calculation using projection for efficiency
+            var allDtoList = await query
+                .Select(m => new MedicationDto
+                {
+                    Id = m.Id,
+                    Name = m.Name,
+                    GenericName = m.GenericName,
+                    Description = m.Description,
+                    Manufacturer = m.Manufacturer,
+                    Price = m.Price,
+                    StockQuantity = m.StockQuantity,
+                    MinimumStockLevel = m.MinimumStockLevel,
+                    ExpiryDate = m.ExpiryDate,
+                    BatchNumber = m.BatchNumber,
+                    IsActive = m.IsActive,
+                    RequiresPrescription = m.RequiresPrescription,
+                    Category = m.Category,
+                    DosageForm = m.DosageForm,
+                    Strength = m.Strength,
+                    CreatedAt = m.CreatedAt,
+                    UpdatedAt = m.UpdatedAt
+                })
                 .ToListAsync();
 
-            var dtoList = medications.Select(m => new MedicationDto
-            {
-                Id = m.Id,
-                Name = m.Name,
-                GenericName = m.GenericName,
-                Description = m.Description,
-                Manufacturer = m.Manufacturer,
-                Price = m.Price,
-                StockQuantity = m.StockQuantity,
-                MinimumStockLevel = m.MinimumStockLevel,
-                ExpiryDate = m.ExpiryDate,
-                BatchNumber = m.BatchNumber,
-                IsActive = m.IsActive,
-                RequiresPrescription = m.RequiresPrescription,
-                Category = m.Category,
-                DosageForm = m.DosageForm,
-                Strength = m.Strength,
-                CreatedAt = m.CreatedAt,
-                UpdatedAt = m.UpdatedAt
-            }).ToList();
+            // Second: Apply pagination at database level using projection for optimal performance
+            var dtoList = await query
+                .Skip(skipValue)
+                .Take(takeValue)
+                .Select(m => new MedicationDto
+                {
+                    Id = m.Id,
+                    Name = m.Name,
+                    GenericName = m.GenericName,
+                    Description = m.Description,
+                    Manufacturer = m.Manufacturer,
+                    Price = m.Price,
+                    StockQuantity = m.StockQuantity,
+                    MinimumStockLevel = m.MinimumStockLevel,
+                    ExpiryDate = m.ExpiryDate,
+                    BatchNumber = m.BatchNumber,
+                    IsActive = m.IsActive,
+                    RequiresPrescription = m.RequiresPrescription,
+                    Category = m.Category,
+                    DosageForm = m.DosageForm,
+                    Strength = m.Strength,
+                    CreatedAt = m.CreatedAt,
+                    UpdatedAt = m.UpdatedAt
+                })
+                .ToListAsync();
+
+            stopwatch.Stop();
+
+            // Log performance metrics
+            var activeFilters = GetActiveFilterCount(category, null, null, null, null);
+            _logger.LogInformation(
+                "Inventory query executed in {ElapsedMs}ms. Filters: {FilterCount}, Results: {ResultCount}, Page: {Page}, PageSize: {PageSize}",
+                stopwatch.ElapsedMilliseconds,
+                activeFilters,
+                dtoList.Count,
+                pageNumber,
+                pageSize);
 
             // Create paginated response using PaginatedResponse<T> structure
             var paginatedResponse = new PaginatedResponse<MedicationDto>(
@@ -1165,6 +1217,30 @@ namespace eBolnicaAPI.Controllers
         #endregion
 
         #region Helper Methods
+
+        /// <summary>
+        /// Counts active filters for medications query
+        /// </summary>
+        private int GetActiveFilterCount(string? category, string? search, string? stockStatus, bool? requiresPrescription, bool? isActive)
+        {
+            int count = 0;
+            if (!string.IsNullOrEmpty(category)) count++;
+            if (!string.IsNullOrEmpty(search)) count++;
+            if (!string.IsNullOrEmpty(stockStatus)) count++;
+            if (requiresPrescription.HasValue) count++;
+            if (isActive.HasValue) count++;
+            return count;
+        }
+
+        /// <summary>
+        /// Counts active filters for prescriptions query
+        /// </summary>
+        private int GetActiveFilterCountPrescription(string? status)
+        {
+            int count = 0;
+            if (!string.IsNullOrEmpty(status)) count++;
+            return count;
+        }
 
         /// <summary>
         /// Builds PharmacyQueryParameters from individual query parameters for backward compatibility

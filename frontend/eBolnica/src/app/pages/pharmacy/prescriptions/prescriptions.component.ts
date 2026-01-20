@@ -1,25 +1,37 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
+import { PharmacyFilterService } from '../../../shared/services/pharmacy/pharmacy-filter.service';
+import { FilterSummaryComponent } from '../../../shared/components/filter-summary/filter-summary.component';
+import { ActiveFiltersComponent } from '../../../shared/components/active-filters/active-filters.component';
 import { PrescriptionDto } from '../../../models/prescription.dto';
-import { Subject, debounceTime, distinctUntilChanged, finalize } from 'rxjs';
+import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
+import { PagedResponse } from '../../../models/paged-response.dto';
+import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, catchError, of } from 'rxjs';
 
 @Component({
   selector: 'app-prescriptions',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, FilterSummaryComponent, ActiveFiltersComponent],
   templateUrl: './prescriptions.component.html',
   styleUrl: './prescriptions.component.css'
 })
-export class PrescriptionsComponent implements OnInit {
-  private pharmacyService = inject(PharmacyService);
+export class PrescriptionsComponent implements OnInit, OnDestroy {
+  protected pharmacyService = inject(PharmacyService);
+  protected filterService = inject(PharmacyFilterService);
 
   prescriptions: PrescriptionDto[] = [];
-  filteredPrescriptions: PrescriptionDto[] = [];
   isLoading: boolean = false;
+  isSearching: boolean = false;
   errorMessage: string | null = null;
+
+  // Pagination
+  currentPage: number = 1;
+  pageSize: number = 10;
+  totalCount: number = 0;
+  totalPages: number = 0;
 
   // Status filter
   selectedStatus: string = 'Pending';
@@ -33,60 +45,156 @@ export class PrescriptionsComponent implements OnInit {
   // Search
   searchTerm: string = '';
   private searchSubject = new Subject<string>();
+  private destroy$ = new Subject<void>();
 
   // Sort
   sortBy: string = 'date';
   sortOrder: 'asc' | 'desc' = 'desc';
 
+  // Active filters for display
+  activeFilters = this.filterService.getActiveFilters();
+
+  // Success message for clear operation
+  clearSuccessMessage: string | null = null;
+
   ngOnInit(): void {
+    // Initialize filters from service
+    const currentFilters = this.filterService.getFilters();
+    this.syncUIFromFilters(currentFilters);
+
+    // Load initial data
     this.loadPrescriptions();
-    
-    // Setup debounced search
+
+    // Setup debounced search that combines with dropdown filters
     this.searchSubject.pipe(
       debounceTime(300),
-      distinctUntilChanged()
+      distinctUntilChanged(),
+      takeUntil(this.destroy$)
     ).subscribe(searchTerm => {
       this.searchTerm = searchTerm;
-      this.applyFilters();
+      this.updateFilters({ searchTerm: searchTerm || undefined });
+    });
+
+    // Subscribe to filter changes from service
+    this.filterService.getFilters$().pipe(
+      debounceTime(150),
+      switchMap(filters => {
+        this.isSearching = true;
+        this.errorMessage = null; // Clear previous errors
+        this.syncUIFromFilters(filters);
+        return this.pharmacyService.getPrescriptionsWithFilters(filters).pipe(
+          finalize(() => this.isSearching = false),
+          catchError((error) => {
+            this.handleApiError(error);
+            return of({
+              items: [],
+              totalCount: 0,
+              totalPages: 0,
+              currentPage: 1,
+              pageSize: filters.pageSize || 10,
+              hasNext: false,
+              hasPrevious: false
+            } as PagedResponse<PrescriptionDto>);
+          })
+        );
+      }),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (response) => {
+        this.prescriptions = response.items || [];
+        this.totalCount = response.totalCount || 0;
+        this.totalPages = response.totalPages || 0;
+        this.currentPage = response.currentPage || 1;
+        this.pageSize = response.pageSize || 10;
+        this.updateFilterCounts();
+        this.updateActiveFilters();
+        this.errorMessage = null;
+      }
     });
   }
 
-  loadPrescriptions(): void {
-    this.isLoading = true;
-    this.errorMessage = null;
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
-    // Load all prescriptions, we'll filter client-side
-    this.pharmacyService.getPrescriptions().pipe(
-      finalize(() => this.isLoading = false)
-    ).subscribe({
-      next: (prescriptions) => {
-        this.prescriptions = prescriptions;
-        this.updateFilterCounts();
-        this.applyFilters();
-      },
-      error: (error) => {
-        this.errorMessage = 'Failed to load prescriptions. Please try again later.';
-        console.error('Error loading prescriptions:', error);
-      }
-    });
+  /**
+   * Sync UI state from filter service state
+   */
+  private syncUIFromFilters(filters: PharmacyFilters): void {
+    this.searchTerm = filters.searchTerm || '';
+    this.selectedStatus = filters.prescriptionStatus || 'Pending';
+    this.currentPage = filters.pageNumber || 1;
+    this.pageSize = filters.pageSize || 10;
+    if (filters.sortBy) this.sortBy = filters.sortBy;
+    if (filters.sortOrder) this.sortOrder = filters.sortOrder as 'asc' | 'desc';
+  }
+
+  /**
+   * Build PharmacyFilters from current UI state
+   */
+  private buildFiltersFromUI(): Partial<PharmacyFilters> {
+    const filters: Partial<PharmacyFilters> = {
+      pageNumber: this.currentPage,
+      pageSize: this.pageSize
+    };
+
+    if (this.searchTerm?.trim()) {
+      filters.searchTerm = this.searchTerm.trim();
+    }
+
+    if (this.selectedStatus && this.selectedStatus !== 'All') {
+      filters.prescriptionStatus = this.selectedStatus;
+    }
+
+    if (this.sortBy) {
+      filters.sortBy = this.sortBy;
+    }
+    if (this.sortOrder) {
+      filters.sortOrder = this.sortOrder;
+    }
+
+    return filters;
+  }
+
+  /**
+   * Update filters in service (triggers API call)
+   */
+  private updateFilters(updates: Partial<PharmacyFilters>): void {
+    this.filterService.updateFilters(updates);
+  }
+
+  loadPrescriptions(): void {
+    const filters = this.buildFiltersFromUI();
+    this.updateFilters(filters);
   }
 
   updateFilterCounts(): void {
     this.statusFilters.forEach(filter => {
       if (filter.value === 'All') {
-        filter.count = this.prescriptions.length;
+        filter.count = this.totalCount;
       } else {
-        filter.count = this.prescriptions.filter(p => p.status === filter.value).length;
+        const pageCount = this.prescriptions.filter(p => p.status === filter.value).length;
+        if (this.totalCount > 0 && this.prescriptions.length > 0) {
+          filter.count = Math.round((pageCount / this.prescriptions.length) * this.totalCount);
+        } else {
+          filter.count = pageCount;
+        }
       }
     });
   }
 
   onStatusFilterChange(status: string): void {
     this.selectedStatus = status;
-    this.applyFilters();
+    if (status === 'All') {
+      this.filterService.clearFilter('prescriptionStatus');
+    } else {
+      this.updateFilters({ prescriptionStatus: status });
+    }
   }
 
   onSearchChange(searchTerm: string): void {
+    this.searchTerm = searchTerm;
     this.searchSubject.next(searchTerm);
   }
 
@@ -97,51 +205,111 @@ export class PrescriptionsComponent implements OnInit {
       this.sortBy = sortBy;
       this.sortOrder = 'desc';
     }
-    this.applyFilters();
+    this.updateFilters({ sortBy: this.sortBy, sortOrder: this.sortOrder });
   }
 
-  applyFilters(): void {
-    let filtered = [...this.prescriptions];
+  /**
+   * Clear all filters and reset to default state
+   */
+  clearFilters(): void {
+    // Clear service state
+    this.filterService.clearAllFilters();
 
-    // Status filter
-    if (this.selectedStatus && this.selectedStatus !== 'All') {
-      filtered = filtered.filter(p => p.status === this.selectedStatus);
+    // Clear template-bound properties
+    this.searchTerm = '';
+    this.selectedStatus = 'All';
+
+    // Reset pagination to defaults
+    this.currentPage = 1;
+    this.pageSize = 10;
+
+    // Reset sorting to defaults
+    this.sortBy = 'date';
+    this.sortOrder = 'desc';
+
+    // Update active filters display
+    this.updateActiveFilters();
+
+    // Show success feedback
+    this.showClearSuccessMessage();
+  }
+
+  /**
+   * Show success message after clearing filters
+   */
+  private showClearSuccessMessage(): void {
+    this.clearSuccessMessage = 'All filters cleared. Showing all results.';
+    setTimeout(() => {
+      this.clearSuccessMessage = null;
+    }, 3000);
+  }
+
+  /**
+   * Keyboard shortcut handler for clearing filters
+   */
+  @HostListener('document:keydown', ['$event'])
+  handleKeyboardEvent(event: KeyboardEvent): void {
+    const hasActiveFilters = this.getActiveFilterCount() > 0;
+    
+    if (event.ctrlKey && event.shiftKey && event.key === 'C' && hasActiveFilters) {
+      event.preventDefault();
+      this.clearFilters();
     }
-
-    // Search filter
-    if (this.searchTerm.trim()) {
-      const search = this.searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(p => 
-        p.prescriptionNumber.toLowerCase().includes(search) ||
-        (p.patient && `${p.patient.firstName} ${p.patient.lastName}`.toLowerCase().includes(search))
-      );
-    }
-
-    // Sort
-    filtered.sort((a, b) => {
-      let comparison = 0;
-      
-      switch (this.sortBy) {
-        case 'date':
-          comparison = new Date(a.prescribedDate).getTime() - new Date(b.prescribedDate).getTime();
-          break;
-        case 'status':
-          comparison = a.status.localeCompare(b.status);
-          break;
-        case 'amount':
-          comparison = a.totalAmount - b.totalAmount;
-          break;
-        case 'number':
-          comparison = a.prescriptionNumber.localeCompare(b.prescriptionNumber);
-          break;
-        default:
-          comparison = 0;
+    
+    if (event.key === 'Escape' && hasActiveFilters) {
+      const target = event.target as HTMLElement;
+      if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+        event.preventDefault();
+        this.clearFilters();
       }
-      
-      return this.sortOrder === 'asc' ? comparison : -comparison;
-    });
+    }
+  }
 
-    this.filteredPrescriptions = filtered;
+  removeFilter(filterKey: string): void {
+    this.filterService.clearFilter(filterKey as keyof PharmacyFilters);
+    
+    switch (filterKey) {
+      case 'searchTerm':
+        this.searchTerm = '';
+        break;
+      case 'prescriptionStatus':
+        this.selectedStatus = 'All';
+        break;
+    }
+    
+    this.updateActiveFilters();
+  }
+
+  getActiveFilterCount(): number {
+    return this.filterService.getActiveFilterCount();
+  }
+
+  updateActiveFilters(): void {
+    this.activeFilters = this.filterService.getActiveFilters();
+  }
+
+  // Pagination methods
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.updateFilters({ pageNumber: page });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  previousPage(): void {
+    if (this.currentPage > 1) {
+      this.goToPage(this.currentPage - 1);
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.goToPage(this.currentPage + 1);
+    }
+  }
+
+  changePageSize(size: number): void {
+    this.updateFilters({ pageSize: size, pageNumber: 1 });
   }
 
   getStatusClass(status: string): string {
@@ -185,5 +353,37 @@ export class PrescriptionsComponent implements OnInit {
       style: 'currency',
       currency: 'USD'
     }).format(amount);
+  }
+
+  /**
+   * Handle API errors with user-friendly messages
+   */
+  private handleApiError(error: any): void {
+    this.isSearching = false;
+    this.isLoading = false;
+
+    if (error?.message) {
+      this.errorMessage = error.message;
+    } else if (error?.status === 0) {
+      this.errorMessage = 'Network error. Please check your connection and try again.';
+    } else if (error?.status === 400) {
+      this.errorMessage = 'Invalid filters. Please adjust your search criteria.';
+    } else if (error?.status === 401 || error?.status === 403) {
+      this.errorMessage = 'Access denied. Please log in again.';
+    } else if (error?.status === 500) {
+      this.errorMessage = 'Server error. Please try again later.';
+    } else {
+      this.errorMessage = 'Failed to load prescriptions. Please try again.';
+    }
+
+    console.error('[PrescriptionsComponent] Error loading prescriptions:', error);
+  }
+
+  /**
+   * Retry loading prescriptions after an error
+   */
+  retryLoad(): void {
+    this.errorMessage = null;
+    this.loadPrescriptions();
   }
 }
