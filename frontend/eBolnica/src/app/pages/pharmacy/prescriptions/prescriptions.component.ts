@@ -6,15 +6,17 @@ import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.serv
 import { PharmacyFilterService } from '../../../shared/services/pharmacy/pharmacy-filter.service';
 import { FilterSummaryComponent } from '../../../shared/components/filter-summary/filter-summary.component';
 import { ActiveFiltersComponent } from '../../../shared/components/active-filters/active-filters.component';
+import { SortStatusComponent } from '../../../shared/components/sort-status/sort-status.component';
 import { PrescriptionDto } from '../../../models/prescription.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { PagedResponse } from '../../../models/paged-response.dto';
-import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, catchError, of } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, catchError, of, Subscription } from 'rxjs';
+import { TABLE_DEFAULT_SORTS } from '../../../constants/sort.constants';
 
 @Component({
   selector: 'app-prescriptions',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, FilterSummaryComponent, ActiveFiltersComponent],
+  imports: [CommonModule, FormsModule, RouterModule, FilterSummaryComponent, ActiveFiltersComponent, SortStatusComponent],
   templateUrl: './prescriptions.component.html',
   styleUrl: './prescriptions.component.css'
 })
@@ -25,6 +27,7 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   prescriptions: PrescriptionDto[] = [];
   isLoading: boolean = false;
   isSearching: boolean = false;
+  isSorting: boolean = false; // Specific flag for sort operations
   errorMessage: string | null = null;
 
   // Pagination
@@ -47,9 +50,14 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   private searchSubject = new Subject<string>();
   private destroy$ = new Subject<void>();
 
-  // Sort
+  // Sort (default: newest first)
   sortBy: string = 'date';
-  sortOrder: 'asc' | 'desc' = 'desc';
+  sortOrder: 'asc' | 'desc' = TABLE_DEFAULT_SORTS.PRESCRIPTIONS.order;
+  sortColumn: string = TABLE_DEFAULT_SORTS.PRESCRIPTIONS.column; // Default sort column for header clicks
+  private previousSortColumn: string = TABLE_DEFAULT_SORTS.PRESCRIPTIONS.column; // For error recovery
+  private previousSortOrder: 'asc' | 'desc' = TABLE_DEFAULT_SORTS.PRESCRIPTIONS.order; // For error recovery
+  private sortDebounceTimer: any; // Timer for debouncing sort requests
+  private sortRequest$: Subscription | null = null; // For cancelling pending requests
 
   // Active filters for display
   activeFilters = this.filterService.getActiveFilters();
@@ -79,11 +87,18 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
     this.filterService.getFilters$().pipe(
       debounceTime(150),
       switchMap(filters => {
-        this.isSearching = true;
+        // Only set isSearching if not sorting (to avoid conflicts)
+        if (!this.isSorting) {
+          this.isSearching = true;
+        }
         this.errorMessage = null; // Clear previous errors
         this.syncUIFromFilters(filters);
         return this.pharmacyService.getPrescriptionsWithFilters(filters).pipe(
-          finalize(() => this.isSearching = false),
+          finalize(() => {
+            if (!this.isSorting) {
+              this.isSearching = false;
+            }
+          }),
           catchError((error) => {
             this.handleApiError(error);
             return of({
@@ -109,6 +124,7 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
         this.updateFilterCounts();
         this.updateActiveFilters();
         this.errorMessage = null;
+        this.isSorting = false; // Clear sorting flag after successful load
       }
     });
   }
@@ -126,7 +142,10 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
     this.selectedStatus = filters.prescriptionStatus || 'Pending';
     this.currentPage = filters.pageNumber || 1;
     this.pageSize = filters.pageSize || 10;
-    if (filters.sortBy) this.sortBy = filters.sortBy;
+    if (filters.sortBy) {
+      this.sortBy = filters.sortBy;
+      this.sortColumn = filters.sortBy;
+    }
     if (filters.sortOrder) this.sortOrder = filters.sortOrder as 'asc' | 'desc';
   }
 
@@ -205,7 +224,248 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
       this.sortBy = sortBy;
       this.sortOrder = 'desc';
     }
+    this.sortColumn = this.sortBy; // Sync with header sort
     this.updateFilters({ sortBy: this.sortBy, sortOrder: this.sortOrder });
+  }
+
+  /**
+   * Handle column header sort click - SERVER-SIDE SORTING
+   * Maps frontend column names to backend sort field names
+   * Includes debouncing and request cancellation
+   */
+  onSort(column: string): void {
+    // Map frontend column names to backend field names
+    const columnMapping: { [key: string]: string } = {
+      'patientName': 'prescribedDate', // Sort by date since patient name is computed
+      'patient': 'prescribedDate',
+      'medication': 'prescribedDate',
+      'status': 'status',
+      'totalAmount': 'totalAmount',
+      'amount': 'totalAmount',
+      'createdAt': 'createdAt',
+      'createdDate': 'createdAt',
+      'prescribedDate': 'prescribedDate',
+      'date': 'prescribedDate'
+    };
+
+    const backendColumn = columnMapping[column] || column;
+
+    // Store previous sort state for error recovery
+    this.previousSortColumn = this.sortColumn;
+    this.previousSortOrder = this.sortOrder;
+
+    if (this.sortColumn === backendColumn) {
+      // Toggle order if same column
+      this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+      // New column, default to ascending
+      this.sortColumn = backendColumn;
+      this.sortOrder = 'asc';
+    }
+
+    // Set sorting flag
+    this.isSorting = true;
+    this.errorMessage = null;
+
+    // Cancel any pending sort requests
+    if (this.sortRequest$) {
+      this.sortRequest$.unsubscribe();
+      this.sortRequest$ = null;
+    }
+
+    // Clear any existing debounce timer
+    if (this.sortDebounceTimer) {
+      clearTimeout(this.sortDebounceTimer);
+    }
+
+    // Debounce sort requests (200ms) to avoid rapid API calls
+    this.sortDebounceTimer = setTimeout(() => {
+      this.loadPrescriptionsWithSort();
+    }, 200);
+  }
+
+  /**
+   * Load prescriptions with sort parameters (server-side)
+   * Includes request cancellation and error handling
+   */
+  private loadPrescriptionsWithSort(): void {
+    // Cancel previous request if still pending
+    if (this.sortRequest$) {
+      this.sortRequest$.unsubscribe();
+      this.sortRequest$ = null;
+    }
+
+    this.isLoading = true;
+    this.isSorting = true;
+
+    const partialFilters = this.buildFiltersFromUI();
+    // Build complete filters object with required properties
+    const filters: PharmacyFilters = {
+      pageNumber: 1, // Reset to first page on sort
+      pageSize: partialFilters.pageSize || this.pageSize || 10,
+      ...partialFilters,
+      sortBy: this.sortColumn,
+      sortOrder: this.sortOrder
+    };
+
+    this.sortRequest$ = this.pharmacyService.getPrescriptionsWithFilters(filters).pipe(
+      finalize(() => {
+        this.isLoading = false;
+        this.isSorting = false;
+        this.sortRequest$ = null;
+      }),
+      catchError((error) => {
+        this.handleSortError(error);
+        return of({
+          items: [],
+          totalCount: 0,
+          totalPages: 0,
+          currentPage: 1,
+          pageSize: filters.pageSize || 10,
+          hasNext: false,
+          hasPrevious: false
+        } as PagedResponse<PrescriptionDto>);
+      })
+    ).subscribe({
+      next: (response) => {
+        this.prescriptions = response.items || [];
+        this.totalCount = response.totalCount || 0;
+        this.totalPages = response.totalPages || 0;
+        this.currentPage = response.currentPage || 1;
+        this.pageSize = response.pageSize || 10;
+        this.updateFilterCounts();
+        this.updateActiveFilters();
+        this.errorMessage = null;
+      }
+    });
+  }
+
+  /**
+   * Handle sort-specific errors
+   */
+  private handleSortError(error: any): void {
+    console.error('Sort failed:', error);
+    
+    // Revert to previous sort state
+    this.revertSortState();
+    
+    // Show user-friendly error
+    if (error?.status === 400) {
+      this.errorMessage = 'Invalid sort column. Please try a different column.';
+      console.warn('Invalid sort parameters:', error.error);
+    } else if (error?.status === 0) {
+      this.errorMessage = 'Network error. Unable to sort prescriptions. Please check your connection.';
+    } else {
+      this.errorMessage = 'Unable to sort prescriptions. Please try again.';
+    }
+    
+    this.isSorting = false;
+  }
+
+  /**
+   * Reset sorting to default (newest first)
+   */
+  resetSortingToDefault(): void {
+    this.sortColumn = TABLE_DEFAULT_SORTS.PRESCRIPTIONS.column;
+    this.sortOrder = TABLE_DEFAULT_SORTS.PRESCRIPTIONS.order;
+    this.sortBy = 'date'; // Legacy property
+  }
+
+  /**
+   * Check if current sort is default sort
+   */
+  isDefaultSort(): boolean {
+    return this.sortColumn === TABLE_DEFAULT_SORTS.PRESCRIPTIONS.column &&
+           this.sortOrder === TABLE_DEFAULT_SORTS.PRESCRIPTIONS.order;
+  }
+
+  /**
+   * Get display name for current sort column
+   */
+  getSortDisplayName(): string {
+    const columnNames: { [key: string]: string } = {
+      'prescribedDate': 'Date Prescribed',
+      'status': 'Status',
+      'totalAmount': 'Total Amount',
+      'createdAt': 'Date Created',
+      'updatedAt': 'Date Updated'
+    };
+    return columnNames[this.sortColumn] || this.sortColumn;
+  }
+
+  /**
+   * Reset to default sort and reload data
+   */
+  resetToDefaultSort(): void {
+    this.resetSortingToDefault();
+    // Update filters to trigger reload
+    this.updateFilters({
+      sortBy: this.sortColumn,
+      sortOrder: this.sortOrder,
+      pageNumber: 1
+    });
+  }
+
+  /**
+   * Revert sort state to previous values or default
+   */
+  private revertSortState(): void {
+    this.sortColumn = this.previousSortColumn || TABLE_DEFAULT_SORTS.PRESCRIPTIONS.column;
+    this.sortOrder = this.previousSortOrder || TABLE_DEFAULT_SORTS.PRESCRIPTIONS.order;
+  }
+
+  /**
+   * Get sort icon class for a column
+   */
+  getSortIconClass(column: string, direction: 'asc' | 'desc'): string {
+    const columnMapping: { [key: string]: string } = {
+      'patientName': 'prescribedDate',
+      'patient': 'prescribedDate',
+      'medication': 'prescribedDate',
+      'status': 'status',
+      'totalAmount': 'totalAmount',
+      'amount': 'totalAmount',
+      'createdAt': 'createdAt',
+      'createdDate': 'createdAt',
+      'prescribedDate': 'prescribedDate',
+      'date': 'prescribedDate'
+    };
+
+    const backendColumn = columnMapping[column] || column;
+    if (this.sortColumn !== backendColumn) return '';
+    return this.sortOrder === direction ? 'active' : '';
+  }
+
+  /**
+   * Get aria-sort attribute value
+   */
+  getAriaSort(column: string): string {
+    const columnMapping: { [key: string]: string } = {
+      'patientName': 'prescribedDate',
+      'patient': 'prescribedDate',
+      'medication': 'prescribedDate',
+      'status': 'status',
+      'totalAmount': 'totalAmount',
+      'amount': 'totalAmount',
+      'createdAt': 'createdAt',
+      'createdDate': 'createdAt',
+      'prescribedDate': 'prescribedDate',
+      'date': 'prescribedDate'
+    };
+
+    const backendColumn = columnMapping[column] || column;
+    if (this.sortColumn !== backendColumn) return 'none';
+    return this.sortOrder === 'asc' ? 'ascending' : 'descending';
+  }
+
+  /**
+   * Handle keyboard events for sort headers
+   */
+  onSortKeydown(event: KeyboardEvent, column: string): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.onSort(column);
+    }
   }
 
   /**
@@ -223,9 +483,8 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
     this.currentPage = 1;
     this.pageSize = 10;
 
-    // Reset sorting to defaults
-    this.sortBy = 'date';
-    this.sortOrder = 'desc';
+    // Reset sorting to defaults (newest first)
+    this.resetSortingToDefault();
 
     // Update active filters display
     this.updateActiveFilters();
