@@ -58,12 +58,17 @@ export class InventoryComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = null;
 
-    this.pharmacyService.getAllMedications().pipe(
+    // Load all active medications with large page size
+    this.pharmacyService.getAllMedications({
+      isActive: true,
+      page: 1,
+      pageSize: 1000
+    }).pipe(
       finalize(() => this.isLoading = false)
     ).subscribe({
-      next: (medications) => {
+      next: (response) => {
         // Only show active medications in inventory
-        this.inventoryItems = medications.filter(m => m.isActive);
+        this.inventoryItems = response.data.filter((m: MedicationDto) => m.isActive);
         this.extractCategories();
         this.calculateSummaryStats();
         this.applyFilters();

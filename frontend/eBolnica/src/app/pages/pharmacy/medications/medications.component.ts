@@ -2,7 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
+import { PharmacyService, MedicationFilterParams } from '../../../shared/services/pharmacy/pharmacy.service';
 import { MedicationDto } from '../../../models/medication.dto';
 import { Subject, debounceTime, distinctUntilChanged, finalize } from 'rxjs';
 
@@ -17,10 +17,15 @@ export class MedicationsComponent implements OnInit {
   private pharmacyService = inject(PharmacyService);
 
   medications: MedicationDto[] = [];
-  filteredMedications: MedicationDto[] = [];
   isLoading: boolean = false;
   errorMessage: string | null = null;
   successMessage: string | null = null;
+
+  // Pagination
+  currentPage: number = 1;
+  pageSize: number = 10;
+  totalCount: number = 0;
+  totalPages: number = 0;
 
   // Search
   searchTerm: string = '';
@@ -44,7 +49,8 @@ export class MedicationsComponent implements OnInit {
       distinctUntilChanged()
     ).subscribe(searchTerm => {
       this.searchTerm = searchTerm;
-      this.applyFilters();
+      this.currentPage = 1; // Reset to first page on search
+      this.loadMedications();
     });
   }
 
@@ -52,13 +58,45 @@ export class MedicationsComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = null;
 
-    this.pharmacyService.getAllMedications().pipe(
+    // Build filter parameters object
+    // Map UI filter values to API format: "Low Stock" -> "low stock", "Out of Stock" -> "out of stock"
+    const filters: MedicationFilterParams = {
+      page: this.currentPage,
+      pageSize: this.pageSize
+    };
+
+    if (this.selectedCategory) {
+      filters.category = this.selectedCategory;
+    }
+
+    if (this.searchTerm.trim()) {
+      filters.search = this.searchTerm.trim();
+    }
+
+    if (this.selectedStockStatus) {
+      filters.stockStatus = this.selectedStockStatus.toLowerCase();
+    }
+
+    if (this.selectedRequiresPrescription) {
+      filters.requiresPrescription = this.selectedRequiresPrescription === 'Yes';
+    }
+
+    if (this.selectedActiveStatus) {
+      filters.isActive = this.selectedActiveStatus === 'Active';
+    }
+
+    this.pharmacyService.getAllMedications(filters).pipe(
       finalize(() => this.isLoading = false)
     ).subscribe({
-      next: (medications) => {
-        this.medications = medications;
+      next: (response) => {
+        this.medications = response.data;
+        this.totalCount = response.totalCount;
+        this.totalPages = response.totalPages;
+        this.currentPage = response.page;
+        this.pageSize = response.pageSize;
+        
+        // Extract categories from current page medications
         this.extractCategories();
-        this.applyFilters();
       },
       error: (error) => {
         this.errorMessage = 'Failed to load medications. Please try again later.';
@@ -67,7 +105,10 @@ export class MedicationsComponent implements OnInit {
     });
   }
 
-  extractCategories(): void {
+  private extractCategories(): void {
+    // Extract unique categories from current page medications
+    // Note: This shows categories from current page only
+    // For complete category list, could load all medications once or use separate endpoint
     const categorySet = new Set<string>();
     this.medications.forEach(med => {
       if (med.category) {
@@ -82,7 +123,8 @@ export class MedicationsComponent implements OnInit {
   }
 
   onFilterChange(): void {
-    this.applyFilters();
+    this.currentPage = 1; // Reset to first page on filter change
+    this.loadMedications();
   }
 
   clearFilters(): void {
@@ -91,59 +133,104 @@ export class MedicationsComponent implements OnInit {
     this.selectedStockStatus = '';
     this.selectedRequiresPrescription = '';
     this.selectedActiveStatus = '';
-    this.applyFilters();
+    this.currentPage = 1;
+    this.loadMedications();
   }
 
-  applyFilters(): void {
-    let filtered = [...this.medications];
-
-    // Search filter
-    if (this.searchTerm.trim()) {
-      const search = this.searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(med => 
-        med.name.toLowerCase().includes(search) ||
-        (med.genericName && med.genericName.toLowerCase().includes(search)) ||
-        (med.manufacturer && med.manufacturer.toLowerCase().includes(search))
-      );
+  // Pagination methods
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+      this.loadMedications();
+      // Scroll to top of table
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  }
 
-    // Category filter
-    if (this.selectedCategory) {
-      filtered = filtered.filter(med => med.category === this.selectedCategory);
+  previousPage(): void {
+    if (this.currentPage > 1) {
+      this.goToPage(this.currentPage - 1);
     }
+  }
 
-    // Stock status filter
-    if (this.selectedStockStatus) {
-      switch (this.selectedStockStatus) {
-        case 'Low Stock':
-          filtered = filtered.filter(med => 
-            med.isActive && med.stockQuantity < med.minimumStockLevel
-          );
-          break;
-        case 'Out of Stock':
-          filtered = filtered.filter(med => med.stockQuantity === 0);
-          break;
-        case 'Normal Stock':
-          filtered = filtered.filter(med => 
-            med.isActive && med.stockQuantity >= med.minimumStockLevel
-          );
-          break;
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.goToPage(this.currentPage + 1);
+    }
+  }
+
+  changePageSize(size: number): void {
+    this.pageSize = size;
+    this.currentPage = 1; // Reset to first page when changing page size
+    this.loadMedications();
+  }
+
+  /**
+   * Generate smart pagination array with ellipsis for many pages
+   * Returns array of page numbers and ellipsis strings
+   * Example: [1, 2, 3, '...', 10] or [1, '...', 8, 9, 10]
+   */
+  getPageNumbers(): (number | string)[] {
+    const pages: (number | string)[] = [];
+    const maxVisiblePages = 7;
+
+    if (this.totalPages <= maxVisiblePages) {
+      // Show all pages if few pages
+      for (let i = 1; i <= this.totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Smart pagination with ellipsis
+      if (this.currentPage <= 4) {
+        // Near beginning: 1, 2, 3, 4, 5, ..., last
+        for (let i = 1; i <= 5; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(this.totalPages);
+      } else if (this.currentPage >= this.totalPages - 3) {
+        // Near end: 1, ..., last-4, last-3, last-2, last-1, last
+        pages.push(1);
+        pages.push('...');
+        for (let i = this.totalPages - 4; i <= this.totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        // Middle: 1, ..., current-1, current, current+1, ..., last
+        pages.push(1);
+        pages.push('...');
+        pages.push(this.currentPage - 1);
+        pages.push(this.currentPage);
+        pages.push(this.currentPage + 1);
+        pages.push('...');
+        pages.push(this.totalPages);
       }
     }
 
-    // Requires prescription filter
-    if (this.selectedRequiresPrescription) {
-      const requires = this.selectedRequiresPrescription === 'Yes';
-      filtered = filtered.filter(med => med.requiresPrescription === requires);
-    }
+    return pages;
+  }
 
-    // Active status filter
-    if (this.selectedActiveStatus) {
-      const isActive = this.selectedActiveStatus === 'Active';
-      filtered = filtered.filter(med => med.isActive === isActive);
+  /**
+   * Handle page number click - only navigate if it's a number
+   */
+  onPageNumberClick(pageNum: number | string): void {
+    if (typeof pageNum === 'number') {
+      this.goToPage(pageNum);
     }
+  }
 
-    this.filteredMedications = filtered;
+  /**
+   * Check if page number is ellipsis
+   */
+  isEllipsis(pageNum: number | string): boolean {
+    return pageNum === '...';
+  }
+
+  /**
+   * TrackBy function for page numbers to improve performance
+   */
+  trackByPageNum(index: number, pageNum: number | string): number | string {
+    return pageNum;
   }
 
   deleteMedication(medication: MedicationDto): void {
@@ -214,4 +301,7 @@ export class MedicationsComponent implements OnInit {
       currency: 'USD'
     }).format(amount);
   }
+
+  // Expose Math to template
+  Math = Math;
 }

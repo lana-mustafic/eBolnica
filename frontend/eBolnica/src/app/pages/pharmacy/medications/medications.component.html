@@ -3,7 +3,7 @@
     <div class="header-left">
       <h2>Medications</h2>
     </div>
-    <a routerLink="/pharmacy/medications/new" class="btn btn-primary">
+    <a routerLink="/pharmacy/medications/wizard" class="btn btn-primary">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="12" y1="5" x2="12" y2="19"></line>
         <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -83,7 +83,7 @@
   </div>
 
   <!-- Empty State -->
-  <div *ngIf="!isLoading && filteredMedications.length === 0" class="empty-state">
+  <div *ngIf="!isLoading && medications.length === 0" class="empty-state">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
       <circle cx="12" cy="10" r="3"></circle>
@@ -95,13 +95,13 @@
     <p *ngIf="!searchTerm && !selectedCategory && !selectedStockStatus && !selectedRequiresPrescription && !selectedActiveStatus">
       Get started by adding your first medication.
     </p>
-    <a routerLink="/pharmacy/medications/new" class="btn btn-primary" *ngIf="!searchTerm && !selectedCategory && !selectedStockStatus && !selectedRequiresPrescription && !selectedActiveStatus">
+    <a routerLink="/pharmacy/medications/wizard" class="btn btn-primary" *ngIf="!searchTerm && !selectedCategory && !selectedStockStatus && !selectedRequiresPrescription && !selectedActiveStatus">
       Add Medication
     </a>
   </div>
 
   <!-- Medications Table -->
-  <div *ngIf="!isLoading && filteredMedications.length > 0" class="table-container">
+  <div *ngIf="!isLoading && medications.length > 0" class="table-container">
     <table>
       <thead>
         <tr>
@@ -117,7 +117,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let medication of filteredMedications">
+        <tr *ngFor="let medication of medications">
           <td class="medication-name">{{ medication.name }}</td>
           <td>{{ medication.genericName || '-' }}</td>
           <td>{{ medication.manufacturer || '-' }}</td>
@@ -147,5 +147,84 @@
         </tr>
       </tbody>
     </table>
+
+    <!-- Pagination -->
+    <div class="pagination-container" *ngIf="!isLoading && totalCount > 0" role="navigation" aria-label="Medications pagination">
+      <!-- Results Summary -->
+      <div class="pagination-info" aria-live="polite">
+        Showing {{ (currentPage - 1) * pageSize + 1 }} - {{ Math.min(currentPage * pageSize, totalCount) }} of {{ totalCount }} medication{{ totalCount !== 1 ? 's' : '' }}
+      </div>
+      
+      <!-- Pagination Controls -->
+      <div class="pagination-controls">
+        <!-- Page Size Selector -->
+        <div class="page-size-wrapper">
+          <label for="page-size-select" class="page-size-label">Items per page:</label>
+          <select 
+            id="page-size-select"
+            [(ngModel)]="pageSize" 
+            (ngModelChange)="changePageSize($event)" 
+            class="page-size-select"
+            aria-label="Items per page">
+            <option [value]="5">5</option>
+            <option [value]="10">10</option>
+            <option [value]="20">20</option>
+            <option [value]="50">50</option>
+          </select>
+        </div>
+        
+        <!-- Navigation Buttons -->
+        <div class="pagination-buttons">
+          <button 
+            type="button"
+            class="btn btn-nav"
+            (click)="previousPage()"
+            [disabled]="currentPage === 1"
+            [attr.aria-label]="'Go to previous page'"
+            [attr.aria-disabled]="currentPage === 1">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+            <span class="btn-text">Previous</span>
+          </button>
+          
+          <!-- Page Numbers -->
+          <nav class="page-numbers" aria-label="Page navigation">
+            <button
+              *ngFor="let pageNum of getPageNumbers(); trackBy: trackByPageNum"
+              type="button"
+              class="btn page-btn"
+              [class.btn-active]="pageNum === currentPage"
+              [class.btn-outline]="pageNum !== currentPage && !isEllipsis(pageNum)"
+              [class.ellipsis]="isEllipsis(pageNum)"
+              [disabled]="isEllipsis(pageNum) || pageNum === currentPage"
+              [attr.aria-label]="isEllipsis(pageNum) ? 'More pages' : 'Go to page ' + pageNum"
+              [attr.aria-current]="pageNum === currentPage ? 'page' : null"
+              [attr.aria-disabled]="pageNum === currentPage"
+              (click)="onPageNumberClick(pageNum)">
+              {{ pageNum }}
+            </button>
+          </nav>
+          
+          <button 
+            type="button"
+            class="btn btn-nav"
+            (click)="nextPage()"
+            [disabled]="currentPage >= totalPages || totalPages === 0"
+            [attr.aria-label]="'Go to next page'"
+            [attr.aria-disabled]="currentPage >= totalPages || totalPages === 0">
+            <span class="btn-text">Next</span>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+        </div>
+        
+        <!-- Page Info -->
+        <div class="page-info" aria-live="polite">
+          Page <span class="page-current">{{ currentPage }}</span> of <span class="page-total">{{ totalPages }}</span>
+        </div>
+      </div>
+    </div>
   </div>
 </div>

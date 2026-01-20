@@ -1,0 +1,333 @@
+<div class="wizard-container">
+  <div class="wizard-header">
+    <h2>Add New Medication</h2>
+    <p class="subtitle">Complete the form in 3 simple steps</p>
+  </div>
+
+  <!-- Error Message -->
+  <div class="error-message" *ngIf="errorMessage">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <span>{{ errorMessage }}</span>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="progress-container">
+    <div class="progress-bar">
+      <div class="progress-fill" [style.width.%]="getProgressPercentage()"></div>
+    </div>
+    <div class="progress-text">{{ currentStep }} of {{ totalSteps }} steps</div>
+  </div>
+
+  <!-- Step Indicators -->
+  <div class="step-indicators">
+    <div 
+      *ngFor="let step of [1, 2, 3]" 
+      class="step-indicator"
+      [class.active]="currentStep === step"
+      [class.completed]="isStepCompleted(step) && currentStep !== step"
+      (click)="goToStep(step)">
+      <div class="step-number">
+        <svg *ngIf="isStepCompleted(step) && currentStep !== step" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span *ngIf="!isStepCompleted(step) || currentStep === step">{{ step }}</span>
+      </div>
+      <div class="step-label">{{ getStepTitle(step) }}</div>
+    </div>
+  </div>
+
+  <!-- Wizard Form -->
+  <form [formGroup]="wizardForm" (ngSubmit)="onSubmit()" class="wizard-form">
+    <!-- Step 1: Basic Information -->
+    <div class="wizard-step" *ngIf="currentStep === 1">
+      <div class="step-header">
+        <h3>Basic Information</h3>
+        <p>Enter the basic details about the medication</p>
+      </div>
+
+      <div class="form-group">
+        <label for="name">
+          Medication Name <span class="required">*</span>
+        </label>
+        <input
+          type="text"
+          id="name"
+          formControlName="name"
+          class="form-control"
+          [class.error]="getFieldError('name')"
+          placeholder="e.g., Paracetamol">
+        <div class="error-text" *ngIf="getFieldError('name')">
+          {{ getFieldError('name') }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="category">
+          Category <span class="required">*</span>
+        </label>
+        <select
+          id="category"
+          formControlName="category"
+          class="form-control"
+          [class.error]="getFieldError('category')">
+          <option value="">Select a category</option>
+          <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
+        </select>
+        <div class="error-text" *ngIf="getFieldError('category')">
+          {{ getFieldError('category') }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea
+          id="description"
+          formControlName="description"
+          class="form-control"
+          rows="4"
+          placeholder="Enter medication description (optional)"></textarea>
+        <div class="error-text" *ngIf="getFieldError('description')">
+          {{ getFieldError('description') }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Details & Stock -->
+    <div class="wizard-step" *ngIf="currentStep === 2">
+      <div class="step-header">
+        <h3>Details & Stock</h3>
+        <p>Enter pricing and stock information</p>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="price">
+            Price <span class="required">*</span>
+          </label>
+          <div class="input-group">
+            <span class="input-prefix">$</span>
+            <input
+              type="number"
+              id="price"
+              formControlName="price"
+              class="form-control"
+              [class.error]="getFieldError('price')"
+              placeholder="0.00"
+              step="0.01"
+              min="0.01">
+          </div>
+          <div class="error-text" *ngIf="getFieldError('price')">
+            {{ getFieldError('price') }}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="stockQuantity">
+            Stock Quantity <span class="required">*</span>
+          </label>
+          <input
+            type="number"
+            id="stockQuantity"
+            formControlName="stockQuantity"
+            class="form-control"
+            [class.error]="getFieldError('stockQuantity')"
+            placeholder="0"
+            min="0">
+          <div class="error-text" *ngIf="getFieldError('stockQuantity')">
+            {{ getFieldError('stockQuantity') }}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="minimumStockLevel">
+          Minimum Stock Level <span class="required">*</span>
+        </label>
+        <input
+          type="number"
+          id="minimumStockLevel"
+          formControlName="minimumStockLevel"
+          class="form-control"
+          [class.error]="getFieldError('minimumStockLevel')"
+          placeholder="10"
+          min="0">
+        <div class="error-text" *ngIf="getFieldError('minimumStockLevel')">
+          {{ getFieldError('minimumStockLevel') }}
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="dosageForm">Dosage Form</label>
+          <select
+            id="dosageForm"
+            formControlName="dosageForm"
+            class="form-control">
+            <option value="">Select dosage form</option>
+            <option *ngFor="let form of dosageForms" [value]="form">{{ form }}</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="strength">Strength</label>
+          <input
+            type="text"
+            id="strength"
+            formControlName="strength"
+            class="form-control"
+            placeholder="e.g., 500mg">
+          <div class="error-text" *ngIf="getFieldError('strength')">
+            {{ getFieldError('strength') }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Additional Info -->
+    <div class="wizard-step" *ngIf="currentStep === 3">
+      <div class="step-header">
+        <h3>Additional Information</h3>
+        <p>Enter expiry date and other details</p>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="expiryDate">
+            Expiry Date <span class="required">*</span>
+          </label>
+          <input
+            type="date"
+            id="expiryDate"
+            formControlName="expiryDate"
+            class="form-control"
+            [class.error]="getFieldError('expiryDate')">
+          <div class="error-text" *ngIf="getFieldError('expiryDate')">
+            {{ getFieldError('expiryDate') }}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="batchNumber">Batch Number</label>
+          <input
+            type="text"
+            id="batchNumber"
+            formControlName="batchNumber"
+            class="form-control"
+            placeholder="e.g., BATCH-001">
+          <div class="error-text" *ngIf="getFieldError('batchNumber')">
+            {{ getFieldError('batchNumber') }}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="genericName">Generic Name</label>
+          <input
+            type="text"
+            id="genericName"
+            formControlName="genericName"
+            class="form-control"
+            placeholder="e.g., Acetaminophen">
+          <div class="error-text" *ngIf="getFieldError('genericName')">
+            {{ getFieldError('genericName') }}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="manufacturer">Manufacturer</label>
+          <input
+            type="text"
+            id="manufacturer"
+            formControlName="manufacturer"
+            class="form-control"
+            placeholder="e.g., PharmaCorp">
+          <div class="error-text" *ngIf="getFieldError('manufacturer')">
+            {{ getFieldError('manufacturer') }}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              formControlName="requiresPrescription"
+              class="checkbox-input">
+            <span>Requires Prescription</span>
+          </label>
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              formControlName="isActive"
+              class="checkbox-input"
+              [checked]="true">
+            <span>Active (available for use)</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Buttons -->
+    <div class="wizard-actions">
+      <button
+        type="button"
+        class="btn btn-cancel"
+        (click)="cancel()"
+        [disabled]="isLoading">
+        Cancel
+      </button>
+
+      <div class="navigation-buttons">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="previousStep()"
+          [disabled]="currentStep === 1 || isLoading">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          Previous
+        </button>
+
+        <button
+          *ngIf="currentStep < totalSteps"
+          type="button"
+          class="btn btn-primary"
+          (click)="nextStep()"
+          [disabled]="isLoading">
+          Next
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+
+        <button
+          *ngIf="currentStep === totalSteps"
+          type="submit"
+          class="btn btn-primary"
+          [disabled]="isLoading || wizardForm.invalid">
+          <span *ngIf="!isLoading">Submit</span>
+          <span *ngIf="isLoading">Submitting...</span>
+          <svg *ngIf="!isLoading" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Submitting medication...</p>
+  </div>
+</div>
