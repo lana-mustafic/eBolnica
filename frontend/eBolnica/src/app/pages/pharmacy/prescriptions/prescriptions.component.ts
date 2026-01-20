@@ -8,7 +8,8 @@ import { FilterSummaryComponent } from '../../../shared/components/filter-summar
 import { ActiveFiltersComponent } from '../../../shared/components/active-filters/active-filters.component';
 import { PrescriptionDto } from '../../../models/prescription.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
-import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap } from 'rxjs';
+import { PagedResponse } from '../../../models/paged-response.dto';
+import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, catchError, of } from 'rxjs';
 
 @Component({
   selector: 'app-prescriptions',
@@ -79,9 +80,22 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
       debounceTime(150),
       switchMap(filters => {
         this.isSearching = true;
+        this.errorMessage = null; // Clear previous errors
         this.syncUIFromFilters(filters);
         return this.pharmacyService.getPrescriptionsWithFilters(filters).pipe(
-          finalize(() => this.isSearching = false)
+          finalize(() => this.isSearching = false),
+          catchError((error) => {
+            this.handleApiError(error);
+            return of({
+              items: [],
+              totalCount: 0,
+              totalPages: 0,
+              currentPage: 1,
+              pageSize: filters.pageSize || 10,
+              hasNext: false,
+              hasPrevious: false
+            } as PagedResponse<PrescriptionDto>);
+          })
         );
       }),
       takeUntil(this.destroy$)
@@ -95,11 +109,6 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
         this.updateFilterCounts();
         this.updateActiveFilters();
         this.errorMessage = null;
-      },
-      error: (error) => {
-        this.isSearching = false;
-        this.errorMessage = 'Failed to load prescriptions. Please try again.';
-        console.error('Error loading prescriptions:', error);
       }
     });
   }
@@ -344,5 +353,37 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
       style: 'currency',
       currency: 'USD'
     }).format(amount);
+  }
+
+  /**
+   * Handle API errors with user-friendly messages
+   */
+  private handleApiError(error: any): void {
+    this.isSearching = false;
+    this.isLoading = false;
+
+    if (error?.message) {
+      this.errorMessage = error.message;
+    } else if (error?.status === 0) {
+      this.errorMessage = 'Network error. Please check your connection and try again.';
+    } else if (error?.status === 400) {
+      this.errorMessage = 'Invalid filters. Please adjust your search criteria.';
+    } else if (error?.status === 401 || error?.status === 403) {
+      this.errorMessage = 'Access denied. Please log in again.';
+    } else if (error?.status === 500) {
+      this.errorMessage = 'Server error. Please try again later.';
+    } else {
+      this.errorMessage = 'Failed to load prescriptions. Please try again.';
+    }
+
+    console.error('[PrescriptionsComponent] Error loading prescriptions:', error);
+  }
+
+  /**
+   * Retry loading prescriptions after an error
+   */
+  retryLoad(): void {
+    this.errorMessage = null;
+    this.loadPrescriptions();
   }
 }

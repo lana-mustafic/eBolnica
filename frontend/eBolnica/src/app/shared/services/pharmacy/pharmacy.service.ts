@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
+import { Observable, throwError, of } from 'rxjs';
+import { catchError, tap } from 'rxjs/operators';
 import { MedicationDto } from '../../../models/medication.dto';
 import { MedicationCreateDto } from '../../../models/medication-create.dto';
 import { PharmacistDataDto } from '../../../models/pharmacist-data.dto';
@@ -215,26 +216,68 @@ export class PharmacyService {
   /**
    * Get medications using unified PharmacyFilters
    * Maps PharmacyFilters to API query parameters
+   * Includes error handling and logging
    */
   getMedicationsWithFilters(filters: PharmacyFilters): Observable<PagedResponse<MedicationDto>> {
     const params = this.buildMedicationQueryParams(filters);
-    return this.http.get<PagedResponse<MedicationDto>>(`${this.apiUrl}/medications`, { params });
+    
+    // Log API call for debugging
+    console.log('[PharmacyService] Loading medications with filters:', filters);
+    console.log('[PharmacyService] Query params:', params.toString());
+    
+    return this.http.get<PagedResponse<MedicationDto>>(`${this.apiUrl}/medications`, { params }).pipe(
+      tap(response => {
+        console.log('[PharmacyService] Medications loaded:', {
+          count: response.items?.length || 0,
+          total: response.totalCount,
+          page: response.currentPage
+        });
+      }),
+      catchError(this.handleError.bind(this))
+    );
   }
 
   /**
    * Get prescriptions using unified PharmacyFilters
+   * Includes error handling and logging
    */
   getPrescriptionsWithFilters(filters: PharmacyFilters): Observable<PagedResponse<PrescriptionDto>> {
     const params = this.buildPrescriptionQueryParams(filters);
-    return this.http.get<PagedResponse<PrescriptionDto>>(`${this.apiUrl}/prescriptions`, { params });
+    
+    console.log('[PharmacyService] Loading prescriptions with filters:', filters);
+    
+    return this.http.get<PagedResponse<PrescriptionDto>>(`${this.apiUrl}/prescriptions`, { params }).pipe(
+      tap(response => {
+        console.log('[PharmacyService] Prescriptions loaded:', {
+          count: response.items?.length || 0,
+          total: response.totalCount,
+          page: response.currentPage
+        });
+      }),
+      catchError(this.handleError.bind(this))
+    );
   }
 
   /**
    * Get inventory using unified PharmacyFilters
+   * Includes error handling and logging
    */
   getInventoryWithFilters(filters: PharmacyFilters): Observable<PagedResponse<MedicationDto> & { LowStockAlerts: MedicationDto[]; ExpiryAlerts: MedicationDto[] }> {
     const params = this.buildInventoryQueryParams(filters);
-    return this.http.get<any>(`${this.apiUrl}/inventory`, { params });
+    
+    console.log('[PharmacyService] Loading inventory with filters:', filters);
+    
+    return this.http.get<any>(`${this.apiUrl}/inventory`, { params }).pipe(
+      tap(response => {
+        console.log('[PharmacyService] Inventory loaded:', {
+          count: response.items?.length || 0,
+          total: response.totalCount,
+          lowStockAlerts: response.LowStockAlerts?.length || 0,
+          expiryAlerts: response.ExpiryAlerts?.length || 0
+        });
+      }),
+      catchError(this.handleError.bind(this))
+    );
   }
 
   /**
@@ -301,9 +344,10 @@ export class PharmacyService {
       .set('pageNumber', (filters.pageNumber || 1).toString())
       .set('pageSize', Math.max(5, Math.min(100, filters.pageSize || 10)).toString());
 
-    // Search
+    // Search (with URL encoding)
     if (filters.searchTerm?.trim()) {
-      params = params.set('search', filters.searchTerm.trim());
+      const encodedSearch = this.encodeSearchTerm(filters.searchTerm.trim());
+      params = params.set('search', encodedSearch);
     }
 
     // Status (prescriptionStatus maps to status)
@@ -330,9 +374,10 @@ export class PharmacyService {
       .set('pageNumber', (filters.pageNumber || 1).toString())
       .set('pageSize', Math.max(5, Math.min(100, filters.pageSize || 10)).toString());
 
-    // Search
+    // Search (with URL encoding)
     if (filters.searchTerm?.trim()) {
-      params = params.set('search', filters.searchTerm.trim());
+      const encodedSearch = this.encodeSearchTerm(filters.searchTerm.trim());
+      params = params.set('search', encodedSearch);
     }
 
     // Category
@@ -354,5 +399,72 @@ export class PharmacyService {
     }
 
     return params;
+  }
+
+  /**
+   * Encode search term to handle special characters safely
+   */
+  private encodeSearchTerm(term: string): string {
+    // HttpParams automatically encodes, but we can add additional validation
+    // Remove potentially dangerous characters while preserving search functionality
+    return term.replace(/[<>]/g, ''); // Remove angle brackets for safety
+  }
+
+  /**
+   * Handle HTTP errors with proper error messages
+   */
+  private handleError(error: HttpErrorResponse): Observable<never> {
+    console.error('[PharmacyService] API Error:', error);
+
+    let errorMessage = 'An error occurred while loading data';
+    
+    if (error.error instanceof ErrorEvent) {
+      // Client-side error (network, timeout, etc.)
+      errorMessage = `Network error: ${error.error.message}`;
+      console.error('[PharmacyService] Client-side error:', error.error);
+    } else {
+      // Server-side error
+      const status = error.status;
+      const statusText = error.statusText;
+      
+      switch (status) {
+        case 400:
+          errorMessage = 'Invalid request. Please check your filters and try again.';
+          if (error.error?.message) {
+            errorMessage = error.error.message;
+          }
+          break;
+        case 401:
+          errorMessage = 'Unauthorized. Please log in again.';
+          break;
+        case 403:
+          errorMessage = 'Access denied. You do not have permission to access this resource.';
+          break;
+        case 404:
+          errorMessage = 'Resource not found.';
+          break;
+        case 500:
+          errorMessage = 'Server error. Please try again later.';
+          break;
+        case 0:
+          // Network error or CORS issue
+          errorMessage = 'Network error. Please check your connection and try again.';
+          break;
+        default:
+          errorMessage = `Error ${status}: ${statusText || 'Unknown error'}`;
+          if (error.error?.message) {
+            errorMessage = error.error.message;
+          }
+      }
+      
+      console.error(`[PharmacyService] Server error (${status}):`, error.error);
+    }
+
+    // Return an observable that emits an error
+    return throwError(() => ({
+      message: errorMessage,
+      status: error.status,
+      originalError: error
+    }));
   }
 }

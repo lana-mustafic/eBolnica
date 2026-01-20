@@ -8,7 +8,8 @@ import { FilterSummaryComponent } from '../../../shared/components/filter-summar
 import { ActiveFiltersComponent } from '../../../shared/components/active-filters/active-filters.component';
 import { MedicationDto } from '../../../models/medication.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
-import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, combineLatest } from 'rxjs';
+import { PagedResponse } from '../../../models/paged-response.dto';
+import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, combineLatest, catchError, of } from 'rxjs';
 
 @Component({
   selector: 'app-medications',
@@ -76,9 +77,22 @@ export class MedicationsComponent implements OnInit, OnDestroy {
       debounceTime(150), // Additional debounce for combined filters
       switchMap(filters => {
         this.isSearching = true;
+        this.errorMessage = null; // Clear previous errors
         this.syncUIFromFilters(filters);
         return this.pharmacyService.getMedicationsWithFilters(filters).pipe(
-          finalize(() => this.isSearching = false)
+          finalize(() => this.isSearching = false),
+          catchError((error) => {
+            this.handleApiError(error);
+            return of({
+              items: [],
+              totalCount: 0,
+              totalPages: 0,
+              currentPage: 1,
+              pageSize: filters.pageSize || 10,
+              hasNext: false,
+              hasPrevious: false
+            } as PagedResponse<MedicationDto>);
+          })
         );
       }),
       takeUntil(this.destroy$)
@@ -92,11 +106,6 @@ export class MedicationsComponent implements OnInit, OnDestroy {
         this.extractCategories();
         this.updateActiveFilters();
         this.errorMessage = null;
-      },
-      error: (error) => {
-        this.isSearching = false;
-        this.errorMessage = 'Failed to load medications. Please try again.';
-        console.error('Error loading medications:', error);
       }
     });
   }
@@ -455,4 +464,36 @@ export class MedicationsComponent implements OnInit, OnDestroy {
 
   // Expose Math to template
   Math = Math;
+
+  /**
+   * Handle API errors with user-friendly messages
+   */
+  private handleApiError(error: any): void {
+    this.isSearching = false;
+    this.isLoading = false;
+
+    if (error?.message) {
+      this.errorMessage = error.message;
+    } else if (error?.status === 0) {
+      this.errorMessage = 'Network error. Please check your connection and try again.';
+    } else if (error?.status === 400) {
+      this.errorMessage = 'Invalid filters. Please adjust your search criteria.';
+    } else if (error?.status === 401 || error?.status === 403) {
+      this.errorMessage = 'Access denied. Please log in again.';
+    } else if (error?.status === 500) {
+      this.errorMessage = 'Server error. Please try again later.';
+    } else {
+      this.errorMessage = 'Failed to load medications. Please try again.';
+    }
+
+    console.error('[MedicationsComponent] Error loading medications:', error);
+  }
+
+  /**
+   * Retry loading medications after an error
+   */
+  retryLoad(): void {
+    this.errorMessage = null;
+    this.loadMedications();
+  }
 }

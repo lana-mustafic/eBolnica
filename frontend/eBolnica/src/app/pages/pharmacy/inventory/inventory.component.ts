@@ -8,7 +8,8 @@ import { FilterSummaryComponent } from '../../../shared/components/filter-summar
 import { ActiveFiltersComponent } from '../../../shared/components/active-filters/active-filters.component';
 import { MedicationDto } from '../../../models/medication.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
-import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap } from 'rxjs';
+import { PagedResponse } from '../../../models/paged-response.dto';
+import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, catchError, of } from 'rxjs';
 
 type StockStatus = 'adequate' | 'low' | 'critical' | 'out-of-stock';
 type ExpiryStatus = 'good' | 'warning' | 'critical' | 'expired';
@@ -84,9 +85,24 @@ export class InventoryComponent implements OnInit, OnDestroy {
       debounceTime(150),
       switchMap(filters => {
         this.isSearching = true;
+        this.errorMessage = null; // Clear previous errors
         this.syncUIFromFilters(filters);
         return this.pharmacyService.getInventoryWithFilters(filters).pipe(
-          finalize(() => this.isSearching = false)
+          finalize(() => this.isSearching = false),
+          catchError((error) => {
+            this.handleApiError(error);
+            return of({
+              items: [],
+              LowStockAlerts: [],
+              ExpiryAlerts: [],
+              totalCount: 0,
+              totalPages: 0,
+              currentPage: 1,
+              pageSize: filters.pageSize || 50,
+              hasNext: false,
+              hasPrevious: false
+            } as any);
+          })
         );
       }),
       takeUntil(this.destroy$)
@@ -103,11 +119,6 @@ export class InventoryComponent implements OnInit, OnDestroy {
         this.calculateSummaryStats();
         this.updateActiveFilters();
         this.errorMessage = null;
-      },
-      error: (error) => {
-        this.isSearching = false;
-        this.errorMessage = 'Failed to load inventory. Please try again.';
-        console.error('Error loading inventory:', error);
       }
     });
   }
@@ -519,5 +530,37 @@ export class InventoryComponent implements OnInit, OnDestroy {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Handle API errors with user-friendly messages
+   */
+  private handleApiError(error: any): void {
+    this.isSearching = false;
+    this.isLoading = false;
+
+    if (error?.message) {
+      this.errorMessage = error.message;
+    } else if (error?.status === 0) {
+      this.errorMessage = 'Network error. Please check your connection and try again.';
+    } else if (error?.status === 400) {
+      this.errorMessage = 'Invalid filters. Please adjust your search criteria.';
+    } else if (error?.status === 401 || error?.status === 403) {
+      this.errorMessage = 'Access denied. Please log in again.';
+    } else if (error?.status === 500) {
+      this.errorMessage = 'Server error. Please try again later.';
+    } else {
+      this.errorMessage = 'Failed to load inventory. Please try again.';
+    }
+
+    console.error('[InventoryComponent] Error loading inventory:', error);
+  }
+
+  /**
+   * Retry loading inventory after an error
+   */
+  retryLoad(): void {
+    this.errorMessage = null;
+    this.loadInventory();
   }
 }
