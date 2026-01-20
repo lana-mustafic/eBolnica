@@ -380,6 +380,76 @@ table th {
   color: #1976d2;
 }
 
+/* Sort Information Display */
+.sort-info {
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin: 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: #4a5568;
+}
+
+.sort-info-default {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #2d3748;
+}
+
+.sort-info-default svg {
+  width: 16px;
+  height: 16px;
+  color: #4299e1;
+  flex-shrink: 0;
+}
+
+.sort-info-custom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sort-info-custom svg {
+  width: 16px;
+  height: 16px;
+  color: #667eea;
+  flex-shrink: 0;
+}
+
+.sort-info-custom strong {
+  color: #2d3748;
+  font-weight: 600;
+}
+
+.btn-reset-sort {
+  margin-left: auto;
+  padding: 4px 12px;
+  background: white;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: #4a5568;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-reset-sort:hover {
+  background: #edf2f7;
+  border-color: #a0aec0;
+  color: #2d3748;
+}
+
+.btn-reset-sort:active {
+  transform: translateY(1px);
+}
+
 table td {
   padding: 1rem;
   border-bottom: 1px solid #e2e8f0;

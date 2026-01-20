@@ -10,6 +10,7 @@ import { MedicationDto } from '../../../models/medication.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { PagedResponse } from '../../../models/paged-response.dto';
 import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, catchError, of } from 'rxjs';
+import { TABLE_DEFAULT_SORTS } from '../../../constants/sort.constants';
 
 type StockStatus = 'adequate' | 'low' | 'critical' | 'out-of-stock';
 type ExpiryStatus = 'good' | 'warning' | 'critical' | 'expired';
@@ -285,9 +286,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.currentPage = 1;
     this.pageSize = 50; // Inventory uses larger page size
 
-    // Reset sort to defaults for client-side sorting
-    this.sortColumn = 'createdAt';
-    this.sortOrder = 'desc';
+    // Reset sort to defaults (newest first)
+    this.resetSortingToDefault();
 
     // Update active filters display
     this.updateActiveFilters();
@@ -296,6 +296,45 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.showClearSuccessMessage();
     
     // Apply default sort after clearing filters
+    this.applyClientSideSort();
+  }
+
+  /**
+   * Reset sorting to default (newest first)
+   */
+  resetSortingToDefault(): void {
+    this.sortColumn = TABLE_DEFAULT_SORTS.INVENTORY.column;
+    this.sortOrder = TABLE_DEFAULT_SORTS.INVENTORY.order;
+  }
+
+  /**
+   * Check if current sort is default sort
+   */
+  isDefaultSort(): boolean {
+    return this.sortColumn === TABLE_DEFAULT_SORTS.INVENTORY.column &&
+           this.sortOrder === TABLE_DEFAULT_SORTS.INVENTORY.order;
+  }
+
+  /**
+   * Get display name for current sort column
+   */
+  getSortDisplayName(): string {
+    const columnNames: { [key: string]: string } = {
+      'name': 'Medication Name',
+      'stockQuantity': 'Stock Quantity',
+      'stockStatus': 'Stock Status',
+      'expiryDate': 'Expiry Date',
+      'createdAt': 'Date Created',
+      'updatedAt': 'Date Updated'
+    };
+    return columnNames[this.sortColumn] || this.sortColumn;
+  }
+
+  /**
+   * Reset to default sort and apply locally
+   */
+  resetToDefaultSort(): void {
+    this.resetSortingToDefault();
     this.applyClientSideSort();
   }
 

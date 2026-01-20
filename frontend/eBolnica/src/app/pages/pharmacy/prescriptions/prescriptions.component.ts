@@ -10,6 +10,7 @@ import { PrescriptionDto } from '../../../models/prescription.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { PagedResponse } from '../../../models/paged-response.dto';
 import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, catchError, of, Subscription } from 'rxjs';
+import { TABLE_DEFAULT_SORTS } from '../../../constants/sort.constants';
 
 @Component({
   selector: 'app-prescriptions',
@@ -48,12 +49,12 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   private searchSubject = new Subject<string>();
   private destroy$ = new Subject<void>();
 
-  // Sort
+  // Sort (default: newest first)
   sortBy: string = 'date';
-  sortOrder: 'asc' | 'desc' = 'desc';
-  sortColumn: string = 'prescribedDate'; // Default sort column for header clicks
-  private previousSortColumn: string = 'prescribedDate'; // For error recovery
-  private previousSortOrder: 'asc' | 'desc' = 'desc'; // For error recovery
+  sortOrder: 'asc' | 'desc' = TABLE_DEFAULT_SORTS.PRESCRIPTIONS.order;
+  sortColumn: string = TABLE_DEFAULT_SORTS.PRESCRIPTIONS.column; // Default sort column for header clicks
+  private previousSortColumn: string = TABLE_DEFAULT_SORTS.PRESCRIPTIONS.column; // For error recovery
+  private previousSortOrder: 'asc' | 'desc' = TABLE_DEFAULT_SORTS.PRESCRIPTIONS.order; // For error recovery
   private sortDebounceTimer: any; // Timer for debouncing sort requests
   private sortRequest$: Subscription | null = null; // For cancelling pending requests
 
@@ -361,11 +362,55 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Reset sorting to default (newest first)
+   */
+  resetSortingToDefault(): void {
+    this.sortColumn = TABLE_DEFAULT_SORTS.PRESCRIPTIONS.column;
+    this.sortOrder = TABLE_DEFAULT_SORTS.PRESCRIPTIONS.order;
+    this.sortBy = 'date'; // Legacy property
+  }
+
+  /**
+   * Check if current sort is default sort
+   */
+  isDefaultSort(): boolean {
+    return this.sortColumn === TABLE_DEFAULT_SORTS.PRESCRIPTIONS.column &&
+           this.sortOrder === TABLE_DEFAULT_SORTS.PRESCRIPTIONS.order;
+  }
+
+  /**
+   * Get display name for current sort column
+   */
+  getSortDisplayName(): string {
+    const columnNames: { [key: string]: string } = {
+      'prescribedDate': 'Date Prescribed',
+      'status': 'Status',
+      'totalAmount': 'Total Amount',
+      'createdAt': 'Date Created',
+      'updatedAt': 'Date Updated'
+    };
+    return columnNames[this.sortColumn] || this.sortColumn;
+  }
+
+  /**
+   * Reset to default sort and reload data
+   */
+  resetToDefaultSort(): void {
+    this.resetSortingToDefault();
+    // Update filters to trigger reload
+    this.updateFilters({
+      sortBy: this.sortColumn,
+      sortOrder: this.sortOrder,
+      pageNumber: 1
+    });
+  }
+
+  /**
    * Revert sort state to previous values or default
    */
   private revertSortState(): void {
-    this.sortColumn = this.previousSortColumn || 'prescribedDate';
-    this.sortOrder = this.previousSortOrder || 'desc';
+    this.sortColumn = this.previousSortColumn || TABLE_DEFAULT_SORTS.PRESCRIPTIONS.column;
+    this.sortOrder = this.previousSortOrder || TABLE_DEFAULT_SORTS.PRESCRIPTIONS.order;
   }
 
   /**
@@ -437,10 +482,8 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
     this.currentPage = 1;
     this.pageSize = 10;
 
-    // Reset sorting to defaults
-    this.sortBy = 'date';
-    this.sortOrder = 'desc';
-    this.sortColumn = 'prescribedDate'; // Reset header sort column
+    // Reset sorting to defaults (newest first)
+    this.resetSortingToDefault();
 
     // Update active filters display
     this.updateActiveFilters();

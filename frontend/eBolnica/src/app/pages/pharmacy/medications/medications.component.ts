@@ -10,6 +10,7 @@ import { MedicationDto } from '../../../models/medication.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { PagedResponse } from '../../../models/paged-response.dto';
 import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, combineLatest, catchError, of, Subscription } from 'rxjs';
+import { TABLE_DEFAULT_SORTS } from '../../../constants/sort.constants';
 
 @Component({
   selector: 'app-medications',
@@ -49,11 +50,11 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   // Available categories (populated from medications)
   categories: string[] = [];
 
-  // Sort state
-  sortColumn: string = 'createdAt'; // Default sort column
-  sortOrder: 'asc' | 'desc' = 'desc'; // Default sort order
-  private previousSortColumn: string = 'createdAt'; // For error recovery
-  private previousSortOrder: 'asc' | 'desc' = 'desc'; // For error recovery
+  // Sort state (default: newest first)
+  sortColumn: string = TABLE_DEFAULT_SORTS.MEDICATIONS.column;
+  sortOrder: 'asc' | 'desc' = TABLE_DEFAULT_SORTS.MEDICATIONS.order;
+  private previousSortColumn: string = TABLE_DEFAULT_SORTS.MEDICATIONS.column; // For error recovery
+  private previousSortOrder: 'asc' | 'desc' = TABLE_DEFAULT_SORTS.MEDICATIONS.order; // For error recovery
   private sortDebounceTimer: any; // Timer for debouncing sort requests
   private sortRequest$: Subscription | null = null; // For cancelling pending requests
 
@@ -273,6 +274,9 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     this.currentPage = 1;
     this.pageSize = 10;
 
+    // Reset sorting to default (newest first)
+    this.resetSortingToDefault();
+
     // Update active filters display
     this.updateActiveFilters();
 
@@ -280,6 +284,50 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     this.showClearSuccessMessage();
 
     // Data will be reloaded automatically via filterService subscription
+  }
+
+  /**
+   * Reset sorting to default (newest first)
+   */
+  resetSortingToDefault(): void {
+    this.sortColumn = TABLE_DEFAULT_SORTS.MEDICATIONS.column;
+    this.sortOrder = TABLE_DEFAULT_SORTS.MEDICATIONS.order;
+  }
+
+  /**
+   * Check if current sort is default sort
+   */
+  isDefaultSort(): boolean {
+    return this.sortColumn === TABLE_DEFAULT_SORTS.MEDICATIONS.column &&
+           this.sortOrder === TABLE_DEFAULT_SORTS.MEDICATIONS.order;
+  }
+
+  /**
+   * Get display name for current sort column
+   */
+  getSortDisplayName(): string {
+    const columnNames: { [key: string]: string } = {
+      'name': 'Name',
+      'category': 'Category',
+      'price': 'Price',
+      'stockQuantity': 'Stock Quantity',
+      'createdAt': 'Date Created',
+      'updatedAt': 'Date Updated'
+    };
+    return columnNames[this.sortColumn] || this.sortColumn;
+  }
+
+  /**
+   * Reset to default sort and reload data
+   */
+  resetToDefaultSort(): void {
+    this.resetSortingToDefault();
+    // Update filters to trigger reload
+    this.updateFilters({
+      sortBy: this.sortColumn,
+      sortOrder: this.sortOrder,
+      pageNumber: 1
+    });
   }
 
   /**
@@ -632,8 +680,8 @@ export class MedicationsComponent implements OnInit, OnDestroy {
    * Revert sort state to previous values or default
    */
   private revertSortState(): void {
-    this.sortColumn = this.previousSortColumn || 'createdAt';
-    this.sortOrder = this.previousSortOrder || 'desc';
+    this.sortColumn = this.previousSortColumn || TABLE_DEFAULT_SORTS.MEDICATIONS.column;
+    this.sortOrder = this.previousSortOrder || TABLE_DEFAULT_SORTS.MEDICATIONS.order;
   }
 
   /**

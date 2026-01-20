@@ -99,6 +99,27 @@
     (removeFilter)="removeFilter($event)">
   </app-active-filters>
 
+  <!-- Sort Information -->
+  <div class="sort-info" *ngIf="!isLoading && prescriptions.length > 0">
+    <div class="sort-info-default" *ngIf="isDefaultSort()">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="16" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+      </svg>
+      <span>Showing newest prescriptions first (default)</span>
+    </div>
+    <div class="sort-info-custom" *ngIf="!isDefaultSort()">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+      <span>Sorted by: <strong>{{getSortDisplayName()}}</strong> ({{sortOrder === 'asc' ? 'Ascending' : 'Descending'}})</span>
+      <button (click)="resetToDefaultSort()" class="btn-reset-sort" type="button" aria-label="Reset to default sort">
+        Reset to default
+      </button>
+    </div>
+  </div>
+
   <!-- Sort Loading Indicator -->
   <div *ngIf="isSorting" class="sort-loading-indicator" aria-live="polite" aria-atomic="true">
     <svg class="spinner" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
