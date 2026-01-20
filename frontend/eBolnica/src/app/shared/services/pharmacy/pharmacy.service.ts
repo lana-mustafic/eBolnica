@@ -78,8 +78,9 @@ export class PharmacyService {
     const pageSize = Math.max(5, Math.min(100, filters?.pageSize || 10)); // Clamp between 5-100
     
     // Build query parameters
+    // Backend accepts both 'page' (backward compatibility) and 'pageNumber'
     let params = new HttpParams()
-      .set('page', page.toString())
+      .set('pageNumber', page.toString())
       .set('pageSize', pageSize.toString());
     
     // Category filter

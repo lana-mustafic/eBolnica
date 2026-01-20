@@ -64,11 +64,11 @@ export class MedicationsComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe({
       next: (response) => {
-        this.medications = response.data;
-        this.totalCount = response.totalCount;
-        this.totalPages = response.totalPages;
-        this.currentPage = response.page;
-        this.pageSize = response.pageSize;
+        this.medications = response.items || [];
+        this.totalCount = response.totalCount || 0;
+        this.totalPages = response.totalPages || 0;
+        this.currentPage = response.currentPage || 1;
+        this.pageSize = response.pageSize || 10;
         this.extractCategories();
         this.errorMessage = null;
       },
@@ -127,11 +127,11 @@ export class MedicationsComponent implements OnInit, OnDestroy {
       finalize(() => this.isLoading = false)
     ).subscribe({
       next: (response) => {
-        this.medications = response.data;
-        this.totalCount = response.totalCount;
-        this.totalPages = response.totalPages;
-        this.currentPage = response.page;
-        this.pageSize = response.pageSize;
+        this.medications = response.items || [];
+        this.totalCount = response.totalCount || 0;
+        this.totalPages = response.totalPages || 0;
+        this.currentPage = response.currentPage || 1;
+        this.pageSize = response.pageSize || 10;
         
         // Extract categories from current page medications
         this.extractCategories();

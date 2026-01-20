@@ -67,10 +67,10 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe({
       next: (response) => {
-        this.prescriptions = response.data || [];
+        this.prescriptions = response.items || [];
         this.totalCount = response.totalCount || 0;
         this.totalPages = response.totalPages || 0;
-        this.currentPage = response.page || 1;
+        this.currentPage = response.currentPage || 1;
         this.pageSize = response.pageSize || 10;
         this.updateFilterCounts();
         this.errorMessage = null;
@@ -118,10 +118,10 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
       finalize(() => this.isLoading = false)
     ).subscribe({
       next: (response) => {
-        this.prescriptions = response.data || [];
+        this.prescriptions = response.items || [];
         this.totalCount = response.totalCount || 0;
         this.totalPages = response.totalPages || 0;
-        this.currentPage = response.page || 1;
+        this.currentPage = response.currentPage || 1;
         this.pageSize = response.pageSize || 10;
         this.updateFilterCounts();
       },

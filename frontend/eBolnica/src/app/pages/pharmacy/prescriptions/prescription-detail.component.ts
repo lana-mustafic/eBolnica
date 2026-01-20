@@ -72,7 +72,7 @@ export class PrescriptionDetailComponent implements OnInit {
     ).subscribe({
       next: (data) => {
         this.prescription = data.prescription;
-        this.medications = data.medications.data;
+        this.medications = data.medications.items || [];
         this.pharmacistData = data.pharmacistData;
       },
       error: (error) => {

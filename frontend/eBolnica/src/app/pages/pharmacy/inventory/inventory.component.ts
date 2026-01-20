@@ -71,13 +71,13 @@ export class InventoryComponent implements OnInit, OnDestroy {
       }),
       takeUntil(this.destroy$)
     ).subscribe({
-      next: (response) => {
-        this.inventoryItems = response.data || [];
+      next: (response: any) => {
+        this.inventoryItems = response.items || response.data || [];
         this.lowStockAlerts = response.LowStockAlerts || [];
         this.expiryAlerts = response.ExpiryAlerts || [];
         this.totalCount = response.totalCount || 0;
         this.totalPages = response.totalPages || 0;
-        this.currentPage = response.page || 1;
+        this.currentPage = response.currentPage || response.page || 1;
         this.pageSize = response.pageSize || 50;
         this.extractCategories();
         this.calculateSummaryStats();
@@ -125,13 +125,13 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.pharmacyService.getInventory(filters).pipe(
       finalize(() => this.isLoading = false)
     ).subscribe({
-      next: (response) => {
-        this.inventoryItems = response.data || [];
+      next: (response: any) => {
+        this.inventoryItems = response.items || response.data || [];
         this.lowStockAlerts = response.LowStockAlerts || [];
         this.expiryAlerts = response.ExpiryAlerts || [];
         this.totalCount = response.totalCount || 0;
         this.totalPages = response.totalPages || 0;
-        this.currentPage = response.page || 1;
+        this.currentPage = response.currentPage || response.page || 1;
         this.pageSize = response.pageSize || 50;
         this.extractCategories();
         this.calculateSummaryStats();

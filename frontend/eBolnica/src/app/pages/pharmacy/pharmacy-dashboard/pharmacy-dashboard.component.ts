@@ -56,8 +56,8 @@ export class PharmacyDashboardComponent implements OnInit {
       finalize(() => this.isLoading = false)
     ).subscribe({
       next: (data) => {
-        this.medications = data.medications.data;
-        this.prescriptions = data.prescriptions.data || [];
+        this.medications = data.medications.items || [];
+        this.prescriptions = data.prescriptions.items || [];
         this.calculateMetrics();
         this.recentPrescriptions = this.getRecentPrescriptions();
       },
