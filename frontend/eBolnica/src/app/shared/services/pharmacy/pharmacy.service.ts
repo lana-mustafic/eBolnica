@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { MedicationDto } from '../../../models/medication.dto';
@@ -458,6 +458,282 @@ export class PharmacyService {
       }
       
       console.error(`[PharmacyService] Server error (${status}):`, error.error);
+    }
+
+    // Return an observable that emits an error
+    return throwError(() => ({
+      message: errorMessage,
+      status: error.status,
+      originalError: error
+    }));
+  }
+
+  // PDF Export Methods
+
+  /**
+   * Export inventory data to PDF
+   * Downloads PDF file with current filters and sorting applied
+   * @param filters Current filter and sort parameters
+   * @returns Observable that completes when download starts
+   */
+  exportInventoryToPdf(filters: PharmacyFilters): Observable<any> {
+    const params = this.buildPdfQueryParams(filters, 'inventory');
+    
+    console.log('[PharmacyService] Exporting inventory to PDF with filters:', filters);
+    
+    return this.http.get(
+      `${this.apiUrl}/reports/inventory/pdf`,
+      {
+        params,
+        responseType: 'blob', // IMPORTANT: Get response as Blob
+        observe: 'response'   // Get full response including headers
+      }
+    ).pipe(
+      tap(response => {
+        console.log('[PharmacyService] PDF download initiated');
+        this.handlePdfDownload(response, 'inventory-report', filters);
+      }),
+      catchError(error => this.handlePdfError(error))
+    );
+  }
+
+  /**
+   * Export prescriptions data to PDF
+   * Downloads PDF file with current filters and sorting applied
+   * @param filters Current filter and sort parameters
+   * @returns Observable that completes when download starts
+   */
+  exportPrescriptionsToPdf(filters: PharmacyFilters): Observable<any> {
+    const params = this.buildPdfQueryParams(filters, 'prescriptions');
+    
+    console.log('[PharmacyService] Exporting prescriptions to PDF with filters:', filters);
+    
+    return this.http.get(
+      `${this.apiUrl}/reports/prescriptions/pdf`,
+      {
+        params,
+        responseType: 'blob', // IMPORTANT: Get response as Blob
+        observe: 'response'   // Get full response including headers
+      }
+    ).pipe(
+      tap(response => {
+        console.log('[PharmacyService] PDF download initiated');
+        this.handlePdfDownload(response, 'prescriptions-report', filters);
+      }),
+      catchError(error => this.handlePdfError(error))
+    );
+  }
+
+  /**
+   * Build query parameters for PDF export
+   * Includes all filters, sorting, and PDF-specific parameters
+   * @param filters Current filter and sort parameters
+   * @param reportType Type of report: 'inventory' or 'prescriptions'
+   * @returns HttpParams with all query parameters
+   */
+  private buildPdfQueryParams(filters: PharmacyFilters, reportType: 'inventory' | 'prescriptions'): HttpParams {
+    let params: HttpParams;
+
+    // Reuse existing query parameter builders but override pagination for PDF
+    if (reportType === 'inventory') {
+      params = this.buildInventoryQueryParams(filters);
+    } else {
+      params = this.buildPrescriptionQueryParams(filters);
+    }
+
+    // Override pagination - PDF should include all matching data
+    params = params.delete('pageNumber');
+    params = params.delete('pageSize');
+    params = params.set('includeAllData', 'true');
+
+    // Add PDF-specific parameters
+    params = params.set('reportType', 'detailed'); // Could be 'summary' or 'detailed'
+
+    // Add cache busting timestamp to prevent cached PDFs
+    params = params.set('_t', Date.now().toString());
+
+    return params;
+  }
+
+  /**
+   * Handle PDF file download from HTTP response
+   * Extracts filename from headers or generates default, then triggers browser download
+   * @param response HTTP response containing PDF blob
+   * @param defaultFileName Default filename if not provided in headers
+   * @param filters Filter parameters for generating meaningful filename
+   */
+  private handlePdfDownload(response: HttpResponse<Blob>, defaultFileName: string, filters?: PharmacyFilters): void {
+    // Validate response type is PDF
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/pdf')) {
+      console.warn('[PharmacyService] Unexpected content type:', contentType);
+      // Still proceed with download, but log warning
+    }
+
+    // Extract filename from response headers or use default
+    const contentDisposition = response.headers.get('content-disposition');
+    let fileName = this.generatePdfFileName(defaultFileName, filters);
+
+    if (contentDisposition) {
+      const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      if (fileNameMatch && fileNameMatch.length > 1) {
+        fileName = fileNameMatch[1].replace(/['"]/g, '');
+        // Decode URI if encoded
+        try {
+          fileName = decodeURIComponent(fileName);
+        } catch (e) {
+          // Use as-is if decode fails
+        }
+      }
+    }
+
+    // Sanitize filename to prevent path traversal
+    fileName = this.sanitizeFileName(fileName);
+
+    // Create blob from response body
+    const blob = new Blob([response.body!], { type: 'application/pdf' });
+    
+    // Create download link
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.style.display = 'none';
+
+    // Trigger download
+    document.body.appendChild(link);
+    link.click();
+
+    // Cleanup
+    setTimeout(() => {
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    }, 100);
+
+    console.log('[PharmacyService] PDF downloaded:', fileName);
+  }
+
+  /**
+   * Generate meaningful PDF filename based on report type and filters
+   * @param reportType Type of report (will be used as base filename)
+   * @param filters Optional filter parameters to include in filename
+   * @returns Generated filename with timestamp and optional filter info
+   */
+  private generatePdfFileName(reportType: string, filters?: PharmacyFilters): string {
+    const dateStr = new Date().toISOString().split('T')[0];
+    const timeStr = new Date().toLocaleTimeString('en-US', { hour12: false }).replace(/:/g, '-').split('.')[0];
+    
+    let fileName = `${reportType}_${dateStr}_${timeStr}`;
+    
+    // Add filter info if applicable
+    if (filters) {
+      if (filters.searchTerm) {
+        const searchSnippet = filters.searchTerm.substring(0, 20).replace(/[^a-zA-Z0-9]/g, '_');
+        fileName += `_search-${searchSnippet}`;
+      }
+      
+      if (filters.category) {
+        const categorySnippet = filters.category.substring(0, 20).replace(/[^a-zA-Z0-9]/g, '_');
+        fileName += `_category-${categorySnippet}`;
+      }
+
+      if (filters.prescriptionStatus && filters.prescriptionStatus !== 'All') {
+        const statusSnippet = filters.prescriptionStatus.replace(/[^a-zA-Z0-9]/g, '_');
+        fileName += `_status-${statusSnippet}`;
+      }
+
+      if (filters.stockStatus) {
+        const stockSnippet = filters.stockStatus.replace(/[^a-zA-Z0-9]/g, '_');
+        fileName += `_stock-${stockSnippet}`;
+      }
+    }
+    
+    return `${fileName}.pdf`;
+  }
+
+  /**
+   * Sanitize filename to prevent path traversal and other security issues
+   * @param fileName Original filename
+   * @returns Sanitized filename safe for download
+   */
+  private sanitizeFileName(fileName: string): string {
+    // Remove path traversal attempts
+    let sanitized = fileName.replace(/\.\./g, '');
+    sanitized = sanitized.replace(/\//g, '_');
+    sanitized = sanitized.replace(/\\/g, '_');
+    
+    // Remove control characters
+    sanitized = sanitized.replace(/[\x00-\x1F\x7F]/g, '');
+    
+    // Limit length
+    if (sanitized.length > 255) {
+      const ext = sanitized.substring(sanitized.lastIndexOf('.'));
+      const name = sanitized.substring(0, sanitized.lastIndexOf('.'));
+      sanitized = name.substring(0, 255 - ext.length) + ext;
+    }
+    
+    // Ensure it ends with .pdf
+    if (!sanitized.toLowerCase().endsWith('.pdf')) {
+      sanitized += '.pdf';
+    }
+    
+    return sanitized;
+  }
+
+  /**
+   * Handle PDF-specific errors
+   * Attempts to read error message from blob response if available
+   * @param error HTTP error response
+   * @returns Observable that emits error
+   */
+  private handlePdfError(error: HttpErrorResponse): Observable<never> {
+    console.error('[PharmacyService] PDF export error:', error);
+
+    let errorMessage = 'Failed to generate PDF';
+
+    // Try to read error message from blob if error is a blob
+    if (error.error instanceof Blob) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const errorObj = JSON.parse(reader.result as string);
+          errorMessage = errorObj.message || errorMessage;
+        } catch (e) {
+          // If parsing fails, use default message
+          errorMessage = 'PDF generation failed';
+        }
+      };
+      reader.readAsText(error.error);
+    } else {
+      // Handle standard HTTP errors
+      switch (error.status) {
+        case 400:
+          errorMessage = 'Invalid parameters for PDF generation';
+          if (error.error?.message) {
+            errorMessage = error.error.message;
+          }
+          break;
+        case 401:
+          errorMessage = 'Unauthorized. Please log in again.';
+          break;
+        case 403:
+          errorMessage = 'Access denied. You do not have permission to generate PDF reports.';
+          break;
+        case 404:
+          errorMessage = 'PDF generation service unavailable';
+          break;
+        case 500:
+          errorMessage = 'Server error during PDF generation. Please try again later.';
+          break;
+        case 0:
+          errorMessage = 'Network error. Please check your connection.';
+          break;
+        default:
+          errorMessage = `PDF generation failed: ${error.statusText || 'Unknown error'}`;
+          if (error.error?.message) {
+            errorMessage = error.error.message;
+          }
+      }
     }
 
     // Return an observable that emits an error

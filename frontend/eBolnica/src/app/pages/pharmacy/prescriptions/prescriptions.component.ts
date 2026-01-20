@@ -646,4 +646,70 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
     this.errorMessage = null;
     this.loadPrescriptions();
   }
+
+  /**
+   * Check if PDF export is available
+   */
+  canExportPdf(): boolean {
+    return this.prescriptions && this.prescriptions.length > 0;
+  }
+
+  /**
+   * Get tooltip text for PDF export button
+   */
+  getExportButtonTooltip(): string {
+    if (!this.canExportPdf()) {
+      return 'No data available to export';
+    }
+    if (this.isGeneratingPdf) {
+      return 'Generating PDF...';
+    }
+    return `Export ${this.prescriptions.length} prescription(s) to PDF`;
+  }
+
+  /**
+   * Export prescriptions to PDF
+   * Uses PharmacyService to download PDF with current filters and sorting
+   */
+  exportPrescriptionsToPdf(): void {
+    if (!this.canExportPdf() || this.isGeneratingPdf) {
+      return;
+    }
+
+    this.isGeneratingPdf = true;
+
+    // Build current filters from component state
+    const filters: PharmacyFilters = {
+      pageNumber: 1,
+      pageSize: this.pageSize,
+      searchTerm: this.searchTerm || undefined,
+      prescriptionStatus: this.selectedStatus !== 'All' ? this.selectedStatus : undefined,
+      sortBy: this.sortColumn,
+      sortOrder: this.sortOrder
+    };
+
+    // Call service method to download PDF
+    this.pharmacyService.exportPrescriptionsToPdf(filters).pipe(
+      finalize(() => {
+        this.isGeneratingPdf = false;
+      })
+    ).subscribe({
+      next: () => {
+        // Download handled in service
+        console.log('[PrescriptionsComponent] PDF download completed');
+      },
+      error: (error: any) => {
+        console.error('[PrescriptionsComponent] PDF export error:', error);
+        this.showPdfError(error.message || 'Failed to generate PDF');
+      }
+    });
+  }
+
+  /**
+   * Show PDF error message to user
+   */
+  private showPdfError(message: string): void {
+    alert(`PDF Export Error: ${message}`);
+    // Could be replaced with a toast notification or inline error message
+  }
 }

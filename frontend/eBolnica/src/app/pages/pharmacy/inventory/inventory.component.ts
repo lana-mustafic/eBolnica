@@ -774,22 +774,49 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
   /**
    * Export inventory to PDF
-   * Placeholder method - to be implemented in Task 2
+   * Uses PharmacyService to download PDF with current filters and sorting
    */
   exportInventoryToPdf(): void {
     if (!this.canExportPdf() || this.isGeneratingPdf) {
       return;
     }
 
-    console.log('PDF export clicked - feature coming soon');
     this.isGeneratingPdf = true;
 
-    // Simulate API call - will be replaced with actual PDF generation in Task 2
-    setTimeout(() => {
-      this.isGeneratingPdf = false;
-      // Temporary notification - will be replaced with actual PDF download
-      alert('PDF export will be implemented in the next task');
-    }, 1000);
+    // Build current filters from component state
+    const filters: PharmacyFilters = {
+      pageNumber: 1,
+      pageSize: this.pageSize,
+      searchTerm: this.searchTerm || undefined,
+      category: this.selectedCategory || undefined,
+      stockStatus: this.selectedStockFilter !== 'all' ? this.selectedStockFilter : undefined,
+      sortBy: this.sortColumn,
+      sortOrder: this.sortOrder
+    };
+
+    // Call service method to download PDF
+    this.pharmacyService.exportInventoryToPdf(filters).pipe(
+      finalize(() => {
+        this.isGeneratingPdf = false;
+      })
+    ).subscribe({
+      next: () => {
+        // Download handled in service
+        console.log('[InventoryComponent] PDF download completed');
+      },
+      error: (error: any) => {
+        console.error('[InventoryComponent] PDF export error:', error);
+        this.showPdfError(error.message || 'Failed to generate PDF');
+      }
+    });
+  }
+
+  /**
+   * Show PDF error message to user
+   */
+  private showPdfError(message: string): void {
+    alert(`PDF Export Error: ${message}`);
+    // Could be replaced with a toast notification or inline error message
   }
 
   exportToCSV(): void {
