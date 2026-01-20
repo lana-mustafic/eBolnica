@@ -102,27 +102,49 @@ namespace eBolnicaAPI.Controllers
             // Supports filters like: minPrice=10, maxPrice=100, category=antibiotics, status=active
             query = ApplyDynamicFilters(query, Request.Query);
 
-            // Get total count before pagination
+            // Get total count BEFORE pagination (for performance optimization)
             var totalCount = await query.CountAsync();
 
             // NEW: Parameter validation and normalization
             // Use pageNumber if provided, otherwise fall back to 'page' for backward compatibility
             var currentPage = pageNumber != 1 ? pageNumber : (page != 1 ? page : 1);
+            
+            // Edge case: Validate pageNumber > 0
             if (currentPage < 1) currentPage = 1;
 
             // Validate and clamp pageSize (1-100 range, default: 10)
             pageSize = Math.Clamp(pageSize, 1, 100);
 
+            // Edge case: Handle empty results
+            if (totalCount == 0)
+            {
+                return Ok(new PaginatedResponse<MedicationDto>(
+                    new List<MedicationDto>(),
+                    totalCount: 0,
+                    pageNumber: currentPage,
+                    pageSize: pageSize
+                ));
+            }
+
+            // Edge case: Handle pageNumber out of range - adjust to last valid page
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            if (currentPage > totalPages && totalPages > 0)
+            {
+                currentPage = totalPages;
+            }
+
             // NEW: Apply sorting
             query = ApplySorting(query, sortBy, sortOrder);
 
-            // Calculate skip amount
-            var skipAmount = (currentPage - 1) * pageSize;
+            // Calculate Skip and Take values for server-side pagination
+            // Skip = (pageNumber - 1) * pageSize
+            var skipValue = (currentPage - 1) * pageSize;
+            var takeValue = pageSize;
 
-            // Apply pagination
+            // Apply pagination at database level using Entity Framework
             var medications = await query
-                .Skip(skipAmount)
-                .Take(pageSize)
+                .Skip(skipValue)
+                .Take(takeValue)
                 .ToListAsync();
 
             // Map to DTOs
@@ -147,22 +169,15 @@ namespace eBolnicaAPI.Controllers
                 UpdatedAt = m.UpdatedAt
             }).ToList();
 
-            // Calculate pagination metadata
-            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-            var hasNext = currentPage < totalPages;
-            var hasPrevious = currentPage > 1;
+            // Return paginated response using PaginatedResponse<T> class
+            var response = new PaginatedResponse<MedicationDto>(
+                dtoList,
+                totalCount,
+                currentPage,
+                pageSize
+            );
 
-            // Return paginated response with enhanced metadata
-            return Ok(new
-            {
-                data = dtoList,
-                totalCount = totalCount,
-                pageNumber = currentPage, // Use pageNumber in response
-                pageSize = pageSize,
-                totalPages = totalPages,
-                hasNext = hasNext,
-                hasPrevious = hasPrevious
-            });
+            return Ok(response);
         }
 
         [HttpGet("medications/{id}")]
@@ -376,23 +391,45 @@ namespace eBolnicaAPI.Controllers
             // Supports filters like: patientId=1, doctorId=2, minAmount=100, maxAmount=500
             query = ApplyDynamicFilters(query, Request.Query);
 
-            // Get total count before pagination
+            // Get total count BEFORE pagination (for performance optimization)
             var totalCount = await query.CountAsync();
 
-            // NEW: Parameter validation
+            // Parameter validation: pageNumber > 0
             if (pageNumber < 1) pageNumber = 1;
+            
+            // Validate and clamp pageSize (1-100 range, default: 10)
             pageSize = Math.Clamp(pageSize, 1, 100);
 
-            // NEW: Apply sorting
+            // Edge case: Handle empty results
+            if (totalCount == 0)
+            {
+                return Ok(new PaginatedResponse<PrescriptionDto>(
+                    new List<PrescriptionDto>(),
+                    totalCount: 0,
+                    pageNumber: pageNumber,
+                    pageSize: pageSize
+                ));
+            }
+
+            // Edge case: Handle pageNumber out of range - adjust to last valid page
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            if (pageNumber > totalPages && totalPages > 0)
+            {
+                pageNumber = totalPages;
+            }
+
+            // Apply sorting
             query = ApplySorting(query, sortBy, sortOrder);
 
-            // Calculate skip amount
-            var skipAmount = (pageNumber - 1) * pageSize;
+            // Calculate Skip and Take values for server-side pagination
+            // Skip = (pageNumber - 1) * pageSize
+            var skipValue = (pageNumber - 1) * pageSize;
+            var takeValue = pageSize;
 
-            // Apply pagination
+            // Apply pagination at database level using Entity Framework
             var prescriptions = await query
-                .Skip(skipAmount)
-                .Take(pageSize)
+                .Skip(skipValue)
+                .Take(takeValue)
                 .ToListAsync();
 
             var dtoList = prescriptions.Select(p => new PrescriptionDto
@@ -451,22 +488,15 @@ namespace eBolnicaAPI.Controllers
                 }).ToList()
             }).ToList();
 
-            // Calculate pagination metadata
-            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-            var hasNext = pageNumber < totalPages;
-            var hasPrevious = pageNumber > 1;
+            // Return paginated response using PaginatedResponse<T> class
+            var response = new PaginatedResponse<PrescriptionDto>(
+                dtoList,
+                totalCount,
+                pageNumber,
+                pageSize
+            );
 
-            // Return paginated response with metadata
-            return Ok(new
-            {
-                data = dtoList,
-                totalCount = totalCount,
-                pageNumber = pageNumber,
-                pageSize = pageSize,
-                totalPages = totalPages,
-                hasNext = hasNext,
-                hasPrevious = hasPrevious
-            });
+            return Ok(response);
         }
 
         [HttpGet("prescriptions/{id}")]
@@ -855,24 +885,53 @@ namespace eBolnicaAPI.Controllers
             // Supports filters like: minPrice=10, maxPrice=100, minStock=5, requiresPrescription=true
             query = ApplyDynamicFilters(query, Request.Query);
 
-            // Get total count before pagination
+            // Get total count BEFORE pagination (for performance optimization)
             var totalCount = await query.CountAsync();
 
-            // NEW: Parameter validation
+            // Parameter validation: pageNumber > 0
             if (pageNumber < 1) pageNumber = 1;
+            
+            // Validate and clamp pageSize (1-100 range, default: 10)
             pageSize = Math.Clamp(pageSize, 1, 100);
 
-            // NEW: Apply sorting
+            // Edge case: Handle empty results
+            if (totalCount == 0)
+            {
+                return Ok(new
+                {
+                    items = new List<MedicationDto>(),
+                    totalCount = 0,
+                    totalPages = 0,
+                    hasNext = false,
+                    hasPrevious = false,
+                    currentPage = pageNumber,
+                    pageSize = pageSize,
+                    LowStockAlerts = new List<MedicationDto>(),
+                    ExpiryAlerts = new List<MedicationDto>()
+                });
+            }
+
+            // Edge case: Handle pageNumber out of range - adjust to last valid page
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            if (pageNumber > totalPages && totalPages > 0)
+            {
+                pageNumber = totalPages;
+            }
+
+            // Apply sorting
             query = ApplySorting(query, sortBy, sortOrder);
 
-            // Calculate skip amount
-            var skipAmount = (pageNumber - 1) * pageSize;
+            // Calculate Skip and Take values for server-side pagination
+            // Skip = (pageNumber - 1) * pageSize
+            var skipValue = (pageNumber - 1) * pageSize;
+            var takeValue = pageSize;
 
-            // Calculate alerts from all matching items (not just current page)
-            // This ensures alerts are accurate even when paginated
-            // Create a separate query for alerts (before pagination is applied)
-            var alertsQuery = query;
-            var allMatchingMedications = await alertsQuery.ToListAsync();
+            // For GetInventory, we need alerts from ALL matching items (not just current page)
+            // So we execute the query twice: once for all items (alerts), once with pagination (main result)
+            // Note: This is necessary because alerts must reflect all matching items regardless of pagination
+            
+            // First: Get all matching items for alerts calculation
+            var allMatchingMedications = await query.ToListAsync();
             var allDtoList = allMatchingMedications.Select(m => new MedicationDto
             {
                 Id = m.Id,
@@ -894,10 +953,19 @@ namespace eBolnicaAPI.Controllers
                 UpdatedAt = m.UpdatedAt
             }).ToList();
 
-            // Apply pagination for the main result set
-            var medications = await query
-                .Skip(skipAmount)
-                .Take(pageSize)
+            // Second: Apply pagination at database level using Entity Framework
+            // Rebuild query with same filters and sorting, then apply Skip/Take
+            var paginatedQuery = _context.Medications.Where(m => m.IsActive).AsQueryable();
+            if (!string.IsNullOrEmpty(category))
+            {
+                paginatedQuery = paginatedQuery.Where(m => m.Category == category);
+            }
+            paginatedQuery = ApplyDynamicFilters(paginatedQuery, Request.Query);
+            paginatedQuery = ApplySorting(paginatedQuery, sortBy, sortOrder);
+            
+            var medications = await paginatedQuery
+                .Skip(skipValue)
+                .Take(takeValue)
                 .ToListAsync();
 
             var dtoList = medications.Select(m => new MedicationDto
@@ -921,22 +989,27 @@ namespace eBolnicaAPI.Controllers
                 UpdatedAt = m.UpdatedAt
             }).ToList();
 
-            // Calculate pagination metadata
-            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-            var hasNext = pageNumber < totalPages;
-            var hasPrevious = pageNumber > 1;
+            // Create paginated response using PaginatedResponse<T> structure
+            var paginatedResponse = new PaginatedResponse<MedicationDto>(
+                dtoList,
+                totalCount,
+                pageNumber,
+                pageSize
+            );
 
+            // Return response with pagination metadata and alerts
+            // Note: Alerts are calculated from ALL matching items, not just current page
             return Ok(new
             {
-                Medications = dtoList,
+                items = paginatedResponse.Items,
+                totalCount = paginatedResponse.TotalCount,
+                totalPages = paginatedResponse.TotalPages,
+                hasNext = paginatedResponse.HasNext,
+                hasPrevious = paginatedResponse.HasPrevious,
+                currentPage = paginatedResponse.CurrentPage,
+                pageSize = paginatedResponse.PageSize,
                 LowStockAlerts = allDtoList.Where(m => m.IsLowStock).ToList(),
-                ExpiryAlerts = allDtoList.Where(m => m.ExpiryDate.HasValue && m.ExpiryDate.Value <= DateTime.Now.AddDays(30) && m.ExpiryDate.Value > DateTime.Now).ToList(),
-                totalCount = totalCount,
-                pageNumber = pageNumber,
-                pageSize = pageSize,
-                totalPages = totalPages,
-                hasNext = hasNext,
-                hasPrevious = hasPrevious
+                ExpiryAlerts = allDtoList.Where(m => m.ExpiryDate.HasValue && m.ExpiryDate.Value <= DateTime.Now.AddDays(30) && m.ExpiryDate.Value > DateTime.Now).ToList()
             });
         }
 
