@@ -1,6 +1,7 @@
 using eBolnicaAPI.Data;
 using eBolnicaAPI.Models.DTOs;
 using eBolnicaAPI.Models.Entities;
+using eBolnicaAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -15,25 +16,71 @@ namespace eBolnicaAPI.Controllers
     {
         private readonly AppDbContext _context;
         private readonly UserManager<AppUser> _userManager;
+        private readonly IPharmacyService _pharmacyService;
 
-        public PharmacyController(AppDbContext context, UserManager<AppUser> userManager)
+        public PharmacyController(AppDbContext context, UserManager<AppUser> userManager, IPharmacyService pharmacyService)
         {
             _context = context;
             _userManager = userManager;
+            _pharmacyService = pharmacyService;
         }
 
         #region Medications CRUD
 
+        /// <summary>
+        /// Get paginated medications with filtering and sorting support
+        /// </summary>
+        /// <remarks>
+        /// Returns a paginated list of medications with support for:
+        /// - **Pagination**: pageNumber (default: 1), pageSize (default: 10, max: 100)
+        /// - **Filtering**: category, search, stockStatus, minPrice, maxPrice, isActive, requiresPrescription, minStock, maxStock, createdAfter, createdBefore, expiryAfter, expiryBefore
+        /// - **Sorting**: sortBy (single or comma-separated), sortOrder (asc/desc or comma-separated)
+        /// 
+        /// **Filter Examples:**
+        /// - Single filter: ?category=antibiotics
+        /// - Multiple filters: ?category=antibiotics&amp;minPrice=10&amp;maxPrice=50&amp;isActive=true
+        /// - Search + filters: ?search=penicillin&amp;category=antibiotics&amp;stockStatus=InStock
+        /// 
+        /// **Sorting Examples:**
+        /// - Single column: ?sortBy=name&amp;sortOrder=asc
+        /// - Multi-column: ?sortBy=category,name&amp;sortOrder=asc,asc
+        /// - Embedded order: ?sortBy=name:asc,price:desc
+        /// 
+        /// **Combined Example:**
+        /// ?pageNumber=1&amp;pageSize=10&amp;category=antibiotics&amp;minPrice=10&amp;sortBy=price&amp;sortOrder=asc
+        /// </remarks>
+        /// <param name="category">Filter by medication category (exact match, case-insensitive). Example: "antibiotics"</param>
+        /// <param name="search">Search term across name, generic name, and manufacturer (case-insensitive). Example: "penicillin"</param>
+        /// <param name="stockStatus">Filter by stock status: "low stock", "out of stock", "normal stock", or "InStock". Example: "InStock"</param>
+        /// <param name="requiresPrescription">Filter by prescription requirement. Example: true</param>
+        /// <param name="isActive">Filter by active status. Default: true (shows only active when not specified). Example: true</param>
+        /// <param name="page">Page number for backward compatibility (use pageNumber instead). Default: 1</param>
+        /// <param name="pageNumber">Page number (1-based). Default: 1, Minimum: 1</param>
+        /// <param name="pageSize">Number of items per page. Default: 10, Range: 1-100</param>
+        /// <param name="sortBy">Field(s) to sort by. Single: "name", Multi: "name,price", Embedded: "name:asc,price:desc". Supported: name, price, createdAt, stockQuantity, category, expiryDate</param>
+        /// <param name="sortOrder">Sort order(s). Single: "asc", Multi: "asc,desc". Default: "desc"</param>
+        /// <returns>Paginated response containing medications and pagination metadata</returns>
+        /// <response code="200">Returns paginated medications successfully</response>
+        /// <response code="400">Invalid query parameters</response>
+        /// <response code="401">Unauthorized - JWT token required</response>
+        /// <response code="403">Forbidden - Pharmacist role required</response>
         [HttpGet("medications")]
         [Authorize(Roles = "Pharmacist")]
+        [ProducesResponseType(typeof(PaginatedResponse<MedicationDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> GetMedications(
             [FromQuery] string? category = null,
             [FromQuery] string? search = null,
             [FromQuery] string? stockStatus = null,
             [FromQuery] bool? requiresPrescription = null,
             [FromQuery] bool? isActive = null,
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 10)
+            [FromQuery] int page = 1, // Backward compatibility: keep 'page' parameter
+            [FromQuery] int pageNumber = 1, // New parameter name
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? sortBy = null,
+            [FromQuery] string? sortOrder = "desc")
         {
             // Start with base query
             var query = _context.Medications.AsQueryable();
@@ -95,26 +142,56 @@ namespace eBolnicaAPI.Controllers
                 query = query.Where(m => m.RequiresPrescription == requiresPrescription.Value);
             }
 
-            // Get total count before pagination
-            var totalCount = await query.CountAsync();
+            // NEW: Apply dynamic filters from query parameters using PharmacyService
+            // Supports filters like: minPrice=10, maxPrice=100, category=antibiotics, status=active
+            query = _pharmacyService.GetFilteredMedications(query, Request.Query);
 
-            // Validate and clamp pageSize (5-100 range)
-            pageSize = Math.Clamp(pageSize, 5, 100);
+            // Get total count BEFORE pagination (for performance optimization)
+            // Use AsNoTracking() for read-only count query
+            var totalCount = await query.AsNoTracking().CountAsync();
 
-            // Validate page (must be >= 1)
-            if (page < 1)
+            // NEW: Parameter validation and normalization
+            // Use pageNumber if provided, otherwise fall back to 'page' for backward compatibility
+            var currentPage = pageNumber != 1 ? pageNumber : (page != 1 ? page : 1);
+            
+            // Edge case: Validate pageNumber > 0
+            if (currentPage < 1) currentPage = 1;
+
+            // Validate and clamp pageSize (1-100 range, default: 10)
+            pageSize = Math.Clamp(pageSize, 1, 100);
+
+            // Edge case: Handle empty results
+            if (totalCount == 0)
             {
-                page = 1;
+                return Ok(new PaginatedResponse<MedicationDto>(
+                    new List<MedicationDto>(),
+                    totalCount: 0,
+                    pageNumber: currentPage,
+                    pageSize: pageSize
+                ));
             }
 
-            // Calculate skip amount
-            var skipAmount = (page - 1) * pageSize;
+            // Edge case: Handle pageNumber out of range - adjust to last valid page
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            if (currentPage > totalPages && totalPages > 0)
+            {
+                currentPage = totalPages;
+            }
 
-            // Apply ordering, skip, and take
+            // NEW: Apply sorting using PharmacyService
+            query = _pharmacyService.ApplySorting(query, sortBy, sortOrder);
+
+            // Calculate Skip and Take values for server-side pagination
+            // Skip = (pageNumber - 1) * pageSize
+            var skipValue = (currentPage - 1) * pageSize;
+            var takeValue = pageSize;
+
+            // Apply pagination at database level using Entity Framework
+            // Use AsNoTracking() for read-only queries to improve performance
             var medications = await query
-                .OrderBy(m => m.Name)
-                .Skip(skipAmount)
-                .Take(pageSize)
+                .AsNoTracking()
+                .Skip(skipValue)
+                .Take(takeValue)
                 .ToListAsync();
 
             // Map to DTOs
@@ -139,18 +216,15 @@ namespace eBolnicaAPI.Controllers
                 UpdatedAt = m.UpdatedAt
             }).ToList();
 
-            // Calculate total pages
-            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            // Return paginated response using PaginatedResponse<T> class
+            var response = new PaginatedResponse<MedicationDto>(
+                dtoList,
+                totalCount,
+                currentPage,
+                pageSize
+            );
 
-            // Return paginated response (consistent with AdminController pattern)
-            return Ok(new
-            {
-                data = dtoList,
-                totalCount = totalCount,
-                page = page,
-                pageSize = pageSize,
-                totalPages = totalPages
-            });
+            return Ok(response);
         }
 
         [HttpGet("medications/{id}")]
@@ -334,9 +408,46 @@ namespace eBolnicaAPI.Controllers
 
         #region Prescriptions Management
 
+        /// <summary>
+        /// Get paginated prescriptions with filtering and sorting support
+        /// </summary>
+        /// <remarks>
+        /// Returns a paginated list of prescriptions with support for:
+        /// - **Pagination**: pageNumber (default: 1), pageSize (default: 10, max: 100)
+        /// - **Filtering**: status, patientId, doctorId, pharmacistId, minAmount, maxAmount, prescribedAfter, prescribedBefore, dispensedAfter, dispensedBefore
+        /// - **Sorting**: sortBy (single or comma-separated), sortOrder (asc/desc or comma-separated)
+        /// 
+        /// **Filter Examples:**
+        /// - Single filter: ?status=Pending
+        /// - Multiple filters: ?status=Pending&amp;minAmount=50&amp;maxAmount=200
+        /// - Date range: ?prescribedAfter=2024-01-01&amp;prescribedBefore=2024-12-31
+        /// 
+        /// **Sorting Examples:**
+        /// - Single column: ?sortBy=createdAt&amp;sortOrder=desc
+        /// - Multi-column: ?sortBy=status,createdAt&amp;sortOrder=asc,desc
+        /// </remarks>
+        /// <param name="status">Filter by prescription status (exact match). Example: "Pending", "Dispensed", "Cancelled"</param>
+        /// <param name="pageNumber">Page number (1-based). Default: 1, Minimum: 1</param>
+        /// <param name="pageSize">Number of items per page. Default: 10, Range: 1-100</param>
+        /// <param name="sortBy">Field(s) to sort by. Single: "createdAt", Multi: "status,createdAt". Supported: createdAt, totalAmount, prescriptionNumber, status, prescribedDate</param>
+        /// <param name="sortOrder">Sort order(s). Single: "desc", Multi: "asc,desc". Default: "desc"</param>
+        /// <returns>Paginated response containing prescriptions and pagination metadata</returns>
+        /// <response code="200">Returns paginated prescriptions successfully</response>
+        /// <response code="400">Invalid query parameters</response>
+        /// <response code="401">Unauthorized - JWT token required</response>
+        /// <response code="403">Forbidden - Pharmacist role required</response>
         [HttpGet("prescriptions")]
         [Authorize(Roles = "Pharmacist")]
-        public async Task<IActionResult> GetPrescriptions([FromQuery] string? status = null)
+        [ProducesResponseType(typeof(PaginatedResponse<PrescriptionDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> GetPrescriptions(
+            [FromQuery] string? status = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? sortBy = null,
+            [FromQuery] string? sortOrder = "desc")
         {
             var query = _context.Prescriptions
                 .Include(p => p.Patient)
@@ -349,12 +460,57 @@ namespace eBolnicaAPI.Controllers
                     .ThenInclude(pi => pi.Medication)
                 .AsQueryable();
 
+            // Existing filter: Status
             if (!string.IsNullOrEmpty(status))
             {
                 query = query.Where(p => p.Status == status);
             }
 
-            var prescriptions = await query.OrderByDescending(p => p.CreatedAt).ToListAsync();
+            // NEW: Apply dynamic filters from query parameters using PharmacyService
+            // Supports filters like: patientId=1, doctorId=2, minAmount=100, maxAmount=500
+            query = _pharmacyService.GetFilteredPrescriptions(query, Request.Query);
+
+            // Get total count BEFORE pagination (for performance optimization)
+            // Use AsNoTracking() for read-only count query
+            var totalCount = await query.AsNoTracking().CountAsync();
+
+            // Parameter validation: pageNumber > 0
+            if (pageNumber < 1) pageNumber = 1;
+            
+            // Validate and clamp pageSize (1-100 range, default: 10)
+            pageSize = Math.Clamp(pageSize, 1, 100);
+
+            // Edge case: Handle empty results
+            if (totalCount == 0)
+            {
+                return Ok(new PaginatedResponse<PrescriptionDto>(
+                    new List<PrescriptionDto>(),
+                    totalCount: 0,
+                    pageNumber: pageNumber,
+                    pageSize: pageSize
+                ));
+            }
+
+            // Edge case: Handle pageNumber out of range - adjust to last valid page
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            if (pageNumber > totalPages && totalPages > 0)
+            {
+                pageNumber = totalPages;
+            }
+
+            // Apply sorting using PharmacyService
+            query = _pharmacyService.ApplySorting(query, sortBy, sortOrder);
+
+            // Calculate Skip and Take values for server-side pagination
+            // Skip = (pageNumber - 1) * pageSize
+            var skipValue = (pageNumber - 1) * pageSize;
+            var takeValue = pageSize;
+
+            // Apply pagination at database level using Entity Framework
+            var prescriptions = await query
+                .Skip(skipValue)
+                .Take(takeValue)
+                .ToListAsync();
 
             var dtoList = prescriptions.Select(p => new PrescriptionDto
             {
@@ -412,7 +568,15 @@ namespace eBolnicaAPI.Controllers
                 }).ToList()
             }).ToList();
 
-            return Ok(dtoList);
+            // Return paginated response using PaginatedResponse<T> class
+            var response = new PaginatedResponse<PrescriptionDto>(
+                dtoList,
+                totalCount,
+                pageNumber,
+                pageSize
+            );
+
+            return Ok(response);
         }
 
         [HttpGet("prescriptions/{id}")]
@@ -780,18 +944,142 @@ namespace eBolnicaAPI.Controllers
 
         #region Inventory & Pharmacist Data
 
+        /// <summary>
+        /// Get paginated inventory with filtering, sorting, and alerts
+        /// </summary>
+        /// <remarks>
+        /// Returns a paginated list of active medications with inventory alerts.
+        /// Includes LowStockAlerts and ExpiryAlerts calculated from ALL matching items (not just current page).
+        /// 
+        /// Supports the same filtering and sorting as GetMedications endpoint.
+        /// 
+        /// **Response includes:**
+        /// - Paginated medications list
+        /// - LowStockAlerts: Medications below minimum stock level
+        /// - ExpiryAlerts: Medications expiring within 30 days
+        /// - Pagination metadata
+        /// 
+        /// **Example:**
+        /// ?pageNumber=1&amp;pageSize=10&amp;category=painkiller&amp;minStock=5&amp;sortBy=name&amp;sortOrder=asc
+        /// </remarks>
+        /// <param name="category">Filter by medication category (exact match, case-insensitive). Example: "painkiller"</param>
+        /// <param name="pageNumber">Page number (1-based). Default: 1, Minimum: 1</param>
+        /// <param name="pageSize">Number of items per page. Default: 10, Range: 1-100</param>
+        /// <param name="sortBy">Field(s) to sort by. Single: "name", Multi: "name,price". Supported: name, price, createdAt, stockQuantity, category, expiryDate</param>
+        /// <param name="sortOrder">Sort order(s). Single: "asc", Multi: "asc,desc". Default: "desc"</param>
+        /// <returns>Paginated response containing medications, alerts, and pagination metadata</returns>
+        /// <response code="200">Returns paginated inventory with alerts successfully</response>
+        /// <response code="400">Invalid query parameters</response>
+        /// <response code="401">Unauthorized - JWT token required</response>
+        /// <response code="403">Forbidden - Pharmacist role required</response>
         [HttpGet("inventory")]
         [Authorize(Roles = "Pharmacist")]
-        public async Task<IActionResult> GetInventory([FromQuery] string? category = null)
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> GetInventory(
+            [FromQuery] string? category = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? sortBy = null,
+            [FromQuery] string? sortOrder = "desc")
         {
             var query = _context.Medications.Where(m => m.IsActive).AsQueryable();
 
+            // Existing filter: Category
             if (!string.IsNullOrEmpty(category))
             {
                 query = query.Where(m => m.Category == category);
             }
 
-            var medications = await query.OrderBy(m => m.Name).ToListAsync();
+            // NEW: Apply dynamic filters from query parameters using PharmacyService
+            // Supports filters like: minPrice=10, maxPrice=100, minStock=5, requiresPrescription=true
+            query = _pharmacyService.GetFilteredInventory(query, Request.Query);
+
+            // Get total count BEFORE pagination (for performance optimization)
+            // Use AsNoTracking() for read-only count query
+            var totalCount = await query.AsNoTracking().CountAsync();
+
+            // Parameter validation: pageNumber > 0
+            if (pageNumber < 1) pageNumber = 1;
+            
+            // Validate and clamp pageSize (1-100 range, default: 10)
+            pageSize = Math.Clamp(pageSize, 1, 100);
+
+            // Edge case: Handle empty results
+            if (totalCount == 0)
+            {
+                return Ok(new
+                {
+                    items = new List<MedicationDto>(),
+                    totalCount = 0,
+                    totalPages = 0,
+                    hasNext = false,
+                    hasPrevious = false,
+                    currentPage = pageNumber,
+                    pageSize = pageSize,
+                    LowStockAlerts = new List<MedicationDto>(),
+                    ExpiryAlerts = new List<MedicationDto>()
+                });
+            }
+
+            // Edge case: Handle pageNumber out of range - adjust to last valid page
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            if (pageNumber > totalPages && totalPages > 0)
+            {
+                pageNumber = totalPages;
+            }
+
+            // Apply sorting using PharmacyService
+            query = _pharmacyService.ApplySorting(query, sortBy, sortOrder);
+
+            // Calculate Skip and Take values for server-side pagination
+            // Skip = (pageNumber - 1) * pageSize
+            var skipValue = (pageNumber - 1) * pageSize;
+            var takeValue = pageSize;
+
+            // For GetInventory, we need alerts from ALL matching items (not just current page)
+            // So we execute the query twice: once for all items (alerts), once with pagination (main result)
+            // Note: This is necessary because alerts must reflect all matching items regardless of pagination
+            
+            // First: Get all matching items for alerts calculation
+            var allMatchingMedications = await query.ToListAsync();
+            var allDtoList = allMatchingMedications.Select(m => new MedicationDto
+            {
+                Id = m.Id,
+                Name = m.Name,
+                GenericName = m.GenericName,
+                Description = m.Description,
+                Manufacturer = m.Manufacturer,
+                Price = m.Price,
+                StockQuantity = m.StockQuantity,
+                MinimumStockLevel = m.MinimumStockLevel,
+                ExpiryDate = m.ExpiryDate,
+                BatchNumber = m.BatchNumber,
+                IsActive = m.IsActive,
+                RequiresPrescription = m.RequiresPrescription,
+                Category = m.Category,
+                DosageForm = m.DosageForm,
+                Strength = m.Strength,
+                CreatedAt = m.CreatedAt,
+                UpdatedAt = m.UpdatedAt
+            }).ToList();
+
+            // Second: Apply pagination at database level using Entity Framework
+            // Rebuild query with same filters and sorting, then apply Skip/Take
+            var paginatedQuery = _context.Medications.Where(m => m.IsActive).AsQueryable();
+            if (!string.IsNullOrEmpty(category))
+            {
+                paginatedQuery = paginatedQuery.Where(m => m.Category == category);
+            }
+            paginatedQuery = _pharmacyService.GetFilteredInventory(paginatedQuery, Request.Query);
+            paginatedQuery = _pharmacyService.ApplySorting(paginatedQuery, sortBy, sortOrder);
+            
+            var medications = await paginatedQuery
+                .Skip(skipValue)
+                .Take(takeValue)
+                .ToListAsync();
 
             var dtoList = medications.Select(m => new MedicationDto
             {
@@ -814,11 +1102,27 @@ namespace eBolnicaAPI.Controllers
                 UpdatedAt = m.UpdatedAt
             }).ToList();
 
+            // Create paginated response using PaginatedResponse<T> structure
+            var paginatedResponse = new PaginatedResponse<MedicationDto>(
+                dtoList,
+                totalCount,
+                pageNumber,
+                pageSize
+            );
+
+            // Return response with pagination metadata and alerts
+            // Note: Alerts are calculated from ALL matching items, not just current page
             return Ok(new
             {
-                Medications = dtoList,
-                LowStockAlerts = dtoList.Where(m => m.IsLowStock).ToList(),
-                ExpiryAlerts = dtoList.Where(m => m.ExpiryDate.HasValue && m.ExpiryDate.Value <= DateTime.Now.AddDays(30) && m.ExpiryDate.Value > DateTime.Now).ToList()
+                items = paginatedResponse.Items,
+                totalCount = paginatedResponse.TotalCount,
+                totalPages = paginatedResponse.TotalPages,
+                hasNext = paginatedResponse.HasNext,
+                hasPrevious = paginatedResponse.HasPrevious,
+                currentPage = paginatedResponse.CurrentPage,
+                pageSize = paginatedResponse.PageSize,
+                LowStockAlerts = allDtoList.Where(m => m.IsLowStock).ToList(),
+                ExpiryAlerts = allDtoList.Where(m => m.ExpiryDate.HasValue && m.ExpiryDate.Value <= DateTime.Now.AddDays(30) && m.ExpiryDate.Value > DateTime.Now).ToList()
             });
         }
 
@@ -862,6 +1166,35 @@ namespace eBolnicaAPI.Controllers
 
         #region Helper Methods
 
+        /// <summary>
+        /// Builds PharmacyQueryParameters from individual query parameters for backward compatibility
+        /// </summary>
+        private PharmacyQueryParameters BuildQueryParameters(
+            string? category = null,
+            string? search = null,
+            string? stockStatus = null,
+            bool? requiresPrescription = null,
+            bool? isActive = null,
+            int page = 1,
+            int pageNumber = 1,
+            int pageSize = 10,
+            string? sortBy = null,
+            string? sortOrder = "desc")
+        {
+            return new PharmacyQueryParameters
+            {
+                PageNumber = pageNumber != 1 ? pageNumber : (page != 1 ? page : 1),
+                PageSize = pageSize,
+                SortBy = sortBy,
+                SortOrder = sortOrder,
+                SearchTerm = search,
+                Category = category,
+                StockStatus = stockStatus,
+                RequiresPrescription = requiresPrescription,
+                IsActive = isActive
+            };
+        }
+
         private async Task<string> GeneratePrescriptionNumberAsync()
         {
             var year = DateTime.Now.Year;
@@ -882,6 +1215,7 @@ namespace eBolnicaAPI.Controllers
 
             return $"RX-{year}-{sequence.ToString("D4")}";
         }
+
 
         #endregion
     }
