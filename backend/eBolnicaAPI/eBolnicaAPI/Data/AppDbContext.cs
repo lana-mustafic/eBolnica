@@ -66,6 +66,27 @@ namespace eBolnicaAPI.Data
                 .HasIndex(p => p.PrescriptionNumber)
                 .IsUnique();
 
+            // Performance optimization indexes for Prescriptions
+            // Composite index for status and created date (common filter and sort combination)
+            modelBuilder.Entity<Prescription>()
+                .HasIndex(p => new { p.Status, p.CreatedAt })
+                .HasDatabaseName("IX_Prescriptions_Status_CreatedAt");
+
+            // Composite index for patient ID and status (common filter combination)
+            modelBuilder.Entity<Prescription>()
+                .HasIndex(p => new { p.PatientId, p.Status })
+                .HasDatabaseName("IX_Prescriptions_PatientId_Status");
+
+            // Index for prescribed date (common sort field)
+            modelBuilder.Entity<Prescription>()
+                .HasIndex(p => p.PrescribedDate)
+                .HasDatabaseName("IX_Prescriptions_PrescribedDate");
+
+            // Index for doctor ID (common filter)
+            modelBuilder.Entity<Prescription>()
+                .HasIndex(p => p.DoctorId)
+                .HasDatabaseName("IX_Prescriptions_DoctorId");
+
             modelBuilder.Entity<PrescriptionItem>()
                 .HasOne(pi => pi.Prescription)
                 .WithMany(p => p.PrescriptionItems)
@@ -80,6 +101,37 @@ namespace eBolnicaAPI.Data
 
             modelBuilder.Entity<Medication>()
                 .HasIndex(m => m.Name);
+
+            // Performance optimization indexes for Medications
+            // Composite index for name and category (common filter combination)
+            modelBuilder.Entity<Medication>()
+                .HasIndex(m => new { m.Name, m.Category })
+                .HasDatabaseName("IX_Medications_Name_Category");
+
+            // Composite index for price and stock quantity (common filter combination)
+            modelBuilder.Entity<Medication>()
+                .HasIndex(m => new { m.Price, m.StockQuantity })
+                .HasDatabaseName("IX_Medications_Price_StockQuantity");
+
+            // Composite index for active status and created date (default sorting)
+            modelBuilder.Entity<Medication>()
+                .HasIndex(m => new { m.IsActive, m.CreatedAt })
+                .HasDatabaseName("IX_Medications_IsActive_CreatedAt");
+
+            // Index for category (frequently filtered)
+            modelBuilder.Entity<Medication>()
+                .HasIndex(m => m.Category)
+                .HasDatabaseName("IX_Medications_Category");
+
+            // Index for expiry date (inventory alerts)
+            modelBuilder.Entity<Medication>()
+                .HasIndex(m => m.ExpiryDate)
+                .HasDatabaseName("IX_Medications_ExpiryDate");
+
+            // Index for stock quantity (low stock alerts)
+            modelBuilder.Entity<Medication>()
+                .HasIndex(m => m.StockQuantity)
+                .HasDatabaseName("IX_Medications_StockQuantity");
 
             modelBuilder.Entity<Pharmacist>()
                 .HasIndex(p => p.LicenseNumber)
