@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
 import { PharmacyFilterService } from '../../../shared/services/pharmacy/pharmacy-filter.service';
+import { FilterSummaryComponent } from '../../../shared/components/filter-summary/filter-summary.component';
+import { ActiveFiltersComponent } from '../../../shared/components/active-filters/active-filters.component';
 import { MedicationDto } from '../../../models/medication.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, combineLatest } from 'rxjs';
@@ -11,13 +13,13 @@ import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeU
 @Component({
   selector: 'app-medications',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, FilterSummaryComponent, ActiveFiltersComponent],
   templateUrl: './medications.component.html',
   styleUrl: './medications.component.css'
 })
 export class MedicationsComponent implements OnInit, OnDestroy {
-  private pharmacyService = inject(PharmacyService);
-  private filterService = inject(PharmacyFilterService);
+  protected pharmacyService = inject(PharmacyService);
+  protected filterService = inject(PharmacyFilterService);
 
   medications: MedicationDto[] = [];
   isLoading: boolean = false;
@@ -85,7 +87,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
         this.currentPage = response.currentPage || 1;
         this.pageSize = response.pageSize || 10;
         this.extractCategories();
-        this.activeFilters = this.filterService.getActiveFilters();
+        this.updateActiveFilters();
         this.errorMessage = null;
       },
       error: (error) => {
@@ -217,6 +219,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     this.selectedRequiresPrescription = '';
     this.selectedActiveStatus = '';
     this.filterService.clearFilters();
+    this.updateActiveFilters();
   }
 
   removeFilter(filterKey: string): void {
@@ -240,6 +243,8 @@ export class MedicationsComponent implements OnInit, OnDestroy {
         this.selectedActiveStatus = '';
         break;
     }
+    
+    this.updateActiveFilters();
   }
 
   // Pagination methods
@@ -317,6 +322,10 @@ export class MedicationsComponent implements OnInit, OnDestroy {
 
   getActiveFilterCount(): number {
     return this.filterService.getActiveFilterCount();
+  }
+
+  updateActiveFilters(): void {
+    this.activeFilters = this.filterService.getActiveFilters();
   }
 
   deleteMedication(medication: MedicationDto): void {

@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
 import { PharmacyFilterService } from '../../../shared/services/pharmacy/pharmacy-filter.service';
+import { FilterSummaryComponent } from '../../../shared/components/filter-summary/filter-summary.component';
+import { ActiveFiltersComponent } from '../../../shared/components/active-filters/active-filters.component';
 import { MedicationDto } from '../../../models/medication.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap } from 'rxjs';
@@ -14,13 +16,13 @@ type ExpiryStatus = 'good' | 'warning' | 'critical' | 'expired';
 @Component({
   selector: 'app-inventory',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, FilterSummaryComponent, ActiveFiltersComponent],
   templateUrl: './inventory.component.html',
   styleUrl: './inventory.component.css'
 })
 export class InventoryComponent implements OnInit, OnDestroy {
-  private pharmacyService = inject(PharmacyService);
-  private filterService = inject(PharmacyFilterService);
+  protected pharmacyService = inject(PharmacyService);
+  protected filterService = inject(PharmacyFilterService);
 
   inventoryItems: MedicationDto[] = [];
   lowStockAlerts: MedicationDto[] = [];
@@ -96,7 +98,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
         this.pageSize = response.pageSize || 50;
         this.extractCategories();
         this.calculateSummaryStats();
-        this.activeFilters = this.filterService.getActiveFilters();
+        this.updateActiveFilters();
         this.errorMessage = null;
       },
       error: (error) => {
@@ -239,6 +241,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.selectedExpiryFilter = 'all';
     this.selectedCategory = '';
     this.filterService.clearFilters();
+    this.updateActiveFilters();
   }
 
   removeFilter(filterKey: string): void {
@@ -252,10 +255,16 @@ export class InventoryComponent implements OnInit, OnDestroy {
         this.selectedCategory = '';
         break;
     }
+    
+    this.updateActiveFilters();
   }
 
   getActiveFilterCount(): number {
     return this.filterService.getActiveFilterCount();
+  }
+
+  updateActiveFilters(): void {
+    this.activeFilters = this.filterService.getActiveFilters();
   }
 
   // Pagination methods

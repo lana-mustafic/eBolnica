@@ -147,30 +147,22 @@
     </div>
   </div>
 
-  <!-- Active Filters Display -->
-  <div class="active-filters" *ngIf="getActiveFilterCount() > 0">
-    <div class="active-filters-header">
-      <span class="filter-count">{{ getActiveFilterCount() }} filter{{ getActiveFilterCount() !== 1 ? 's' : '' }} active</span>
-      <span class="filter-summary" *ngIf="activeFilters.length > 0">
-        Showing results for:
-        <span *ngFor="let filter of activeFilters; let last = last" class="filter-summary-item">
-          {{ filter.value }}<span *ngIf="!last"> + </span>
-        </span>
-      </span>
-    </div>
-    <div class="filter-badges">
-      <span *ngFor="let filter of activeFilters" class="filter-badge" [class]="'filter-badge-' + filter.type">
-        <span class="filter-label">{{ filter.label }}:</span>
-        <span class="filter-value">{{ filter.value }}</span>
-        <button class="filter-remove" (click)="removeFilter(filter.key)" aria-label="Remove filter">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </span>
-    </div>
-  </div>
+  <!-- Filter Summary and Active Filters -->
+  <app-filter-summary
+    [filters]="filterService.getFilters()"
+    [totalCount]="totalCount"
+    [currentPage]="currentPage"
+    [pageSize]="pageSize"
+    [isLoading]="isLoading || isSearching"
+    [activeFilterCount]="getActiveFilterCount()"
+    (clearAll)="clearFilters()">
+  </app-filter-summary>
+
+  <app-active-filters
+    [filters]="filterService.getFilters()"
+    [activeFilters]="activeFilters"
+    (removeFilter)="removeFilter($event)">
+  </app-active-filters>
 
   <!-- Loading State -->
   <div *ngIf="isLoading" class="loading-container">

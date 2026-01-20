@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
 import { PharmacyFilterService } from '../../../shared/services/pharmacy/pharmacy-filter.service';
+import { FilterSummaryComponent } from '../../../shared/components/filter-summary/filter-summary.component';
+import { ActiveFiltersComponent } from '../../../shared/components/active-filters/active-filters.component';
 import { PrescriptionDto } from '../../../models/prescription.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap } from 'rxjs';
@@ -11,13 +13,13 @@ import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeU
 @Component({
   selector: 'app-prescriptions',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, FilterSummaryComponent, ActiveFiltersComponent],
   templateUrl: './prescriptions.component.html',
   styleUrl: './prescriptions.component.css'
 })
 export class PrescriptionsComponent implements OnInit, OnDestroy {
-  private pharmacyService = inject(PharmacyService);
-  private filterService = inject(PharmacyFilterService);
+  protected pharmacyService = inject(PharmacyService);
+  protected filterService = inject(PharmacyFilterService);
 
   prescriptions: PrescriptionDto[] = [];
   isLoading: boolean = false;
@@ -88,7 +90,7 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
         this.currentPage = response.currentPage || 1;
         this.pageSize = response.pageSize || 10;
         this.updateFilterCounts();
-        this.activeFilters = this.filterService.getActiveFilters();
+        this.updateActiveFilters();
         this.errorMessage = null;
       },
       error: (error) => {
@@ -198,6 +200,7 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
     this.searchTerm = '';
     this.selectedStatus = 'All';
     this.filterService.clearFilters();
+    this.updateActiveFilters();
   }
 
   removeFilter(filterKey: string): void {
@@ -211,10 +214,16 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
         this.selectedStatus = 'All';
         break;
     }
+    
+    this.updateActiveFilters();
   }
 
   getActiveFilterCount(): number {
     return this.filterService.getActiveFilterCount();
+  }
+
+  updateActiveFilters(): void {
+    this.activeFilters = this.filterService.getActiveFilters();
   }
 
   // Pagination methods
