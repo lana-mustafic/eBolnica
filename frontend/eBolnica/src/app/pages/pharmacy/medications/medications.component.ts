@@ -9,7 +9,7 @@ import { ActiveFiltersComponent } from '../../../shared/components/active-filter
 import { MedicationDto } from '../../../models/medication.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { PagedResponse } from '../../../models/paged-response.dto';
-import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, combineLatest, catchError, of } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, combineLatest, catchError, of, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-medications',
@@ -25,6 +25,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   medications: MedicationDto[] = [];
   isLoading: boolean = false;
   isSearching: boolean = false;
+  isSorting: boolean = false; // Specific flag for sort operations
   errorMessage: string | null = null;
   successMessage: string | null = null;
 
@@ -51,6 +52,10 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   // Sort state
   sortColumn: string = 'createdAt'; // Default sort column
   sortOrder: 'asc' | 'desc' = 'desc'; // Default sort order
+  private previousSortColumn: string = 'createdAt'; // For error recovery
+  private previousSortOrder: 'asc' | 'desc' = 'desc'; // For error recovery
+  private sortDebounceTimer: any; // Timer for debouncing sort requests
+  private sortRequest$: Subscription | null = null; // For cancelling pending requests
 
   // Active filters for display
   activeFilters = this.filterService.getActiveFilters();
@@ -115,6 +120,17 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Clear sort debounce timer
+    if (this.sortDebounceTimer) {
+      clearTimeout(this.sortDebounceTimer);
+    }
+    
+    // Cancel pending sort request
+    if (this.sortRequest$) {
+      this.sortRequest$.unsubscribe();
+      this.sortRequest$ = null;
+    }
+    
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -480,8 +496,9 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   Math = Math;
 
   /**
-   * Handle column header sort click
+   * Handle column header sort click - SERVER-SIDE SORTING
    * Maps frontend column names to backend sort field names
+   * Includes debouncing and request cancellation
    */
   onSort(column: string): void {
     // Map frontend column names to backend field names
@@ -499,6 +516,10 @@ export class MedicationsComponent implements OnInit, OnDestroy {
 
     const backendColumn = columnMapping[column] || column;
 
+    // Store previous sort state for error recovery
+    this.previousSortColumn = this.sortColumn;
+    this.previousSortOrder = this.sortOrder;
+
     if (this.sortColumn === backendColumn) {
       // Toggle order if same column
       this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
@@ -508,12 +529,111 @@ export class MedicationsComponent implements OnInit, OnDestroy {
       this.sortOrder = 'asc';
     }
 
-    // Update filters with new sort parameters
-    this.updateFilters({ 
-      sortBy: this.sortColumn, 
-      sortOrder: this.sortOrder,
-      pageNumber: 1 // Reset to first page on sort
+    // Set sorting flag
+    this.isSorting = true;
+    this.errorMessage = null;
+
+    // Cancel any pending sort requests
+    if (this.sortRequest$) {
+      this.sortRequest$.unsubscribe();
+      this.sortRequest$ = null;
+    }
+
+    // Clear any existing debounce timer
+    if (this.sortDebounceTimer) {
+      clearTimeout(this.sortDebounceTimer);
+    }
+
+    // Debounce sort requests (200ms) to avoid rapid API calls
+    this.sortDebounceTimer = setTimeout(() => {
+      this.loadMedicationsWithSort();
+    }, 200);
+  }
+
+  /**
+   * Load medications with sort parameters (server-side)
+   * Includes request cancellation and error handling
+   */
+  private loadMedicationsWithSort(): void {
+    // Cancel previous request if still pending
+    if (this.sortRequest$) {
+      this.sortRequest$.unsubscribe();
+      this.sortRequest$ = null;
+    }
+
+    this.isLoading = true;
+    this.isSorting = true;
+
+    const partialFilters = this.buildFiltersFromUI();
+    // Build complete filters object with required properties
+    const filters: PharmacyFilters = {
+      pageNumber: 1, // Reset to first page on sort
+      pageSize: partialFilters.pageSize || this.pageSize || 10,
+      ...partialFilters,
+      sortBy: this.sortColumn,
+      sortOrder: this.sortOrder
+    };
+
+    this.sortRequest$ = this.pharmacyService.getMedicationsWithFilters(filters).pipe(
+      finalize(() => {
+        this.isLoading = false;
+        this.isSorting = false;
+        this.sortRequest$ = null;
+      }),
+      catchError((error) => {
+        this.handleSortError(error);
+        return of({
+          items: [],
+          totalCount: 0,
+          totalPages: 0,
+          currentPage: 1,
+          pageSize: filters.pageSize || 10,
+          hasNext: false,
+          hasPrevious: false
+        } as PagedResponse<MedicationDto>);
+      })
+    ).subscribe({
+      next: (response) => {
+        this.medications = response.items || [];
+        this.totalCount = response.totalCount || 0;
+        this.totalPages = response.totalPages || 0;
+        this.currentPage = response.currentPage || 1;
+        this.pageSize = response.pageSize || 10;
+        this.extractCategories();
+        this.updateActiveFilters();
+        this.errorMessage = null;
+      }
     });
+  }
+
+  /**
+   * Handle sort-specific errors
+   */
+  private handleSortError(error: any): void {
+    console.error('Sort failed:', error);
+    
+    // Revert to previous sort state
+    this.revertSortState();
+    
+    // Show user-friendly error
+    if (error?.status === 400) {
+      this.errorMessage = 'Invalid sort column. Please try a different column.';
+      console.warn('Invalid sort parameters:', error.error);
+    } else if (error?.status === 0) {
+      this.errorMessage = 'Network error. Unable to sort medications. Please check your connection.';
+    } else {
+      this.errorMessage = 'Unable to sort medications. Please try again.';
+    }
+    
+    this.isSorting = false;
+  }
+
+  /**
+   * Revert sort state to previous values or default
+   */
+  private revertSortState(): void {
+    this.sortColumn = this.previousSortColumn || 'createdAt';
+    this.sortOrder = this.previousSortOrder || 'desc';
   }
 
   /**
