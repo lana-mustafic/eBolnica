@@ -51,6 +51,8 @@ namespace eBolnicaAPI.Services
                         query = query.Where(m => m.StockQuantity == 0);
                         break;
                     case "normal stock":
+                    case "in stock":
+                    case "instock":
                         query = query.Where(m => m.StockQuantity >= m.MinimumStockLevel);
                         break;
                     // If invalid stockStatus, ignore the filter
@@ -200,23 +202,44 @@ namespace eBolnicaAPI.Services
         }
 
         /// <summary>
-        /// Applies sorting to Medication queries
+        /// Applies sorting to Medication queries with support for multi-column sorting
         /// Supported sortBy values: name, price, dateCreated, createdAt, stockQuantity, stock, category, expiryDate
-        /// Supports sortOrder: "asc" or "desc" (default: "desc")
+        /// Supports single column: sortBy=name&sortOrder=asc
+        /// Supports multi-column: sortBy=name,price,createdAt&sortOrder=asc,desc,desc
+        /// Or: sortBy=name:asc,price:desc,createdAt:desc
         /// </summary>
         public IQueryable<Medication> ApplySorting(IQueryable<Medication> query, string? sortBy, string? sortOrder)
         {
-            // Normalize sortOrder
-            var isAscending = string.IsNullOrEmpty(sortOrder) || sortOrder.ToLower() == "asc";
-            var isDescending = !string.IsNullOrEmpty(sortOrder) && sortOrder.ToLower() == "desc";
-
             // Default sorting if sortBy is not provided: createdAt desc
             if (string.IsNullOrEmpty(sortBy))
             {
-                return isDescending ? query.OrderByDescending(m => m.CreatedAt) : query.OrderBy(m => m.CreatedAt);
+                var defaultOrder = string.IsNullOrEmpty(sortOrder) || sortOrder.ToLower() == "desc";
+                return defaultOrder ? query.OrderByDescending(m => m.CreatedAt) : query.OrderBy(m => m.CreatedAt);
             }
 
-            // Apply sorting based on sortBy parameter
+            // Check if multi-column sorting format (comma-separated or colon-separated)
+            var sortColumns = sortBy.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            
+            if (sortColumns.Length > 1)
+            {
+                // Multi-column sorting
+                return ApplyMultiColumnSorting(query, sortColumns, sortOrder);
+            }
+            else
+            {
+                // Single column sorting (backward compatible)
+                return ApplySingleColumnSorting(query, sortBy, sortOrder);
+            }
+        }
+
+        /// <summary>
+        /// Applies single column sorting
+        /// </summary>
+        private IQueryable<Medication> ApplySingleColumnSorting(IQueryable<Medication> query, string sortBy, string? sortOrder)
+        {
+            var isAscending = string.IsNullOrEmpty(sortOrder) || sortOrder.ToLower() == "asc";
+            var isDescending = !string.IsNullOrEmpty(sortOrder) && sortOrder.ToLower() == "desc";
+
             switch (sortBy.ToLower())
             {
                 case "name":
@@ -249,47 +272,207 @@ namespace eBolnicaAPI.Services
         }
 
         /// <summary>
-        /// Applies sorting to Prescription queries
+        /// Applies multi-column sorting
+        /// Supports: sortBy=name,price&sortOrder=asc,desc
+        /// Or: sortBy=name:asc,price:desc (order embedded in column name)
+        /// </summary>
+        private IQueryable<Medication> ApplyMultiColumnSorting(IQueryable<Medication> query, string[] sortColumns, string? sortOrder)
+        {
+            IOrderedQueryable<Medication>? orderedQuery = null;
+            var sortOrders = string.IsNullOrEmpty(sortOrder) 
+                ? new string[sortColumns.Length] 
+                : sortOrder.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            for (int i = 0; i < sortColumns.Length; i++)
+            {
+                var column = sortColumns[i].Trim();
+                var order = i < sortOrders.Length ? sortOrders[i].Trim().ToLower() : "asc";
+
+                // Check if order is embedded in column (name:asc format)
+                if (column.Contains(':'))
+                {
+                    var parts = column.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    if (parts.Length == 2)
+                    {
+                        column = parts[0];
+                        order = parts[1].ToLower();
+                    }
+                }
+
+                var isAscending = order == "asc";
+
+                if (orderedQuery == null)
+                {
+                    // First column - use OrderBy or OrderByDescending
+                    orderedQuery = ApplyFirstSortColumn(query, column, isAscending);
+                }
+                else
+                {
+                    // Subsequent columns - use ThenBy or ThenByDescending
+                    orderedQuery = ApplySubsequentSortColumn(orderedQuery, column, isAscending);
+                }
+            }
+
+            return orderedQuery ?? query.OrderByDescending(m => m.CreatedAt);
+        }
+
+        /// <summary>
+        /// Applies the first sort column
+        /// </summary>
+        private IOrderedQueryable<Medication> ApplyFirstSortColumn(IQueryable<Medication> query, string column, bool isAscending)
+        {
+            return column.ToLower() switch
+            {
+                "name" => isAscending ? query.OrderBy(m => m.Name) : query.OrderByDescending(m => m.Name),
+                "price" => isAscending ? query.OrderBy(m => m.Price) : query.OrderByDescending(m => m.Price),
+                "datecreated" or "createdat" => isAscending ? query.OrderBy(m => m.CreatedAt) : query.OrderByDescending(m => m.CreatedAt),
+                "stockquantity" or "stock" => isAscending ? query.OrderBy(m => m.StockQuantity) : query.OrderByDescending(m => m.StockQuantity),
+                "category" => isAscending ? query.OrderBy(m => m.Category ?? "") : query.OrderByDescending(m => m.Category ?? ""),
+                "expirydate" or "expiry" => isAscending 
+                    ? query.OrderBy(m => m.ExpiryDate ?? DateTime.MaxValue) 
+                    : query.OrderByDescending(m => m.ExpiryDate ?? DateTime.MinValue),
+                _ => query.OrderByDescending(m => m.CreatedAt)
+            };
+        }
+
+        /// <summary>
+        /// Applies subsequent sort columns
+        /// </summary>
+        private IOrderedQueryable<Medication> ApplySubsequentSortColumn(IOrderedQueryable<Medication> query, string column, bool isAscending)
+        {
+            return column.ToLower() switch
+            {
+                "name" => isAscending ? query.ThenBy(m => m.Name) : query.ThenByDescending(m => m.Name),
+                "price" => isAscending ? query.ThenBy(m => m.Price) : query.ThenByDescending(m => m.Price),
+                "datecreated" or "createdat" => isAscending ? query.ThenBy(m => m.CreatedAt) : query.ThenByDescending(m => m.CreatedAt),
+                "stockquantity" or "stock" => isAscending ? query.ThenBy(m => m.StockQuantity) : query.ThenByDescending(m => m.StockQuantity),
+                "category" => isAscending ? query.ThenBy(m => m.Category ?? "") : query.ThenByDescending(m => m.Category ?? ""),
+                "expirydate" or "expiry" => isAscending 
+                    ? query.ThenBy(m => m.ExpiryDate ?? DateTime.MaxValue) 
+                    : query.ThenByDescending(m => m.ExpiryDate ?? DateTime.MinValue),
+                _ => query
+            };
+        }
+
+        /// <summary>
+        /// Applies sorting to Prescription queries with support for multi-column sorting
         /// Supported sortBy values: dateCreated, createdAt, totalAmount, amount, prescriptionNumber, number, status, prescribedDate
-        /// Supports sortOrder: "asc" or "desc" (default: "desc")
+        /// Supports multi-column: sortBy=status,createdAt&sortOrder=asc,desc
         /// </summary>
         public IQueryable<Prescription> ApplySorting(IQueryable<Prescription> query, string? sortBy, string? sortOrder)
         {
-            // Normalize sortOrder
-            var isAscending = string.IsNullOrEmpty(sortOrder) || sortOrder.ToLower() == "asc";
-            var isDescending = !string.IsNullOrEmpty(sortOrder) && sortOrder.ToLower() == "desc";
-
             // Default sorting if sortBy is not provided: createdAt desc
             if (string.IsNullOrEmpty(sortBy))
             {
-                return isDescending ? query.OrderByDescending(p => p.CreatedAt) : query.OrderBy(p => p.CreatedAt);
+                var defaultOrder = string.IsNullOrEmpty(sortOrder) || sortOrder.ToLower() == "desc";
+                return defaultOrder ? query.OrderByDescending(p => p.CreatedAt) : query.OrderBy(p => p.CreatedAt);
             }
 
-            // Apply sorting based on sortBy parameter
-            switch (sortBy.ToLower())
+            // Check if multi-column sorting format
+            var sortColumns = sortBy.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            
+            if (sortColumns.Length > 1)
             {
-                case "datecreated":
-                case "createdat":
-                    return isAscending ? query.OrderBy(p => p.CreatedAt) : query.OrderByDescending(p => p.CreatedAt);
-                
-                case "totalamount":
-                case "amount":
-                    return isAscending ? query.OrderBy(p => p.TotalAmount) : query.OrderByDescending(p => p.TotalAmount);
-                
-                case "prescriptionnumber":
-                case "number":
-                    return isAscending ? query.OrderBy(p => p.PrescriptionNumber) : query.OrderByDescending(p => p.PrescriptionNumber);
-                
-                case "status":
-                    return isAscending ? query.OrderBy(p => p.Status) : query.OrderByDescending(p => p.Status);
-                
-                case "prescribeddate":
-                    return isAscending ? query.OrderBy(p => p.PrescribedDate) : query.OrderByDescending(p => p.PrescribedDate);
-                
-                default:
-                    // Default to CreatedAt desc if invalid sortBy
-                    return isDescending ? query.OrderByDescending(p => p.CreatedAt) : query.OrderBy(p => p.CreatedAt);
+                // Multi-column sorting
+                return ApplyMultiColumnSortingPrescription(query, sortColumns, sortOrder);
             }
+            else
+            {
+                // Single column sorting
+                return ApplySingleColumnSortingPrescription(query, sortBy, sortOrder);
+            }
+        }
+
+        /// <summary>
+        /// Applies single column sorting for Prescriptions
+        /// </summary>
+        private IQueryable<Prescription> ApplySingleColumnSortingPrescription(IQueryable<Prescription> query, string sortBy, string? sortOrder)
+        {
+            var isAscending = string.IsNullOrEmpty(sortOrder) || sortOrder.ToLower() == "asc";
+            var isDescending = !string.IsNullOrEmpty(sortOrder) && sortOrder.ToLower() == "desc";
+
+            return sortBy.ToLower() switch
+            {
+                "datecreated" or "createdat" => isAscending ? query.OrderBy(p => p.CreatedAt) : query.OrderByDescending(p => p.CreatedAt),
+                "totalamount" or "amount" => isAscending ? query.OrderBy(p => p.TotalAmount) : query.OrderByDescending(p => p.TotalAmount),
+                "prescriptionnumber" or "number" => isAscending ? query.OrderBy(p => p.PrescriptionNumber) : query.OrderByDescending(p => p.PrescriptionNumber),
+                "status" => isAscending ? query.OrderBy(p => p.Status) : query.OrderByDescending(p => p.Status),
+                "prescribeddate" => isAscending ? query.OrderBy(p => p.PrescribedDate) : query.OrderByDescending(p => p.PrescribedDate),
+                _ => isDescending ? query.OrderByDescending(p => p.CreatedAt) : query.OrderBy(p => p.CreatedAt)
+            };
+        }
+
+        /// <summary>
+        /// Applies multi-column sorting for Prescriptions
+        /// </summary>
+        private IQueryable<Prescription> ApplyMultiColumnSortingPrescription(IQueryable<Prescription> query, string[] sortColumns, string? sortOrder)
+        {
+            IOrderedQueryable<Prescription>? orderedQuery = null;
+            var sortOrders = string.IsNullOrEmpty(sortOrder) 
+                ? new string[sortColumns.Length] 
+                : sortOrder.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            for (int i = 0; i < sortColumns.Length; i++)
+            {
+                var column = sortColumns[i].Trim();
+                var order = i < sortOrders.Length ? sortOrders[i].Trim().ToLower() : "asc";
+
+                // Check if order is embedded in column
+                if (column.Contains(':'))
+                {
+                    var parts = column.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    if (parts.Length == 2)
+                    {
+                        column = parts[0];
+                        order = parts[1].ToLower();
+                    }
+                }
+
+                var isAscending = order == "asc";
+
+                if (orderedQuery == null)
+                {
+                    orderedQuery = ApplyFirstSortColumnPrescription(query, column, isAscending);
+                }
+                else
+                {
+                    orderedQuery = ApplySubsequentSortColumnPrescription(orderedQuery, column, isAscending);
+                }
+            }
+
+            return orderedQuery ?? query.OrderByDescending(p => p.CreatedAt);
+        }
+
+        /// <summary>
+        /// Applies the first sort column for Prescriptions
+        /// </summary>
+        private IOrderedQueryable<Prescription> ApplyFirstSortColumnPrescription(IQueryable<Prescription> query, string column, bool isAscending)
+        {
+            return column.ToLower() switch
+            {
+                "datecreated" or "createdat" => isAscending ? query.OrderBy(p => p.CreatedAt) : query.OrderByDescending(p => p.CreatedAt),
+                "totalamount" or "amount" => isAscending ? query.OrderBy(p => p.TotalAmount) : query.OrderByDescending(p => p.TotalAmount),
+                "prescriptionnumber" or "number" => isAscending ? query.OrderBy(p => p.PrescriptionNumber) : query.OrderByDescending(p => p.PrescriptionNumber),
+                "status" => isAscending ? query.OrderBy(p => p.Status) : query.OrderByDescending(p => p.Status),
+                "prescribeddate" => isAscending ? query.OrderBy(p => p.PrescribedDate) : query.OrderByDescending(p => p.PrescribedDate),
+                _ => query.OrderByDescending(p => p.CreatedAt)
+            };
+        }
+
+        /// <summary>
+        /// Applies subsequent sort columns for Prescriptions
+        /// </summary>
+        private IOrderedQueryable<Prescription> ApplySubsequentSortColumnPrescription(IOrderedQueryable<Prescription> query, string column, bool isAscending)
+        {
+            return column.ToLower() switch
+            {
+                "datecreated" or "createdat" => isAscending ? query.ThenBy(p => p.CreatedAt) : query.ThenByDescending(p => p.CreatedAt),
+                "totalamount" or "amount" => isAscending ? query.ThenBy(p => p.TotalAmount) : query.ThenByDescending(p => p.TotalAmount),
+                "prescriptionnumber" or "number" => isAscending ? query.ThenBy(p => p.PrescriptionNumber) : query.ThenByDescending(p => p.PrescriptionNumber),
+                "status" => isAscending ? query.ThenBy(p => p.Status) : query.ThenByDescending(p => p.Status),
+                "prescribeddate" => isAscending ? query.ThenBy(p => p.PrescribedDate) : query.ThenByDescending(p => p.PrescribedDate),
+                _ => query
+            };
         }
 
         #region DTO-based Overloads

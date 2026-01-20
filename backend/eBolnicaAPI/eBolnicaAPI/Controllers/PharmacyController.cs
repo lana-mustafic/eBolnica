@@ -106,7 +106,8 @@ namespace eBolnicaAPI.Controllers
             query = _pharmacyService.GetFilteredMedications(query, Request.Query);
 
             // Get total count BEFORE pagination (for performance optimization)
-            var totalCount = await query.CountAsync();
+            // Use AsNoTracking() for read-only count query
+            var totalCount = await query.AsNoTracking().CountAsync();
 
             // NEW: Parameter validation and normalization
             // Use pageNumber if provided, otherwise fall back to 'page' for backward compatibility
@@ -145,7 +146,9 @@ namespace eBolnicaAPI.Controllers
             var takeValue = pageSize;
 
             // Apply pagination at database level using Entity Framework
+            // Use AsNoTracking() for read-only queries to improve performance
             var medications = await query
+                .AsNoTracking()
                 .Skip(skipValue)
                 .Take(takeValue)
                 .ToListAsync();
@@ -395,7 +398,8 @@ namespace eBolnicaAPI.Controllers
             query = _pharmacyService.GetFilteredPrescriptions(query, Request.Query);
 
             // Get total count BEFORE pagination (for performance optimization)
-            var totalCount = await query.CountAsync();
+            // Use AsNoTracking() for read-only count query
+            var totalCount = await query.AsNoTracking().CountAsync();
 
             // Parameter validation: pageNumber > 0
             if (pageNumber < 1) pageNumber = 1;
@@ -889,7 +893,8 @@ namespace eBolnicaAPI.Controllers
             query = _pharmacyService.GetFilteredInventory(query, Request.Query);
 
             // Get total count BEFORE pagination (for performance optimization)
-            var totalCount = await query.CountAsync();
+            // Use AsNoTracking() for read-only count query
+            var totalCount = await query.AsNoTracking().CountAsync();
 
             // Parameter validation: pageNumber > 0
             if (pageNumber < 1) pageNumber = 1;
