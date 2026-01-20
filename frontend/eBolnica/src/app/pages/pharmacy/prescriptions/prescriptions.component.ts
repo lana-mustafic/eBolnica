@@ -29,6 +29,11 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   isSearching: boolean = false;
   isSorting: boolean = false; // Specific flag for sort operations
   isGeneratingPdf: boolean = false; // PDF generation state
+  pdfProgress: number = 0; // PDF generation progress (0-100)
+  showPdfProgress: boolean = false; // Show progress indicator
+  wasGeneratingPdf: boolean = false; // Track state changes for screen reader (public for template)
+  private pdfSubscription?: any; // Track PDF request subscription for cancellation
+  private progressInterval?: any; // Progress simulation interval
   errorMessage: string | null = null;
 
   // Pagination
@@ -131,8 +136,31 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Clean up any ongoing PDF generation
+    if (this.isGeneratingPdf && this.pdfSubscription) {
+      this.pdfSubscription.unsubscribe();
+      console.log('[PrescriptionsComponent] PDF generation interrupted by navigation');
+    }
+
+    // Clear any timeouts/intervals
+    if (this.progressInterval) {
+      clearInterval(this.progressInterval);
+      this.progressInterval = undefined;
+    }
+
+    // Cancel sort debounce timer
+    if (this.sortDebounceTimer) {
+      clearTimeout(this.sortDebounceTimer);
+    }
+
+    // Unsubscribe from sort request
+    if (this.sortRequest$) {
+      this.sortRequest$.unsubscribe();
+    }
+
     this.destroy$.next();
     this.destroy$.complete();
+    this.searchSubject.complete();
   }
 
   /**
@@ -655,28 +683,54 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Get tooltip text for PDF export button
+   * Get tooltip text for PDF export button with loading state
    */
-  getExportButtonTooltip(): string {
+  getPdfButtonTooltip(): string {
     if (!this.canExportPdf()) {
       return 'No data available to export';
     }
+    
     if (this.isGeneratingPdf) {
-      return 'Generating PDF...';
+      if (this.pdfProgress > 0) {
+        return `Generating PDF... ${this.pdfProgress}% complete`;
+      }
+      return 'Generating PDF... Please wait';
     }
+    
     return `Export ${this.prescriptions.length} prescription(s) to PDF`;
   }
 
   /**
    * Export prescriptions to PDF
    * Uses PharmacyService to download PDF with current filters and sorting
+   * Includes loading state management and request deduplication
    */
   exportPrescriptionsToPdf(): void {
+    // Prevent duplicate requests
     if (!this.canExportPdf() || this.isGeneratingPdf) {
+      if (this.isGeneratingPdf) {
+        console.log('[PrescriptionsComponent] PDF generation already in progress');
+      }
       return;
     }
 
+    // Cancel any existing subscription
+    if (this.pdfSubscription) {
+      this.pdfSubscription.unsubscribe();
+    }
+
+    // Set loading state
     this.isGeneratingPdf = true;
+    this.wasGeneratingPdf = false;
+    this.showPdfProgress = true;
+    this.pdfProgress = 0;
+
+    // Simulate progress (will be replaced with actual progress events when backend supports it)
+    this.progressInterval = setInterval(() => {
+      if (this.pdfProgress < 90) {
+        this.pdfProgress += 10;
+      }
+    }, 300);
 
     // Build current filters from component state
     const filters: PharmacyFilters = {
@@ -689,9 +743,27 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
     };
 
     // Call service method to download PDF
-    this.pharmacyService.exportPrescriptionsToPdf(filters).pipe(
+    this.pdfSubscription = this.pharmacyService.exportPrescriptionsToPdf(filters).pipe(
       finalize(() => {
+        // Clear progress interval
+        if (this.progressInterval) {
+          clearInterval(this.progressInterval);
+          this.progressInterval = undefined;
+        }
+
+        // Complete progress
+        this.pdfProgress = 100;
+        this.wasGeneratingPdf = this.isGeneratingPdf;
         this.isGeneratingPdf = false;
+
+        // Hide progress after a short delay
+        setTimeout(() => {
+          this.showPdfProgress = false;
+          this.pdfProgress = 0;
+        }, 500);
+
+        // Clear subscription
+        this.pdfSubscription = undefined;
       })
     ).subscribe({
       next: () => {
@@ -703,6 +775,38 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
         this.showPdfError(error.message || 'Failed to generate PDF');
       }
     });
+  }
+
+  /**
+   * Cancel ongoing PDF generation
+   */
+  cancelPdfGeneration(): void {
+    if (this.pdfSubscription) {
+      this.pdfSubscription.unsubscribe();
+      this.pdfSubscription = undefined;
+    }
+
+    if (this.progressInterval) {
+      clearInterval(this.progressInterval);
+      this.progressInterval = undefined;
+    }
+
+    this.isGeneratingPdf = false;
+    this.showPdfProgress = false;
+    this.pdfProgress = 0;
+    console.log('[PrescriptionsComponent] PDF generation cancelled');
+  }
+
+  /**
+   * Get estimated time for PDF generation based on data size
+   */
+  getEstimatedTime(): string {
+    const itemCount = this.prescriptions.length;
+    
+    if (itemCount < 100) return '~10 seconds';
+    if (itemCount < 500) return '~30 seconds';
+    if (itemCount < 1000) return '~1 minute';
+    return 'Several minutes';
   }
 
   /**

@@ -691,48 +691,44 @@ export class PharmacyService {
 
     let errorMessage = 'Failed to generate PDF';
 
-    // Try to read error message from blob if error is a blob
-    if (error.error instanceof Blob) {
+    // Handle standard HTTP errors first (before blob parsing)
+    if (error.status === 404) {
+      errorMessage = 'PDF generation endpoint not available. This feature is currently being implemented on the backend.';
+    } else if (error.status === 401) {
+      errorMessage = 'Unauthorized. Please log in again.';
+    } else if (error.status === 403) {
+      errorMessage = 'Access denied. You do not have permission to generate PDF reports.';
+    } else if (error.status === 400) {
+      errorMessage = 'Invalid parameters for PDF generation';
+      if (error.error?.message) {
+        errorMessage = error.error.message;
+      }
+    } else if (error.status === 500) {
+      errorMessage = 'Server error during PDF generation. Please try again later.';
+    } else if (error.status === 0) {
+      errorMessage = 'Network error. Please check your connection.';
+    } else if (error.error instanceof Blob) {
+      // Try to read error message from blob if error is a blob
+      // Note: This is asynchronous, so we'll use a default message for now
+      errorMessage = 'PDF generation failed. Please check server logs for details.';
+      
+      // Attempt to read blob asynchronously for logging (but don't wait)
       const reader = new FileReader();
       reader.onload = () => {
         try {
           const errorObj = JSON.parse(reader.result as string);
-          errorMessage = errorObj.message || errorMessage;
+          console.error('[PharmacyService] PDF error details from blob:', errorObj);
         } catch (e) {
-          // If parsing fails, use default message
-          errorMessage = 'PDF generation failed';
+          // If parsing fails, log the raw text
+          console.error('[PharmacyService] PDF error blob content:', reader.result);
         }
       };
       reader.readAsText(error.error);
     } else {
-      // Handle standard HTTP errors
-      switch (error.status) {
-        case 400:
-          errorMessage = 'Invalid parameters for PDF generation';
-          if (error.error?.message) {
-            errorMessage = error.error.message;
-          }
-          break;
-        case 401:
-          errorMessage = 'Unauthorized. Please log in again.';
-          break;
-        case 403:
-          errorMessage = 'Access denied. You do not have permission to generate PDF reports.';
-          break;
-        case 404:
-          errorMessage = 'PDF generation service unavailable';
-          break;
-        case 500:
-          errorMessage = 'Server error during PDF generation. Please try again later.';
-          break;
-        case 0:
-          errorMessage = 'Network error. Please check your connection.';
-          break;
-        default:
-          errorMessage = `PDF generation failed: ${error.statusText || 'Unknown error'}`;
-          if (error.error?.message) {
-            errorMessage = error.error.message;
-          }
+      // Default error message
+      errorMessage = `PDF generation failed: ${error.statusText || 'Unknown error'}`;
+      if (error.error?.message) {
+        errorMessage = error.error.message;
       }
     }
 
