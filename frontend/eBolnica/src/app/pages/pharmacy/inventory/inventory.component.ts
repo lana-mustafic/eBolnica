@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
 import { PharmacyFilterService } from '../../../shared/services/pharmacy/pharmacy-filter.service';
+import { NotificationService } from '../../../shared/services/notification.service';
 import { FilterSummaryComponent } from '../../../shared/components/filter-summary/filter-summary.component';
 import { ActiveFiltersComponent } from '../../../shared/components/active-filters/active-filters.component';
 import { SortStatusComponent } from '../../../shared/components/sort-status/sort-status.component';
@@ -26,6 +27,7 @@ type ExpiryStatus = 'good' | 'warning' | 'critical' | 'expired';
 export class InventoryComponent implements OnInit, OnDestroy {
   protected pharmacyService = inject(PharmacyService);
   protected filterService = inject(PharmacyFilterService);
+  private notificationService = inject(NotificationService);
 
   inventoryItems: MedicationDto[] = [];
   sortedInventoryItems: MedicationDto[] = []; // Client-side sorted items
@@ -862,13 +864,21 @@ export class InventoryComponent implements OnInit, OnDestroy {
         this.pdfSubscription = undefined;
       })
     ).subscribe({
-      next: () => {
+      next: (response: any) => {
         // Download handled in service
         console.log('[InventoryComponent] PDF download completed');
+        
+        // Extract file info from response
+        const fileInfo = response?.fileInfo || { fileName: 'inventory-report.pdf', fileSize: 0 };
+        const itemCount = this.inventoryItems.length;
+        
+        // Show success notification
+        this.showPdfSuccess(fileInfo.fileName, fileInfo.fileSize, itemCount);
       },
       error: (error: any) => {
         console.error('[InventoryComponent] PDF export error:', error);
-        this.showPdfError(error.message || 'Failed to generate PDF');
+        const errorMessage = this.getPdfErrorMessage(error);
+        this.showPdfError(errorMessage);
       }
     });
   }
@@ -906,11 +916,79 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Show PDF error message to user
+   * Show PDF success notification
+   */
+  private showPdfSuccess(fileName: string, fileSize: number, itemCount: number): void {
+    const sizeText = this.formatFileSize(fileSize);
+    const countText = `${itemCount} item${itemCount !== 1 ? 's' : ''}`;
+    
+    this.notificationService.success(
+      'PDF Download Complete',
+      `${fileName} (${sizeText}) with ${countText} has been downloaded successfully.`,
+      {
+        duration: 6000,
+        position: 'bottom-right',
+        icon: 'check-circle'
+      }
+    );
+  }
+
+  /**
+   * Show PDF error notification with retry option
    */
   private showPdfError(message: string): void {
-    alert(`PDF Export Error: ${message}`);
-    // Could be replaced with a toast notification or inline error message
+    this.notificationService.error(
+      'PDF Generation Failed',
+      message,
+      {
+        duration: 8000,
+        position: 'bottom-right',
+        icon: 'exclamation-triangle',
+        actionText: 'Retry',
+        onAction: () => this.exportInventoryToPdf()
+      }
+    );
+  }
+
+  /**
+   * Get specific error message based on error type
+   */
+  private getPdfErrorMessage(error: any): string {
+    if (error.status === 0) {
+      return 'Network error. Please check your internet connection.';
+    }
+    
+    if (error.status === 400) {
+      return 'Invalid request parameters. Please try different filters.';
+    }
+    
+    if (error.status === 404) {
+      return 'PDF generation service is currently unavailable.';
+    }
+    
+    if (error.status === 413) {
+      return 'Report is too large. Try applying more filters.';
+    }
+    
+    if (error.status === 500) {
+      return 'Server error during PDF generation. Please try again.';
+    }
+    
+    if (error.message?.includes('timeout')) {
+      return 'PDF generation timed out. Try with fewer items.';
+    }
+    
+    return error.message || 'Failed to generate PDF. Please try again.';
+  }
+
+  /**
+   * Format file size for display
+   */
+  private formatFileSize(bytes: number): string {
+    if (!bytes || bytes === 0) return 'Unknown size';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
   }
 
   exportToCSV(): void {

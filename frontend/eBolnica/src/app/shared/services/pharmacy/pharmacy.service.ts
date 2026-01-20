@@ -491,7 +491,9 @@ export class PharmacyService {
     ).pipe(
       tap(response => {
         console.log('[PharmacyService] PDF download initiated');
-        this.handlePdfDownload(response, 'inventory-report', filters);
+        const fileInfo = this.handlePdfDownload(response, 'inventory-report', filters);
+        // Store file info for component to access
+        (response as any).fileInfo = fileInfo;
       }),
       catchError(error => this.handlePdfError(error))
     );
@@ -518,7 +520,9 @@ export class PharmacyService {
     ).pipe(
       tap(response => {
         console.log('[PharmacyService] PDF download initiated');
-        this.handlePdfDownload(response, 'prescriptions-report', filters);
+        const fileInfo = this.handlePdfDownload(response, 'prescriptions-report', filters);
+        // Store file info for component to access
+        (response as any).fileInfo = fileInfo;
       }),
       catchError(error => this.handlePdfError(error))
     );
@@ -561,8 +565,9 @@ export class PharmacyService {
    * @param response HTTP response containing PDF blob
    * @param defaultFileName Default filename if not provided in headers
    * @param filters Filter parameters for generating meaningful filename
+   * @returns File name and size for notification
    */
-  private handlePdfDownload(response: HttpResponse<Blob>, defaultFileName: string, filters?: PharmacyFilters): void {
+  private handlePdfDownload(response: HttpResponse<Blob>, defaultFileName: string, filters?: PharmacyFilters): { fileName: string; fileSize: number } {
     // Validate response type is PDF
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.includes('application/pdf')) {
@@ -611,6 +616,12 @@ export class PharmacyService {
     }, 100);
 
     console.log('[PharmacyService] PDF downloaded:', fileName);
+
+    // Return file info for notification
+    return {
+      fileName: fileName,
+      fileSize: blob.size
+    };
   }
 
   /**
