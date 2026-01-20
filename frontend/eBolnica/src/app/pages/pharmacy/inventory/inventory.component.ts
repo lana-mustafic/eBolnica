@@ -33,6 +33,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   expiryAlerts: MedicationDto[] = [];
   isLoading: boolean = false;
   isSearching: boolean = false; // Separate flag for search loading
+  isGeneratingPdf: boolean = false; // PDF generation state
   errorMessage: string | null = null;
 
   // Pagination
@@ -749,6 +750,46 @@ export class InventoryComponent implements OnInit, OnDestroy {
       style: 'currency',
       currency: 'USD'
     }).format(amount);
+  }
+
+  /**
+   * Check if PDF export is available
+   */
+  canExportPdf(): boolean {
+    return this.inventoryItems && this.inventoryItems.length > 0;
+  }
+
+  /**
+   * Get tooltip text for PDF export button
+   */
+  getExportButtonTooltip(): string {
+    if (!this.canExportPdf()) {
+      return 'No data available to export';
+    }
+    if (this.isGeneratingPdf) {
+      return 'Generating PDF...';
+    }
+    return `Export ${this.inventoryItems.length} item(s) to PDF`;
+  }
+
+  /**
+   * Export inventory to PDF
+   * Placeholder method - to be implemented in Task 2
+   */
+  exportInventoryToPdf(): void {
+    if (!this.canExportPdf() || this.isGeneratingPdf) {
+      return;
+    }
+
+    console.log('PDF export clicked - feature coming soon');
+    this.isGeneratingPdf = true;
+
+    // Simulate API call - will be replaced with actual PDF generation in Task 2
+    setTimeout(() => {
+      this.isGeneratingPdf = false;
+      // Temporary notification - will be replaced with actual PDF download
+      alert('PDF export will be implemented in the next task');
+    }, 1000);
   }
 
   exportToCSV(): void {

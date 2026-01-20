@@ -28,6 +28,7 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   isLoading: boolean = false;
   isSearching: boolean = false;
   isSorting: boolean = false; // Specific flag for sort operations
+  isGeneratingPdf: boolean = false; // PDF generation state
   errorMessage: string | null = null;
 
   // Pagination
