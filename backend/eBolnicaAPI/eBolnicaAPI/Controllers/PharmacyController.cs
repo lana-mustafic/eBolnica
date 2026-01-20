@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Security.Claims;
 using System.Text.Json;
@@ -1216,7 +1217,473 @@ namespace eBolnicaAPI.Controllers
 
         #endregion
 
+        #region PDF Reports
+
+        /// <summary>
+        /// Generates a PDF report of inventory items with optional filtering
+        /// </summary>
+        /// <remarks>
+        /// Generates a PDF report containing inventory items based on the provided filters and sorting options.
+        /// Supports all filtering and sorting options available in the GetInventory endpoint.
+        /// 
+        /// **Filter Parameters:**
+        /// - search: Search term for filtering by name, description, etc.
+        /// - category: Filter by medication category
+        /// - stockStatus: Filter by stock status (normal stock, low stock, out of stock)
+        /// - minPrice, maxPrice: Price range filters
+        /// - isActive: Filter by active status
+        /// - requiresPrescription: Filter by prescription requirement
+        /// - expiryBefore, expiryAfter: Expiry date range filters
+        /// 
+        /// **Sorting Parameters:**
+        /// - sortBy: Column to sort by (e.g., "name", "price", "expiryDate")
+        /// - sortOrder: Sort order ("asc" or "desc", default: "desc")
+        /// 
+        /// **PDF Options:**
+        /// - includeAllData: If true, includes all matching items regardless of PageSize (default: true)
+        /// - reportType: "summary" or "detailed" (default: "detailed")
+        /// 
+        /// **Response:**
+        /// Returns a PDF file with appropriate Content-Disposition header for download.
+        /// </remarks>
+        /// <param name="request">Filter and sorting parameters for the report</param>
+        /// <returns>PDF file containing the inventory report</returns>
+        /// <response code="200">Returns the PDF file</response>
+        /// <response code="400">Invalid request parameters</response>
+        /// <response code="401">Unauthorized - JWT token required</response>
+        /// <response code="403">Forbidden - Pharmacist role required</response>
+        /// <response code="422">Unprocessable Entity - Invalid filter combination</response>
+        /// <response code="500">Error generating PDF</response>
+        [HttpGet("reports/inventory/pdf")]
+        [Authorize(Roles = "Pharmacist")]
+        [Produces("application/pdf", "application/json")]
+        [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GenerateInventoryPdfReport([FromQuery] PharmacyPdfReportRequest request)
+        {
+            try
+            {
+                // 1. Validate request parameters
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                // Validate using IValidatableObject
+                var validationResults = request.Validate(new ValidationContext(request));
+                if (validationResults.Any())
+                {
+                    foreach (var error in validationResults)
+                    {
+                        ModelState.AddModelError(error.MemberNames.FirstOrDefault() ?? "", error.ErrorMessage ?? "");
+                    }
+                    return BadRequest(ModelState);
+                }
+
+                // Log PDF generation request for audit trail
+                _logger.LogInformation(
+                    "PDF generation requested - User: {User}, Type: {Type}, Filters: {Filters}",
+                    User.Identity?.Name ?? "Unknown",
+                    "inventory",
+                    JsonSerializer.Serialize(request));
+
+                // 2. Convert request to PharmacyQueryParameters for filtering
+                var queryParams = ConvertPdfRequestToQueryParameters(request);
+
+                // 3. Get filtered data using existing service methods
+                var baseQuery = _context.Medications.AsQueryable();
+                var filteredQuery = _pharmacyService.GetFilteredInventory(baseQuery, queryParams);
+                var sortedQuery = _pharmacyService.ApplySorting(filteredQuery, queryParams.SortBy, queryParams.SortOrder);
+
+                // If IncludeAllData is true, get all matching items (override pagination)
+                var inventoryItems = request.IncludeAllData
+                    ? await sortedQuery.AsNoTracking().ToListAsync()
+                    : await sortedQuery.AsNoTracking()
+                        .Skip((queryParams.PageNumber - 1) * queryParams.PageSize)
+                        .Take(queryParams.PageSize)
+                        .ToListAsync();
+
+                // 4. Generate PDF (placeholder - will be implemented in later tasks)
+                var pdfBytes = await GenerateInventoryPdfBytesAsync(inventoryItems, request);
+
+                // 5. Return PDF file with proper headers
+                var fileName = GetInventoryPdfFileName(request);
+                return ReturnPdfFile(pdfBytes, fileName);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid argument for PDF generation");
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Invalid operation for PDF generation");
+                return StatusCode(422, new { error = ex.Message });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                _logger.LogWarning("Unauthorized PDF generation attempt");
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating inventory PDF report");
+                return StatusCode(500, new { error = "Internal server error generating PDF" });
+            }
+        }
+
+        /// <summary>
+        /// Generates a PDF report of prescriptions with optional filtering
+        /// </summary>
+        /// <remarks>
+        /// Generates a PDF report containing prescriptions based on the provided filters and sorting options.
+        /// Supports all filtering and sorting options available in the GetPrescriptions endpoint.
+        /// 
+        /// **Filter Parameters:**
+        /// - status: Filter by prescription status (Pending, Approved, Dispensed, Cancelled)
+        /// - search: Search term for filtering by patient name, medication name, etc.
+        /// - minPrice, maxPrice: Price range filters
+        /// - prescriptionStatus: Alternative status filter
+        /// 
+        /// **Sorting Parameters:**
+        /// - sortBy: Column to sort by (e.g., "createdAt", "prescribedDate", "totalAmount")
+        /// - sortOrder: Sort order ("asc" or "desc", default: "desc")
+        /// 
+        /// **PDF Options:**
+        /// - includeAllData: If true, includes all matching items regardless of PageSize (default: true)
+        /// - reportType: "summary" or "detailed" (default: "detailed")
+        /// 
+        /// **Response:**
+        /// Returns a PDF file with appropriate Content-Disposition header for download.
+        /// </remarks>
+        /// <param name="request">Filter and sorting parameters for the report</param>
+        /// <returns>PDF file containing the prescriptions report</returns>
+        /// <response code="200">Returns the PDF file</response>
+        /// <response code="400">Invalid request parameters</response>
+        /// <response code="401">Unauthorized - JWT token required</response>
+        /// <response code="403">Forbidden - Pharmacist role required</response>
+        /// <response code="422">Unprocessable Entity - Invalid filter combination</response>
+        /// <response code="500">Error generating PDF</response>
+        [HttpGet("reports/prescriptions/pdf")]
+        [Authorize(Roles = "Pharmacist")]
+        [Produces("application/pdf", "application/json")]
+        [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GeneratePrescriptionsPdfReport([FromQuery] PharmacyPdfReportRequest request)
+        {
+            try
+            {
+                // 1. Validate request parameters
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                // Validate using IValidatableObject
+                var validationResults = request.Validate(new ValidationContext(request));
+                if (validationResults.Any())
+                {
+                    foreach (var error in validationResults)
+                    {
+                        ModelState.AddModelError(error.MemberNames.FirstOrDefault() ?? "", error.ErrorMessage ?? "");
+                    }
+                    return BadRequest(ModelState);
+                }
+
+                // Log PDF generation request for audit trail
+                _logger.LogInformation(
+                    "PDF generation requested - User: {User}, Type: {Type}, Filters: {Filters}",
+                    User.Identity?.Name ?? "Unknown",
+                    "prescriptions",
+                    JsonSerializer.Serialize(request));
+
+                // 2. Convert request to PharmacyQueryParameters for filtering
+                var queryParams = ConvertPdfRequestToQueryParameters(request);
+
+                // 3. Get filtered data using existing service methods
+                var baseQuery = _context.Prescriptions
+                    .AsNoTracking()
+                    .Include(p => p.Patient)
+                        .ThenInclude(pat => pat.AppUser)
+                    .Include(p => p.Doctor)
+                        .ThenInclude(d => d.AppUser)
+                    .Include(p => p.PrescriptionItems)
+                        .ThenInclude(pi => pi.Medication)
+                    .AsQueryable();
+
+                var filteredQuery = _pharmacyService.GetFilteredPrescriptions(baseQuery, queryParams);
+                var sortedQuery = _pharmacyService.ApplySorting(filteredQuery, queryParams.SortBy, queryParams.SortOrder);
+
+                // If IncludeAllData is true, get all matching items (override pagination)
+                var prescriptions = request.IncludeAllData
+                    ? await sortedQuery.AsNoTracking().ToListAsync()
+                    : await sortedQuery.AsNoTracking()
+                        .Skip((queryParams.PageNumber - 1) * queryParams.PageSize)
+                        .Take(queryParams.PageSize)
+                        .ToListAsync();
+
+                // 4. Generate PDF (placeholder - will be implemented in later tasks)
+                var pdfBytes = await GeneratePrescriptionsPdfBytesAsync(prescriptions, request);
+
+                // 5. Return PDF file with proper headers
+                var fileName = GetPrescriptionsPdfFileName(request);
+                return ReturnPdfFile(pdfBytes, fileName);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid argument for PDF generation");
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Invalid operation for PDF generation");
+                return StatusCode(422, new { error = ex.Message });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                _logger.LogWarning("Unauthorized PDF generation attempt");
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating prescriptions PDF report");
+                return StatusCode(500, new { error = "Internal server error generating PDF" });
+            }
+        }
+
+        #endregion
+
         #region Helper Methods
+
+        /// <summary>
+        /// Converts PharmacyPdfReportRequest to PharmacyQueryParameters for filtering
+        /// </summary>
+        private PharmacyQueryParameters ConvertPdfRequestToQueryParameters(PharmacyPdfReportRequest request)
+        {
+            return new PharmacyQueryParameters
+            {
+                PageNumber = request.PageNumber,
+                PageSize = request.IncludeAllData ? int.MaxValue : request.PageSize,
+                SortBy = request.SortBy,
+                SortOrder = request.SortOrder ?? "desc",
+                SearchTerm = request.Search,
+                Category = request.Category,
+                Status = request.Status ?? request.PrescriptionStatus,
+                MinPrice = request.MinPrice,
+                MaxPrice = request.MaxPrice,
+                IsActive = request.IsActive,
+                RequiresPrescription = request.RequiresPrescription,
+                StockStatus = request.StockStatus,
+                ExpiryBefore = request.ExpiryBefore,
+                ExpiryAfter = request.ExpiryAfter
+            };
+        }
+
+        /// <summary>
+        /// Returns PDF file with proper headers for download
+        /// </summary>
+        private IActionResult ReturnPdfFile(byte[] pdfBytes, string fileName)
+        {
+            // Set security and cache headers
+            Response.Headers.Add("Cache-Control", "no-cache, no-store, must-revalidate");
+            Response.Headers.Add("Pragma", "no-cache");
+            Response.Headers.Add("Expires", "0");
+            Response.Headers.Add("X-Content-Type-Options", "nosniff");
+            Response.Headers.Add("X-Frame-Options", "DENY"); // Prevent clickjacking
+            Response.Headers.Add("Content-Length", pdfBytes.Length.ToString());
+
+            // Set Content-Disposition for download
+            var contentDisposition = $"attachment; filename=\"{fileName}\"; filename*=UTF-8''{Uri.EscapeDataString(fileName)}";
+            Response.Headers.Add("Content-Disposition", contentDisposition);
+
+            return File(pdfBytes, "application/pdf");
+        }
+
+        /// <summary>
+        /// Generates filename for inventory PDF report
+        /// </summary>
+        private string GetInventoryPdfFileName(PharmacyPdfReportRequest request)
+        {
+            var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+            var baseName = "inventory-report";
+
+            // Add filter info to filename if applicable
+            var filterParts = new List<string>();
+
+            if (!string.IsNullOrEmpty(request.Search))
+            {
+                var searchSnippet = request.Search.Length > 20 
+                    ? request.Search.Substring(0, 20).Replace(" ", "_") 
+                    : request.Search.Replace(" ", "_");
+                filterParts.Add($"search-{searchSnippet}");
+            }
+
+            if (!string.IsNullOrEmpty(request.Category))
+            {
+                var categorySnippet = request.Category.Replace(" ", "_");
+                filterParts.Add($"category-{categorySnippet}");
+            }
+
+            if (request.ExpiryBefore.HasValue)
+            {
+                filterParts.Add($"expiry-before-{request.ExpiryBefore.Value:yyyy-MM-dd}");
+            }
+
+            if (request.ExpiryAfter.HasValue)
+            {
+                filterParts.Add($"expiry-after-{request.ExpiryAfter.Value:yyyy-MM-dd}");
+            }
+
+            if (filterParts.Any())
+            {
+                baseName += "_" + string.Join("_", filterParts);
+            }
+
+            return $"{baseName}_{timestamp}.pdf";
+        }
+
+        /// <summary>
+        /// Generates filename for prescriptions PDF report
+        /// </summary>
+        private string GetPrescriptionsPdfFileName(PharmacyPdfReportRequest request)
+        {
+            var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+            var baseName = "prescriptions-report";
+
+            // Add filter info to filename if applicable
+            var filterParts = new List<string>();
+
+            if (!string.IsNullOrEmpty(request.Search))
+            {
+                var searchSnippet = request.Search.Length > 20 
+                    ? request.Search.Substring(0, 20).Replace(" ", "_") 
+                    : request.Search.Replace(" ", "_");
+                filterParts.Add($"search-{searchSnippet}");
+            }
+
+            if (!string.IsNullOrEmpty(request.Status) || !string.IsNullOrEmpty(request.PrescriptionStatus))
+            {
+                var status = request.Status ?? request.PrescriptionStatus ?? "";
+                filterParts.Add($"status-{status.Replace(" ", "_")}");
+            }
+
+            if (filterParts.Any())
+            {
+                baseName += "_" + string.Join("_", filterParts);
+            }
+
+            return $"{baseName}_{timestamp}.pdf";
+        }
+
+        /// <summary>
+        /// Generates PDF bytes for inventory report (placeholder - to be implemented)
+        /// </summary>
+        private async Task<byte[]> GenerateInventoryPdfBytesAsync(List<Medication> medications, PharmacyPdfReportRequest request)
+        {
+            // TODO: Implement actual PDF generation using a PDF library (e.g., QuestPDF, iTextSharp, etc.)
+            // For now, return a simple placeholder PDF
+            
+            await Task.CompletedTask; // Async placeholder
+
+            // Simple PDF structure (minimal valid PDF)
+            var pdfContent = $@"%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 100 >>
+stream
+BT
+/F1 12 Tf
+100 700 Td
+(Inventory Report - {medications.Count} items) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000265 00000 n 
+0000000393 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+480
+%%EOF";
+
+            return System.Text.Encoding.UTF8.GetBytes(pdfContent);
+        }
+
+        /// <summary>
+        /// Generates PDF bytes for prescriptions report (placeholder - to be implemented)
+        /// </summary>
+        private async Task<byte[]> GeneratePrescriptionsPdfBytesAsync(List<Prescription> prescriptions, PharmacyPdfReportRequest request)
+        {
+            // TODO: Implement actual PDF generation using a PDF library (e.g., QuestPDF, iTextSharp, etc.)
+            // For now, return a simple placeholder PDF
+            
+            await Task.CompletedTask; // Async placeholder
+
+            // Simple PDF structure (minimal valid PDF)
+            var pdfContent = $@"%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 110 >>
+stream
+BT
+/F1 12 Tf
+100 700 Td
+(Prescriptions Report - {prescriptions.Count} items) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000265 00000 n 
+0000000393 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+490
+%%EOF";
+
+            return System.Text.Encoding.UTF8.GetBytes(pdfContent);
+        }
 
         /// <summary>
         /// Counts active filters for medications query
