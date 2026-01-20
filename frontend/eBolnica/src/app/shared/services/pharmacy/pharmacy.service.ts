@@ -8,6 +8,7 @@ import { PrescriptionDto } from '../../../models/prescription.dto';
 import { PrescriptionCreateDto } from '../../../models/prescription-create.dto';
 import { PrescriptionDispenseDto } from '../../../models/prescription-dispense.dto';
 import { PagedResponse } from '../../../models/paged-response.dto';
+import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 
 /**
  * Filter parameters for medication queries
@@ -207,5 +208,151 @@ export class PharmacyService {
 
   getPharmacistData(): Observable<PharmacistDataDto> {
     return this.http.get<PharmacistDataDto>(this.apiUrl + '/pharmacist-data');
+  }
+
+  // Unified Filter Methods
+
+  /**
+   * Get medications using unified PharmacyFilters
+   * Maps PharmacyFilters to API query parameters
+   */
+  getMedicationsWithFilters(filters: PharmacyFilters): Observable<PagedResponse<MedicationDto>> {
+    const params = this.buildMedicationQueryParams(filters);
+    return this.http.get<PagedResponse<MedicationDto>>(`${this.apiUrl}/medications`, { params });
+  }
+
+  /**
+   * Get prescriptions using unified PharmacyFilters
+   */
+  getPrescriptionsWithFilters(filters: PharmacyFilters): Observable<PagedResponse<PrescriptionDto>> {
+    const params = this.buildPrescriptionQueryParams(filters);
+    return this.http.get<PagedResponse<PrescriptionDto>>(`${this.apiUrl}/prescriptions`, { params });
+  }
+
+  /**
+   * Get inventory using unified PharmacyFilters
+   */
+  getInventoryWithFilters(filters: PharmacyFilters): Observable<PagedResponse<MedicationDto> & { LowStockAlerts: MedicationDto[]; ExpiryAlerts: MedicationDto[] }> {
+    const params = this.buildInventoryQueryParams(filters);
+    return this.http.get<any>(`${this.apiUrl}/inventory`, { params });
+  }
+
+  /**
+   * Build query parameters for medications from PharmacyFilters
+   */
+  private buildMedicationQueryParams(filters: PharmacyFilters): HttpParams {
+    let params = new HttpParams()
+      .set('pageNumber', (filters.pageNumber || 1).toString())
+      .set('pageSize', Math.max(5, Math.min(100, filters.pageSize || 10)).toString());
+
+    // Search
+    if (filters.searchTerm?.trim()) {
+      params = params.set('search', filters.searchTerm.trim());
+    }
+
+    // Category
+    if (filters.category) {
+      params = params.set('category', filters.category);
+    }
+
+    // Stock status
+    if (filters.stockStatus) {
+      const validStatuses = ['low stock', 'out of stock', 'normal stock'];
+      const normalizedStatus = filters.stockStatus.toLowerCase();
+      if (validStatuses.includes(normalizedStatus)) {
+        params = params.set('stockStatus', normalizedStatus);
+      }
+    }
+
+    // Requires prescription
+    if (filters.requiresPrescription !== undefined && filters.requiresPrescription !== null) {
+      params = params.set('requiresPrescription', filters.requiresPrescription.toString());
+    }
+
+    // Active status
+    if (filters.isActive !== undefined && filters.isActive !== null) {
+      params = params.set('isActive', filters.isActive.toString());
+    }
+
+    // Price range
+    if (filters.minPrice !== undefined && filters.minPrice !== null) {
+      params = params.set('minPrice', filters.minPrice.toString());
+    }
+    if (filters.maxPrice !== undefined && filters.maxPrice !== null) {
+      params = params.set('maxPrice', filters.maxPrice.toString());
+    }
+
+    // Sorting
+    if (filters.sortBy) {
+      params = params.set('sortBy', filters.sortBy);
+    }
+    if (filters.sortOrder) {
+      params = params.set('sortOrder', filters.sortOrder);
+    }
+
+    return params;
+  }
+
+  /**
+   * Build query parameters for prescriptions from PharmacyFilters
+   */
+  private buildPrescriptionQueryParams(filters: PharmacyFilters): HttpParams {
+    let params = new HttpParams()
+      .set('pageNumber', (filters.pageNumber || 1).toString())
+      .set('pageSize', Math.max(5, Math.min(100, filters.pageSize || 10)).toString());
+
+    // Search
+    if (filters.searchTerm?.trim()) {
+      params = params.set('search', filters.searchTerm.trim());
+    }
+
+    // Status (prescriptionStatus maps to status)
+    if (filters.prescriptionStatus && filters.prescriptionStatus !== 'All') {
+      params = params.set('status', filters.prescriptionStatus);
+    }
+
+    // Sorting
+    if (filters.sortBy) {
+      params = params.set('sortBy', filters.sortBy);
+    }
+    if (filters.sortOrder) {
+      params = params.set('sortOrder', filters.sortOrder);
+    }
+
+    return params;
+  }
+
+  /**
+   * Build query parameters for inventory from PharmacyFilters
+   */
+  private buildInventoryQueryParams(filters: PharmacyFilters): HttpParams {
+    let params = new HttpParams()
+      .set('pageNumber', (filters.pageNumber || 1).toString())
+      .set('pageSize', Math.max(5, Math.min(100, filters.pageSize || 10)).toString());
+
+    // Search
+    if (filters.searchTerm?.trim()) {
+      params = params.set('search', filters.searchTerm.trim());
+    }
+
+    // Category
+    if (filters.category) {
+      params = params.set('category', filters.category);
+    }
+
+    // Stock status
+    if (filters.stockStatus) {
+      params = params.set('stockStatus', filters.stockStatus);
+    }
+
+    // Sorting
+    if (filters.sortBy) {
+      params = params.set('sortBy', filters.sortBy);
+    }
+    if (filters.sortOrder) {
+      params = params.set('sortOrder', filters.sortOrder);
+    }
+
+    return params;
   }
 }

@@ -2,8 +2,10 @@ import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { PharmacyService, PrescriptionFilterParams } from '../../../shared/services/pharmacy/pharmacy.service';
+import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
+import { PharmacyFilterService } from '../../../shared/services/pharmacy/pharmacy-filter.service';
 import { PrescriptionDto } from '../../../models/prescription.dto';
+import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap } from 'rxjs';
 
 @Component({
@@ -15,10 +17,11 @@ import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeU
 })
 export class PrescriptionsComponent implements OnInit, OnDestroy {
   private pharmacyService = inject(PharmacyService);
+  private filterService = inject(PharmacyFilterService);
 
   prescriptions: PrescriptionDto[] = [];
   isLoading: boolean = false;
-  isSearching: boolean = false; // Separate flag for search loading
+  isSearching: boolean = false;
   errorMessage: string | null = null;
 
   // Pagination
@@ -45,22 +48,34 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   sortBy: string = 'date';
   sortOrder: 'asc' | 'desc' = 'desc';
 
+  // Active filters for display
+  activeFilters = this.filterService.getActiveFilters();
+
   ngOnInit(): void {
+    // Initialize filters from service
+    const currentFilters = this.filterService.getFilters();
+    this.syncUIFromFilters(currentFilters);
+
+    // Load initial data
     this.loadPrescriptions();
-    
-    // Setup debounced search with switchMap to cancel previous requests
+
+    // Setup debounced search that combines with dropdown filters
     this.searchSubject.pipe(
       debounceTime(300),
       distinctUntilChanged(),
-      tap(() => {
+      takeUntil(this.destroy$)
+    ).subscribe(searchTerm => {
+      this.searchTerm = searchTerm;
+      this.updateFilters({ searchTerm: searchTerm || undefined });
+    });
+
+    // Subscribe to filter changes from service
+    this.filterService.getFilters$().pipe(
+      debounceTime(150),
+      switchMap(filters => {
         this.isSearching = true;
-        this.currentPage = 1; // Reset to first page on search
-      }),
-      switchMap(searchTerm => {
-        this.searchTerm = searchTerm;
-        // Build filters with search term
-        const filters = this.buildFilterParams();
-        return this.pharmacyService.getPrescriptions(filters).pipe(
+        this.syncUIFromFilters(filters);
+        return this.pharmacyService.getPrescriptionsWithFilters(filters).pipe(
           finalize(() => this.isSearching = false)
         );
       }),
@@ -73,12 +88,13 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
         this.currentPage = response.currentPage || 1;
         this.pageSize = response.pageSize || 10;
         this.updateFilterCounts();
+        this.activeFilters = this.filterService.getActiveFilters();
         this.errorMessage = null;
       },
       error: (error) => {
         this.isSearching = false;
-        this.errorMessage = 'Search failed. Please try again.';
-        console.error('Error searching prescriptions:', error);
+        this.errorMessage = 'Failed to load prescriptions. Please try again.';
+        console.error('Error loading prescriptions:', error);
       }
     });
   }
@@ -89,59 +105,62 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Build filter parameters object from current component state
+   * Sync UI state from filter service state
    */
-  private buildFilterParams(): PrescriptionFilterParams {
-    const filters: PrescriptionFilterParams = {
-      page: this.currentPage,
+  private syncUIFromFilters(filters: PharmacyFilters): void {
+    this.searchTerm = filters.searchTerm || '';
+    this.selectedStatus = filters.prescriptionStatus || 'Pending';
+    this.currentPage = filters.pageNumber || 1;
+    this.pageSize = filters.pageSize || 10;
+    if (filters.sortBy) this.sortBy = filters.sortBy;
+    if (filters.sortOrder) this.sortOrder = filters.sortOrder as 'asc' | 'desc';
+  }
+
+  /**
+   * Build PharmacyFilters from current UI state
+   */
+  private buildFiltersFromUI(): Partial<PharmacyFilters> {
+    const filters: Partial<PharmacyFilters> = {
+      pageNumber: this.currentPage,
       pageSize: this.pageSize
     };
 
-    if (this.selectedStatus && this.selectedStatus !== 'All') {
-      filters.status = this.selectedStatus;
+    if (this.searchTerm?.trim()) {
+      filters.searchTerm = this.searchTerm.trim();
     }
 
-    if (this.searchTerm.trim()) {
-      filters.search = this.searchTerm.trim();
+    if (this.selectedStatus && this.selectedStatus !== 'All') {
+      filters.prescriptionStatus = this.selectedStatus;
+    }
+
+    if (this.sortBy) {
+      filters.sortBy = this.sortBy;
+    }
+    if (this.sortOrder) {
+      filters.sortOrder = this.sortOrder;
     }
 
     return filters;
   }
 
+  /**
+   * Update filters in service (triggers API call)
+   */
+  private updateFilters(updates: Partial<PharmacyFilters>): void {
+    this.filterService.updateFilters(updates);
+  }
+
   loadPrescriptions(): void {
-    this.isLoading = true;
-    this.errorMessage = null;
-
-    const filters = this.buildFilterParams();
-
-    this.pharmacyService.getPrescriptions(filters).pipe(
-      finalize(() => this.isLoading = false)
-    ).subscribe({
-      next: (response) => {
-        this.prescriptions = response.items || [];
-        this.totalCount = response.totalCount || 0;
-        this.totalPages = response.totalPages || 0;
-        this.currentPage = response.currentPage || 1;
-        this.pageSize = response.pageSize || 10;
-        this.updateFilterCounts();
-      },
-      error: (error) => {
-        this.errorMessage = 'Failed to load prescriptions. Please try again later.';
-        console.error('Error loading prescriptions:', error);
-      }
-    });
+    const filters = this.buildFiltersFromUI();
+    this.updateFilters(filters);
   }
 
   updateFilterCounts(): void {
-    // Note: With pagination, we only have counts for current page
-    // For accurate counts, would need separate API calls or total counts from backend
     this.statusFilters.forEach(filter => {
       if (filter.value === 'All') {
-        filter.count = this.totalCount; // Use total count from backend
+        filter.count = this.totalCount;
       } else {
-        // Approximate count based on current page (not perfect but better than nothing)
         const pageCount = this.prescriptions.filter(p => p.status === filter.value).length;
-        // Estimate: if we have 10 items per page and 3 match, estimate total
         if (this.totalCount > 0 && this.prescriptions.length > 0) {
           filter.count = Math.round((pageCount / this.prescriptions.length) * this.totalCount);
         } else {
@@ -153,14 +172,15 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
 
   onStatusFilterChange(status: string): void {
     this.selectedStatus = status;
-    this.currentPage = 1; // Reset to first page on filter change
-    this.loadPrescriptions();
+    if (status === 'All') {
+      this.filterService.clearFilter('prescriptionStatus');
+    } else {
+      this.updateFilters({ prescriptionStatus: status });
+    }
   }
 
   onSearchChange(searchTerm: string): void {
-    // Update local search term immediately for UI responsiveness
     this.searchTerm = searchTerm;
-    // Emit to subject for debounced search
     this.searchSubject.next(searchTerm);
   }
 
@@ -171,9 +191,54 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
       this.sortBy = sortBy;
       this.sortOrder = 'desc';
     }
-    // Note: Sorting is now handled by backend, but we can still apply client-side sorting as fallback
-    // For now, reload with current filters
-    this.loadPrescriptions();
+    this.updateFilters({ sortBy: this.sortBy, sortOrder: this.sortOrder });
+  }
+
+  clearFilters(): void {
+    this.searchTerm = '';
+    this.selectedStatus = 'All';
+    this.filterService.clearFilters();
+  }
+
+  removeFilter(filterKey: string): void {
+    this.filterService.clearFilter(filterKey as keyof PharmacyFilters);
+    
+    switch (filterKey) {
+      case 'searchTerm':
+        this.searchTerm = '';
+        break;
+      case 'prescriptionStatus':
+        this.selectedStatus = 'All';
+        break;
+    }
+  }
+
+  getActiveFilterCount(): number {
+    return this.filterService.getActiveFilterCount();
+  }
+
+  // Pagination methods
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.updateFilters({ pageNumber: page });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  previousPage(): void {
+    if (this.currentPage > 1) {
+      this.goToPage(this.currentPage - 1);
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.goToPage(this.currentPage + 1);
+    }
+  }
+
+  changePageSize(size: number): void {
+    this.updateFilters({ pageSize: size, pageNumber: 1 });
   }
 
   getStatusClass(status: string): string {

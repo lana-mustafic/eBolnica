@@ -2,8 +2,10 @@ import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { PharmacyService, InventoryFilterParams } from '../../../shared/services/pharmacy/pharmacy.service';
+import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
+import { PharmacyFilterService } from '../../../shared/services/pharmacy/pharmacy-filter.service';
 import { MedicationDto } from '../../../models/medication.dto';
+import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap } from 'rxjs';
 
 type StockStatus = 'adequate' | 'low' | 'critical' | 'out-of-stock';
@@ -18,6 +20,7 @@ type ExpiryStatus = 'good' | 'warning' | 'critical' | 'expired';
 })
 export class InventoryComponent implements OnInit, OnDestroy {
   private pharmacyService = inject(PharmacyService);
+  private filterService = inject(PharmacyFilterService);
 
   inventoryItems: MedicationDto[] = [];
   lowStockAlerts: MedicationDto[] = [];
@@ -50,43 +53,56 @@ export class InventoryComponent implements OnInit, OnDestroy {
   outOfStockCount: number = 0;
   criticalStockCount: number = 0;
 
+  // Active filters for display
+  activeFilters = this.filterService.getActiveFilters();
+
   ngOnInit(): void {
+    // Initialize filters from service
+    const currentFilters = this.filterService.getFilters();
+    this.syncUIFromFilters(currentFilters);
+
+    // Load initial data
     this.loadInventory();
-    
-    // Setup debounced search with switchMap to cancel previous requests
+
+    // Setup debounced search that combines with dropdown filters
     this.searchSubject.pipe(
       debounceTime(300),
       distinctUntilChanged(),
-      tap(() => {
+      takeUntil(this.destroy$)
+    ).subscribe(searchTerm => {
+      this.searchTerm = searchTerm;
+      this.updateFilters({ searchTerm: searchTerm || undefined });
+    });
+
+    // Subscribe to filter changes from service
+    this.filterService.getFilters$().pipe(
+      debounceTime(150),
+      switchMap(filters => {
         this.isSearching = true;
-        this.currentPage = 1; // Reset to first page on search
-      }),
-      switchMap(searchTerm => {
-        this.searchTerm = searchTerm;
-        // Build filters with search term
-        const filters = this.buildFilterParams();
-        return this.pharmacyService.getInventory(filters).pipe(
+        this.syncUIFromFilters(filters);
+        return this.pharmacyService.getInventoryWithFilters(filters).pipe(
           finalize(() => this.isSearching = false)
         );
       }),
       takeUntil(this.destroy$)
     ).subscribe({
       next: (response: any) => {
-        this.inventoryItems = response.items || response.data || [];
+        this.inventoryItems = response.items || [];
         this.lowStockAlerts = response.LowStockAlerts || [];
         this.expiryAlerts = response.ExpiryAlerts || [];
         this.totalCount = response.totalCount || 0;
         this.totalPages = response.totalPages || 0;
-        this.currentPage = response.currentPage || response.page || 1;
+        this.currentPage = response.currentPage || 1;
         this.pageSize = response.pageSize || 50;
         this.extractCategories();
         this.calculateSummaryStats();
+        this.activeFilters = this.filterService.getActiveFilters();
         this.errorMessage = null;
       },
       error: (error) => {
         this.isSearching = false;
-        this.errorMessage = 'Search failed. Please try again.';
-        console.error('Error searching inventory:', error);
+        this.errorMessage = 'Failed to load inventory. Please try again.';
+        console.error('Error loading inventory:', error);
       }
     });
   }
@@ -97,50 +113,45 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Build filter parameters object from current component state
+   * Sync UI state from filter service state
    */
-  private buildFilterParams(): InventoryFilterParams {
-    const filters: InventoryFilterParams = {
-      page: this.currentPage,
+  private syncUIFromFilters(filters: PharmacyFilters): void {
+    this.searchTerm = filters.searchTerm || '';
+    this.selectedCategory = filters.category || '';
+    this.currentPage = filters.pageNumber || 1;
+    this.pageSize = filters.pageSize || 50;
+  }
+
+  /**
+   * Build PharmacyFilters from current UI state
+   */
+  private buildFiltersFromUI(): Partial<PharmacyFilters> {
+    const filters: Partial<PharmacyFilters> = {
+      pageNumber: this.currentPage,
       pageSize: this.pageSize
     };
+
+    if (this.searchTerm?.trim()) {
+      filters.searchTerm = this.searchTerm.trim();
+    }
 
     if (this.selectedCategory) {
       filters.category = this.selectedCategory;
     }
 
-    if (this.searchTerm.trim()) {
-      filters.search = this.searchTerm.trim();
-    }
-
     return filters;
   }
 
+  /**
+   * Update filters in service (triggers API call)
+   */
+  private updateFilters(updates: Partial<PharmacyFilters>): void {
+    this.filterService.updateFilters(updates);
+  }
+
   loadInventory(): void {
-    this.isLoading = true;
-    this.errorMessage = null;
-
-    const filters = this.buildFilterParams();
-
-    this.pharmacyService.getInventory(filters).pipe(
-      finalize(() => this.isLoading = false)
-    ).subscribe({
-      next: (response: any) => {
-        this.inventoryItems = response.items || response.data || [];
-        this.lowStockAlerts = response.LowStockAlerts || [];
-        this.expiryAlerts = response.ExpiryAlerts || [];
-        this.totalCount = response.totalCount || 0;
-        this.totalPages = response.totalPages || 0;
-        this.currentPage = response.currentPage || response.page || 1;
-        this.pageSize = response.pageSize || 50;
-        this.extractCategories();
-        this.calculateSummaryStats();
-      },
-      error: (error) => {
-        this.errorMessage = 'Failed to load inventory. Please try again later.';
-        console.error('Error loading inventory:', error);
-      }
-    });
+    const filters = this.buildFiltersFromUI();
+    this.updateFilters(filters);
   }
 
   extractCategories(): void {
@@ -208,14 +219,17 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   onSearchChange(searchTerm: string): void {
-    // Update local search term immediately for UI responsiveness
     this.searchTerm = searchTerm;
-    // Emit to subject for debounced search
     this.searchSubject.next(searchTerm);
   }
 
+  onCategoryChange(category: string): void {
+    this.selectedCategory = category;
+    this.updateFilters({ category: category || undefined });
+  }
+
   onFilterChange(): void {
-    this.currentPage = 1; // Reset to first page on filter change
+    // Legacy method - now handled by individual change handlers
     this.loadInventory();
   }
 
@@ -224,8 +238,48 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.selectedStockFilter = 'all';
     this.selectedExpiryFilter = 'all';
     this.selectedCategory = '';
-    this.currentPage = 1;
-    this.loadInventory();
+    this.filterService.clearFilters();
+  }
+
+  removeFilter(filterKey: string): void {
+    this.filterService.clearFilter(filterKey as keyof PharmacyFilters);
+    
+    switch (filterKey) {
+      case 'searchTerm':
+        this.searchTerm = '';
+        break;
+      case 'category':
+        this.selectedCategory = '';
+        break;
+    }
+  }
+
+  getActiveFilterCount(): number {
+    return this.filterService.getActiveFilterCount();
+  }
+
+  // Pagination methods
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.updateFilters({ pageNumber: page });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  previousPage(): void {
+    if (this.currentPage > 1) {
+      this.goToPage(this.currentPage - 1);
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.goToPage(this.currentPage + 1);
+    }
+  }
+
+  changePageSize(size: number): void {
+    this.updateFilters({ pageSize: size, pageNumber: 1 });
   }
 
   getStockStatusClass(item: MedicationDto): string {
