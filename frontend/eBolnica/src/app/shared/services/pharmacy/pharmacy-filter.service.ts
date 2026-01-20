@@ -62,12 +62,36 @@ export class PharmacyFilterService {
 
   /**
    * Clear all filters and reset to defaults
+   * Resets all filter properties to undefined/null except pagination defaults
    */
   clearFilters(): void {
-    this.filters$.next({
+    const defaultState: PharmacyFilters = {
       pageNumber: 1,
-      pageSize: 10
-    });
+      pageSize: 10,
+      // Explicitly set all other properties to undefined
+      searchTerm: undefined,
+      category: undefined,
+      status: undefined,
+      requiresPrescription: undefined,
+      isActive: undefined,
+      minPrice: undefined,
+      maxPrice: undefined,
+      stockStatus: undefined,
+      prescriptionStatus: undefined,
+      urgency: undefined,
+      supplier: undefined,
+      sortBy: undefined,
+      sortOrder: undefined
+    };
+    
+    this.filters$.next(defaultState);
+  }
+
+  /**
+   * Clear all filters (alias for clearFilters for consistency)
+   */
+  clearAllFilters(): void {
+    this.clearFilters();
   }
 
   /**

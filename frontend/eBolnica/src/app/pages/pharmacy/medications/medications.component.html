@@ -17,6 +17,10 @@
     {{ successMessage }}
   </div>
 
+  <div class="message success" *ngIf="clearSuccessMessage">
+    {{ clearSuccessMessage }}
+  </div>
+
   <div class="message error" *ngIf="errorMessage">
     {{ errorMessage }}
   </div>

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -57,6 +57,9 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
   // Active filters for display
   activeFilters = this.filterService.getActiveFilters();
+
+  // Success message for clear operation
+  clearSuccessMessage: string | null = null;
 
   ngOnInit(): void {
     // Initialize filters from service
@@ -235,13 +238,59 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.loadInventory();
   }
 
+  /**
+   * Clear all filters and reset to default state
+   */
   clearFilters(): void {
+    // Clear service state
+    this.filterService.clearAllFilters();
+
+    // Clear template-bound properties
     this.searchTerm = '';
     this.selectedStockFilter = 'all';
     this.selectedExpiryFilter = 'all';
     this.selectedCategory = '';
-    this.filterService.clearFilters();
+
+    // Reset pagination to defaults
+    this.currentPage = 1;
+    this.pageSize = 50; // Inventory uses larger page size
+
+    // Update active filters display
     this.updateActiveFilters();
+
+    // Show success feedback
+    this.showClearSuccessMessage();
+  }
+
+  /**
+   * Show success message after clearing filters
+   */
+  private showClearSuccessMessage(): void {
+    this.clearSuccessMessage = 'All filters cleared. Showing all results.';
+    setTimeout(() => {
+      this.clearSuccessMessage = null;
+    }, 3000);
+  }
+
+  /**
+   * Keyboard shortcut handler for clearing filters
+   */
+  @HostListener('document:keydown', ['$event'])
+  handleKeyboardEvent(event: KeyboardEvent): void {
+    const hasActiveFilters = this.getActiveFilterCount() > 0;
+    
+    if (event.ctrlKey && event.shiftKey && event.key === 'C' && hasActiveFilters) {
+      event.preventDefault();
+      this.clearFilters();
+    }
+    
+    if (event.key === 'Escape' && hasActiveFilters) {
+      const target = event.target as HTMLElement;
+      if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+        event.preventDefault();
+        this.clearFilters();
+      }
+    }
   }
 
   removeFilter(filterKey: string): void {

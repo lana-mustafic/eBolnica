@@ -11,7 +11,11 @@
     </button>
   </div>
 
-  <!-- Error Message -->
+  <!-- Messages -->
+  <div class="message success" *ngIf="clearSuccessMessage">
+    {{ clearSuccessMessage }}
+  </div>
+
   <div class="message error" *ngIf="errorMessage">
     {{ errorMessage }}
   </div>

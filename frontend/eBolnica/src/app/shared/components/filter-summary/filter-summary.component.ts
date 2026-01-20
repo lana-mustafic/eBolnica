@@ -61,6 +61,18 @@ export class FilterSummaryComponent {
   }
 
   onClearAll(): void {
-    this.clearAll.emit();
+    if (this.hasActiveFilters) {
+      this.clearAll.emit();
+    }
+  }
+
+  getClearButtonText(): string {
+    if (this.activeFilterCount === 0) {
+      return 'Clear all';
+    }
+    if (this.activeFilterCount === 1) {
+      return `Clear all (1 filter)`;
+    }
+    return `Clear all (${this.activeFilterCount} filters)`;
   }
 }
