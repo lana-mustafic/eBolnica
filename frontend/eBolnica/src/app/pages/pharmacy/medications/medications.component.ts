@@ -48,6 +48,10 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   // Available categories (populated from medications)
   categories: string[] = [];
 
+  // Sort state
+  sortColumn: string = 'createdAt'; // Default sort column
+  sortOrder: 'asc' | 'desc' = 'desc'; // Default sort order
+
   // Active filters for display
   activeFilters = this.filterService.getActiveFilters();
 
@@ -130,6 +134,8 @@ export class MedicationsComponent implements OnInit, OnDestroy {
       : '';
     this.currentPage = filters.pageNumber || 1;
     this.pageSize = filters.pageSize || 10;
+    if (filters.sortBy) this.sortColumn = filters.sortBy;
+    if (filters.sortOrder) this.sortOrder = filters.sortOrder as 'asc' | 'desc';
   }
 
   /**
@@ -159,6 +165,14 @@ export class MedicationsComponent implements OnInit, OnDestroy {
 
     if (this.selectedActiveStatus) {
       filters.isActive = this.selectedActiveStatus === 'Active';
+    }
+
+    // Add sort parameters
+    if (this.sortColumn) {
+      filters.sortBy = this.sortColumn;
+    }
+    if (this.sortOrder) {
+      filters.sortOrder = this.sortOrder;
     }
 
     return filters;
@@ -464,6 +478,95 @@ export class MedicationsComponent implements OnInit, OnDestroy {
 
   // Expose Math to template
   Math = Math;
+
+  /**
+   * Handle column header sort click
+   * Maps frontend column names to backend sort field names
+   */
+  onSort(column: string): void {
+    // Map frontend column names to backend field names
+    const columnMapping: { [key: string]: string } = {
+      'name': 'name',
+      'category': 'category',
+      'price': 'price',
+      'stockQuantity': 'stockQuantity',
+      'stock': 'stockQuantity',
+      'status': 'name', // Status is derived, sort by name
+      'createdAt': 'createdAt',
+      'createdDate': 'createdAt',
+      'dateCreated': 'createdAt'
+    };
+
+    const backendColumn = columnMapping[column] || column;
+
+    if (this.sortColumn === backendColumn) {
+      // Toggle order if same column
+      this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+      // New column, default to ascending
+      this.sortColumn = backendColumn;
+      this.sortOrder = 'asc';
+    }
+
+    // Update filters with new sort parameters
+    this.updateFilters({ 
+      sortBy: this.sortColumn, 
+      sortOrder: this.sortOrder,
+      pageNumber: 1 // Reset to first page on sort
+    });
+  }
+
+  /**
+   * Get sort icon class for a column
+   */
+  getSortIconClass(column: string, direction: 'asc' | 'desc'): string {
+    const columnMapping: { [key: string]: string } = {
+      'name': 'name',
+      'category': 'category',
+      'price': 'price',
+      'stockQuantity': 'stockQuantity',
+      'stock': 'stockQuantity',
+      'status': 'name',
+      'createdAt': 'createdAt',
+      'createdDate': 'createdAt',
+      'dateCreated': 'createdAt'
+    };
+
+    const backendColumn = columnMapping[column] || column;
+    if (this.sortColumn !== backendColumn) return '';
+    return this.sortOrder === direction ? 'active' : '';
+  }
+
+  /**
+   * Get aria-sort attribute value
+   */
+  getAriaSort(column: string): string {
+    const columnMapping: { [key: string]: string } = {
+      'name': 'name',
+      'category': 'category',
+      'price': 'price',
+      'stockQuantity': 'stockQuantity',
+      'stock': 'stockQuantity',
+      'status': 'name',
+      'createdAt': 'createdAt',
+      'createdDate': 'createdAt',
+      'dateCreated': 'createdAt'
+    };
+
+    const backendColumn = columnMapping[column] || column;
+    if (this.sortColumn !== backendColumn) return 'none';
+    return this.sortOrder === 'asc' ? 'ascending' : 'descending';
+  }
+
+  /**
+   * Handle keyboard events for sort headers
+   */
+  onSortKeydown(event: KeyboardEvent, column: string): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.onSort(column);
+    }
+  }
 
   /**
    * Handle API errors with user-friendly messages

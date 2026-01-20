@@ -3,10 +3,13 @@ using eBolnicaAPI.Models.Entities;
 using eBolnicaAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using System.IO.Compression;
 using System.Security.Claims;
 using System.Text;
 
@@ -84,9 +87,6 @@ builder.Services.AddDbContextPool<AppDbContext>(options =>
         options.EnableSensitiveDataLogging();
         options.LogTo(Console.WriteLine, LogLevel.Information);
     }
-    
-    // Enable query splitting for better performance on complex queries
-    options.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
 });
 
 // Add in-memory caching for query results
@@ -171,7 +171,6 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowAngular");
 
 // Enable response compression
-var enableCompression = builder.Configuration.GetSection("PerformanceSettings").GetValue<bool>("EnableResponseCompression", true);
 if (enableCompression)
 {
     app.UseResponseCompression();

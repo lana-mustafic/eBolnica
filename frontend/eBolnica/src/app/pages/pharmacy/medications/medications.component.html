@@ -144,14 +144,74 @@
     <table>
       <thead>
         <tr>
-          <th>Name</th>
+          <th (click)="onSort('name')"
+              (keydown)="onSortKeydown($event, 'name')"
+              [class.sort-active]="sortColumn === 'name'"
+              [attr.aria-sort]="getAriaSort('name')"
+              [attr.aria-label]="'Sort by Name'"
+              tabindex="0"
+              class="sortable-header">
+            Name
+            <span class="sort-icons">
+              <span class="sort-asc" [class.active]="getSortIconClass('name', 'asc')" aria-hidden="true">↑</span>
+              <span class="sort-desc" [class.active]="getSortIconClass('name', 'desc')" aria-hidden="true">↓</span>
+            </span>
+          </th>
           <th>Generic Name</th>
           <th>Manufacturer</th>
-          <th>Category</th>
-          <th>Price</th>
-          <th>Stock</th>
+          <th (click)="onSort('category')"
+              (keydown)="onSortKeydown($event, 'category')"
+              [class.sort-active]="sortColumn === 'category'"
+              [attr.aria-sort]="getAriaSort('category')"
+              [attr.aria-label]="'Sort by Category'"
+              tabindex="0"
+              class="sortable-header">
+            Category
+            <span class="sort-icons">
+              <span class="sort-asc" [class.active]="getSortIconClass('category', 'asc')" aria-hidden="true">↑</span>
+              <span class="sort-desc" [class.active]="getSortIconClass('category', 'desc')" aria-hidden="true">↓</span>
+            </span>
+          </th>
+          <th (click)="onSort('price')"
+              (keydown)="onSortKeydown($event, 'price')"
+              [class.sort-active]="sortColumn === 'price'"
+              [attr.aria-sort]="getAriaSort('price')"
+              [attr.aria-label]="'Sort by Price'"
+              tabindex="0"
+              class="sortable-header">
+            Price
+            <span class="sort-icons">
+              <span class="sort-asc" [class.active]="getSortIconClass('price', 'asc')" aria-hidden="true">↑</span>
+              <span class="sort-desc" [class.active]="getSortIconClass('price', 'desc')" aria-hidden="true">↓</span>
+            </span>
+          </th>
+          <th (click)="onSort('stock')"
+              (keydown)="onSortKeydown($event, 'stock')"
+              [class.sort-active]="sortColumn === 'stockQuantity'"
+              [attr.aria-sort]="getAriaSort('stock')"
+              [attr.aria-label]="'Sort by Stock Quantity'"
+              tabindex="0"
+              class="sortable-header">
+            Stock
+            <span class="sort-icons">
+              <span class="sort-asc" [class.active]="getSortIconClass('stock', 'asc')" aria-hidden="true">↑</span>
+              <span class="sort-desc" [class.active]="getSortIconClass('stock', 'desc')" aria-hidden="true">↓</span>
+            </span>
+          </th>
           <th>Expiry Date</th>
-          <th>Status</th>
+          <th (click)="onSort('status')"
+              (keydown)="onSortKeydown($event, 'status')"
+              [class.sort-active]="sortColumn === 'name'"
+              [attr.aria-sort]="getAriaSort('status')"
+              [attr.aria-label]="'Sort by Status'"
+              tabindex="0"
+              class="sortable-header">
+            Status
+            <span class="sort-icons">
+              <span class="sort-asc" [class.active]="getSortIconClass('status', 'asc')" aria-hidden="true">↑</span>
+              <span class="sort-desc" [class.active]="getSortIconClass('status', 'desc')" aria-hidden="true">↓</span>
+            </span>
+          </th>
           <th>Actions</th>
         </tr>
       </thead>

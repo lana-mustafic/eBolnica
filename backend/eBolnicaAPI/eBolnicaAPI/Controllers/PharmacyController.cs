@@ -564,7 +564,7 @@ namespace eBolnicaAPI.Controllers
                     LicenseNumber = p.Doctor.LicenseNumber,
                     BirthDate = p.Doctor.BirthDate ?? DateTime.MinValue,
                     Address = p.Doctor.Address,
-                    Email = p.Doctor.AppUser?.Email ?? ""
+                    Email = p.Doctor.AppUser != null ? p.Doctor.AppUser.Email ?? "" : ""
                 },
                 PharmacistId = p.PharmacistId,
                 Pharmacist = p.Pharmacist != null ? new PharmacistDataDto
@@ -576,8 +576,8 @@ namespace eBolnicaAPI.Controllers
                     PhoneNumber = p.Pharmacist.PhoneNumber,
                     Address = p.Pharmacist.Address,
                     HireDate = p.Pharmacist.HireDate,
-                    Email = p.Pharmacist.AppUser?.Email ?? "",
-                    UserName = p.Pharmacist.AppUser?.UserName ?? ""
+                    Email = p.Pharmacist.AppUser != null ? p.Pharmacist.AppUser.Email ?? "" : "",
+                    UserName = p.Pharmacist.AppUser != null ? p.Pharmacist.AppUser.UserName ?? "" : ""
                 } : null,
                 Status = p.Status,
                 PrescribedDate = p.PrescribedDate,
@@ -664,7 +664,7 @@ namespace eBolnicaAPI.Controllers
                     LicenseNumber = prescription.Doctor.LicenseNumber,
                     BirthDate = prescription.Doctor.BirthDate ?? DateTime.MinValue,
                     Address = prescription.Doctor.Address,
-                    Email = prescription.Doctor.AppUser?.Email ?? ""
+                    Email = prescription.Doctor.AppUser != null ? prescription.Doctor.AppUser.Email ?? "" : ""
                 },
                 PharmacistId = prescription.PharmacistId,
                 Pharmacist = prescription.Pharmacist != null ? new PharmacistDataDto
@@ -676,8 +676,8 @@ namespace eBolnicaAPI.Controllers
                     PhoneNumber = prescription.Pharmacist.PhoneNumber,
                     Address = prescription.Pharmacist.Address,
                     HireDate = prescription.Pharmacist.HireDate,
-                    Email = prescription.Pharmacist.AppUser?.Email ?? "",
-                    UserName = prescription.Pharmacist.AppUser?.UserName ?? ""
+                    Email = prescription.Pharmacist.AppUser != null ? prescription.Pharmacist.AppUser.Email ?? "" : "",
+                    UserName = prescription.Pharmacist.AppUser != null ? prescription.Pharmacist.AppUser.UserName ?? "" : ""
                 } : null,
                 Status = prescription.Status,
                 PrescribedDate = prescription.PrescribedDate,

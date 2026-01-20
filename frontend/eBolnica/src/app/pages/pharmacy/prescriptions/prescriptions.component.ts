@@ -50,6 +50,7 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   // Sort
   sortBy: string = 'date';
   sortOrder: 'asc' | 'desc' = 'desc';
+  sortColumn: string = 'prescribedDate'; // Default sort column for header clicks
 
   // Active filters for display
   activeFilters = this.filterService.getActiveFilters();
@@ -126,7 +127,10 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
     this.selectedStatus = filters.prescriptionStatus || 'Pending';
     this.currentPage = filters.pageNumber || 1;
     this.pageSize = filters.pageSize || 10;
-    if (filters.sortBy) this.sortBy = filters.sortBy;
+    if (filters.sortBy) {
+      this.sortBy = filters.sortBy;
+      this.sortColumn = filters.sortBy;
+    }
     if (filters.sortOrder) this.sortOrder = filters.sortOrder as 'asc' | 'desc';
   }
 
@@ -205,7 +209,100 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
       this.sortBy = sortBy;
       this.sortOrder = 'desc';
     }
+    this.sortColumn = this.sortBy; // Sync with header sort
     this.updateFilters({ sortBy: this.sortBy, sortOrder: this.sortOrder });
+  }
+
+  /**
+   * Handle column header sort click
+   * Maps frontend column names to backend sort field names
+   */
+  onSort(column: string): void {
+    // Map frontend column names to backend field names
+    const columnMapping: { [key: string]: string } = {
+      'patientName': 'prescribedDate', // Sort by date since patient name is computed
+      'patient': 'prescribedDate',
+      'medication': 'prescribedDate',
+      'status': 'status',
+      'totalAmount': 'totalAmount',
+      'amount': 'totalAmount',
+      'createdAt': 'createdAt',
+      'createdDate': 'createdAt',
+      'prescribedDate': 'prescribedDate',
+      'date': 'prescribedDate'
+    };
+
+    const backendColumn = columnMapping[column] || column;
+
+    if (this.sortColumn === backendColumn) {
+      // Toggle order if same column
+      this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+      // New column, default to ascending
+      this.sortColumn = backendColumn;
+      this.sortOrder = 'asc';
+    }
+
+    // Update filters with new sort parameters
+    this.updateFilters({ 
+      sortBy: this.sortColumn, 
+      sortOrder: this.sortOrder,
+      pageNumber: 1 // Reset to first page on sort
+    });
+  }
+
+  /**
+   * Get sort icon class for a column
+   */
+  getSortIconClass(column: string, direction: 'asc' | 'desc'): string {
+    const columnMapping: { [key: string]: string } = {
+      'patientName': 'prescribedDate',
+      'patient': 'prescribedDate',
+      'medication': 'prescribedDate',
+      'status': 'status',
+      'totalAmount': 'totalAmount',
+      'amount': 'totalAmount',
+      'createdAt': 'createdAt',
+      'createdDate': 'createdAt',
+      'prescribedDate': 'prescribedDate',
+      'date': 'prescribedDate'
+    };
+
+    const backendColumn = columnMapping[column] || column;
+    if (this.sortColumn !== backendColumn) return '';
+    return this.sortOrder === direction ? 'active' : '';
+  }
+
+  /**
+   * Get aria-sort attribute value
+   */
+  getAriaSort(column: string): string {
+    const columnMapping: { [key: string]: string } = {
+      'patientName': 'prescribedDate',
+      'patient': 'prescribedDate',
+      'medication': 'prescribedDate',
+      'status': 'status',
+      'totalAmount': 'totalAmount',
+      'amount': 'totalAmount',
+      'createdAt': 'createdAt',
+      'createdDate': 'createdAt',
+      'prescribedDate': 'prescribedDate',
+      'date': 'prescribedDate'
+    };
+
+    const backendColumn = columnMapping[column] || column;
+    if (this.sortColumn !== backendColumn) return 'none';
+    return this.sortOrder === 'asc' ? 'ascending' : 'descending';
+  }
+
+  /**
+   * Handle keyboard events for sort headers
+   */
+  onSortKeydown(event: KeyboardEvent, column: string): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.onSort(column);
+    }
   }
 
   /**
@@ -226,6 +323,7 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
     // Reset sorting to defaults
     this.sortBy = 'date';
     this.sortOrder = 'desc';
+    this.sortColumn = 'prescribedDate'; // Reset header sort column
 
     // Update active filters display
     this.updateActiveFilters();

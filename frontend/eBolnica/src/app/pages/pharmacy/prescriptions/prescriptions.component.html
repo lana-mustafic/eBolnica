@@ -131,11 +131,59 @@
       <thead>
         <tr>
           <th>Prescription #</th>
-          <th>Patient</th>
+          <th (click)="onSort('patientName')"
+              (keydown)="onSortKeydown($event, 'patientName')"
+              [class.sort-active]="sortColumn === 'prescribedDate'"
+              [attr.aria-sort]="getAriaSort('patientName')"
+              [attr.aria-label]="'Sort by Patient Name'"
+              tabindex="0"
+              class="sortable-header">
+            Patient
+            <span class="sort-icons">
+              <span class="sort-asc" [class.active]="getSortIconClass('patientName', 'asc')" aria-hidden="true">↑</span>
+              <span class="sort-desc" [class.active]="getSortIconClass('patientName', 'desc')" aria-hidden="true">↓</span>
+            </span>
+          </th>
           <th>Doctor</th>
-          <th>Date Prescribed</th>
-          <th>Status</th>
-          <th>Total Amount</th>
+          <th (click)="onSort('prescribedDate')"
+              (keydown)="onSortKeydown($event, 'prescribedDate')"
+              [class.sort-active]="sortColumn === 'prescribedDate'"
+              [attr.aria-sort]="getAriaSort('prescribedDate')"
+              [attr.aria-label]="'Sort by Date Prescribed'"
+              tabindex="0"
+              class="sortable-header">
+            Date Prescribed
+            <span class="sort-icons">
+              <span class="sort-asc" [class.active]="getSortIconClass('prescribedDate', 'asc')" aria-hidden="true">↑</span>
+              <span class="sort-desc" [class.active]="getSortIconClass('prescribedDate', 'desc')" aria-hidden="true">↓</span>
+            </span>
+          </th>
+          <th (click)="onSort('status')"
+              (keydown)="onSortKeydown($event, 'status')"
+              [class.sort-active]="sortColumn === 'status'"
+              [attr.aria-sort]="getAriaSort('status')"
+              [attr.aria-label]="'Sort by Status'"
+              tabindex="0"
+              class="sortable-header">
+            Status
+            <span class="sort-icons">
+              <span class="sort-asc" [class.active]="getSortIconClass('status', 'asc')" aria-hidden="true">↑</span>
+              <span class="sort-desc" [class.active]="getSortIconClass('status', 'desc')" aria-hidden="true">↓</span>
+            </span>
+          </th>
+          <th (click)="onSort('totalAmount')"
+              (keydown)="onSortKeydown($event, 'totalAmount')"
+              [class.sort-active]="sortColumn === 'totalAmount'"
+              [attr.aria-sort]="getAriaSort('totalAmount')"
+              [attr.aria-label]="'Sort by Total Amount'"
+              tabindex="0"
+              class="sortable-header">
+            Total Amount
+            <span class="sort-icons">
+              <span class="sort-asc" [class.active]="getSortIconClass('totalAmount', 'asc')" aria-hidden="true">↑</span>
+              <span class="sort-desc" [class.active]="getSortIconClass('totalAmount', 'desc')" aria-hidden="true">↓</span>
+            </span>
+          </th>
           <th>Actions</th>
         </tr>
       </thead>

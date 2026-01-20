@@ -49,6 +49,10 @@ export class InventoryComponent implements OnInit, OnDestroy {
   // Available categories
   categories: string[] = [];
 
+  // Sort state
+  sortColumn: string = 'createdAt'; // Default sort column
+  sortOrder: 'asc' | 'desc' = 'desc'; // Default sort order
+
   // Summary statistics
   totalItems: number = 0;
   lowStockCount: number = 0;
@@ -136,6 +140,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.selectedCategory = filters.category || '';
     this.currentPage = filters.pageNumber || 1;
     this.pageSize = filters.pageSize || 50;
+    if (filters.sortBy) this.sortColumn = filters.sortBy;
+    if (filters.sortOrder) this.sortOrder = filters.sortOrder as 'asc' | 'desc';
   }
 
   /**
@@ -153,6 +159,14 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
     if (this.selectedCategory) {
       filters.category = this.selectedCategory;
+    }
+
+    // Add sort parameters
+    if (this.sortColumn) {
+      filters.sortBy = this.sortColumn;
+    }
+    if (this.sortOrder) {
+      filters.sortOrder = this.sortOrder;
     }
 
     return filters;
@@ -349,6 +363,101 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
   changePageSize(size: number): void {
     this.updateFilters({ pageSize: size, pageNumber: 1 });
+  }
+
+  /**
+   * Handle column header sort click
+   * Maps frontend column names to backend sort field names
+   */
+  onSort(column: string): void {
+    // Map frontend column names to backend field names
+    const columnMapping: { [key: string]: string } = {
+      'medicationName': 'name',
+      'name': 'name',
+      'batchNumber': 'name', // Batch number not directly sortable, sort by name
+      'quantity': 'stockQuantity',
+      'stockQuantity': 'stockQuantity',
+      'stock': 'stockQuantity',
+      'expiryDate': 'expiryDate',
+      'expiry': 'expiryDate',
+      'supplier': 'manufacturer', // Supplier maps to manufacturer
+      'manufacturer': 'manufacturer',
+      'stockStatus': 'stockQuantity' // Status is derived, sort by quantity
+    };
+
+    const backendColumn = columnMapping[column] || column;
+
+    if (this.sortColumn === backendColumn) {
+      // Toggle order if same column
+      this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+      // New column, default to ascending
+      this.sortColumn = backendColumn;
+      this.sortOrder = 'asc';
+    }
+
+    // Update filters with new sort parameters
+    this.updateFilters({ 
+      sortBy: this.sortColumn, 
+      sortOrder: this.sortOrder,
+      pageNumber: 1 // Reset to first page on sort
+    });
+  }
+
+  /**
+   * Get sort icon class for a column
+   */
+  getSortIconClass(column: string, direction: 'asc' | 'desc'): string {
+    const columnMapping: { [key: string]: string } = {
+      'medicationName': 'name',
+      'name': 'name',
+      'batchNumber': 'name',
+      'quantity': 'stockQuantity',
+      'stockQuantity': 'stockQuantity',
+      'stock': 'stockQuantity',
+      'expiryDate': 'expiryDate',
+      'expiry': 'expiryDate',
+      'supplier': 'manufacturer',
+      'manufacturer': 'manufacturer',
+      'stockStatus': 'stockQuantity'
+    };
+
+    const backendColumn = columnMapping[column] || column;
+    if (this.sortColumn !== backendColumn) return '';
+    return this.sortOrder === direction ? 'active' : '';
+  }
+
+  /**
+   * Get aria-sort attribute value
+   */
+  getAriaSort(column: string): string {
+    const columnMapping: { [key: string]: string } = {
+      'medicationName': 'name',
+      'name': 'name',
+      'batchNumber': 'name',
+      'quantity': 'stockQuantity',
+      'stockQuantity': 'stockQuantity',
+      'stock': 'stockQuantity',
+      'expiryDate': 'expiryDate',
+      'expiry': 'expiryDate',
+      'supplier': 'manufacturer',
+      'manufacturer': 'manufacturer',
+      'stockStatus': 'stockQuantity'
+    };
+
+    const backendColumn = columnMapping[column] || column;
+    if (this.sortColumn !== backendColumn) return 'none';
+    return this.sortOrder === 'asc' ? 'ascending' : 'descending';
+  }
+
+  /**
+   * Handle keyboard events for sort headers
+   */
+  onSortKeydown(event: KeyboardEvent, column: string): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.onSort(column);
+    }
   }
 
   getStockStatusClass(item: MedicationDto): string {

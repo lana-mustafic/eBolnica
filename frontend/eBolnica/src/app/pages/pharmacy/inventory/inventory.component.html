@@ -205,13 +205,61 @@
     <table>
       <thead>
         <tr>
-          <th>Medication</th>
+          <th (click)="onSort('medicationName')"
+              (keydown)="onSortKeydown($event, 'medicationName')"
+              [class.sort-active]="sortColumn === 'name'"
+              [attr.aria-sort]="getAriaSort('medicationName')"
+              [attr.aria-label]="'Sort by Medication Name'"
+              tabindex="0"
+              class="sortable-header">
+            Medication
+            <span class="sort-icons">
+              <span class="sort-asc" [class.active]="getSortIconClass('medicationName', 'asc')" aria-hidden="true">↑</span>
+              <span class="sort-desc" [class.active]="getSortIconClass('medicationName', 'desc')" aria-hidden="true">↓</span>
+            </span>
+          </th>
           <th>Category</th>
-          <th>Current Stock</th>
+          <th (click)="onSort('quantity')"
+              (keydown)="onSortKeydown($event, 'quantity')"
+              [class.sort-active]="sortColumn === 'stockQuantity'"
+              [attr.aria-sort]="getAriaSort('quantity')"
+              [attr.aria-label]="'Sort by Current Stock'"
+              tabindex="0"
+              class="sortable-header">
+            Current Stock
+            <span class="sort-icons">
+              <span class="sort-asc" [class.active]="getSortIconClass('quantity', 'asc')" aria-hidden="true">↑</span>
+              <span class="sort-desc" [class.active]="getSortIconClass('quantity', 'desc')" aria-hidden="true">↓</span>
+            </span>
+          </th>
           <th>Min Stock</th>
-          <th>Stock Status</th>
+          <th (click)="onSort('stockStatus')"
+              (keydown)="onSortKeydown($event, 'stockStatus')"
+              [class.sort-active]="sortColumn === 'stockQuantity'"
+              [attr.aria-sort]="getAriaSort('stockStatus')"
+              [attr.aria-label]="'Sort by Stock Status'"
+              tabindex="0"
+              class="sortable-header">
+            Stock Status
+            <span class="sort-icons">
+              <span class="sort-asc" [class.active]="getSortIconClass('stockStatus', 'asc')" aria-hidden="true">↑</span>
+              <span class="sort-desc" [class.active]="getSortIconClass('stockStatus', 'desc')" aria-hidden="true">↓</span>
+            </span>
+          </th>
           <th>Price</th>
-          <th>Expiry Date</th>
+          <th (click)="onSort('expiryDate')"
+              (keydown)="onSortKeydown($event, 'expiryDate')"
+              [class.sort-active]="sortColumn === 'expiryDate'"
+              [attr.aria-sort]="getAriaSort('expiryDate')"
+              [attr.aria-label]="'Sort by Expiry Date'"
+              tabindex="0"
+              class="sortable-header">
+            Expiry Date
+            <span class="sort-icons">
+              <span class="sort-asc" [class.active]="getSortIconClass('expiryDate', 'asc')" aria-hidden="true">↑</span>
+              <span class="sort-desc" [class.active]="getSortIconClass('expiryDate', 'desc')" aria-hidden="true">↓</span>
+            </span>
+          </th>
           <th>Days Until Expiry</th>
           <th>Expiry Status</th>
           <th>Actions</th>
