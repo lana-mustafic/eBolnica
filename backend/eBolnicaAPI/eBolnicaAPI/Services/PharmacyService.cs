@@ -204,8 +204,8 @@ namespace eBolnicaAPI.Services
         /// <summary>
         /// Applies sorting to Medication queries with support for multi-column sorting
         /// Supported sortBy values: name, price, dateCreated, createdAt, stockQuantity, stock, category, expiryDate
-        /// Supports single column: sortBy=name&sortOrder=asc
-        /// Supports multi-column: sortBy=name,price,createdAt&sortOrder=asc,desc,desc
+        /// Supports single column: sortBy=name&amp;sortOrder=asc
+        /// Supports multi-column: sortBy=name,price,createdAt&amp;sortOrder=asc,desc,desc
         /// Or: sortBy=name:asc,price:desc,createdAt:desc
         /// </summary>
         public IQueryable<Medication> ApplySorting(IQueryable<Medication> query, string? sortBy, string? sortOrder)
@@ -273,7 +273,7 @@ namespace eBolnicaAPI.Services
 
         /// <summary>
         /// Applies multi-column sorting
-        /// Supports: sortBy=name,price&sortOrder=asc,desc
+        /// Supports: sortBy=name,price&amp;sortOrder=asc,desc
         /// Or: sortBy=name:asc,price:desc (order embedded in column name)
         /// </summary>
         private IQueryable<Medication> ApplyMultiColumnSorting(IQueryable<Medication> query, string[] sortColumns, string? sortOrder)
@@ -357,7 +357,7 @@ namespace eBolnicaAPI.Services
         /// <summary>
         /// Applies sorting to Prescription queries with support for multi-column sorting
         /// Supported sortBy values: dateCreated, createdAt, totalAmount, amount, prescriptionNumber, number, status, prescribedDate
-        /// Supports multi-column: sortBy=status,createdAt&sortOrder=asc,desc
+        /// Supports multi-column: sortBy=status,createdAt&amp;sortOrder=asc,desc
         /// </summary>
         public IQueryable<Prescription> ApplySorting(IQueryable<Prescription> query, string? sortBy, string? sortOrder)
         {

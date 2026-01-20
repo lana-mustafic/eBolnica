@@ -27,8 +27,49 @@ namespace eBolnicaAPI.Controllers
 
         #region Medications CRUD
 
+        /// <summary>
+        /// Get paginated medications with filtering and sorting support
+        /// </summary>
+        /// <remarks>
+        /// Returns a paginated list of medications with support for:
+        /// - **Pagination**: pageNumber (default: 1), pageSize (default: 10, max: 100)
+        /// - **Filtering**: category, search, stockStatus, minPrice, maxPrice, isActive, requiresPrescription, minStock, maxStock, createdAfter, createdBefore, expiryAfter, expiryBefore
+        /// - **Sorting**: sortBy (single or comma-separated), sortOrder (asc/desc or comma-separated)
+        /// 
+        /// **Filter Examples:**
+        /// - Single filter: ?category=antibiotics
+        /// - Multiple filters: ?category=antibiotics&amp;minPrice=10&amp;maxPrice=50&amp;isActive=true
+        /// - Search + filters: ?search=penicillin&amp;category=antibiotics&amp;stockStatus=InStock
+        /// 
+        /// **Sorting Examples:**
+        /// - Single column: ?sortBy=name&amp;sortOrder=asc
+        /// - Multi-column: ?sortBy=category,name&amp;sortOrder=asc,asc
+        /// - Embedded order: ?sortBy=name:asc,price:desc
+        /// 
+        /// **Combined Example:**
+        /// ?pageNumber=1&amp;pageSize=10&amp;category=antibiotics&amp;minPrice=10&amp;sortBy=price&amp;sortOrder=asc
+        /// </remarks>
+        /// <param name="category">Filter by medication category (exact match, case-insensitive). Example: "antibiotics"</param>
+        /// <param name="search">Search term across name, generic name, and manufacturer (case-insensitive). Example: "penicillin"</param>
+        /// <param name="stockStatus">Filter by stock status: "low stock", "out of stock", "normal stock", or "InStock". Example: "InStock"</param>
+        /// <param name="requiresPrescription">Filter by prescription requirement. Example: true</param>
+        /// <param name="isActive">Filter by active status. Default: true (shows only active when not specified). Example: true</param>
+        /// <param name="page">Page number for backward compatibility (use pageNumber instead). Default: 1</param>
+        /// <param name="pageNumber">Page number (1-based). Default: 1, Minimum: 1</param>
+        /// <param name="pageSize">Number of items per page. Default: 10, Range: 1-100</param>
+        /// <param name="sortBy">Field(s) to sort by. Single: "name", Multi: "name,price", Embedded: "name:asc,price:desc". Supported: name, price, createdAt, stockQuantity, category, expiryDate</param>
+        /// <param name="sortOrder">Sort order(s). Single: "asc", Multi: "asc,desc". Default: "desc"</param>
+        /// <returns>Paginated response containing medications and pagination metadata</returns>
+        /// <response code="200">Returns paginated medications successfully</response>
+        /// <response code="400">Invalid query parameters</response>
+        /// <response code="401">Unauthorized - JWT token required</response>
+        /// <response code="403">Forbidden - Pharmacist role required</response>
         [HttpGet("medications")]
         [Authorize(Roles = "Pharmacist")]
+        [ProducesResponseType(typeof(PaginatedResponse<MedicationDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> GetMedications(
             [FromQuery] string? category = null,
             [FromQuery] string? search = null,
@@ -367,8 +408,40 @@ namespace eBolnicaAPI.Controllers
 
         #region Prescriptions Management
 
+        /// <summary>
+        /// Get paginated prescriptions with filtering and sorting support
+        /// </summary>
+        /// <remarks>
+        /// Returns a paginated list of prescriptions with support for:
+        /// - **Pagination**: pageNumber (default: 1), pageSize (default: 10, max: 100)
+        /// - **Filtering**: status, patientId, doctorId, pharmacistId, minAmount, maxAmount, prescribedAfter, prescribedBefore, dispensedAfter, dispensedBefore
+        /// - **Sorting**: sortBy (single or comma-separated), sortOrder (asc/desc or comma-separated)
+        /// 
+        /// **Filter Examples:**
+        /// - Single filter: ?status=Pending
+        /// - Multiple filters: ?status=Pending&amp;minAmount=50&amp;maxAmount=200
+        /// - Date range: ?prescribedAfter=2024-01-01&amp;prescribedBefore=2024-12-31
+        /// 
+        /// **Sorting Examples:**
+        /// - Single column: ?sortBy=createdAt&amp;sortOrder=desc
+        /// - Multi-column: ?sortBy=status,createdAt&amp;sortOrder=asc,desc
+        /// </remarks>
+        /// <param name="status">Filter by prescription status (exact match). Example: "Pending", "Dispensed", "Cancelled"</param>
+        /// <param name="pageNumber">Page number (1-based). Default: 1, Minimum: 1</param>
+        /// <param name="pageSize">Number of items per page. Default: 10, Range: 1-100</param>
+        /// <param name="sortBy">Field(s) to sort by. Single: "createdAt", Multi: "status,createdAt". Supported: createdAt, totalAmount, prescriptionNumber, status, prescribedDate</param>
+        /// <param name="sortOrder">Sort order(s). Single: "desc", Multi: "asc,desc". Default: "desc"</param>
+        /// <returns>Paginated response containing prescriptions and pagination metadata</returns>
+        /// <response code="200">Returns paginated prescriptions successfully</response>
+        /// <response code="400">Invalid query parameters</response>
+        /// <response code="401">Unauthorized - JWT token required</response>
+        /// <response code="403">Forbidden - Pharmacist role required</response>
         [HttpGet("prescriptions")]
         [Authorize(Roles = "Pharmacist")]
+        [ProducesResponseType(typeof(PaginatedResponse<PrescriptionDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> GetPrescriptions(
             [FromQuery] string? status = null,
             [FromQuery] int pageNumber = 1,
@@ -871,8 +944,40 @@ namespace eBolnicaAPI.Controllers
 
         #region Inventory & Pharmacist Data
 
+        /// <summary>
+        /// Get paginated inventory with filtering, sorting, and alerts
+        /// </summary>
+        /// <remarks>
+        /// Returns a paginated list of active medications with inventory alerts.
+        /// Includes LowStockAlerts and ExpiryAlerts calculated from ALL matching items (not just current page).
+        /// 
+        /// Supports the same filtering and sorting as GetMedications endpoint.
+        /// 
+        /// **Response includes:**
+        /// - Paginated medications list
+        /// - LowStockAlerts: Medications below minimum stock level
+        /// - ExpiryAlerts: Medications expiring within 30 days
+        /// - Pagination metadata
+        /// 
+        /// **Example:**
+        /// ?pageNumber=1&amp;pageSize=10&amp;category=painkiller&amp;minStock=5&amp;sortBy=name&amp;sortOrder=asc
+        /// </remarks>
+        /// <param name="category">Filter by medication category (exact match, case-insensitive). Example: "painkiller"</param>
+        /// <param name="pageNumber">Page number (1-based). Default: 1, Minimum: 1</param>
+        /// <param name="pageSize">Number of items per page. Default: 10, Range: 1-100</param>
+        /// <param name="sortBy">Field(s) to sort by. Single: "name", Multi: "name,price". Supported: name, price, createdAt, stockQuantity, category, expiryDate</param>
+        /// <param name="sortOrder">Sort order(s). Single: "asc", Multi: "asc,desc". Default: "desc"</param>
+        /// <returns>Paginated response containing medications, alerts, and pagination metadata</returns>
+        /// <response code="200">Returns paginated inventory with alerts successfully</response>
+        /// <response code="400">Invalid query parameters</response>
+        /// <response code="401">Unauthorized - JWT token required</response>
+        /// <response code="403">Forbidden - Pharmacist role required</response>
         [HttpGet("inventory")]
         [Authorize(Roles = "Pharmacist")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> GetInventory(
             [FromQuery] string? category = null,
             [FromQuery] int pageNumber = 1,

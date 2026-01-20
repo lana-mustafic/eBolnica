@@ -27,7 +27,7 @@ namespace eBolnicaAPI.Models.DTOs
         InStock,
 
         /// <summary>
-        /// Medication stock is low (quantity < minimum level but > 0)
+        /// Medication stock is low (quantity &lt; minimum level but &gt; 0)
         /// </summary>
         LowStock,
 

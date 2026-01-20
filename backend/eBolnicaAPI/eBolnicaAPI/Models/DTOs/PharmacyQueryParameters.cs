@@ -5,7 +5,7 @@ namespace eBolnicaAPI.Models.DTOs
     /// <summary>
     /// Query parameters for Pharmacy module endpoints supporting pagination, filtering, and sorting.
     /// ASP.NET Core automatically binds query string parameters to this DTO.
-    /// Example: /api/pharmacy/medications?pageNumber=1&pageSize=10&category=antibiotics&minPrice=10&maxPrice=50
+    /// Example: /api/pharmacy/medications?pageNumber=1&amp;pageSize=10&amp;category=antibiotics&amp;minPrice=10&amp;maxPrice=50
     /// </summary>
     public class PharmacyQueryParameters : IValidatableObject
     {
