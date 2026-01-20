@@ -1,10 +1,10 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { PharmacyService, MedicationFilterParams } from '../../../shared/services/pharmacy/pharmacy.service';
 import { MedicationDto } from '../../../models/medication.dto';
-import { Subject, debounceTime, distinctUntilChanged, finalize } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, of } from 'rxjs';
 
 @Component({
   selector: 'app-medications',
@@ -13,11 +13,12 @@ import { Subject, debounceTime, distinctUntilChanged, finalize } from 'rxjs';
   templateUrl: './medications.component.html',
   styleUrl: './medications.component.css'
 })
-export class MedicationsComponent implements OnInit {
+export class MedicationsComponent implements OnInit, OnDestroy {
   private pharmacyService = inject(PharmacyService);
 
   medications: MedicationDto[] = [];
   isLoading: boolean = false;
+  isSearching: boolean = false; // Separate flag for search loading
   errorMessage: string | null = null;
   successMessage: string | null = null;
 
@@ -30,6 +31,7 @@ export class MedicationsComponent implements OnInit {
   // Search
   searchTerm: string = '';
   private searchSubject = new Subject<string>();
+  private destroy$ = new Subject<void>();
 
   // Filters
   selectedCategory: string = '';
@@ -43,23 +45,50 @@ export class MedicationsComponent implements OnInit {
   ngOnInit(): void {
     this.loadMedications();
     
-    // Setup debounced search
+    // Setup debounced search with switchMap to cancel previous requests
     this.searchSubject.pipe(
       debounceTime(300),
-      distinctUntilChanged()
-    ).subscribe(searchTerm => {
-      this.searchTerm = searchTerm;
-      this.currentPage = 1; // Reset to first page on search
-      this.loadMedications();
+      distinctUntilChanged(),
+      tap(() => {
+        this.isSearching = true;
+        this.currentPage = 1; // Reset to first page on search
+      }),
+      switchMap(searchTerm => {
+        this.searchTerm = searchTerm;
+        // Build filters with search term
+        const filters = this.buildFilterParams();
+        return this.pharmacyService.getAllMedications(filters).pipe(
+          finalize(() => this.isSearching = false)
+        );
+      }),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (response) => {
+        this.medications = response.data;
+        this.totalCount = response.totalCount;
+        this.totalPages = response.totalPages;
+        this.currentPage = response.page;
+        this.pageSize = response.pageSize;
+        this.extractCategories();
+        this.errorMessage = null;
+      },
+      error: (error) => {
+        this.isSearching = false;
+        this.errorMessage = 'Search failed. Please try again.';
+        console.error('Error searching medications:', error);
+      }
     });
   }
 
-  loadMedications(): void {
-    this.isLoading = true;
-    this.errorMessage = null;
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
-    // Build filter parameters object
-    // Map UI filter values to API format: "Low Stock" -> "low stock", "Out of Stock" -> "out of stock"
+  /**
+   * Build filter parameters object from current component state
+   */
+  private buildFilterParams(): MedicationFilterParams {
     const filters: MedicationFilterParams = {
       page: this.currentPage,
       pageSize: this.pageSize
@@ -84,6 +113,15 @@ export class MedicationsComponent implements OnInit {
     if (this.selectedActiveStatus) {
       filters.isActive = this.selectedActiveStatus === 'Active';
     }
+
+    return filters;
+  }
+
+  loadMedications(): void {
+    this.isLoading = true;
+    this.errorMessage = null;
+
+    const filters = this.buildFilterParams();
 
     this.pharmacyService.getAllMedications(filters).pipe(
       finalize(() => this.isLoading = false)
@@ -119,6 +157,9 @@ export class MedicationsComponent implements OnInit {
   }
 
   onSearchChange(searchTerm: string): void {
+    // Update local search term immediately for UI responsiveness
+    this.searchTerm = searchTerm;
+    // Emit to subject for debounced search
     this.searchSubject.next(searchTerm);
   }
 

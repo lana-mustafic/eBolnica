@@ -1,10 +1,10 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
+import { PharmacyService, InventoryFilterParams } from '../../../shared/services/pharmacy/pharmacy.service';
 import { MedicationDto } from '../../../models/medication.dto';
-import { Subject, debounceTime, distinctUntilChanged, finalize } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap } from 'rxjs';
 
 type StockStatus = 'adequate' | 'low' | 'critical' | 'out-of-stock';
 type ExpiryStatus = 'good' | 'warning' | 'critical' | 'expired';
@@ -16,13 +16,21 @@ type ExpiryStatus = 'good' | 'warning' | 'critical' | 'expired';
   templateUrl: './inventory.component.html',
   styleUrl: './inventory.component.css'
 })
-export class InventoryComponent implements OnInit {
+export class InventoryComponent implements OnInit, OnDestroy {
   private pharmacyService = inject(PharmacyService);
 
   inventoryItems: MedicationDto[] = [];
-  filteredItems: MedicationDto[] = [];
+  lowStockAlerts: MedicationDto[] = [];
+  expiryAlerts: MedicationDto[] = [];
   isLoading: boolean = false;
+  isSearching: boolean = false; // Separate flag for search loading
   errorMessage: string | null = null;
+
+  // Pagination
+  currentPage: number = 1;
+  pageSize: number = 50; // Larger page size for inventory
+  totalCount: number = 0;
+  totalPages: number = 0;
 
   // Filters
   selectedStockFilter: string = 'all';
@@ -30,6 +38,7 @@ export class InventoryComponent implements OnInit {
   selectedCategory: string = '';
   searchTerm: string = '';
   private searchSubject = new Subject<string>();
+  private destroy$ = new Subject<void>();
 
   // Available categories
   categories: string[] = [];
@@ -44,34 +53,88 @@ export class InventoryComponent implements OnInit {
   ngOnInit(): void {
     this.loadInventory();
     
-    // Setup debounced search
+    // Setup debounced search with switchMap to cancel previous requests
     this.searchSubject.pipe(
       debounceTime(300),
-      distinctUntilChanged()
-    ).subscribe(searchTerm => {
-      this.searchTerm = searchTerm;
-      this.applyFilters();
+      distinctUntilChanged(),
+      tap(() => {
+        this.isSearching = true;
+        this.currentPage = 1; // Reset to first page on search
+      }),
+      switchMap(searchTerm => {
+        this.searchTerm = searchTerm;
+        // Build filters with search term
+        const filters = this.buildFilterParams();
+        return this.pharmacyService.getInventory(filters).pipe(
+          finalize(() => this.isSearching = false)
+        );
+      }),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (response) => {
+        this.inventoryItems = response.data || [];
+        this.lowStockAlerts = response.LowStockAlerts || [];
+        this.expiryAlerts = response.ExpiryAlerts || [];
+        this.totalCount = response.totalCount || 0;
+        this.totalPages = response.totalPages || 0;
+        this.currentPage = response.page || 1;
+        this.pageSize = response.pageSize || 50;
+        this.extractCategories();
+        this.calculateSummaryStats();
+        this.errorMessage = null;
+      },
+      error: (error) => {
+        this.isSearching = false;
+        this.errorMessage = 'Search failed. Please try again.';
+        console.error('Error searching inventory:', error);
+      }
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  /**
+   * Build filter parameters object from current component state
+   */
+  private buildFilterParams(): InventoryFilterParams {
+    const filters: InventoryFilterParams = {
+      page: this.currentPage,
+      pageSize: this.pageSize
+    };
+
+    if (this.selectedCategory) {
+      filters.category = this.selectedCategory;
+    }
+
+    if (this.searchTerm.trim()) {
+      filters.search = this.searchTerm.trim();
+    }
+
+    return filters;
   }
 
   loadInventory(): void {
     this.isLoading = true;
     this.errorMessage = null;
 
-    // Load all active medications with large page size
-    this.pharmacyService.getAllMedications({
-      isActive: true,
-      page: 1,
-      pageSize: 1000
-    }).pipe(
+    const filters = this.buildFilterParams();
+
+    this.pharmacyService.getInventory(filters).pipe(
       finalize(() => this.isLoading = false)
     ).subscribe({
       next: (response) => {
-        // Only show active medications in inventory
-        this.inventoryItems = response.data.filter((m: MedicationDto) => m.isActive);
+        this.inventoryItems = response.data || [];
+        this.lowStockAlerts = response.LowStockAlerts || [];
+        this.expiryAlerts = response.ExpiryAlerts || [];
+        this.totalCount = response.totalCount || 0;
+        this.totalPages = response.totalPages || 0;
+        this.currentPage = response.page || 1;
+        this.pageSize = response.pageSize || 50;
         this.extractCategories();
         this.calculateSummaryStats();
-        this.applyFilters();
       },
       error: (error) => {
         this.errorMessage = 'Failed to load inventory. Please try again later.';
@@ -91,8 +154,12 @@ export class InventoryComponent implements OnInit {
   }
 
   calculateSummaryStats(): void {
-    this.totalItems = this.inventoryItems.length;
-    this.lowStockCount = this.inventoryItems.filter(item => 
+    // Use total count from backend for accurate statistics
+    this.totalItems = this.totalCount || this.inventoryItems.length;
+    
+    // Calculate stats from current page items (approximate)
+    // Note: For accurate stats, backend should provide these counts
+    this.lowStockCount = this.lowStockAlerts.length || this.inventoryItems.filter(item => 
       this.calculateStockStatus(item.stockQuantity, item.minimumStockLevel) === 'low'
     ).length;
     this.criticalStockCount = this.inventoryItems.filter(item => 
@@ -101,7 +168,7 @@ export class InventoryComponent implements OnInit {
     this.outOfStockCount = this.inventoryItems.filter(item => 
       item.stockQuantity === 0
     ).length;
-    this.expiringSoonCount = this.inventoryItems.filter(item => 
+    this.expiringSoonCount = this.expiryAlerts.length || this.inventoryItems.filter(item => 
       item.expiryDate && this.calculateExpiryStatus(item.expiryDate) === 'critical'
     ).length;
   }
@@ -141,11 +208,15 @@ export class InventoryComponent implements OnInit {
   }
 
   onSearchChange(searchTerm: string): void {
+    // Update local search term immediately for UI responsiveness
+    this.searchTerm = searchTerm;
+    // Emit to subject for debounced search
     this.searchSubject.next(searchTerm);
   }
 
   onFilterChange(): void {
-    this.applyFilters();
+    this.currentPage = 1; // Reset to first page on filter change
+    this.loadInventory();
   }
 
   clearFilters(): void {
@@ -153,44 +224,8 @@ export class InventoryComponent implements OnInit {
     this.selectedStockFilter = 'all';
     this.selectedExpiryFilter = 'all';
     this.selectedCategory = '';
-    this.applyFilters();
-  }
-
-  applyFilters(): void {
-    let filtered = [...this.inventoryItems];
-
-    // Stock filter
-    if (this.selectedStockFilter !== 'all') {
-      filtered = filtered.filter(item => {
-        const status = this.calculateStockStatus(item.stockQuantity, item.minimumStockLevel);
-        return status === this.selectedStockFilter;
-      });
-    }
-
-    // Expiry filter
-    if (this.selectedExpiryFilter !== 'all') {
-      filtered = filtered.filter(item => {
-        const expiryStatus = this.calculateExpiryStatus(item.expiryDate);
-        return expiryStatus === this.selectedExpiryFilter;
-      });
-    }
-
-    // Category filter
-    if (this.selectedCategory) {
-      filtered = filtered.filter(item => item.category === this.selectedCategory);
-    }
-
-    // Search filter
-    if (this.searchTerm.trim()) {
-      const search = this.searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(item => 
-        item.name.toLowerCase().includes(search) ||
-        (item.genericName && item.genericName.toLowerCase().includes(search)) ||
-        (item.manufacturer && item.manufacturer.toLowerCase().includes(search))
-      );
-    }
-
-    this.filteredItems = filtered;
+    this.currentPage = 1;
+    this.loadInventory();
   }
 
   getStockStatusClass(item: MedicationDto): string {
@@ -305,7 +340,7 @@ export class InventoryComponent implements OnInit {
   }
 
   exportToCSV(): void {
-    if (this.filteredItems.length === 0) {
+    if (this.inventoryItems.length === 0) {
       alert('No data to export.');
       return;
     }
@@ -326,7 +361,7 @@ export class InventoryComponent implements OnInit {
       'Last Updated'
     ];
 
-    const csvData = this.filteredItems.map(item => [
+    const csvData = this.inventoryItems.map(item => [
       this.escapeCSV(item.name),
       this.escapeCSV(item.genericName || ''),
       this.escapeCSV(item.category || ''),

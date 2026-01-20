@@ -29,6 +29,34 @@ export interface MedicationFilterParams {
   pageSize?: number;
 }
 
+/**
+ * Filter parameters for prescription queries
+ */
+export interface PrescriptionFilterParams {
+  /** Filter by status (exact match) */
+  status?: string;
+  /** Search term for patient name, doctor name, medication name, or prescription code (case-insensitive) */
+  search?: string;
+  /** Page number (1-based, default: 1) */
+  page?: number;
+  /** Items per page (default: 10, range: 5-100) */
+  pageSize?: number;
+}
+
+/**
+ * Filter parameters for inventory queries
+ */
+export interface InventoryFilterParams {
+  /** Filter by category (exact match, case-insensitive) */
+  category?: string;
+  /** Search term for medication name, batch number, or supplier (case-insensitive) */
+  search?: string;
+  /** Page number (1-based, default: 1) */
+  page?: number;
+  /** Items per page (default: 10, range: 5-100) */
+  pageSize?: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -107,12 +135,32 @@ export class PharmacyService {
   }
 
   // Prescriptions Management
-  getPrescriptions(status?: string): Observable<PrescriptionDto[]> {
-    let params = new HttpParams();
-    if (status) {
-      params = params.set('status', status);
+  /**
+   * Get prescriptions with optional filtering, search, and pagination
+   * @param filters Optional filter parameters object
+   * @returns Observable of paginated prescription response
+   */
+  getPrescriptions(filters?: PrescriptionFilterParams): Observable<PagedResponse<PrescriptionDto>> {
+    const page = filters?.page || 1;
+    const pageSize = Math.max(5, Math.min(100, filters?.pageSize || 10));
+    
+    let params = new HttpParams()
+      .set('pageNumber', page.toString())
+      .set('pageSize', pageSize.toString());
+    
+    if (filters?.status) {
+      params = params.set('status', filters.status);
     }
-    return this.http.get<PrescriptionDto[]>(this.apiUrl + '/prescriptions', { params });
+    
+    // Search filter (trim and only add if not empty)
+    if (filters?.search) {
+      const searchTerm = filters.search.trim();
+      if (searchTerm) {
+        params = params.set('search', searchTerm);
+      }
+    }
+    
+    return this.http.get<PagedResponse<PrescriptionDto>>(`${this.apiUrl}/prescriptions`, { params });
   }
 
   getPrescriptionById(id: number): Observable<PrescriptionDto> {
@@ -128,11 +176,31 @@ export class PharmacyService {
   }
 
   // Inventory & Pharmacist Data
-  getInventory(category?: string): Observable<any> {
-    let params = new HttpParams();
-    if (category) {
-      params = params.set('category', category);
+  /**
+   * Get inventory with optional filtering, search, and pagination
+   * @param filters Optional filter parameters object
+   * @returns Observable of paginated inventory response with alerts
+   */
+  getInventory(filters?: InventoryFilterParams): Observable<PagedResponse<MedicationDto> & { LowStockAlerts: MedicationDto[]; ExpiryAlerts: MedicationDto[] }> {
+    const page = filters?.page || 1;
+    const pageSize = Math.max(5, Math.min(100, filters?.pageSize || 10));
+    
+    let params = new HttpParams()
+      .set('pageNumber', page.toString())
+      .set('pageSize', pageSize.toString());
+    
+    if (filters?.category) {
+      params = params.set('category', filters.category);
     }
+    
+    // Search filter (trim and only add if not empty)
+    if (filters?.search) {
+      const searchTerm = filters.search.trim();
+      if (searchTerm) {
+        params = params.set('search', searchTerm);
+      }
+    }
+    
     return this.http.get<any>(this.apiUrl + '/inventory', { params });
   }
 

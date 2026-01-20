@@ -95,6 +95,40 @@
   color: #2d3748;
 }
 
+.search-input.searching {
+  padding-right: 120px; /* Make room for loading indicator */
+}
+
+.search-loading {
+  position: absolute;
+  right: 50px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #4299e1;
+  font-size: 0.875rem;
+}
+
+.search-loading .spinner {
+  width: 16px;
+  height: 16px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.searching-text {
+  color: #4299e1;
+  font-size: 0.875rem;
+}
+
 .clear-search svg {
   width: 18px;
   height: 18px;

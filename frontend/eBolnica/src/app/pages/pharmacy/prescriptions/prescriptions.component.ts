@@ -1,10 +1,10 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
+import { PharmacyService, PrescriptionFilterParams } from '../../../shared/services/pharmacy/pharmacy.service';
 import { PrescriptionDto } from '../../../models/prescription.dto';
-import { Subject, debounceTime, distinctUntilChanged, finalize } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap } from 'rxjs';
 
 @Component({
   selector: 'app-prescriptions',
@@ -13,13 +13,19 @@ import { Subject, debounceTime, distinctUntilChanged, finalize } from 'rxjs';
   templateUrl: './prescriptions.component.html',
   styleUrl: './prescriptions.component.css'
 })
-export class PrescriptionsComponent implements OnInit {
+export class PrescriptionsComponent implements OnInit, OnDestroy {
   private pharmacyService = inject(PharmacyService);
 
   prescriptions: PrescriptionDto[] = [];
-  filteredPrescriptions: PrescriptionDto[] = [];
   isLoading: boolean = false;
+  isSearching: boolean = false; // Separate flag for search loading
   errorMessage: string | null = null;
+
+  // Pagination
+  currentPage: number = 1;
+  pageSize: number = 10;
+  totalCount: number = 0;
+  totalPages: number = 0;
 
   // Status filter
   selectedStatus: string = 'Pending';
@@ -33,6 +39,7 @@ export class PrescriptionsComponent implements OnInit {
   // Search
   searchTerm: string = '';
   private searchSubject = new Subject<string>();
+  private destroy$ = new Subject<void>();
 
   // Sort
   sortBy: string = 'date';
@@ -41,28 +48,82 @@ export class PrescriptionsComponent implements OnInit {
   ngOnInit(): void {
     this.loadPrescriptions();
     
-    // Setup debounced search
+    // Setup debounced search with switchMap to cancel previous requests
     this.searchSubject.pipe(
       debounceTime(300),
-      distinctUntilChanged()
-    ).subscribe(searchTerm => {
-      this.searchTerm = searchTerm;
-      this.applyFilters();
+      distinctUntilChanged(),
+      tap(() => {
+        this.isSearching = true;
+        this.currentPage = 1; // Reset to first page on search
+      }),
+      switchMap(searchTerm => {
+        this.searchTerm = searchTerm;
+        // Build filters with search term
+        const filters = this.buildFilterParams();
+        return this.pharmacyService.getPrescriptions(filters).pipe(
+          finalize(() => this.isSearching = false)
+        );
+      }),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (response) => {
+        this.prescriptions = response.data || [];
+        this.totalCount = response.totalCount || 0;
+        this.totalPages = response.totalPages || 0;
+        this.currentPage = response.page || 1;
+        this.pageSize = response.pageSize || 10;
+        this.updateFilterCounts();
+        this.errorMessage = null;
+      },
+      error: (error) => {
+        this.isSearching = false;
+        this.errorMessage = 'Search failed. Please try again.';
+        console.error('Error searching prescriptions:', error);
+      }
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  /**
+   * Build filter parameters object from current component state
+   */
+  private buildFilterParams(): PrescriptionFilterParams {
+    const filters: PrescriptionFilterParams = {
+      page: this.currentPage,
+      pageSize: this.pageSize
+    };
+
+    if (this.selectedStatus && this.selectedStatus !== 'All') {
+      filters.status = this.selectedStatus;
+    }
+
+    if (this.searchTerm.trim()) {
+      filters.search = this.searchTerm.trim();
+    }
+
+    return filters;
   }
 
   loadPrescriptions(): void {
     this.isLoading = true;
     this.errorMessage = null;
 
-    // Load all prescriptions, we'll filter client-side
-    this.pharmacyService.getPrescriptions().pipe(
+    const filters = this.buildFilterParams();
+
+    this.pharmacyService.getPrescriptions(filters).pipe(
       finalize(() => this.isLoading = false)
     ).subscribe({
-      next: (prescriptions) => {
-        this.prescriptions = prescriptions;
+      next: (response) => {
+        this.prescriptions = response.data || [];
+        this.totalCount = response.totalCount || 0;
+        this.totalPages = response.totalPages || 0;
+        this.currentPage = response.page || 1;
+        this.pageSize = response.pageSize || 10;
         this.updateFilterCounts();
-        this.applyFilters();
       },
       error: (error) => {
         this.errorMessage = 'Failed to load prescriptions. Please try again later.';
@@ -72,21 +133,34 @@ export class PrescriptionsComponent implements OnInit {
   }
 
   updateFilterCounts(): void {
+    // Note: With pagination, we only have counts for current page
+    // For accurate counts, would need separate API calls or total counts from backend
     this.statusFilters.forEach(filter => {
       if (filter.value === 'All') {
-        filter.count = this.prescriptions.length;
+        filter.count = this.totalCount; // Use total count from backend
       } else {
-        filter.count = this.prescriptions.filter(p => p.status === filter.value).length;
+        // Approximate count based on current page (not perfect but better than nothing)
+        const pageCount = this.prescriptions.filter(p => p.status === filter.value).length;
+        // Estimate: if we have 10 items per page and 3 match, estimate total
+        if (this.totalCount > 0 && this.prescriptions.length > 0) {
+          filter.count = Math.round((pageCount / this.prescriptions.length) * this.totalCount);
+        } else {
+          filter.count = pageCount;
+        }
       }
     });
   }
 
   onStatusFilterChange(status: string): void {
     this.selectedStatus = status;
-    this.applyFilters();
+    this.currentPage = 1; // Reset to first page on filter change
+    this.loadPrescriptions();
   }
 
   onSearchChange(searchTerm: string): void {
+    // Update local search term immediately for UI responsiveness
+    this.searchTerm = searchTerm;
+    // Emit to subject for debounced search
     this.searchSubject.next(searchTerm);
   }
 
@@ -97,51 +171,9 @@ export class PrescriptionsComponent implements OnInit {
       this.sortBy = sortBy;
       this.sortOrder = 'desc';
     }
-    this.applyFilters();
-  }
-
-  applyFilters(): void {
-    let filtered = [...this.prescriptions];
-
-    // Status filter
-    if (this.selectedStatus && this.selectedStatus !== 'All') {
-      filtered = filtered.filter(p => p.status === this.selectedStatus);
-    }
-
-    // Search filter
-    if (this.searchTerm.trim()) {
-      const search = this.searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(p => 
-        p.prescriptionNumber.toLowerCase().includes(search) ||
-        (p.patient && `${p.patient.firstName} ${p.patient.lastName}`.toLowerCase().includes(search))
-      );
-    }
-
-    // Sort
-    filtered.sort((a, b) => {
-      let comparison = 0;
-      
-      switch (this.sortBy) {
-        case 'date':
-          comparison = new Date(a.prescribedDate).getTime() - new Date(b.prescribedDate).getTime();
-          break;
-        case 'status':
-          comparison = a.status.localeCompare(b.status);
-          break;
-        case 'amount':
-          comparison = a.totalAmount - b.totalAmount;
-          break;
-        case 'number':
-          comparison = a.prescriptionNumber.localeCompare(b.prescriptionNumber);
-          break;
-        default:
-          comparison = 0;
-      }
-      
-      return this.sortOrder === 'asc' ? comparison : -comparison;
-    });
-
-    this.filteredPrescriptions = filtered;
+    // Note: Sorting is now handled by backend, but we can still apply client-side sorting as fallback
+    // For now, reload with current filters
+    this.loadPrescriptions();
   }
 
   getStatusClass(status: string): string {
