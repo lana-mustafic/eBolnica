@@ -6,7 +6,7 @@ using QuestPDF.Infrastructure;
 namespace eBolnicaAPI.PdfComponents
 {
     /// <summary>
-    /// PDF table component for prescriptions
+    /// Professional PDF table component for prescriptions with color coding and styling
     /// </summary>
     public class PrescriptionsTableComponent : IComponent
     {
@@ -24,13 +24,6 @@ namespace eBolnicaAPI.PdfComponents
             container
                 .Column(column =>
                 {
-                    // Summary section
-                    column.Item()
-                        .PaddingBottom(10)
-                        .Text($"Showing {_prescriptions.Count} prescription(s)")
-                        .FontSize(11)
-                        .Bold();
-
                     if (_prescriptions.Count == 0)
                     {
                         column.Item()
@@ -49,12 +42,13 @@ namespace eBolnicaAPI.PdfComponents
                             // Define columns
                             table.ColumnsDefinition(columns =>
                             {
-                                columns.RelativeColumn(2); // Prescription #
-                                columns.RelativeColumn(2); // Patient
-                                columns.RelativeColumn(2); // Doctor
-                                columns.RelativeColumn(2); // Status
-                                columns.RelativeColumn(2); // Total Amount
-                                columns.RelativeColumn(2); // Date
+                                columns.ConstantColumn(35);   // Index
+                                columns.RelativeColumn(2);    // Prescription #
+                                columns.RelativeColumn(2.5f); // Patient
+                                columns.RelativeColumn(2);    // Doctor
+                                columns.RelativeColumn(1.5f); // Status
+                                columns.RelativeColumn(1.5f); // Total Amount
+                                columns.RelativeColumn(1.5f); // Date
                             });
 
                             // Table header
@@ -62,56 +56,138 @@ namespace eBolnicaAPI.PdfComponents
                             {
                                 header.Cell()
                                     .Element(HeaderCellStyle)
-                                    .Text("Prescription #");
-                                
+                                    .Text("#")
+                                    .Bold()
+                                    .AlignCenter();
+
                                 header.Cell()
                                     .Element(HeaderCellStyle)
-                                    .Text("Patient");
-                                
+                                    .Text("Prescription #")
+                                    .Bold();
+
                                 header.Cell()
                                     .Element(HeaderCellStyle)
-                                    .Text("Doctor");
-                                
+                                    .Text("Patient")
+                                    .Bold();
+
                                 header.Cell()
                                     .Element(HeaderCellStyle)
-                                    .Text("Status");
-                                
+                                    .Text("Doctor")
+                                    .Bold();
+
                                 header.Cell()
                                     .Element(HeaderCellStyle)
-                                    .Text("Total Amount");
-                                
+                                    .Text("Status")
+                                    .Bold()
+                                    .AlignCenter();
+
                                 header.Cell()
                                     .Element(HeaderCellStyle)
-                                    .Text("Date");
+                                    .Text("Total Amount")
+                                    .Bold()
+                                    .AlignRight();
+
+                                header.Cell()
+                                    .Element(HeaderCellStyle)
+                                    .Text("Date")
+                                    .Bold()
+                                    .AlignCenter();
+
+                                // Header separator
+                                header.Cell()
+                                    .ColumnSpan(7)
+                                    .PaddingTop(5)
+                                    .LineHorizontal(1)
+                                    .LineColor(PharmacyPdfTheme.PrimaryColor);
                             });
 
-                            // Table rows
-                            foreach (var prescription in _prescriptions)
+                            // Table rows with alternating colors
+                            for (int i = 0; i < _prescriptions.Count; i++)
                             {
-                                table.Cell()
-                                    .Element(CellStyle)
-                                    .Text(prescription.PrescriptionNumber ?? "");
+                                var prescription = _prescriptions[i];
+                                var rowColor = i % 2 == 0 ? Colors.White : PharmacyPdfTheme.Table.RowAlternateColor;
 
                                 table.Cell()
-                                    .Element(CellStyle)
-                                    .Text($"{prescription.Patient?.FirstName ?? ""} {prescription.Patient?.LastName ?? ""}".Trim());
+                                    .Background(rowColor)
+                                    .PaddingVertical(6)
+                                    .Text($"{i + 1}")
+                                    .AlignCenter()
+                                    .FontSize(9);
 
                                 table.Cell()
-                                    .Element(CellStyle)
-                                    .Text($"{prescription.Doctor?.FirstName ?? ""} {prescription.Doctor?.LastName ?? ""}".Trim());
+                                    .Background(rowColor)
+                                    .PaddingVertical(6)
+                                    .Text(prescription.PrescriptionNumber ?? "")
+                                    .FontSize(9);
 
                                 table.Cell()
-                                    .Element(CellStyle)
-                                    .Text(prescription.Status ?? "");
+                                    .Background(rowColor)
+                                    .PaddingVertical(6)
+                                    .Text($"{prescription.Patient?.FirstName ?? ""} {prescription.Patient?.LastName ?? ""}".Trim())
+                                    .FontSize(9);
 
                                 table.Cell()
-                                    .Element(CellStyle)
-                                    .Text($"${prescription.TotalAmount:F2}");
+                                    .Background(rowColor)
+                                    .PaddingVertical(6)
+                                    .Text($"{prescription.Doctor?.FirstName ?? ""} {prescription.Doctor?.LastName ?? ""}".Trim())
+                                    .FontSize(9);
+
+                                // Status with color coding
+                                var statusColor = PharmacyPdfTheme.GetStatusColor(prescription.Status ?? "");
+                                table.Cell()
+                                    .Background(rowColor)
+                                    .PaddingVertical(6)
+                                    .Text(prescription.Status ?? "")
+                                    .AlignCenter()
+                                    .FontSize(9)
+                                    .FontColor(statusColor);
 
                                 table.Cell()
-                                    .Element(CellStyle)
-                                    .Text(prescription.PrescribedDate?.ToString("yyyy-MM-dd") ?? "N/A");
+                                    .Background(rowColor)
+                                    .PaddingVertical(6)
+                                    .Text($"${prescription.TotalAmount:F2}")
+                                    .AlignRight()
+                                    .FontSize(9);
+
+                                table.Cell()
+                                    .Background(rowColor)
+                                    .PaddingVertical(6)
+                                    .Text(prescription.PrescribedDate?.ToString("yyyy-MM-dd") ?? "N/A")
+                                    .AlignCenter()
+                                    .FontSize(9);
+
+                                // Row separator (except for last row)
+                                if (i < _prescriptions.Count - 1)
+                                {
+                                    table.Cell()
+                                        .ColumnSpan(7)
+                                        .PaddingTop(2)
+                                        .LineHorizontal(0.2)
+                                        .LineColor(PharmacyPdfTheme.Table.BorderColor);
+                                }
                             }
+
+                            // Table footer with summary
+                            var totalAmount = _prescriptions.Sum(p => p.TotalAmount);
+                            table.Footer(footer =>
+                            {
+                                footer.Cell()
+                                    .ColumnSpan(5)
+                                    .PaddingTop(10)
+                                    .Text($"Total: {_prescriptions.Count} prescriptions")
+                                    .FontSize(10)
+                                    .Italic()
+                                    .FontColor(PharmacyPdfTheme.SecondaryColor);
+
+                                footer.Cell()
+                                    .ColumnSpan(2)
+                                    .PaddingTop(10)
+                                    .Text($"Total Amount: ${totalAmount:F2}")
+                                    .FontSize(10)
+                                    .Bold()
+                                    .AlignRight()
+                                    .FontColor(PharmacyPdfTheme.PrimaryColor);
+                            });
                         });
                 });
         }
@@ -119,20 +195,10 @@ namespace eBolnicaAPI.PdfComponents
         private IContainer HeaderCellStyle(IContainer container)
         {
             return container
-                .Background(Colors.Grey.Lighten3)
-                .Padding(5)
-                .BorderBottom(1)
-                .BorderColor(Colors.Grey.Lighten1)
-                .AlignCenter()
-                .AlignMiddle();
-        }
-
-        private IContainer CellStyle(IContainer container)
-        {
-            return container
-                .BorderBottom(0.5f)
-                .BorderColor(Colors.Grey.Lighten2)
-                .Padding(5)
+                .Background(PharmacyPdfTheme.Table.HeaderBackground)
+                .Border(1)
+                .BorderColor(PharmacyPdfTheme.Table.BorderColor)
+                .Padding(8)
                 .AlignMiddle();
         }
     }

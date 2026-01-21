@@ -6,7 +6,7 @@ using QuestPDF.Infrastructure;
 namespace eBolnicaAPI.PdfComponents
 {
     /// <summary>
-    /// PDF table component for inventory items
+    /// Professional PDF table component for inventory items with color coding and styling
     /// </summary>
     public class InventoryTableComponent : IComponent
     {
@@ -24,13 +24,6 @@ namespace eBolnicaAPI.PdfComponents
             container
                 .Column(column =>
                 {
-                    // Summary section
-                    column.Item()
-                        .PaddingBottom(10)
-                        .Text($"Showing {_medications.Count} medication(s)")
-                        .FontSize(11)
-                        .Bold();
-
                     if (_medications.Count == 0)
                     {
                         column.Item()
@@ -49,12 +42,13 @@ namespace eBolnicaAPI.PdfComponents
                             // Define columns
                             table.ColumnsDefinition(columns =>
                             {
-                                columns.RelativeColumn(3); // Name
-                                columns.RelativeColumn(2); // Category
-                                columns.RelativeColumn(2); // Price
-                                columns.RelativeColumn(2); // Stock
-                                columns.RelativeColumn(2); // Status
-                                columns.RelativeColumn(2); // Expiry Date
+                                columns.ConstantColumn(35);   // Index
+                                columns.RelativeColumn(3);    // Name
+                                columns.RelativeColumn(2);    // Category
+                                columns.RelativeColumn(1.5f); // Price
+                                columns.RelativeColumn(1.5f); // Stock
+                                columns.RelativeColumn(1.5f); // Status
+                                columns.RelativeColumn(2);    // Expiry Date
                             });
 
                             // Table header
@@ -62,56 +56,138 @@ namespace eBolnicaAPI.PdfComponents
                             {
                                 header.Cell()
                                     .Element(HeaderCellStyle)
-                                    .Text("Name");
-                                
+                                    .Text("#")
+                                    .Bold()
+                                    .AlignCenter();
+
                                 header.Cell()
                                     .Element(HeaderCellStyle)
-                                    .Text("Category");
-                                
+                                    .Text("Medication Name")
+                                    .Bold();
+
                                 header.Cell()
                                     .Element(HeaderCellStyle)
-                                    .Text("Price");
-                                
+                                    .Text("Category")
+                                    .Bold();
+
                                 header.Cell()
                                     .Element(HeaderCellStyle)
-                                    .Text("Stock");
-                                
+                                    .Text("Price")
+                                    .Bold()
+                                    .AlignRight();
+
                                 header.Cell()
                                     .Element(HeaderCellStyle)
-                                    .Text("Status");
-                                
+                                    .Text("Stock")
+                                    .Bold()
+                                    .AlignRight();
+
                                 header.Cell()
                                     .Element(HeaderCellStyle)
-                                    .Text("Expiry Date");
+                                    .Text("Status")
+                                    .Bold()
+                                    .AlignCenter();
+
+                                header.Cell()
+                                    .Element(HeaderCellStyle)
+                                    .Text("Expiry Date")
+                                    .Bold()
+                                    .AlignCenter();
+
+                                // Header separator
+                                header.Cell()
+                                    .ColumnSpan(7)
+                                    .PaddingTop(5)
+                                    .LineHorizontal(1)
+                                    .LineColor(PharmacyPdfTheme.PrimaryColor);
                             });
 
-                            // Table rows
-                            foreach (var medication in _medications)
+                            // Table rows with alternating colors
+                            for (int i = 0; i < _medications.Count; i++)
                             {
-                                table.Cell()
-                                    .Element(CellStyle)
-                                    .Text(medication.Name ?? "");
+                                var medication = _medications[i];
+                                var rowColor = i % 2 == 0 ? Colors.White : PharmacyPdfTheme.Table.RowAlternateColor;
 
                                 table.Cell()
-                                    .Element(CellStyle)
-                                    .Text(medication.Category ?? "");
+                                    .Background(rowColor)
+                                    .PaddingVertical(6)
+                                    .Text($"{i + 1}")
+                                    .AlignCenter()
+                                    .FontSize(9);
 
                                 table.Cell()
-                                    .Element(CellStyle)
-                                    .Text($"${medication.Price:F2}");
+                                    .Background(rowColor)
+                                    .PaddingVertical(6)
+                                    .Text(medication.Name ?? "")
+                                    .FontSize(9);
 
                                 table.Cell()
-                                    .Element(CellStyle)
-                                    .Text(medication.StockQuantity.ToString());
+                                    .Background(rowColor)
+                                    .PaddingVertical(6)
+                                    .Text(medication.Category ?? "")
+                                    .FontSize(9);
 
                                 table.Cell()
-                                    .Element(CellStyle)
-                                    .Text(medication.IsActive ? "Active" : "Inactive");
+                                    .Background(rowColor)
+                                    .PaddingVertical(6)
+                                    .Text($"${medication.Price:F2}")
+                                    .AlignRight()
+                                    .FontSize(9);
 
+                                // Quantity with color coding
                                 table.Cell()
-                                    .Element(CellStyle)
-                                    .Text(medication.ExpiryDate?.ToString("yyyy-MM-dd") ?? "N/A");
+                                    .Background(rowColor)
+                                    .PaddingVertical(6)
+                                    .Text(medication.StockQuantity.ToString())
+                                    .AlignRight()
+                                    .FontSize(9)
+                                    .FontColor(PharmacyPdfTheme.GetQuantityColor(
+                                        medication.StockQuantity, 
+                                        medication.MinimumStockLevel));
+
+                                // Status with color coding
+                                var statusText = medication.IsActive ? "Active" : "Inactive";
+                                var statusColor = PharmacyPdfTheme.GetStatusColor(statusText);
+                                table.Cell()
+                                    .Background(rowColor)
+                                    .PaddingVertical(6)
+                                    .Text(statusText)
+                                    .AlignCenter()
+                                    .FontSize(9)
+                                    .FontColor(statusColor);
+
+                                // Expiry date with color coding
+                                table.Cell()
+                                    .Background(rowColor)
+                                    .PaddingVertical(6)
+                                    .Text(medication.ExpiryDate?.ToString("yyyy-MM-dd") ?? "N/A")
+                                    .AlignCenter()
+                                    .FontSize(9)
+                                    .FontColor(PharmacyPdfTheme.GetExpiryColor(medication.ExpiryDate));
+
+                                // Row separator (except for last row)
+                                if (i < _medications.Count - 1)
+                                {
+                                    table.Cell()
+                                        .ColumnSpan(7)
+                                        .PaddingTop(2)
+                                        .LineHorizontal(0.2)
+                                        .LineColor(PharmacyPdfTheme.Table.BorderColor);
+                                }
                             }
+
+                            // Table footer with summary
+                            table.Footer(footer =>
+                            {
+                                footer.Cell()
+                                    .ColumnSpan(7)
+                                    .PaddingTop(10)
+                                    .Text($"Total items: {_medications.Count}")
+                                    .FontSize(10)
+                                    .Italic()
+                                    .AlignRight()
+                                    .FontColor(PharmacyPdfTheme.SecondaryColor);
+                            });
                         });
                 });
         }
@@ -119,20 +195,10 @@ namespace eBolnicaAPI.PdfComponents
         private IContainer HeaderCellStyle(IContainer container)
         {
             return container
-                .Background(Colors.Grey.Lighten3)
-                .Padding(5)
-                .BorderBottom(1)
-                .BorderColor(Colors.Grey.Lighten1)
-                .AlignCenter()
-                .AlignMiddle();
-        }
-
-        private IContainer CellStyle(IContainer container)
-        {
-            return container
-                .BorderBottom(0.5f)
-                .BorderColor(Colors.Grey.Lighten2)
-                .Padding(5)
+                .Background(PharmacyPdfTheme.Table.HeaderBackground)
+                .Border(1)
+                .BorderColor(PharmacyPdfTheme.Table.BorderColor)
+                .Padding(8)
                 .AlignMiddle();
         }
     }

@@ -1,3 +1,4 @@
+using eBolnicaAPI.Models;
 using eBolnicaAPI.Models.DTOs;
 using eBolnicaAPI.Models.Entities;
 using eBolnicaAPI.Models.Exceptions;
@@ -41,7 +42,8 @@ namespace eBolnicaAPI.Services
             {
                 _logger.LogInformation("Generating inventory PDF report with {Count} items", medications.Count);
 
-                var document = new InventoryPdfDocument(medications, request, _settings);
+                var pharmacyInfo = new PharmacyInfo(); // TODO: Load from configuration or database
+                var document = new InventoryPdfDocument(medications, request, _settings, pharmacyInfo);
                 var pdfBytes = document.GeneratePdf();
 
                 _logger.LogInformation("Successfully generated inventory PDF report: {Size} bytes", pdfBytes.Length);
@@ -64,7 +66,8 @@ namespace eBolnicaAPI.Services
             {
                 _logger.LogInformation("Generating prescriptions PDF report with {Count} items", prescriptions.Count);
 
-                var document = new PrescriptionsPdfDocument(prescriptions, request, _settings);
+                var pharmacyInfo = new PharmacyInfo(); // TODO: Load from configuration or database
+                var document = new PrescriptionsPdfDocument(prescriptions, request, _settings, pharmacyInfo);
                 var pdfBytes = document.GeneratePdf();
 
                 _logger.LogInformation("Successfully generated prescriptions PDF report: {Size} bytes", pdfBytes.Length);

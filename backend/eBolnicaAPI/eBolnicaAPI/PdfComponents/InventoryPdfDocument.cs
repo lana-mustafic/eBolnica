@@ -1,3 +1,4 @@
+using eBolnicaAPI.Models;
 using eBolnicaAPI.Models.DTOs;
 using eBolnicaAPI.Models.Entities;
 using eBolnicaAPI.Models.Settings;
@@ -8,22 +9,25 @@ using QuestPDF.Infrastructure;
 namespace eBolnicaAPI.PdfComponents
 {
     /// <summary>
-    /// PDF document for inventory reports
+    /// Professional PDF document for inventory reports
     /// </summary>
     public class InventoryPdfDocument : IDocument
     {
         private readonly List<Medication> _medications;
         private readonly PharmacyPdfReportRequest _request;
         private readonly PdfGenerationSettings _settings;
+        private readonly PharmacyInfo _pharmacyInfo;
 
         public InventoryPdfDocument(
             List<Medication> medications,
             PharmacyPdfReportRequest request,
-            PdfGenerationSettings settings)
+            PdfGenerationSettings settings,
+            PharmacyInfo? pharmacyInfo = null)
         {
             _medications = medications;
             _request = request;
             _settings = settings;
+            _pharmacyInfo = pharmacyInfo ?? new PharmacyInfo();
         }
 
         public DocumentMetadata GetMetadata() => DocumentMetadata.Default;
@@ -33,20 +37,52 @@ namespace eBolnicaAPI.PdfComponents
             container
                 .Page(page =>
                 {
+                    // Page size and margins
                     page.Size(GetPageSize(_settings.DefaultPageSize));
                     page.Margin(_settings.MarginMillimeters, Unit.Millimetre);
 
-                    // Header
+                    // Header (repeated on every page)
                     page.Header()
-                        .Element(new HeaderComponent(_request, _settings, "Pharmacy Inventory Report"));
+                        .Element(new PharmacyHeaderComponent(_pharmacyInfo, _settings));
 
                     // Content
                     page.Content()
-                        .Element(new InventoryTableComponent(_medications, _settings));
+                        .Element(ComposeContent);
 
-                    // Footer
+                    // Footer (repeated on every page)
                     page.Footer()
                         .Element(new FooterComponent(_settings));
+                });
+        }
+
+        private void ComposeContent(IContainer container)
+        {
+            container
+                .Column(column =>
+                {
+                    // Report metadata
+                    column.Item()
+                        .Element(new ReportMetadataComponent(
+                            "Pharmacy Inventory Report",
+                            _request,
+                            DateTime.Now,
+                            _settings,
+                            _medications.Count));
+
+                    // Data table
+                    column.Item()
+                        .PaddingTop(20)
+                        .Element(new InventoryTableComponent(_medications, _settings));
+
+                    // Summary statistics
+                    column.Item()
+                        .PaddingTop(30)
+                        .Element(new SummaryStatisticsComponent(_medications, _settings));
+
+                    // Notes section
+                    column.Item()
+                        .PaddingTop(30)
+                        .Element(new NotesComponent(_settings, isInventoryReport: true));
                 });
         }
 
