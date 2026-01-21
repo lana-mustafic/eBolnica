@@ -23,6 +23,7 @@ namespace eBolnicaAPI.Controllers
         private readonly UserManager<AppUser> _userManager;
         private readonly IPharmacyService _pharmacyService;
         private readonly IPdfReportService _pdfReportService;
+        private readonly IPharmacyAnalyticsService _analyticsService;
         private readonly ILogger<PharmacyController> _logger;
         private readonly IMemoryCache _cache;
         private readonly IConfiguration _configuration;
@@ -32,6 +33,7 @@ namespace eBolnicaAPI.Controllers
             UserManager<AppUser> userManager, 
             IPharmacyService pharmacyService,
             IPdfReportService pdfReportService,
+            IPharmacyAnalyticsService analyticsService,
             ILogger<PharmacyController> logger,
             IMemoryCache cache,
             IConfiguration configuration)
@@ -40,6 +42,7 @@ namespace eBolnicaAPI.Controllers
             _userManager = userManager;
             _pharmacyService = pharmacyService;
             _pdfReportService = pdfReportService;
+            _analyticsService = analyticsService;
             _logger = logger;
             _cache = cache;
             _configuration = configuration;
@@ -1492,6 +1495,236 @@ namespace eBolnicaAPI.Controllers
             {
                 _logger.LogError(ex, "Error generating test PDF");
                 return StatusCode(500, new { error = "Failed to generate test PDF" });
+            }
+        }
+
+        #endregion
+
+        #region Analytics Dashboard
+
+        /// <summary>
+        /// Get comprehensive dashboard statistics for pharmacy analytics
+        /// </summary>
+        /// <remarks>
+        /// Returns aggregated statistics including:
+        /// - Monthly revenue data (for bar chart)
+        /// - Top medication categories (for pie chart)
+        /// - Medication stock trends (for line chart)
+        /// 
+        /// **Query Parameters:**
+        /// - startDate, endDate: Date range for filtering (optional)
+        /// - revenueMonths: Number of months for revenue data (default: 12, range: 1-24)
+        /// - topCategoriesCount: Number of top categories to return (default: 8, range: 1-50)
+        /// - medicationIds: Array of medication IDs for stock trends (optional)
+        /// - trendDays: Number of days for stock trends (default: 30, range: 1-365)
+        /// - trendInterval: Data aggregation interval - "daily", "weekly", or "monthly" (default: "daily")
+        /// 
+        /// **Response includes:**
+        /// - MonthlyRevenue: Revenue breakdown by month with totals and averages
+        /// - TopCategories: Medication categories with counts and percentages
+        /// - StockTrends: Stock level trends over time with medication summaries
+        /// - Metadata: Generation timestamp, date range, and summary statistics
+        /// 
+        /// **Performance:**
+        /// Results are cached for 5 minutes to improve performance.
+        /// 
+        /// **Example:**
+        /// GET /api/pharmacy/analytics/dashboard-stats?revenueMonths=6&amp;topCategoriesCount=10&amp;trendDays=60
+        /// </remarks>
+        /// <param name="queryParams">Query parameters for filtering and customization</param>
+        /// <returns>Complete dashboard statistics</returns>
+        /// <response code="200">Returns dashboard statistics successfully</response>
+        /// <response code="400">Invalid query parameters</response>
+        /// <response code="401">Unauthorized - JWT token required</response>
+        /// <response code="403">Forbidden - Pharmacist or Admin role required</response>
+        /// <response code="500">Internal server error</response>
+        [HttpGet("analytics/dashboard-stats")]
+        [Authorize(Roles = "Pharmacist,Admin")]
+        [ProducesResponseType(typeof(DashboardStatsResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetDashboardStats([FromQuery] DashboardStatsQueryParams queryParams)
+        {
+            try
+            {
+                // Validate date range if provided
+                if (queryParams.StartDate.HasValue && queryParams.EndDate.HasValue)
+                {
+                    if (queryParams.StartDate.Value > queryParams.EndDate.Value)
+                    {
+                        return BadRequest(new { error = "Start date cannot be after end date" });
+                    }
+
+                    // Limit date range to prevent excessive queries
+                    var maxDateRange = TimeSpan.FromDays(730); // 2 years max
+                    if (queryParams.EndDate.Value - queryParams.StartDate.Value > maxDateRange)
+                    {
+                        return BadRequest(new { error = "Date range cannot exceed 730 days (2 years)" });
+                    }
+                }
+
+                // Validate trend interval
+                if (!string.IsNullOrEmpty(queryParams.TrendInterval))
+                {
+                    var validIntervals = new[] { "daily", "weekly", "monthly" };
+                    if (!validIntervals.Contains(queryParams.TrendInterval.ToLower()))
+                    {
+                        return BadRequest(new { error = $"TrendInterval must be one of: {string.Join(", ", validIntervals)}" });
+                    }
+                }
+
+                // Validate medication IDs if provided
+                if (queryParams.MedicationIds != null && queryParams.MedicationIds.Length > 0)
+                {
+                    var validMedicationIds = await _context.Medications
+                        .Where(m => queryParams.MedicationIds.Contains(m.Id) && m.IsActive)
+                        .Select(m => m.Id)
+                        .ToListAsync();
+
+                    if (validMedicationIds.Count != queryParams.MedicationIds.Length)
+                    {
+                        var invalidIds = queryParams.MedicationIds.Except(validMedicationIds).ToList();
+                        _logger.LogWarning("Invalid medication IDs provided: {InvalidIds}", string.Join(", ", invalidIds));
+                        // Continue with valid IDs only
+                        queryParams.MedicationIds = validMedicationIds.ToArray();
+                    }
+                }
+
+                var stopwatch = Stopwatch.StartNew();
+                var stats = await _analyticsService.GetDashboardStatsAsync(queryParams);
+                stopwatch.Stop();
+
+                _logger.LogInformation(
+                    "Dashboard stats generated in {ElapsedMs}ms. Revenue months: {RevenueMonths}, Categories: {Categories}, Trends days: {TrendDays}",
+                    stopwatch.ElapsedMilliseconds,
+                    queryParams.RevenueMonths ?? 12,
+                    queryParams.TopCategoriesCount ?? 8,
+                    queryParams.TrendDays ?? 30);
+
+                return Ok(stats);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid argument for dashboard stats");
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating dashboard statistics");
+                return StatusCode(500, new { error = "An error occurred while generating dashboard statistics. Please try again later." });
+            }
+        }
+
+        /// <summary>
+        /// Get monthly revenue data for bar chart
+        /// </summary>
+        /// <remarks>
+        /// Returns monthly revenue breakdown for the specified period.
+        /// </remarks>
+        /// <param name="period">Period type: "last3months", "last6months", "last12months" (default: "last12months")</param>
+        /// <param name="startDate">Start date for custom range (optional)</param>
+        /// <param name="endDate">End date for custom range (optional)</param>
+        /// <param name="months">Number of months if period not specified (default: 12)</param>
+        /// <returns>Monthly revenue data array</returns>
+        [HttpGet("analytics/monthly-revenue")]
+        [Authorize(Roles = "Pharmacist,Admin")]
+        [ProducesResponseType(typeof(List<MonthlyRevenueItem>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetMonthlyRevenue(
+            [FromQuery] string? period = null,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] int months = 12)
+        {
+            try
+            {
+                DateTime? revenueStartDate = startDate;
+                DateTime? revenueEndDate = endDate;
+
+                // Handle period parameter
+                if (!string.IsNullOrEmpty(period) && !startDate.HasValue && !endDate.HasValue)
+                {
+                    revenueEndDate = DateTime.UtcNow;
+                    revenueStartDate = period.ToLower() switch
+                    {
+                        "last3months" => revenueEndDate.Value.AddMonths(-3),
+                        "last6months" => revenueEndDate.Value.AddMonths(-6),
+                        "last12months" => revenueEndDate.Value.AddMonths(-12),
+                        _ => revenueEndDate.Value.AddMonths(-months)
+                    };
+                }
+
+                var revenueData = await _analyticsService.GetMonthlyRevenueAsync(revenueStartDate, revenueEndDate, months);
+                return Ok(revenueData.Data);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching monthly revenue");
+                return StatusCode(500, new { error = "An error occurred while fetching monthly revenue data." });
+            }
+        }
+
+        /// <summary>
+        /// Get top medication categories for pie chart
+        /// </summary>
+        /// <remarks>
+        /// Returns top medication categories with counts and percentages.
+        /// </remarks>
+        /// <param name="limit">Number of top categories to return (default: 10)</param>
+        /// <returns>Category data array</returns>
+        [HttpGet("analytics/top-categories")]
+        [Authorize(Roles = "Pharmacist,Admin")]
+        [ProducesResponseType(typeof(List<CategoryItem>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetTopCategories([FromQuery] int limit = 10)
+        {
+            try
+            {
+                var categoriesData = await _analyticsService.GetTopCategoriesAsync(limit);
+                return Ok(categoriesData.Data);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching top categories");
+                return StatusCode(500, new { error = "An error occurred while fetching top categories data." });
+            }
+        }
+
+        /// <summary>
+        /// Get stock trends data for line chart
+        /// </summary>
+        /// <remarks>
+        /// Returns stock level trends for medications over time.
+        /// </remarks>
+        /// <param name="medicationIds">Comma-separated medication IDs to track (optional)</param>
+        /// <param name="days">Number of days to look back (default: 30)</param>
+        /// <param name="interval">Data aggregation interval: "daily", "weekly", or "monthly" (default: "daily")</param>
+        /// <returns>Stock trends data array</returns>
+        [HttpGet("analytics/stock-trends")]
+        [Authorize(Roles = "Pharmacist,Admin")]
+        [ProducesResponseType(typeof(List<StockTrendItem>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetStockTrends(
+            [FromQuery] string? medicationIds = null,
+            [FromQuery] int days = 30,
+            [FromQuery] string interval = "daily")
+        {
+            try
+            {
+                int[]? ids = null;
+                if (!string.IsNullOrEmpty(medicationIds))
+                {
+                    ids = medicationIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(int.Parse)
+                        .ToArray();
+                }
+
+                var trendsData = await _analyticsService.GetStockTrendsAsync(ids, days, interval);
+                return Ok(trendsData.Data);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching stock trends");
+                return StatusCode(500, new { error = "An error occurred while fetching stock trends data." });
             }
         }
 

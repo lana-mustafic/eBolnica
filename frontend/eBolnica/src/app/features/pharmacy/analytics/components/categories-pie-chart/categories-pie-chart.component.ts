@@ -89,7 +89,7 @@ export class CategoriesPieChartComponent implements OnInit, OnChanges, OnDestroy
   categoryData: MedicationCategoryData[] = [];
   
   // Chart configuration
-  chartTypeValue: ChartType = 'doughnut';
+  chartTypeValue: 'pie' | 'doughnut' = 'doughnut';
   
   chartData: ChartData<'pie' | 'doughnut'> = {
     labels: [],
@@ -118,10 +118,12 @@ export class CategoriesPieChartComponent implements OnInit, OnChanges, OnDestroy
                 const total = (data.datasets[0].data as number[]).reduce((a, b) => a + b, 0);
                 const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
                 
+                const meta = chart.getDatasetMeta(0);
+                const dataPoint = meta.data[i];
                 return {
                   text: `${label} (${percentage}%)`,
                   fillStyle: (data.datasets[0].backgroundColor as string[])[i],
-                  hidden: chart.getDatasetMeta(0).data[i].hidden || false,
+                  hidden: (dataPoint as any).hidden || false,
                   index: i
                 };
               });
@@ -131,12 +133,17 @@ export class CategoriesPieChartComponent implements OnInit, OnChanges, OnDestroy
         },
         onClick: (e, legendItem, legend) => {
           const index = legendItem.index;
-          const chart = legend.chart;
-          const meta = chart.getDatasetMeta(0);
-          
-          // Toggle visibility
-          meta.data[index].hidden = !meta.data[index].hidden;
-          chart.update();
+          if (index !== undefined) {
+            const chart = legend.chart;
+            const meta = chart.getDatasetMeta(0);
+            
+            // Toggle visibility
+            const dataPoint = meta.data[index];
+            if (dataPoint) {
+              (dataPoint as any).hidden = !(dataPoint as any).hidden;
+              chart.update();
+            }
+          }
         }
       },
       tooltip: {
@@ -145,7 +152,7 @@ export class CategoriesPieChartComponent implements OnInit, OnChanges, OnDestroy
         padding: 12,
         titleFont: {
           size: 14,
-          weight: '600',
+          weight: 600,
           family: "'Inter', 'Segoe UI', sans-serif"
         },
         bodyFont: {
@@ -289,6 +296,10 @@ export class CategoriesPieChartComponent implements OnInit, OnChanges, OnDestroy
    * Update chart options based on current breakpoint
    */
   private updateChartOptions(): void {
+    if (!this.chartOptions) {
+      return;
+    }
+
     const isMobile = this.currentBreakpoint === 'mobile';
     const isTablet = this.currentBreakpoint === 'tablet';
     const isTouch = this.responsiveService.isTouchDeviceSync();
@@ -299,13 +310,17 @@ export class CategoriesPieChartComponent implements OnInit, OnChanges, OnDestroy
     if (this.chartOptions.plugins?.legend) {
       this.chartOptions.plugins.legend.position = isMobile ? 'bottom' : 'right';
       if (this.chartOptions.plugins.legend.labels) {
+        const font = typeof this.chartOptions.plugins.legend.labels.font === 'object' 
+          ? this.chartOptions.plugins.legend.labels.font 
+          : {};
         this.chartOptions.plugins.legend.labels.font = {
+          ...font,
           size: Math.round(12 * fontSizeMultiplier),
           family: "'Inter', 'Segoe UI', sans-serif"
         };
         this.chartOptions.plugins.legend.labels.padding = isMobile ? 10 : 15;
         // Horizontal layout on mobile
-        if (isMobile && this.chartOptions.plugins.legend.labels.boxWidth) {
+        if (isMobile) {
           this.chartOptions.plugins.legend.labels.boxWidth = Math.round(12 * fontSizeMultiplier);
         }
       }
@@ -315,10 +330,22 @@ export class CategoriesPieChartComponent implements OnInit, OnChanges, OnDestroy
     if (this.chartOptions.plugins?.tooltip) {
       this.chartOptions.plugins.tooltip.padding = isMobile ? 8 : 12;
       if (this.chartOptions.plugins.tooltip.titleFont) {
-        this.chartOptions.plugins.tooltip.titleFont.size = Math.round(14 * fontSizeMultiplier);
+        const titleFont = typeof this.chartOptions.plugins.tooltip.titleFont === 'object'
+          ? this.chartOptions.plugins.tooltip.titleFont
+          : {};
+        this.chartOptions.plugins.tooltip.titleFont = {
+          ...titleFont,
+          size: Math.round(14 * fontSizeMultiplier)
+        };
       }
       if (this.chartOptions.plugins.tooltip.bodyFont) {
-        this.chartOptions.plugins.tooltip.bodyFont.size = Math.round(13 * fontSizeMultiplier);
+        const bodyFont = typeof this.chartOptions.plugins.tooltip.bodyFont === 'object'
+          ? this.chartOptions.plugins.tooltip.bodyFont
+          : {};
+        this.chartOptions.plugins.tooltip.bodyFont = {
+          ...bodyFont,
+          size: Math.round(13 * fontSizeMultiplier)
+        };
       }
       // Longer display time for touch devices
       if (isTouch) {

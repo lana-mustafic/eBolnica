@@ -76,7 +76,7 @@
     </div>
     <p class="state-message">Insufficient data to display chart. At least 2 categories are required.</p>
     <p class="state-submessage" *ngIf="categoryData.length === 1">
-      Currently showing: {{ categoryData[0]?.category }} ({{ categoryData[0]?.count }} medications)
+      Currently showing: {{ categoryData[0].category }} ({{ categoryData[0].count }} medications)
     </p>
     <button class="btn-retry" (click)="refresh()" aria-label="Refresh data">
       Refresh

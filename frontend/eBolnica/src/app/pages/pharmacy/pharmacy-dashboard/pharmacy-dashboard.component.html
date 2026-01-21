@@ -191,6 +191,42 @@
         </div>
       </section>
 
+      <!-- Analytics Charts Section -->
+      <section class="analytics-section">
+        <h2 class="section-title">Analytics & Insights</h2>
+        
+        <div class="charts-grid">
+          <!-- Revenue Bar Chart -->
+          <div class="chart-card">
+            <app-revenue-bar-chart 
+              [title]="'Monthly Revenue Overview'"
+              [period]="'last12months'"
+              [height]="350">
+            </app-revenue-bar-chart>
+          </div>
+
+          <!-- Categories Pie Chart -->
+          <div class="chart-card">
+            <app-categories-pie-chart 
+              [title]="'Medication Categories Distribution'"
+              [chartType]="'doughnut'"
+              [maxCategories]="8"
+              [height]="350">
+            </app-categories-pie-chart>
+          </div>
+
+          <!-- Stock Trends Line Chart -->
+          <div class="chart-card chart-card-full">
+            <app-stock-trends-line-chart 
+              [title]="'Medication Stock Trends'"
+              [days]="30"
+              [showThresholds]="true"
+              [height]="350">
+            </app-stock-trends-line-chart>
+          </div>
+        </div>
+      </section>
+
       <!-- Recent Prescriptions -->
       <section class="recent-prescriptions-section">
         <div class="section-header">

@@ -113,7 +113,7 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
   selectedMedicationIds: number[] = [];
   
   // Chart configuration
-  chartType: ChartType = 'line';
+  chartType: 'line' = 'line';
   
   chartData: ChartData<'line'> = {
     labels: [],
@@ -154,7 +154,7 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
         padding: 12,
         titleFont: {
           size: 14,
-          weight: '600',
+          weight: 600,
           family: "'Inter', 'Segoe UI', sans-serif"
         },
         bodyFont: {
@@ -178,6 +178,9 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
               ? (change >= 0 ? '+' : '') + change.toFixed(1) + '%'
               : '';
             
+            if (value === null || value === undefined) {
+              return [`${datasetLabel}: 0`, changeText ? `Change: ${changeText}` : ''].filter(Boolean);
+            }
             return [
               `${datasetLabel}: ${value.toLocaleString()}`,
               changeText ? `Change: ${changeText}` : ''
@@ -194,8 +197,7 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
         type: 'category',
         grid: {
           display: true,
-          color: 'rgba(0, 0, 0, 0.05)',
-          drawBorder: false
+          color: 'rgba(0, 0, 0, 0.05)'
         },
         ticks: {
           font: {
@@ -216,8 +218,7 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
         max: 100,
         grid: {
           display: true,
-          color: 'rgba(0, 0, 0, 0.05)',
-          drawBorder: false
+          color: 'rgba(0, 0, 0, 0.05)'
         },
         ticks: {
           font: {
@@ -417,6 +418,10 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
    * Update chart options based on current breakpoint
    */
   private updateChartOptions(): void {
+    if (!this.chartOptions) {
+      return;
+    }
+
     const isMobile = this.currentBreakpoint === 'mobile';
     const isTablet = this.currentBreakpoint === 'tablet';
     const isTouch = this.responsiveService.isTouchDeviceSync();
@@ -427,7 +432,11 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
     if (this.chartOptions.plugins?.legend) {
       this.chartOptions.plugins.legend.position = isMobile ? 'bottom' : 'top';
       if (this.chartOptions.plugins.legend.labels) {
+        const font = typeof this.chartOptions.plugins.legend.labels.font === 'object'
+          ? this.chartOptions.plugins.legend.labels.font
+          : {};
         this.chartOptions.plugins.legend.labels.font = {
+          ...font,
           size: Math.round(12 * fontSizeMultiplier),
           family: "'Inter', 'Segoe UI', sans-serif"
         };
@@ -439,10 +448,22 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
     if (this.chartOptions.plugins?.tooltip) {
       this.chartOptions.plugins.tooltip.padding = isMobile ? 8 : 12;
       if (this.chartOptions.plugins.tooltip.titleFont) {
-        this.chartOptions.plugins.tooltip.titleFont.size = Math.round(14 * fontSizeMultiplier);
+        const titleFont = typeof this.chartOptions.plugins.tooltip.titleFont === 'object'
+          ? this.chartOptions.plugins.tooltip.titleFont
+          : {};
+        this.chartOptions.plugins.tooltip.titleFont = {
+          ...titleFont,
+          size: Math.round(14 * fontSizeMultiplier)
+        };
       }
       if (this.chartOptions.plugins.tooltip.bodyFont) {
-        this.chartOptions.plugins.tooltip.bodyFont.size = Math.round(13 * fontSizeMultiplier);
+        const bodyFont = typeof this.chartOptions.plugins.tooltip.bodyFont === 'object'
+          ? this.chartOptions.plugins.tooltip.bodyFont
+          : {};
+        this.chartOptions.plugins.tooltip.bodyFont = {
+          ...bodyFont,
+          size: Math.round(13 * fontSizeMultiplier)
+        };
       }
       // Longer display time for touch devices
       if (isTouch) {
@@ -451,21 +472,29 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
     }
 
     // Update X-axis (simplify date labels on mobile)
-    if (this.chartOptions.scales?.x) {
-      if (this.chartOptions.scales.x.ticks) {
-        this.chartOptions.scales.x.ticks.font = {
+    if (this.chartOptions.scales?.['x']) {
+      if (this.chartOptions.scales['x'].ticks) {
+        const ticksFont = typeof this.chartOptions.scales['x'].ticks.font === 'object'
+          ? this.chartOptions.scales['x'].ticks.font
+          : {};
+        this.chartOptions.scales['x'].ticks.font = {
+          ...ticksFont,
           size: Math.round(11 * fontSizeMultiplier),
           family: "'Inter', 'Segoe UI', sans-serif"
         };
-        this.chartOptions.scales.x.ticks.maxRotation = isMobile ? 45 : 0;
-        this.chartOptions.scales.x.ticks.minRotation = isMobile ? 45 : 0;
+        this.chartOptions.scales['x'].ticks.maxRotation = isMobile ? 45 : 0;
+        this.chartOptions.scales['x'].ticks.minRotation = isMobile ? 45 : 0;
       }
     }
 
     // Update Y-axis
-    if (this.chartOptions.scales?.y) {
-      if (this.chartOptions.scales.y.ticks) {
-        this.chartOptions.scales.y.ticks.font = {
+    if (this.chartOptions.scales?.['y']) {
+      if (this.chartOptions.scales['y'].ticks) {
+        const ticksFont = typeof this.chartOptions.scales['y'].ticks.font === 'object'
+          ? this.chartOptions.scales['y'].ticks.font
+          : {};
+        this.chartOptions.scales['y'].ticks.font = {
+          ...ticksFont,
           size: Math.round(11 * fontSizeMultiplier),
           family: "'Inter', 'Segoe UI', sans-serif"
         };

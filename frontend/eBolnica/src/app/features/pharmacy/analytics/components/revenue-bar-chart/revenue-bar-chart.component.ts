@@ -88,7 +88,7 @@ export class RevenueBarChartComponent implements OnInit, OnChanges, OnDestroy {
   monthlyRevenue: MonthlyRevenueData[] = [];
   
   // Chart configuration
-  chartType: ChartType = 'bar';
+  chartType: 'bar' = 'bar';
   
   chartData: ChartData<'bar'> = {
     labels: [],
@@ -121,7 +121,7 @@ export class RevenueBarChartComponent implements OnInit, OnChanges, OnDestroy {
         padding: 12,
         titleFont: {
           size: 14,
-          weight: '600',
+          weight: 600,
           family: "'Inter', 'Segoe UI', sans-serif"
         },
         bodyFont: {
@@ -131,6 +131,9 @@ export class RevenueBarChartComponent implements OnInit, OnChanges, OnDestroy {
         callbacks: {
           label: (context) => {
             const value = context.parsed.y;
+            if (value === null || value === undefined) {
+              return 'Revenue: $0.00';
+            }
             return `Revenue: $${value.toLocaleString('en-US', { 
               minimumFractionDigits: 2, 
               maximumFractionDigits: 2 
@@ -149,8 +152,7 @@ export class RevenueBarChartComponent implements OnInit, OnChanges, OnDestroy {
       x: {
         grid: {
           display: true,
-          color: 'rgba(0, 0, 0, 0.05)',
-          drawBorder: false
+          color: 'rgba(0, 0, 0, 0.05)'
         },
         ticks: {
           font: {
@@ -164,8 +166,7 @@ export class RevenueBarChartComponent implements OnInit, OnChanges, OnDestroy {
         beginAtZero: true,
         grid: {
           display: true,
-          color: 'rgba(0, 0, 0, 0.05)',
-          drawBorder: false
+          color: 'rgba(0, 0, 0, 0.05)'
         },
         ticks: {
           font: {
@@ -298,6 +299,10 @@ export class RevenueBarChartComponent implements OnInit, OnChanges, OnDestroy {
    * Update chart options based on current breakpoint
    */
   private updateChartOptions(): void {
+    if (!this.chartOptions) {
+      return;
+    }
+
     const isMobile = this.currentBreakpoint === 'mobile';
     const isTablet = this.currentBreakpoint === 'tablet';
     const isTouch = this.responsiveService.isTouchDeviceSync();
@@ -308,7 +313,11 @@ export class RevenueBarChartComponent implements OnInit, OnChanges, OnDestroy {
     if (this.chartOptions.plugins?.legend) {
       this.chartOptions.plugins.legend.position = isMobile ? 'bottom' : 'top';
       if (this.chartOptions.plugins.legend.labels) {
+        const font = typeof this.chartOptions.plugins.legend.labels.font === 'object'
+          ? this.chartOptions.plugins.legend.labels.font
+          : {};
         this.chartOptions.plugins.legend.labels.font = {
+          ...font,
           size: Math.round(12 * fontSizeMultiplier),
           family: "'Inter', 'Segoe UI', sans-serif"
         };
@@ -320,10 +329,22 @@ export class RevenueBarChartComponent implements OnInit, OnChanges, OnDestroy {
     if (this.chartOptions.plugins?.tooltip) {
       this.chartOptions.plugins.tooltip.padding = isMobile ? 8 : 12;
       if (this.chartOptions.plugins.tooltip.titleFont) {
-        this.chartOptions.plugins.tooltip.titleFont.size = Math.round(14 * fontSizeMultiplier);
+        const titleFont = typeof this.chartOptions.plugins.tooltip.titleFont === 'object'
+          ? this.chartOptions.plugins.tooltip.titleFont
+          : {};
+        this.chartOptions.plugins.tooltip.titleFont = {
+          ...titleFont,
+          size: Math.round(14 * fontSizeMultiplier)
+        };
       }
       if (this.chartOptions.plugins.tooltip.bodyFont) {
-        this.chartOptions.plugins.tooltip.bodyFont.size = Math.round(13 * fontSizeMultiplier);
+        const bodyFont = typeof this.chartOptions.plugins.tooltip.bodyFont === 'object'
+          ? this.chartOptions.plugins.tooltip.bodyFont
+          : {};
+        this.chartOptions.plugins.tooltip.bodyFont = {
+          ...bodyFont,
+          size: Math.round(13 * fontSizeMultiplier)
+        };
       }
       // Longer display time for touch devices
       if (isTouch) {
@@ -332,21 +353,29 @@ export class RevenueBarChartComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     // Update X-axis (simplify labels on mobile)
-    if (this.chartOptions.scales?.x) {
-      if (this.chartOptions.scales.x.ticks) {
-        this.chartOptions.scales.x.ticks.font = {
+    if (this.chartOptions.scales?.['x']) {
+      if (this.chartOptions.scales['x'].ticks) {
+        const ticksFont = typeof this.chartOptions.scales['x'].ticks.font === 'object'
+          ? this.chartOptions.scales['x'].ticks.font
+          : {};
+        this.chartOptions.scales['x'].ticks.font = {
+          ...ticksFont,
           size: Math.round(11 * fontSizeMultiplier),
           family: "'Inter', 'Segoe UI', sans-serif"
         };
-        this.chartOptions.scales.x.ticks.maxRotation = isMobile ? 45 : 0;
-        this.chartOptions.scales.x.ticks.minRotation = isMobile ? 45 : 0;
+        this.chartOptions.scales['x'].ticks.maxRotation = isMobile ? 45 : 0;
+        this.chartOptions.scales['x'].ticks.minRotation = isMobile ? 45 : 0;
       }
     }
 
     // Update Y-axis
-    if (this.chartOptions.scales?.y) {
-      if (this.chartOptions.scales.y.ticks) {
-        this.chartOptions.scales.y.ticks.font = {
+    if (this.chartOptions.scales?.['y']) {
+      if (this.chartOptions.scales['y'].ticks) {
+        const ticksFont = typeof this.chartOptions.scales['y'].ticks.font === 'object'
+          ? this.chartOptions.scales['y'].ticks.font
+          : {};
+        this.chartOptions.scales['y'].ticks.font = {
+          ...ticksFont,
           size: Math.round(11 * fontSizeMultiplier),
           family: "'Inter', 'Segoe UI', sans-serif"
         };
@@ -401,8 +430,8 @@ export class RevenueBarChartComponent implements OnInit, OnChanges, OnDestroy {
     const suggestedMax = Math.ceil(maxRevenue * 1.1); // Add 10% padding
 
     // Update chart data
-    const isMobile = this.currentBreakpoint === 'mobile';
-    const isTablet = this.currentBreakpoint === 'tablet';
+    const isMobileForData = this.currentBreakpoint === 'mobile';
+    const isTabletForData = this.currentBreakpoint === 'tablet';
     
     this.chartData = {
       labels,
@@ -411,15 +440,15 @@ export class RevenueBarChartComponent implements OnInit, OnChanges, OnDestroy {
         data: revenueValues,
         backgroundColor: this.barColor + '80', // Add transparency
         borderColor: this.barColor,
-        borderWidth: isMobile ? 1.5 : 2,
-        borderRadius: isMobile ? 4 : 6,
+        borderWidth: isMobileForData ? 1.5 : 2,
+        borderRadius: isMobileForData ? 4 : 6,
         borderSkipped: false,
         hoverBackgroundColor: this.barHoverColor + '80',
         hoverBorderColor: this.barHoverColor,
-        hoverBorderWidth: isMobile ? 2 : 3,
+        hoverBorderWidth: isMobileForData ? 2 : 3,
         // Responsive bar thickness
-        barThickness: isMobile ? 'flex' : undefined,
-        maxBarThickness: isMobile ? 30 : (isTablet ? 40 : undefined)
+        barThickness: isMobileForData ? 'flex' : undefined,
+        maxBarThickness: isMobileForData ? 30 : (isTabletForData ? 40 : undefined)
       }]
     };
 
@@ -432,8 +461,8 @@ export class RevenueBarChartComponent implements OnInit, OnChanges, OnDestroy {
     }, 0);
 
     // Update y-axis max if needed
-    if (this.chartOptions?.scales?.y) {
-      this.chartOptions.scales.y.max = suggestedMax;
+    if (this.chartOptions?.scales?.['y']) {
+      this.chartOptions.scales['y'].max = suggestedMax;
     }
   }
 
