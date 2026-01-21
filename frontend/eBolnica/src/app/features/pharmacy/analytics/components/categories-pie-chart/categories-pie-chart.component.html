@@ -1,0 +1,142 @@
+<div class="categories-chart-container" [attr.aria-label]="title + ' chart'">
+  <!-- Header -->
+  <div class="chart-header">
+    <h3 class="chart-title" [attr.aria-label]="title">{{ title }}</h3>
+    <div class="header-actions">
+      <button 
+        class="btn-toggle" 
+        (click)="toggleChartType()"
+        [attr.aria-label]="'Switch to ' + (chartType === 'pie' ? 'doughnut' : 'pie') + ' chart'"
+        [title]="'Toggle ' + (chartType === 'pie' ? 'Doughnut' : 'Pie') + ' Chart'">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <circle cx="12" cy="12" r="6"></circle>
+        </svg>
+      </button>
+      <button 
+        class="btn-refresh" 
+        (click)="refresh()"
+        aria-label="Refresh chart data"
+        title="Refresh data">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Summary Stats (shown when data is loaded) -->
+  <div *ngIf="hasData && !isLoading && !errorMessage" class="chart-summary">
+    <div class="summary-item">
+      <span class="summary-label">Total Categories:</span>
+      <span class="summary-value">{{ getTotalCategories() }}</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-label">Total Medications:</span>
+      <span class="summary-value">{{ getTotalMedications() }}</span>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="chart-state loading-state" role="status" aria-live="polite">
+    <div class="spinner" aria-hidden="true"></div>
+    <p class="state-message">Loading category data...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="errorMessage && !isLoading" class="chart-state error-state" role="alert">
+    <div class="error-icon" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    </div>
+    <p class="state-message">{{ errorMessage }}</p>
+    <button class="btn-retry" (click)="retry()" aria-label="Retry loading data">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <polyline points="1 20 1 14 7 14"></polyline>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+      </svg>
+      Retry
+    </button>
+  </div>
+
+  <!-- Insufficient Data State -->
+  <div *ngIf="hasInsufficientData && !isLoading && !errorMessage" class="chart-state insufficient-state" role="status">
+    <div class="insufficient-icon" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    </div>
+    <p class="state-message">Insufficient data to display chart. At least 2 categories are required.</p>
+    <p class="state-submessage" *ngIf="categoryData.length === 1">
+      Currently showing: {{ categoryData[0]?.category }} ({{ categoryData[0]?.count }} medications)
+    </p>
+    <button class="btn-retry" (click)="refresh()" aria-label="Refresh data">
+      Refresh
+    </button>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!hasData && !hasInsufficientData && !isLoading && !errorMessage" class="chart-state empty-state" role="status">
+    <div class="empty-icon" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    </div>
+    <p class="state-message">No category data available.</p>
+    <button class="btn-retry" (click)="refresh()" aria-label="Refresh data">
+      Refresh
+    </button>
+  </div>
+
+  <!-- Chart Container -->
+  <div 
+    *ngIf="hasData && !isLoading && !errorMessage" 
+    class="chart-wrapper"
+    [style.height.px]="height"
+    role="img"
+    [attr.aria-label]="'Pie chart showing ' + getTotalCategories() + ' medication categories with ' + getTotalMedications() + ' total medications'">
+    
+    <!-- Center Label for Doughnut Chart -->
+    <div *ngIf="chartType === 'doughnut' && showCenterLabel" class="center-label" aria-hidden="true">
+      <span class="center-value">{{ getTotalCategories() }}</span>
+      <span class="center-text">Categories</span>
+    </div>
+
+    <canvas 
+      baseChart
+      [data]="chartData"
+      [type]="chartTypeValue"
+      [options]="chartOptions"
+      [attr.aria-label]="'Chart showing medication categories distribution'">
+    </canvas>
+  </div>
+
+  <!-- Category List (Accessible Alternative) -->
+  <div *ngIf="hasData && !isLoading && !errorMessage" class="category-list" role="list" aria-label="Medication categories breakdown">
+    <div 
+      *ngFor="let category of categoryData; let i = index" 
+      class="category-item"
+      role="listitem"
+      [attr.aria-label]="category.category + ': ' + category.count + ' medications, ' + category.percentage + ' percent'"
+      (click)="segmentClicked.emit(category)"
+      (keydown.enter)="segmentClicked.emit(category)"
+      (keydown.space)="segmentClicked.emit(category)"
+      tabindex="0">
+      <div class="category-color" [style.background-color]="getCategoryColor(i)"></div>
+      <div class="category-info">
+        <span class="category-name">{{ category.category }}</span>
+        <span class="category-details">{{ category.count }} medications ({{ category.percentage }}%)</span>
+      </div>
+    </div>
+  </div>
+</div>
