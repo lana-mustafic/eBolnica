@@ -87,6 +87,27 @@ namespace eBolnicaAPI.Data
                 .HasIndex(p => p.DoctorId)
                 .HasDatabaseName("IX_Prescriptions_DoctorId");
 
+            // Performance optimization indexes for Analytics queries
+            // Composite index for dispensed date and status (revenue calculations)
+            modelBuilder.Entity<Prescription>()
+                .HasIndex(p => new { p.Status, p.DispensedDate })
+                .HasDatabaseName("IX_Prescriptions_Status_DispensedDate");
+
+            // Index for PrescriptionItems - MedicationId (category calculations)
+            modelBuilder.Entity<PrescriptionItem>()
+                .HasIndex(pi => pi.MedicationId)
+                .HasDatabaseName("IX_PrescriptionItems_MedicationId");
+
+            // Composite index for PrescriptionItems - PrescriptionId and MedicationId
+            modelBuilder.Entity<PrescriptionItem>()
+                .HasIndex(pi => new { pi.PrescriptionId, pi.MedicationId })
+                .HasDatabaseName("IX_PrescriptionItems_PrescriptionId_MedicationId");
+
+            // Index for Medications - Category (category queries)
+            modelBuilder.Entity<Medication>()
+                .HasIndex(m => new { m.Category, m.IsActive })
+                .HasDatabaseName("IX_Medications_Category_IsActive");
+
             modelBuilder.Entity<PrescriptionItem>()
                 .HasOne(pi => pi.Prescription)
                 .WithMany(p => p.PrescriptionItems)

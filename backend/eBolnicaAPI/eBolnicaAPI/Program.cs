@@ -150,6 +150,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IPharmacyService, PharmacyService>();
+builder.Services.AddScoped<IPharmacyAnalyticsService, PharmacyAnalyticsService>();
 
 // Configure PDF generation settings
 builder.Services.Configure<eBolnicaAPI.Models.Settings.PdfGenerationSettings>(
