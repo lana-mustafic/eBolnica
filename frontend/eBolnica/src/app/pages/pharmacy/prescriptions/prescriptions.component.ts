@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
 import { PharmacyFilterService } from '../../../shared/services/pharmacy/pharmacy-filter.service';
+import { NotificationService } from '../../../shared/services/notification.service';
 import { FilterSummaryComponent } from '../../../shared/components/filter-summary/filter-summary.component';
 import { ActiveFiltersComponent } from '../../../shared/components/active-filters/active-filters.component';
 import { SortStatusComponent } from '../../../shared/components/sort-status/sort-status.component';
@@ -23,11 +24,18 @@ import { TABLE_DEFAULT_SORTS } from '../../../constants/sort.constants';
 export class PrescriptionsComponent implements OnInit, OnDestroy {
   protected pharmacyService = inject(PharmacyService);
   protected filterService = inject(PharmacyFilterService);
+  private notificationService = inject(NotificationService);
 
   prescriptions: PrescriptionDto[] = [];
   isLoading: boolean = false;
   isSearching: boolean = false;
   isSorting: boolean = false; // Specific flag for sort operations
+  isGeneratingPdf: boolean = false; // PDF generation state
+  pdfProgress: number = 0; // PDF generation progress (0-100)
+  showPdfProgress: boolean = false; // Show progress indicator
+  wasGeneratingPdf: boolean = false; // Track state changes for screen reader (public for template)
+  private pdfSubscription?: any; // Track PDF request subscription for cancellation
+  private progressInterval?: any; // Progress simulation interval
   errorMessage: string | null = null;
 
   // Pagination
@@ -130,8 +138,31 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Clean up any ongoing PDF generation
+    if (this.isGeneratingPdf && this.pdfSubscription) {
+      this.pdfSubscription.unsubscribe();
+      console.log('[PrescriptionsComponent] PDF generation interrupted by navigation');
+    }
+
+    // Clear any timeouts/intervals
+    if (this.progressInterval) {
+      clearInterval(this.progressInterval);
+      this.progressInterval = undefined;
+    }
+
+    // Cancel sort debounce timer
+    if (this.sortDebounceTimer) {
+      clearTimeout(this.sortDebounceTimer);
+    }
+
+    // Unsubscribe from sort request
+    if (this.sortRequest$) {
+      this.sortRequest$.unsubscribe();
+    }
+
     this.destroy$.next();
     this.destroy$.complete();
+    this.searchSubject.complete();
   }
 
   /**
@@ -644,5 +675,223 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   retryLoad(): void {
     this.errorMessage = null;
     this.loadPrescriptions();
+  }
+
+  /**
+   * Check if PDF export is available
+   */
+  canExportPdf(): boolean {
+    return this.prescriptions && this.prescriptions.length > 0;
+  }
+
+  /**
+   * Get tooltip text for PDF export button with loading state
+   */
+  getPdfButtonTooltip(): string {
+    if (!this.canExportPdf()) {
+      return 'No data available to export';
+    }
+    
+    if (this.isGeneratingPdf) {
+      if (this.pdfProgress > 0) {
+        return `Generating PDF... ${this.pdfProgress}% complete`;
+      }
+      return 'Generating PDF... Please wait';
+    }
+    
+    return `Export ${this.prescriptions.length} prescription(s) to PDF`;
+  }
+
+  /**
+   * Export prescriptions to PDF
+   * Uses PharmacyService to download PDF with current filters and sorting
+   * Includes loading state management and request deduplication
+   */
+  exportPrescriptionsToPdf(): void {
+    // Prevent duplicate requests
+    if (!this.canExportPdf() || this.isGeneratingPdf) {
+      if (this.isGeneratingPdf) {
+        console.log('[PrescriptionsComponent] PDF generation already in progress');
+      }
+      return;
+    }
+
+    // Cancel any existing subscription
+    if (this.pdfSubscription) {
+      this.pdfSubscription.unsubscribe();
+    }
+
+    // Set loading state
+    this.isGeneratingPdf = true;
+    this.wasGeneratingPdf = false;
+    this.showPdfProgress = true;
+    this.pdfProgress = 0;
+
+    // Simulate progress (will be replaced with actual progress events when backend supports it)
+    this.progressInterval = setInterval(() => {
+      if (this.pdfProgress < 90) {
+        this.pdfProgress += 10;
+      }
+    }, 300);
+
+    // Build current filters from component state
+    const filters: PharmacyFilters = {
+      pageNumber: 1,
+      pageSize: this.pageSize,
+      searchTerm: this.searchTerm || undefined,
+      prescriptionStatus: this.selectedStatus !== 'All' ? this.selectedStatus : undefined,
+      sortBy: this.sortColumn,
+      sortOrder: this.sortOrder
+    };
+
+    // Call service method to download PDF
+    this.pdfSubscription = this.pharmacyService.exportPrescriptionsToPdf(filters).pipe(
+      finalize(() => {
+        // Clear progress interval
+        if (this.progressInterval) {
+          clearInterval(this.progressInterval);
+          this.progressInterval = undefined;
+        }
+
+        // Complete progress
+        this.pdfProgress = 100;
+        this.wasGeneratingPdf = this.isGeneratingPdf;
+        this.isGeneratingPdf = false;
+
+        // Hide progress after a short delay
+        setTimeout(() => {
+          this.showPdfProgress = false;
+          this.pdfProgress = 0;
+        }, 500);
+
+        // Clear subscription
+        this.pdfSubscription = undefined;
+      })
+    ).subscribe({
+      next: (response: any) => {
+        // Download handled in service
+        console.log('[PrescriptionsComponent] PDF download completed');
+        
+        // Extract file info from response
+        const fileInfo = response?.fileInfo || { fileName: 'prescriptions-report.pdf', fileSize: 0 };
+        const itemCount = this.prescriptions.length;
+        
+        // Show success notification
+        this.showPdfSuccess(fileInfo.fileName, fileInfo.fileSize, itemCount);
+      },
+      error: (error: any) => {
+        console.error('[PrescriptionsComponent] PDF export error:', error);
+        const errorMessage = this.getPdfErrorMessage(error);
+        this.showPdfError(errorMessage);
+      }
+    });
+  }
+
+  /**
+   * Cancel ongoing PDF generation
+   */
+  cancelPdfGeneration(): void {
+    if (this.pdfSubscription) {
+      this.pdfSubscription.unsubscribe();
+      this.pdfSubscription = undefined;
+    }
+
+    if (this.progressInterval) {
+      clearInterval(this.progressInterval);
+      this.progressInterval = undefined;
+    }
+
+    this.isGeneratingPdf = false;
+    this.showPdfProgress = false;
+    this.pdfProgress = 0;
+    console.log('[PrescriptionsComponent] PDF generation cancelled');
+  }
+
+  /**
+   * Get estimated time for PDF generation based on data size
+   */
+  getEstimatedTime(): string {
+    const itemCount = this.prescriptions.length;
+    
+    if (itemCount < 100) return '~10 seconds';
+    if (itemCount < 500) return '~30 seconds';
+    if (itemCount < 1000) return '~1 minute';
+    return 'Several minutes';
+  }
+
+  /**
+   * Show PDF success notification
+   */
+  private showPdfSuccess(fileName: string, fileSize: number, itemCount: number): void {
+    const sizeText = this.formatFileSize(fileSize);
+    const countText = `${itemCount} prescription${itemCount !== 1 ? 's' : ''}`;
+    
+    this.notificationService.success(
+      'PDF Download Complete',
+      `${fileName} (${sizeText}) with ${countText} has been downloaded successfully.`,
+      {
+        duration: 6000,
+        position: 'bottom-right',
+        icon: 'check-circle'
+      }
+    );
+  }
+
+  /**
+   * Show PDF error notification with retry option
+   */
+  private showPdfError(message: string): void {
+    this.notificationService.error(
+      'PDF Generation Failed',
+      message,
+      {
+        duration: 8000,
+        position: 'bottom-right',
+        icon: 'exclamation-triangle',
+        actionText: 'Retry',
+        onAction: () => this.exportPrescriptionsToPdf()
+      }
+    );
+  }
+
+  /**
+   * Get specific error message based on error type
+   */
+  private getPdfErrorMessage(error: any): string {
+    if (error.status === 0) {
+      return 'Network error. Please check your internet connection.';
+    }
+    
+    if (error.status === 400) {
+      return 'Invalid request parameters. Please try different filters.';
+    }
+    
+    if (error.status === 404) {
+      return 'PDF generation service is currently unavailable.';
+    }
+    
+    if (error.status === 413) {
+      return 'Report is too large. Try applying more filters.';
+    }
+    
+    if (error.status === 500) {
+      return 'Server error during PDF generation. Please try again.';
+    }
+    
+    if (error.message?.includes('timeout')) {
+      return 'PDF generation timed out. Try with fewer items.';
+    }
+    
+    return error.message || 'Failed to generate PDF. Please try again.';
+  }
+
+  /**
+   * Format file size for display
+   */
+  private formatFileSize(bytes: number): string {
+    if (!bytes || bytes === 0) return 'Unknown size';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
   }
 }
