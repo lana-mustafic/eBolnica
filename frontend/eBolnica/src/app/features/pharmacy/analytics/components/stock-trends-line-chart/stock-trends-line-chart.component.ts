@@ -1,10 +1,12 @@
-import { Component, OnInit, OnChanges, SimpleChanges, Input, Output, EventEmitter, inject } from '@angular/core';
+import { Component, OnInit, OnChanges, SimpleChanges, Input, Output, EventEmitter, inject, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
 import { PharmacyService } from '../../../../../shared/services/pharmacy/pharmacy.service';
+import { ResponsiveChartService, BreakpointType } from '../../../../../shared/services/responsive-chart.service';
 import { StockTrendData } from '../../../../../models/analytics.dto';
+import { Subscription } from 'rxjs';
 
 /**
  * Stock Trends Line Chart Component
@@ -39,8 +41,15 @@ import { StockTrendData } from '../../../../../models/analytics.dto';
   templateUrl: './stock-trends-line-chart.component.html',
   styleUrl: './stock-trends-line-chart.component.scss'
 })
-export class StockTrendsLineChartComponent implements OnInit, OnChanges {
+export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestroy {
+  @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
+  
   private pharmacyService = inject(PharmacyService);
+  private responsiveService = inject(ResponsiveChartService);
+  private subscriptions = new Subscription();
+  
+  currentBreakpoint: BreakpointType = 'desktop';
+  responsiveHeight: number = 400;
 
   // Input properties
   /** Chart title displayed above the chart */
@@ -263,8 +272,28 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges {
   ];
 
   ngOnInit(): void {
+    // Subscribe to breakpoint changes
+    this.subscriptions.add(
+      this.responsiveService.getBreakpoint().subscribe(breakpoint => {
+        this.currentBreakpoint = breakpoint;
+        this.updateResponsiveHeight();
+        this.updateChartOptions();
+        if (this.hasData) {
+          this.updateChart();
+        }
+      })
+    );
+    
+    // Initialize responsive height
+    this.updateResponsiveHeight();
+    this.updateChartOptions();
+    
     this.initializeMedications();
     this.loadStockTrendData();
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -378,6 +407,101 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges {
   }
 
   /**
+   * Update responsive height based on breakpoint
+   */
+  private updateResponsiveHeight(): void {
+    this.responsiveHeight = this.responsiveService.getResponsiveHeight(this.height);
+  }
+
+  /**
+   * Update chart options based on current breakpoint
+   */
+  private updateChartOptions(): void {
+    const isMobile = this.currentBreakpoint === 'mobile';
+    const isTablet = this.currentBreakpoint === 'tablet';
+    const isTouch = this.responsiveService.isTouchDeviceSync();
+    const fontSizeMultiplier = this.responsiveService.getFontSizeMultiplier();
+    const reduceAnimations = this.responsiveService.shouldReduceAnimations();
+
+    // Update legend position
+    if (this.chartOptions.plugins?.legend) {
+      this.chartOptions.plugins.legend.position = isMobile ? 'bottom' : 'top';
+      if (this.chartOptions.plugins.legend.labels) {
+        this.chartOptions.plugins.legend.labels.font = {
+          size: Math.round(12 * fontSizeMultiplier),
+          family: "'Inter', 'Segoe UI', sans-serif"
+        };
+        this.chartOptions.plugins.legend.labels.padding = isMobile ? 10 : 15;
+      }
+    }
+
+    // Update tooltip
+    if (this.chartOptions.plugins?.tooltip) {
+      this.chartOptions.plugins.tooltip.padding = isMobile ? 8 : 12;
+      if (this.chartOptions.plugins.tooltip.titleFont) {
+        this.chartOptions.plugins.tooltip.titleFont.size = Math.round(14 * fontSizeMultiplier);
+      }
+      if (this.chartOptions.plugins.tooltip.bodyFont) {
+        this.chartOptions.plugins.tooltip.bodyFont.size = Math.round(13 * fontSizeMultiplier);
+      }
+      // Longer display time for touch devices
+      if (isTouch) {
+        this.chartOptions.plugins.tooltip.displayColors = true;
+      }
+    }
+
+    // Update X-axis (simplify date labels on mobile)
+    if (this.chartOptions.scales?.x) {
+      if (this.chartOptions.scales.x.ticks) {
+        this.chartOptions.scales.x.ticks.font = {
+          size: Math.round(11 * fontSizeMultiplier),
+          family: "'Inter', 'Segoe UI', sans-serif"
+        };
+        this.chartOptions.scales.x.ticks.maxRotation = isMobile ? 45 : 0;
+        this.chartOptions.scales.x.ticks.minRotation = isMobile ? 45 : 0;
+      }
+    }
+
+    // Update Y-axis
+    if (this.chartOptions.scales?.y) {
+      if (this.chartOptions.scales.y.ticks) {
+        this.chartOptions.scales.y.ticks.font = {
+          size: Math.round(11 * fontSizeMultiplier),
+          family: "'Inter', 'Segoe UI', sans-serif"
+        };
+      }
+    }
+
+    // Update animations
+    if (this.chartOptions.animation !== undefined) {
+      this.chartOptions.animation = reduceAnimations ? false : {
+        duration: isMobile ? 500 : (isTablet ? 750 : 1000)
+      };
+    }
+  }
+
+  /**
+   * Sample data points for mobile devices
+   */
+  private sampleDataPoints<T>(data: T[], maxPoints: number): T[] {
+    if (data.length <= maxPoints) return data;
+    
+    const step = Math.ceil(data.length / maxPoints);
+    const sampled: T[] = [];
+    
+    for (let i = 0; i < data.length; i += step) {
+      sampled.push(data[i]);
+    }
+    
+    // Always include last point
+    if (sampled[sampled.length - 1] !== data[data.length - 1]) {
+      sampled.push(data[data.length - 1]);
+    }
+    
+    return sampled;
+  }
+
+  /**
    * Update chart data and configuration
    */
   private updateChart(): void {
@@ -394,9 +518,16 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges {
       }
     });
     
-    const sortedDates = Array.from(allDates).sort((a, b) => 
+    let sortedDates = Array.from(allDates).sort((a, b) => 
       new Date(a).getTime() - new Date(b).getTime()
     );
+
+    // Sample dates for mobile devices
+    const isMobile = this.currentBreakpoint === 'mobile';
+    if (isMobile) {
+      const maxPoints = this.responsiveService.getOptimalDataPoints(sortedDates.length);
+      sortedDates = this.sampleDataPoints(sortedDates, maxPoints);
+    }
 
     // Create datasets for each selected medication
     const datasets = this.selectedMedicationIds.map((medicationId, index) => {
@@ -415,18 +546,21 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges {
       const borderDash = lineStyle === 'dashed' ? [10, 5] : 
                         lineStyle === 'dotted' ? [2, 2] : [];
 
+      const isMobile = this.currentBreakpoint === 'mobile';
+      const isTablet = this.currentBreakpoint === 'tablet';
+
       return {
         label: medicationName,
         data: dataPoints,
         borderColor: color,
         backgroundColor: this.showFill ? color + '20' : 'transparent',
-        borderWidth: 2,
+        borderWidth: isMobile ? 1.5 : (isTablet ? 1.75 : 2),
         borderDash,
-        pointRadius: 4,
-        pointHoverRadius: 6,
+        pointRadius: isMobile ? 3 : 4,
+        pointHoverRadius: isMobile ? 5 : 6,
         pointBackgroundColor: color,
         pointBorderColor: '#fff',
-        pointBorderWidth: 2,
+        pointBorderWidth: isMobile ? 1.5 : 2,
         fill: this.showFill,
         tension: this.lineTension,
         spanGaps: false
@@ -443,6 +577,14 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges {
       labels: sortedDates,
       datasets
     };
+
+    // Update chart options after data update
+    this.updateChartOptions();
+    
+    // Trigger chart update
+    setTimeout(() => {
+      this.chart?.update();
+    }, 0);
   }
 
   /**
@@ -495,13 +637,19 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges {
   private formatDateLabel(dateString: string): string {
     if (!dateString) return '';
     
+    const isMobile = this.currentBreakpoint === 'mobile';
     const date = new Date(dateString);
     const now = new Date();
     const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
     
     if (diffDays === 0) return 'Today';
     if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 7) return `${diffDays}d`;
+    
+    // Simplified format for mobile
+    if (isMobile) {
+      return `${date.getMonth() + 1}/${date.getDate()}`;
+    }
     
     return date.toLocaleDateString('en-US', { 
       month: 'short', 

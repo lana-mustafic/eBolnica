@@ -128,7 +128,7 @@
   <div 
     *ngIf="hasData && selectedMedicationIds.length > 0 && !isLoading && !errorMessage" 
     class="chart-wrapper"
-    [style.height.px]="height"
+    [style.height.px]="responsiveHeight"
     role="img"
     [attr.aria-label]="'Line chart showing stock trends for ' + selectedMedicationIds.length + ' medications over ' + days + ' days'">
     <canvas 

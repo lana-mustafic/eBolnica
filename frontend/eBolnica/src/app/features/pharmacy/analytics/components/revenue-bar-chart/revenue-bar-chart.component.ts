@@ -1,9 +1,11 @@
-import { Component, OnInit, OnChanges, SimpleChanges, Input, Output, EventEmitter, inject } from '@angular/core';
+import { Component, OnInit, OnChanges, SimpleChanges, Input, Output, EventEmitter, inject, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
 import { PharmacyService } from '../../../../../shared/services/pharmacy/pharmacy.service';
+import { ResponsiveChartService, BreakpointType } from '../../../../../shared/services/responsive-chart.service';
 import { MonthlyRevenueData, AnalyticsPeriod } from '../../../../../models/analytics.dto';
+import { Subscription } from 'rxjs';
 
 /**
  * Revenue Bar Chart Component
@@ -35,8 +37,15 @@ import { MonthlyRevenueData, AnalyticsPeriod } from '../../../../../models/analy
   templateUrl: './revenue-bar-chart.component.html',
   styleUrl: './revenue-bar-chart.component.scss'
 })
-export class RevenueBarChartComponent implements OnInit, OnChanges {
+export class RevenueBarChartComponent implements OnInit, OnChanges, OnDestroy {
+  @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
+  
   private pharmacyService = inject(PharmacyService);
+  private responsiveService = inject(ResponsiveChartService);
+  private subscriptions = new Subscription();
+  
+  currentBreakpoint: BreakpointType = 'desktop';
+  responsiveHeight: number = 400;
 
   // Input properties
   /** Chart title displayed above the chart */
@@ -89,6 +98,10 @@ export class RevenueBarChartComponent implements OnInit, OnChanges {
   chartOptions: ChartConfiguration<'bar'>['options'] = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      duration: 1000,
+      easing: 'easeInOutQuart'
+    },
     plugins: {
       legend: {
         display: true,
@@ -197,7 +210,27 @@ export class RevenueBarChartComponent implements OnInit, OnChanges {
   };
 
   ngOnInit(): void {
+    // Subscribe to breakpoint changes
+    this.subscriptions.add(
+      this.responsiveService.getBreakpoint().subscribe(breakpoint => {
+        this.currentBreakpoint = breakpoint;
+        this.updateResponsiveHeight();
+        this.updateChartOptions();
+        if (this.hasData) {
+          this.updateChart();
+        }
+      })
+    );
+    
+    // Initialize responsive height
+    this.updateResponsiveHeight();
+    this.updateChartOptions();
+    
     this.loadRevenueData();
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -255,6 +288,94 @@ export class RevenueBarChartComponent implements OnInit, OnChanges {
   }
 
   /**
+   * Update responsive height based on breakpoint
+   */
+  private updateResponsiveHeight(): void {
+    this.responsiveHeight = this.responsiveService.getResponsiveHeight(this.height);
+  }
+
+  /**
+   * Update chart options based on current breakpoint
+   */
+  private updateChartOptions(): void {
+    const isMobile = this.currentBreakpoint === 'mobile';
+    const isTablet = this.currentBreakpoint === 'tablet';
+    const isTouch = this.responsiveService.isTouchDeviceSync();
+    const fontSizeMultiplier = this.responsiveService.getFontSizeMultiplier();
+    const reduceAnimations = this.responsiveService.shouldReduceAnimations();
+
+    // Update legend position
+    if (this.chartOptions.plugins?.legend) {
+      this.chartOptions.plugins.legend.position = isMobile ? 'bottom' : 'top';
+      if (this.chartOptions.plugins.legend.labels) {
+        this.chartOptions.plugins.legend.labels.font = {
+          size: Math.round(12 * fontSizeMultiplier),
+          family: "'Inter', 'Segoe UI', sans-serif"
+        };
+        this.chartOptions.plugins.legend.labels.padding = isMobile ? 10 : 15;
+      }
+    }
+
+    // Update tooltip
+    if (this.chartOptions.plugins?.tooltip) {
+      this.chartOptions.plugins.tooltip.padding = isMobile ? 8 : 12;
+      if (this.chartOptions.plugins.tooltip.titleFont) {
+        this.chartOptions.plugins.tooltip.titleFont.size = Math.round(14 * fontSizeMultiplier);
+      }
+      if (this.chartOptions.plugins.tooltip.bodyFont) {
+        this.chartOptions.plugins.tooltip.bodyFont.size = Math.round(13 * fontSizeMultiplier);
+      }
+      // Longer display time for touch devices
+      if (isTouch) {
+        this.chartOptions.plugins.tooltip.displayColors = true;
+      }
+    }
+
+    // Update X-axis (simplify labels on mobile)
+    if (this.chartOptions.scales?.x) {
+      if (this.chartOptions.scales.x.ticks) {
+        this.chartOptions.scales.x.ticks.font = {
+          size: Math.round(11 * fontSizeMultiplier),
+          family: "'Inter', 'Segoe UI', sans-serif"
+        };
+        this.chartOptions.scales.x.ticks.maxRotation = isMobile ? 45 : 0;
+        this.chartOptions.scales.x.ticks.minRotation = isMobile ? 45 : 0;
+      }
+    }
+
+    // Update Y-axis
+    if (this.chartOptions.scales?.y) {
+      if (this.chartOptions.scales.y.ticks) {
+        this.chartOptions.scales.y.ticks.font = {
+          size: Math.round(11 * fontSizeMultiplier),
+          family: "'Inter', 'Segoe UI', sans-serif"
+        };
+      }
+    }
+
+    // Update animations
+    if (this.chartOptions.animation) {
+      this.chartOptions.animation.duration = reduceAnimations ? 0 : (isMobile ? 500 : 1000);
+    }
+
+    // Update bar thickness for mobile
+    if (this.chartData.datasets && this.chartData.datasets.length > 0) {
+      this.chartData.datasets.forEach(dataset => {
+        if (isMobile) {
+          (dataset as any).barThickness = 'flex';
+          (dataset as any).maxBarThickness = 30;
+        } else if (isTablet) {
+          (dataset as any).barThickness = 'flex';
+          (dataset as any).maxBarThickness = 40;
+        } else {
+          (dataset as any).barThickness = undefined;
+          (dataset as any).maxBarThickness = undefined;
+        }
+      });
+    }
+  }
+
+  /**
    * Update chart data and configuration
    */
   private updateChart(): void {
@@ -262,10 +383,15 @@ export class RevenueBarChartComponent implements OnInit, OnChanges {
       return;
     }
 
-    // Extract labels (months)
-    const labels = this.monthlyRevenue.map(item => 
-      item.monthAbbr || item.month.substring(0, 3)
-    );
+    // Extract labels (months) - simplify on mobile
+    const isMobile = this.currentBreakpoint === 'mobile';
+    const labels = this.monthlyRevenue.map(item => {
+      if (isMobile) {
+        // Use abbreviated month on mobile
+        return item.monthAbbr || item.month.substring(0, 3);
+      }
+      return item.monthAbbr || item.month;
+    });
 
     // Extract revenue values
     const revenueValues = this.monthlyRevenue.map(item => item.revenue);
@@ -275,6 +401,9 @@ export class RevenueBarChartComponent implements OnInit, OnChanges {
     const suggestedMax = Math.ceil(maxRevenue * 1.1); // Add 10% padding
 
     // Update chart data
+    const isMobile = this.currentBreakpoint === 'mobile';
+    const isTablet = this.currentBreakpoint === 'tablet';
+    
     this.chartData = {
       labels,
       datasets: [{
@@ -282,14 +411,25 @@ export class RevenueBarChartComponent implements OnInit, OnChanges {
         data: revenueValues,
         backgroundColor: this.barColor + '80', // Add transparency
         borderColor: this.barColor,
-        borderWidth: 2,
-        borderRadius: 6,
+        borderWidth: isMobile ? 1.5 : 2,
+        borderRadius: isMobile ? 4 : 6,
         borderSkipped: false,
         hoverBackgroundColor: this.barHoverColor + '80',
         hoverBorderColor: this.barHoverColor,
-        hoverBorderWidth: 3
+        hoverBorderWidth: isMobile ? 2 : 3,
+        // Responsive bar thickness
+        barThickness: isMobile ? 'flex' : undefined,
+        maxBarThickness: isMobile ? 30 : (isTablet ? 40 : undefined)
       }]
     };
+
+    // Update chart options after data update
+    this.updateChartOptions();
+    
+    // Trigger chart update
+    setTimeout(() => {
+      this.chart?.update();
+    }, 0);
 
     // Update y-axis max if needed
     if (this.chartOptions?.scales?.y) {

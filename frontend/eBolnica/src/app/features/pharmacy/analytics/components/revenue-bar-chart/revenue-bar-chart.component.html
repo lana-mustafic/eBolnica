@@ -72,7 +72,7 @@
   <div 
     *ngIf="hasData && !isLoading && !errorMessage" 
     class="chart-wrapper"
-    [style.height.px]="height"
+    [style.height.px]="responsiveHeight"
     role="img"
     [attr.aria-label]="'Bar chart showing monthly revenue data for ' + monthlyRevenue.length + ' months'">
     <canvas 

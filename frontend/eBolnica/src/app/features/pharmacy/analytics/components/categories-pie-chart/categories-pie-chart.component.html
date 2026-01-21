@@ -102,7 +102,7 @@
   <div 
     *ngIf="hasData && !isLoading && !errorMessage" 
     class="chart-wrapper"
-    [style.height.px]="height"
+    [style.height.px]="responsiveHeight"
     role="img"
     [attr.aria-label]="'Pie chart showing ' + getTotalCategories() + ' medication categories with ' + getTotalMedications() + ' total medications'">
     

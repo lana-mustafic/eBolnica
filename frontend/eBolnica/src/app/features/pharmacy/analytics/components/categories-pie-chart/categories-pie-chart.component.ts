@@ -1,9 +1,11 @@
-import { Component, OnInit, OnChanges, SimpleChanges, Input, Output, EventEmitter, inject } from '@angular/core';
+import { Component, OnInit, OnChanges, SimpleChanges, Input, Output, EventEmitter, inject, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
 import { PharmacyService } from '../../../../../shared/services/pharmacy/pharmacy.service';
+import { ResponsiveChartService, BreakpointType } from '../../../../../shared/services/responsive-chart.service';
 import { MedicationCategoryData } from '../../../../../models/analytics.dto';
+import { Subscription } from 'rxjs';
 
 /**
  * Categories Pie Chart Component
@@ -35,8 +37,15 @@ import { MedicationCategoryData } from '../../../../../models/analytics.dto';
   templateUrl: './categories-pie-chart.component.html',
   styleUrl: './categories-pie-chart.component.scss'
 })
-export class CategoriesPieChartComponent implements OnInit, OnChanges {
+export class CategoriesPieChartComponent implements OnInit, OnChanges, OnDestroy {
+  @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
+  
   private pharmacyService = inject(PharmacyService);
+  private responsiveService = inject(ResponsiveChartService);
+  private subscriptions = new Subscription();
+  
+  currentBreakpoint: BreakpointType = 'desktop';
+  responsiveHeight: number = 400;
 
   // Input properties
   /** Chart title displayed above the chart */
@@ -204,8 +213,29 @@ export class CategoriesPieChartComponent implements OnInit, OnChanges {
   ];
 
   ngOnInit(): void {
+    // Subscribe to breakpoint changes
+    this.subscriptions.add(
+      this.responsiveService.getBreakpoint().subscribe(breakpoint => {
+        this.currentBreakpoint = breakpoint;
+        this.updateResponsiveHeight();
+        this.updateChartType(); // May switch to pie on mobile
+        this.updateChartOptions();
+        if (this.hasData) {
+          this.updateChart();
+        }
+      })
+    );
+    
+    // Initialize responsive height
+    this.updateResponsiveHeight();
     this.updateChartType();
+    this.updateChartOptions();
+    
     this.loadCategoryData();
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -224,21 +254,82 @@ export class CategoriesPieChartComponent implements OnInit, OnChanges {
   }
 
   /**
-   * Update chart type based on input
+   * Update chart type based on input and breakpoint
    */
   private updateChartType(): void {
-    this.chartTypeValue = this.chartType === 'pie' ? 'pie' : 'doughnut';
+    const isMobile = this.currentBreakpoint === 'mobile';
     
-    // Update cutout for doughnut
+    // Auto-switch to pie on mobile for better visibility
+    const effectiveChartType = isMobile && this.chartType === 'doughnut' ? 'pie' : this.chartType;
+    this.chartTypeValue = effectiveChartType === 'pie' ? 'pie' : 'doughnut';
+    
+    // Update cutout for doughnut (smaller on mobile/tablet)
     if (this.chartTypeValue === 'doughnut') {
+      const cutout = isMobile ? '50%' : (this.currentBreakpoint === 'tablet' ? '55%' : '60%');
       this.chartOptions = {
         ...this.chartOptions,
-        cutout: '60%' // 60% cutout for center label space
+        cutout
       };
     } else {
       this.chartOptions = {
         ...this.chartOptions,
         cutout: 0 // No cutout for pie chart
+      };
+    }
+  }
+
+  /**
+   * Update responsive height based on breakpoint
+   */
+  private updateResponsiveHeight(): void {
+    this.responsiveHeight = this.responsiveService.getResponsiveHeight(this.height);
+  }
+
+  /**
+   * Update chart options based on current breakpoint
+   */
+  private updateChartOptions(): void {
+    const isMobile = this.currentBreakpoint === 'mobile';
+    const isTablet = this.currentBreakpoint === 'tablet';
+    const isTouch = this.responsiveService.isTouchDeviceSync();
+    const fontSizeMultiplier = this.responsiveService.getFontSizeMultiplier();
+    const reduceAnimations = this.responsiveService.shouldReduceAnimations();
+
+    // Update legend position (bottom on mobile)
+    if (this.chartOptions.plugins?.legend) {
+      this.chartOptions.plugins.legend.position = isMobile ? 'bottom' : 'right';
+      if (this.chartOptions.plugins.legend.labels) {
+        this.chartOptions.plugins.legend.labels.font = {
+          size: Math.round(12 * fontSizeMultiplier),
+          family: "'Inter', 'Segoe UI', sans-serif"
+        };
+        this.chartOptions.plugins.legend.labels.padding = isMobile ? 10 : 15;
+        // Horizontal layout on mobile
+        if (isMobile && this.chartOptions.plugins.legend.labels.boxWidth) {
+          this.chartOptions.plugins.legend.labels.boxWidth = Math.round(12 * fontSizeMultiplier);
+        }
+      }
+    }
+
+    // Update tooltip
+    if (this.chartOptions.plugins?.tooltip) {
+      this.chartOptions.plugins.tooltip.padding = isMobile ? 8 : 12;
+      if (this.chartOptions.plugins.tooltip.titleFont) {
+        this.chartOptions.plugins.tooltip.titleFont.size = Math.round(14 * fontSizeMultiplier);
+      }
+      if (this.chartOptions.plugins.tooltip.bodyFont) {
+        this.chartOptions.plugins.tooltip.bodyFont.size = Math.round(13 * fontSizeMultiplier);
+      }
+      // Longer display time for touch devices
+      if (isTouch) {
+        this.chartOptions.plugins.tooltip.displayColors = true;
+      }
+    }
+
+    // Update animations
+    if (this.chartOptions.animation !== undefined) {
+      this.chartOptions.animation = reduceAnimations ? false : {
+        duration: isMobile ? 500 : (isTablet ? 750 : 1000)
       };
     }
   }
@@ -297,6 +388,8 @@ export class CategoriesPieChartComponent implements OnInit, OnChanges {
     const borderColors = colors;
     const hoverColors = colors.map(c => this.adjustBrightness(c, 10));
 
+    const isMobile = this.currentBreakpoint === 'mobile';
+    
     // Update chart data
     this.chartData = {
       labels,
@@ -305,12 +398,20 @@ export class CategoriesPieChartComponent implements OnInit, OnChanges {
         data: values,
         backgroundColor: backgroundColors,
         borderColor: borderColors,
-        borderWidth: 2,
+        borderWidth: isMobile ? 1.5 : 2,
         hoverBackgroundColor: hoverColors,
         hoverBorderColor: borderColors,
-        hoverBorderWidth: 3
+        hoverBorderWidth: isMobile ? 2 : 3
       }]
     };
+
+    // Update chart options after data update
+    this.updateChartOptions();
+    
+    // Trigger chart update
+    setTimeout(() => {
+      this.chart?.update();
+    }, 0);
   }
 
   /**
