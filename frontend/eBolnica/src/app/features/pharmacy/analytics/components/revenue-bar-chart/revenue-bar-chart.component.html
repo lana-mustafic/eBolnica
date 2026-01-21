@@ -1,0 +1,86 @@
+<div class="revenue-chart-container" [attr.aria-label]="title + ' chart'">
+  <!-- Header -->
+  <div class="chart-header">
+    <h3 class="chart-title" [attr.aria-label]="title">{{ title }}</h3>
+    <button 
+      class="btn-refresh" 
+      (click)="refresh()"
+      aria-label="Refresh chart data"
+      title="Refresh data">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <polyline points="1 20 1 14 7 14"></polyline>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Summary Stats (shown when data is loaded) -->
+  <div *ngIf="hasData && !isLoading && !errorMessage" class="chart-summary">
+    <div class="summary-item">
+      <span class="summary-label">Total Revenue:</span>
+      <span class="summary-value">${{ getTotalRevenue() | number:'1.2-2' }}</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-label">Average Monthly:</span>
+      <span class="summary-value">${{ getAverageRevenue() | number:'1.2-2' }}</span>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="chart-state loading-state" role="status" aria-live="polite">
+    <div class="spinner" aria-hidden="true"></div>
+    <p class="state-message">Loading revenue data...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="errorMessage && !isLoading" class="chart-state error-state" role="alert">
+    <div class="error-icon" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    </div>
+    <p class="state-message">{{ errorMessage }}</p>
+    <button class="btn-retry" (click)="retry()" aria-label="Retry loading data">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <polyline points="1 20 1 14 7 14"></polyline>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+      </svg>
+      Retry
+    </button>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!hasData && !isLoading && !errorMessage" class="chart-state empty-state" role="status">
+    <div class="empty-icon" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"></line>
+        <line x1="12" y1="20" x2="12" y2="4"></line>
+        <line x1="6" y1="20" x2="6" y2="14"></line>
+      </svg>
+    </div>
+    <p class="state-message">No revenue data available for the selected period.</p>
+    <button class="btn-retry" (click)="refresh()" aria-label="Refresh data">
+      Refresh
+    </button>
+  </div>
+
+  <!-- Chart Container -->
+  <div 
+    *ngIf="hasData && !isLoading && !errorMessage" 
+    class="chart-wrapper"
+    [style.height.px]="height"
+    role="img"
+    [attr.aria-label]="'Bar chart showing monthly revenue data for ' + monthlyRevenue.length + ' months'">
+    <canvas 
+      baseChart
+      [data]="chartData"
+      [type]="chartType"
+      [options]="chartOptions"
+      aria-label="Monthly revenue bar chart">
+    </canvas>
+  </div>
+</div>
