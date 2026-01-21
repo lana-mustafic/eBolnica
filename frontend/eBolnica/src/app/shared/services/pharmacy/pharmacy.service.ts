@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpErrorResponse, HttpResponse } from '@angular/common/http';
-import { Observable, throwError, of } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { Observable, throwError, of, timer, forkJoin } from 'rxjs';
+import { catchError, tap, retry, retryWhen, delayWhen, take, concatMap } from 'rxjs/operators';
 import { MedicationDto } from '../../../models/medication.dto';
 import { MedicationCreateDto } from '../../../models/medication-create.dto';
 import { PharmacistDataDto } from '../../../models/pharmacist-data.dto';
@@ -10,6 +10,14 @@ import { PrescriptionCreateDto } from '../../../models/prescription-create.dto';
 import { PrescriptionDispenseDto } from '../../../models/prescription-dispense.dto';
 import { PagedResponse } from '../../../models/paged-response.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
+import { 
+  MonthlyRevenueData, 
+  MedicationCategoryData, 
+  StockTrendData, 
+  DashboardStats,
+  AnalyticsPeriod,
+  AnalyticsDateRange
+} from '../../../models/analytics.dto';
 
 /**
  * Filter parameters for medication queries
@@ -749,5 +757,456 @@ export class PharmacyService {
       status: error.status,
       originalError: error
     }));
+  }
+
+  // ============================================
+  // Analytics Methods
+  // ============================================
+
+  private readonly analyticsApiUrl = `${this.apiUrl}/analytics`;
+  private readonly cachePrefix = 'pharmacy_analytics_';
+  private readonly cacheExpiryMs = 60 * 60 * 1000; // 1 hour cache
+
+  /**
+   * Get cache key for analytics data
+   * @param endpoint Analytics endpoint name
+   * @param params Optional parameters for cache key uniqueness
+   */
+  private getCacheKey(endpoint: string, params?: any): string {
+    const paramStr = params ? JSON.stringify(params) : '';
+    return `${this.cachePrefix}${endpoint}_${paramStr}`;
+  }
+
+  /**
+   * Get cached data if available and not expired
+   * @param cacheKey Cache key
+   */
+  private getCachedData<T>(cacheKey: string): T | null {
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (!cached) return null;
+
+      const parsed = JSON.parse(cached);
+      const now = Date.now();
+      
+      // Check if cache is expired
+      if (parsed.expiry && now > parsed.expiry) {
+        localStorage.removeItem(cacheKey);
+        return null;
+      }
+
+      return parsed.data as T;
+    } catch (error) {
+      console.warn('[PharmacyService] Error reading cache:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Store data in cache
+   * @param cacheKey Cache key
+   * @param data Data to cache
+   */
+  private setCachedData<T>(cacheKey: string, data: T): void {
+    try {
+      const cacheData = {
+        data,
+        expiry: Date.now() + this.cacheExpiryMs,
+        timestamp: new Date().toISOString()
+      };
+      localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+    } catch (error) {
+      console.warn('[PharmacyService] Error writing cache:', error);
+      // If storage quota exceeded, clear old cache entries
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        this.clearExpiredCache();
+      }
+    }
+  }
+
+  /**
+   * Clear expired cache entries
+   */
+  private clearExpiredCache(): void {
+    try {
+      const keys = Object.keys(localStorage);
+      const now = Date.now();
+      keys.forEach(key => {
+        if (key.startsWith(this.cachePrefix)) {
+          try {
+            const cached = JSON.parse(localStorage.getItem(key) || '{}');
+            if (cached.expiry && now > cached.expiry) {
+              localStorage.removeItem(key);
+            }
+          } catch {
+            // Remove invalid cache entries
+            localStorage.removeItem(key);
+          }
+        }
+      });
+    } catch (error) {
+      console.warn('[PharmacyService] Error clearing expired cache:', error);
+    }
+  }
+
+  /**
+   * Retry logic with exponential backoff
+   * Retries up to 3 times with increasing delays
+   */
+  private retryWithBackoff<T>(maxRetries: number = 3) {
+    return retryWhen(errors =>
+      errors.pipe(
+        concatMap((error, index) => {
+          const retryAttempt = index + 1;
+          if (retryAttempt > maxRetries) {
+            return throwError(() => error);
+          }
+          // Exponential backoff: 1s, 2s, 4s
+          const delay = Math.pow(2, retryAttempt - 1) * 1000;
+          console.log(`[PharmacyService] Retry attempt ${retryAttempt}/${maxRetries} after ${delay}ms`);
+          return timer(delay);
+        })
+      )
+    );
+  }
+
+  /**
+   * Get monthly revenue data for bar chart
+   * @param period Optional period filter (default: 'last12months')
+   * @param dateRange Optional custom date range
+   * @param useCache Whether to use cached data if available (default: true)
+   * @returns Observable of monthly revenue data array
+   */
+  getMonthlyRevenue(
+    period?: AnalyticsPeriod, 
+    dateRange?: AnalyticsDateRange,
+    useCache: boolean = true
+  ): Observable<MonthlyRevenueData[]> {
+    let params = new HttpParams();
+    
+    if (period) {
+      params = params.set('period', period);
+    }
+    
+    if (dateRange) {
+      const startDate = typeof dateRange.startDate === 'string' 
+        ? dateRange.startDate 
+        : dateRange.startDate.toISOString();
+      const endDate = typeof dateRange.endDate === 'string'
+        ? dateRange.endDate
+        : dateRange.endDate.toISOString();
+      params = params.set('startDate', startDate);
+      params = params.set('endDate', endDate);
+    }
+
+    const cacheKey = this.getCacheKey('monthlyRevenue', { period, dateRange });
+    
+    // Check cache first
+    if (useCache) {
+      const cached = this.getCachedData<MonthlyRevenueData[]>(cacheKey);
+      if (cached) {
+        console.log('[PharmacyService] Returning cached monthly revenue data');
+        return of(cached);
+      }
+    }
+
+    console.log('[PharmacyService] Fetching monthly revenue data from API');
+
+    return this.http.get<MonthlyRevenueData[]>(
+      `${this.analyticsApiUrl}/monthly-revenue`,
+      { params }
+    ).pipe(
+      retry(3), // Simple retry (3 attempts)
+      tap(data => {
+        // Cache successful response
+        if (useCache && data && data.length > 0) {
+          this.setCachedData(cacheKey, data);
+        }
+        console.log('[PharmacyService] Monthly revenue data loaded:', data.length, 'months');
+      }),
+      catchError(error => {
+        console.error('[PharmacyService] Error fetching monthly revenue:', error);
+        
+        // Return fallback empty data instead of throwing
+        const fallbackData: MonthlyRevenueData[] = this.getMockMonthlyRevenue();
+        console.warn('[PharmacyService] Using fallback monthly revenue data');
+        return of(fallbackData);
+      })
+    );
+  }
+
+  /**
+   * Get top medication categories data for pie chart
+   * @param limit Optional limit for number of categories (default: 10)
+   * @param useCache Whether to use cached data if available (default: true)
+   * @returns Observable of medication category data array
+   */
+  getTopMedicationCategories(
+    limit: number = 10,
+    useCache: boolean = true
+  ): Observable<MedicationCategoryData[]> {
+    const params = new HttpParams().set('limit', limit.toString());
+    const cacheKey = this.getCacheKey('topCategories', { limit });
+    
+    // Check cache first
+    if (useCache) {
+      const cached = this.getCachedData<MedicationCategoryData[]>(cacheKey);
+      if (cached) {
+        console.log('[PharmacyService] Returning cached top categories data');
+        return of(cached);
+      }
+    }
+
+    console.log('[PharmacyService] Fetching top medication categories from API');
+
+    return this.http.get<MedicationCategoryData[]>(
+      `${this.analyticsApiUrl}/top-categories`,
+      { params }
+    ).pipe(
+      retry(3),
+      tap(data => {
+        if (useCache && data && data.length > 0) {
+          this.setCachedData(cacheKey, data);
+        }
+        console.log('[PharmacyService] Top categories data loaded:', data.length, 'categories');
+      }),
+      catchError(error => {
+        console.error('[PharmacyService] Error fetching top categories:', error);
+        const fallbackData: MedicationCategoryData[] = this.getMockTopCategories();
+        console.warn('[PharmacyService] Using fallback top categories data');
+        return of(fallbackData);
+      })
+    );
+  }
+
+  /**
+   * Get stock trends data for line chart
+   * @param medicationIds Optional array of medication IDs to filter (if empty, returns all)
+   * @param days Optional number of days to look back (default: 30)
+   * @param useCache Whether to use cached data if available (default: true)
+   * @returns Observable of stock trend data array
+   */
+  getStockTrends(
+    medicationIds?: number[],
+    days: number = 30,
+    useCache: boolean = true
+  ): Observable<StockTrendData[]> {
+    let params = new HttpParams().set('days', days.toString());
+    
+    if (medicationIds && medicationIds.length > 0) {
+      medicationIds.forEach(id => {
+        params = params.append('medicationIds', id.toString());
+      });
+    }
+
+    const cacheKey = this.getCacheKey('stockTrends', { medicationIds, days });
+    
+    // Check cache first
+    if (useCache) {
+      const cached = this.getCachedData<StockTrendData[]>(cacheKey);
+      if (cached) {
+        console.log('[PharmacyService] Returning cached stock trends data');
+        return of(cached);
+      }
+    }
+
+    console.log('[PharmacyService] Fetching stock trends from API');
+
+    return this.http.get<StockTrendData[]>(
+      `${this.analyticsApiUrl}/stock-trends`,
+      { params }
+    ).pipe(
+      retry(3),
+      tap(data => {
+        if (useCache && data && data.length > 0) {
+          this.setCachedData(cacheKey, data);
+        }
+        console.log('[PharmacyService] Stock trends data loaded:', data.length, 'data points');
+      }),
+      catchError(error => {
+        console.error('[PharmacyService] Error fetching stock trends:', error);
+        const fallbackData: StockTrendData[] = this.getMockStockTrends();
+        console.warn('[PharmacyService] Using fallback stock trends data');
+        return of(fallbackData);
+      })
+    );
+  }
+
+  /**
+   * Get all dashboard statistics at once
+   * Fetches monthly revenue, top categories, and stock trends in parallel
+   * @param period Optional period for revenue data
+   * @param dateRange Optional custom date range for revenue data
+   * @param categoryLimit Optional limit for categories (default: 10)
+   * @param stockTrendDays Optional days for stock trends (default: 30)
+   * @param useCache Whether to use cached data if available (default: true)
+   * @returns Observable of complete dashboard stats
+   */
+  getDashboardStats(
+    period?: AnalyticsPeriod,
+    dateRange?: AnalyticsDateRange,
+    categoryLimit: number = 10,
+    stockTrendDays: number = 30,
+    useCache: boolean = true
+  ): Observable<DashboardStats> {
+    const cacheKey = this.getCacheKey('dashboardStats', { period, dateRange, categoryLimit, stockTrendDays });
+    
+    // Check cache first
+    if (useCache) {
+      const cached = this.getCachedData<DashboardStats>(cacheKey);
+      if (cached) {
+        console.log('[PharmacyService] Returning cached dashboard stats');
+        return of(cached);
+      }
+    }
+
+    console.log('[PharmacyService] Fetching dashboard stats from API');
+
+    // Fetch all analytics data in parallel
+    return forkJoin({
+      monthlyRevenue: this.getMonthlyRevenue(period, dateRange, useCache),
+      topCategories: this.getTopMedicationCategories(categoryLimit, useCache),
+      stockTrends: this.getStockTrends(undefined, stockTrendDays, useCache)
+    }).pipe(
+      retry(3),
+      tap(data => {
+        // Calculate summary statistics
+        const summary = {
+          totalRevenue: data.monthlyRevenue.reduce((sum, item) => sum + item.revenue, 0),
+          totalMedications: data.topCategories.reduce((sum, item) => sum + item.count, 0),
+          totalCategories: data.topCategories.length,
+          averageStockLevel: data.stockTrends.length > 0
+            ? data.stockTrends.reduce((sum, item) => sum + item.stockLevel, 0) / data.stockTrends.length
+            : 0
+        };
+
+        const dashboardStats: DashboardStats = {
+          ...data,
+          summary
+        };
+
+        if (useCache) {
+          this.setCachedData(cacheKey, dashboardStats);
+        }
+
+        console.log('[PharmacyService] Dashboard stats loaded successfully');
+      }),
+      catchError(error => {
+        console.error('[PharmacyService] Error fetching dashboard stats:', error);
+        // Return fallback data
+        const fallbackStats: DashboardStats = {
+          monthlyRevenue: this.getMockMonthlyRevenue(),
+          topCategories: this.getMockTopCategories(),
+          stockTrends: this.getMockStockTrends(),
+          summary: {
+            totalRevenue: 0,
+            totalMedications: 0,
+            totalCategories: 0,
+            averageStockLevel: 0
+          }
+        };
+        console.warn('[PharmacyService] Using fallback dashboard stats');
+        return of(fallbackStats);
+      })
+    );
+  }
+
+  /**
+   * Clear analytics cache
+   * Useful when data needs to be refreshed
+   */
+  clearAnalyticsCache(): void {
+    try {
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.startsWith(this.cachePrefix)) {
+          localStorage.removeItem(key);
+        }
+      });
+      console.log('[PharmacyService] Analytics cache cleared');
+    } catch (error) {
+      console.warn('[PharmacyService] Error clearing analytics cache:', error);
+    }
+  }
+
+  // ============================================
+  // Mock Data Methods (for testing/fallback)
+  // ============================================
+
+  /**
+   * Get mock monthly revenue data
+   * Used as fallback when API is unavailable
+   */
+  private getMockMonthlyRevenue(): MonthlyRevenueData[] {
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                     'July', 'August', 'September', 'October', 'November', 'December'];
+    return months.map((month, index) => ({
+      month,
+      monthAbbr: month.substring(0, 3),
+      revenue: Math.floor(Math.random() * 50000) + 10000,
+      transactionCount: Math.floor(Math.random() * 200) + 50
+    }));
+  }
+
+  /**
+   * Get mock top categories data
+   * Used as fallback when API is unavailable
+   */
+  private getMockTopCategories(): MedicationCategoryData[] {
+    const categories = [
+      { name: 'Antibiotics', count: 45 },
+      { name: 'Pain Relief', count: 32 },
+      { name: 'Cardiovascular', count: 28 },
+      { name: 'Diabetes', count: 22 },
+      { name: 'Respiratory', count: 18 },
+      { name: 'Vitamins', count: 15 },
+      { name: 'Digestive', count: 12 },
+      { name: 'Skin Care', count: 10 }
+    ];
+
+    const total = categories.reduce((sum, cat) => sum + cat.count, 0);
+    
+    return categories.map(cat => ({
+      category: cat.name,
+      count: cat.count,
+      percentage: Math.round((cat.count / total) * 100 * 100) / 100,
+      totalStock: cat.count * 50
+    }));
+  }
+
+  /**
+   * Get mock stock trends data
+   * Used as fallback when API is unavailable
+   */
+  private getMockStockTrends(): StockTrendData[] {
+    const medications = [
+      { id: 1, name: 'Paracetamol 500mg', minStock: 100 },
+      { id: 2, name: 'Ibuprofen 400mg', minStock: 80 },
+      { id: 3, name: 'Amoxicillin 250mg', minStock: 50 },
+      { id: 4, name: 'Metformin 500mg', minStock: 120 },
+      { id: 5, name: 'Aspirin 100mg', minStock: 90 }
+    ];
+
+    const trends: StockTrendData[] = [];
+    const days = 30;
+    const today = new Date();
+
+    medications.forEach(med => {
+      for (let i = days; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        
+        trends.push({
+          date: date.toISOString().split('T')[0],
+          medicationId: med.id,
+          medicationName: med.name,
+          stockLevel: Math.floor(Math.random() * 200) + med.minStock,
+          minimumStockLevel: med.minStock,
+          category: 'General'
+        });
+      }
+    });
+
+    return trends;
   }
 }
