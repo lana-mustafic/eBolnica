@@ -1,6 +1,7 @@
 using eBolnicaAPI.Models.Entities;
 using eBolnicaAPI.Models.Settings;
 using QuestPDF.Fluent;
+using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
 namespace eBolnicaAPI.PdfComponents
@@ -46,68 +47,96 @@ namespace eBolnicaAPI.PdfComponents
                         .FontSize(12)
                         .FontColor(PharmacyPdfTheme.PrimaryColor);
 
+                    // Total Items
                     column.Item()
                         .PaddingTop(10)
-                        .Grid(grid =>
+                        .Row(row =>
                         {
-                            grid.Columns(4);
-                            grid.Spacing(10);
-
-                            // Total Items
-                            grid.Item().Column(1)
+                            row.RelativeItem()
                                 .Text("Total Items:")
                                 .FontSize(10);
-                            grid.Item().Column(2)
+                            row.RelativeItem()
+                                .AlignRight()
                                 .Text(_medications.Count.ToString())
                                 .Bold()
                                 .FontSize(10)
                                 .FontColor(PharmacyPdfTheme.PrimaryColor);
+                        });
 
-                            // Total Value
-                            grid.Item().Column(1)
+                    // Total Value
+                    column.Item()
+                        .PaddingTop(5)
+                        .Row(row =>
+                        {
+                            row.RelativeItem()
                                 .Text("Total Value:")
                                 .FontSize(10);
-                            grid.Item().Column(2)
+                            row.RelativeItem()
+                                .AlignRight()
                                 .Text($"{totalValue:C}")
                                 .Bold()
                                 .FontSize(10)
                                 .FontColor(PharmacyPdfTheme.PrimaryColor);
+                        });
 
-                            // Expiring Soon
-                            grid.Item().Column(1)
+                    // Expiring Soon
+                    column.Item()
+                        .PaddingTop(5)
+                        .Row(row =>
+                        {
+                            row.RelativeItem()
                                 .Text("Expiring Soon (<30 days):")
                                 .FontSize(10);
-                            grid.Item().Column(2)
+                            row.RelativeItem()
+                                .AlignRight()
                                 .Text(expiringSoon.ToString())
                                 .Bold()
                                 .FontSize(10)
                                 .FontColor(PharmacyPdfTheme.WarningColor);
+                        });
 
-                            // Expired
-                            grid.Item().Column(1)
+                    // Expired
+                    column.Item()
+                        .PaddingTop(5)
+                        .Row(row =>
+                        {
+                            row.RelativeItem()
                                 .Text("Expired:")
                                 .FontSize(10);
-                            grid.Item().Column(2)
+                            row.RelativeItem()
+                                .AlignRight()
                                 .Text(expired.ToString())
                                 .Bold()
                                 .FontSize(10)
                                 .FontColor(PharmacyPdfTheme.DangerColor);
+                        });
 
-                            // Out of Stock
-                            grid.Item().Column(1)
+                    // Out of Stock
+                    column.Item()
+                        .PaddingTop(5)
+                        .Row(row =>
+                        {
+                            row.RelativeItem()
                                 .Text("Out of Stock:")
                                 .FontSize(10);
-                            grid.Item().Column(2)
+                            row.RelativeItem()
+                                .AlignRight()
                                 .Text(outOfStock.ToString())
                                 .Bold()
                                 .FontSize(10)
                                 .FontColor(PharmacyPdfTheme.DangerColor);
+                        });
 
-                            // Low Stock
-                            grid.Item().Column(1)
+                    // Low Stock
+                    column.Item()
+                        .PaddingTop(5)
+                        .Row(row =>
+                        {
+                            row.RelativeItem()
                                 .Text("Low Stock:")
                                 .FontSize(10);
-                            grid.Item().Column(2)
+                            row.RelativeItem()
+                                .AlignRight()
                                 .Text(lowStock.ToString())
                                 .Bold()
                                 .FontSize(10)

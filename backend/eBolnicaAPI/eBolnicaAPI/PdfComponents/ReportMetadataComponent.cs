@@ -1,6 +1,7 @@
 using eBolnicaAPI.Models.DTOs;
 using eBolnicaAPI.Models.Settings;
 using QuestPDF.Fluent;
+using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
 namespace eBolnicaAPI.PdfComponents
@@ -86,7 +87,7 @@ namespace eBolnicaAPI.PdfComponents
                     // Separator
                     column.Item()
                         .PaddingVertical(10)
-                        .LineHorizontal(0.5)
+                        .LineHorizontal(0.5f)
                         .LineColor(Colors.Grey.Lighten2);
                 });
         }

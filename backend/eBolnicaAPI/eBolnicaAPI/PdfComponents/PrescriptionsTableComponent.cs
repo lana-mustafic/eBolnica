@@ -1,6 +1,7 @@
 using eBolnicaAPI.Models.Entities;
 using eBolnicaAPI.Models.Settings;
 using QuestPDF.Fluent;
+using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
 namespace eBolnicaAPI.PdfComponents
@@ -105,7 +106,7 @@ namespace eBolnicaAPI.PdfComponents
                             for (int i = 0; i < _prescriptions.Count; i++)
                             {
                                 var prescription = _prescriptions[i];
-                                var rowColor = i % 2 == 0 ? Colors.White : PharmacyPdfTheme.Table.RowAlternateColor;
+                                var rowColor = (i % 2 == 0) ? Colors.White.ToString() : PharmacyPdfTheme.Table.RowAlternateColor;
 
                                 table.Cell()
                                     .Background(rowColor)
@@ -133,14 +134,14 @@ namespace eBolnicaAPI.PdfComponents
                                     .FontSize(9);
 
                                 // Status with color coding
-                                var statusColor = PharmacyPdfTheme.GetStatusColor(prescription.Status ?? "");
+                                var statusColorString = PharmacyPdfTheme.GetStatusColor(prescription.Status ?? "");
                                 table.Cell()
                                     .Background(rowColor)
                                     .PaddingVertical(6)
                                     .Text(prescription.Status ?? "")
                                     .AlignCenter()
                                     .FontSize(9)
-                                    .FontColor(statusColor);
+                                    .FontColor(statusColorString);
 
                                 table.Cell()
                                     .Background(rowColor)
@@ -149,10 +150,13 @@ namespace eBolnicaAPI.PdfComponents
                                     .AlignRight()
                                     .FontSize(9);
 
+                                var prescriptionDateText = prescription.PrescribedDate != default(DateTime)
+                                    ? prescription.PrescribedDate.ToString("yyyy-MM-dd")
+                                    : "N/A";
                                 table.Cell()
                                     .Background(rowColor)
                                     .PaddingVertical(6)
-                                    .Text(prescription.PrescribedDate?.ToString("yyyy-MM-dd") ?? "N/A")
+                                    .Text(prescriptionDateText)
                                     .AlignCenter()
                                     .FontSize(9);
 
@@ -162,7 +166,7 @@ namespace eBolnicaAPI.PdfComponents
                                     table.Cell()
                                         .ColumnSpan(7)
                                         .PaddingTop(2)
-                                        .LineHorizontal(0.2)
+                                        .LineHorizontal(0.2f)
                                         .LineColor(PharmacyPdfTheme.Table.BorderColor);
                                 }
                             }

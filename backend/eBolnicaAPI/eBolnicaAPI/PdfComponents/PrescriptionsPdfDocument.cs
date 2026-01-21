@@ -43,7 +43,10 @@ namespace eBolnicaAPI.PdfComponents
 
                     // Header (repeated on every page)
                     page.Header()
-                        .Element(new PharmacyHeaderComponent(_pharmacyInfo, _settings));
+                        .Element(compose =>
+                        {
+                            new PharmacyHeaderComponent(_pharmacyInfo, _settings).Compose(compose);
+                        });
 
                     // Content
                     page.Content()
@@ -51,7 +54,10 @@ namespace eBolnicaAPI.PdfComponents
 
                     // Footer (repeated on every page)
                     page.Footer()
-                        .Element(new FooterComponent(_settings));
+                        .Element(compose =>
+                        {
+                            new FooterComponent(_settings).Compose(compose);
+                        });
                 });
         }
 
@@ -62,22 +68,31 @@ namespace eBolnicaAPI.PdfComponents
                 {
                     // Report metadata
                     column.Item()
-                        .Element(new ReportMetadataComponent(
-                            "Pharmacy Prescriptions Report",
-                            _request,
-                            DateTime.Now,
-                            _settings,
-                            _prescriptions.Count));
+                        .Element(compose =>
+                        {
+                            new ReportMetadataComponent(
+                                "Pharmacy Prescriptions Report",
+                                _request,
+                                DateTime.Now,
+                                _settings,
+                                _prescriptions.Count).Compose(compose);
+                        });
 
                     // Data table
                     column.Item()
                         .PaddingTop(20)
-                        .Element(new PrescriptionsTableComponent(_prescriptions, _settings));
+                        .Element(compose =>
+                        {
+                            new PrescriptionsTableComponent(_prescriptions, _settings).Compose(compose);
+                        });
 
                     // Notes section
                     column.Item()
                         .PaddingTop(30)
-                        .Element(new NotesComponent(_settings, isInventoryReport: false));
+                        .Element(compose =>
+                        {
+                            new NotesComponent(_settings, isInventoryReport: false).Compose(compose);
+                        });
                 });
         }
 

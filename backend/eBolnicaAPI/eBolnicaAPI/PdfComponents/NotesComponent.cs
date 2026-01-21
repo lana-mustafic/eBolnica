@@ -1,5 +1,6 @@
 using eBolnicaAPI.Models.Settings;
 using QuestPDF.Fluent;
+using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
 namespace eBolnicaAPI.PdfComponents
@@ -100,11 +101,14 @@ namespace eBolnicaAPI.PdfComponents
                         .BorderColor(PharmacyPdfTheme.Table.BorderColor)
                         .Background(Colors.White)
                         .Padding(5)
-                        .Text("Additional notes:")
-                        .FontSize(9)
-                        .Italic()
-                        .FontColor(Colors.Grey.Medium)
-                        .AlignTop();
+                        .Column(notesColumn =>
+                        {
+                            notesColumn.Item()
+                                .Text("Additional notes:")
+                                .FontSize(9)
+                                .Italic()
+                                .FontColor(Colors.Grey.Medium);
+                        });
                 });
         }
     }

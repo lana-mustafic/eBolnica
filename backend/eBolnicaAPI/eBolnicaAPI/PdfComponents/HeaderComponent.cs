@@ -1,6 +1,7 @@
 using eBolnicaAPI.Models.DTOs;
 using eBolnicaAPI.Models.Settings;
 using QuestPDF.Fluent;
+using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
 namespace eBolnicaAPI.PdfComponents

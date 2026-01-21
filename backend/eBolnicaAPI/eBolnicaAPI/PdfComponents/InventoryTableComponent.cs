@@ -1,6 +1,7 @@
 using eBolnicaAPI.Models.Entities;
 using eBolnicaAPI.Models.Settings;
 using QuestPDF.Fluent;
+using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
 namespace eBolnicaAPI.PdfComponents
@@ -106,7 +107,7 @@ namespace eBolnicaAPI.PdfComponents
                             for (int i = 0; i < _medications.Count; i++)
                             {
                                 var medication = _medications[i];
-                                var rowColor = i % 2 == 0 ? Colors.White : PharmacyPdfTheme.Table.RowAlternateColor;
+                                var rowColor = (i % 2 == 0) ? Colors.White.ToString() : PharmacyPdfTheme.Table.RowAlternateColor;
 
                                 table.Cell()
                                     .Background(rowColor)
@@ -147,14 +148,14 @@ namespace eBolnicaAPI.PdfComponents
 
                                 // Status with color coding
                                 var statusText = medication.IsActive ? "Active" : "Inactive";
-                                var statusColor = PharmacyPdfTheme.GetStatusColor(statusText);
+                                var statusColorString = PharmacyPdfTheme.GetStatusColor(statusText);
                                 table.Cell()
                                     .Background(rowColor)
                                     .PaddingVertical(6)
                                     .Text(statusText)
                                     .AlignCenter()
                                     .FontSize(9)
-                                    .FontColor(statusColor);
+                                    .FontColor(statusColorString);
 
                                 // Expiry date with color coding
                                 table.Cell()
@@ -171,7 +172,7 @@ namespace eBolnicaAPI.PdfComponents
                                     table.Cell()
                                         .ColumnSpan(7)
                                         .PaddingTop(2)
-                                        .LineHorizontal(0.2)
+                                        .LineHorizontal(0.2f)
                                         .LineColor(PharmacyPdfTheme.Table.BorderColor);
                                 }
                             }

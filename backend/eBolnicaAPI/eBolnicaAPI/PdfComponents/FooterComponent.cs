@@ -1,5 +1,6 @@
 using eBolnicaAPI.Models.Settings;
 using QuestPDF.Fluent;
+using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
 namespace eBolnicaAPI.PdfComponents
@@ -24,7 +25,7 @@ namespace eBolnicaAPI.PdfComponents
                     // Separator line
                     column.Item()
                         .PaddingBottom(10)
-                        .LineHorizontal(0.5)
+                        .LineHorizontal(0.5f)
                         .LineColor(Colors.Grey.Lighten2);
 
                     // Footer content
@@ -53,11 +54,10 @@ namespace eBolnicaAPI.PdfComponents
                                     .Text(text =>
                                     {
                                         text.Span("Page ");
-                                        text.CurrentPageNumber().FontColor(PharmacyPdfTheme.PrimaryColor);
+                                        text.CurrentPageNumber().FontColor(PharmacyPdfTheme.PrimaryColor).FontSize(9);
                                         text.Span(" of ");
-                                        text.TotalPages().FontColor(PharmacyPdfTheme.PrimaryColor);
-                                    })
-                                    .FontSize(9);
+                                        text.TotalPages().FontColor(PharmacyPdfTheme.PrimaryColor).FontSize(9);
+                                    });
                             }
                         });
 
