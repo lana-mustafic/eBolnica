@@ -1334,8 +1334,8 @@ namespace eBolnicaAPI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error generating inventory PDF report");
-                return StatusCode(500, new { error = "Internal server error generating PDF" });
+                _logger.LogError(ex, "Error generating inventory PDF report: {Message}, StackTrace: {StackTrace}", ex.Message, ex.StackTrace);
+                return StatusCode(500, new { error = $"Internal server error generating PDF: {ex.Message}" });
             }
         }
 
@@ -1457,8 +1457,8 @@ namespace eBolnicaAPI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error generating prescriptions PDF report");
-                return StatusCode(500, new { error = "Internal server error generating PDF" });
+                _logger.LogError(ex, "Error generating prescriptions PDF report: {Message}, StackTrace: {StackTrace}", ex.Message, ex.StackTrace);
+                return StatusCode(500, new { error = $"Internal server error generating PDF: {ex.Message}" });
             }
         }
 

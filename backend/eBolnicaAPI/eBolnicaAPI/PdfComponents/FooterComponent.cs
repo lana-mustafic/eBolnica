@@ -53,10 +53,10 @@ namespace eBolnicaAPI.PdfComponents
                                     .AlignRight()
                                     .Text(text =>
                                     {
-                                        text.Span("Page ");
-                                        text.CurrentPageNumber().FontColor(PharmacyPdfTheme.PrimaryColor).FontSize(9);
-                                        text.Span(" of ");
-                                        text.TotalPages().FontColor(PharmacyPdfTheme.PrimaryColor).FontSize(9);
+                                        text.Span("Page ").FontSize(9);
+                                        text.CurrentPageNumber().FontColor(PharmacyPdfTheme.PrimaryColor);
+                                        text.Span(" of ").FontSize(9);
+                                        text.TotalPages().FontColor(PharmacyPdfTheme.PrimaryColor);
                                     });
                             }
                         });
