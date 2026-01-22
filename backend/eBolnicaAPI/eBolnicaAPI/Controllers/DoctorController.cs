@@ -120,7 +120,7 @@ namespace eBolnicaAPI.Controllers
                 return NotFound();
             }
 
-            var patients = await _dbContext.Patients.Where(p => p.DoctorId == doctor.Id).ToListAsync();
+            var patients = await _dbContext.Patients.Include(p=>p.MedicalRecord).Where(p => p.DoctorId == doctor.Id).ToListAsync();
 
             if (!patients.Any())
                 return NotFound("No patients assigned to this doctor.");
@@ -136,7 +136,7 @@ namespace eBolnicaAPI.Controllers
                 PhoneNumber = p.PhoneNumber,
                 Address = p.Address,
                 BloodType = p.BloodType,
-                MedicalRecordId = p.MedicalRecordId,
+                RecordNumber = p.MedicalRecord.RecordNumber,
             }).ToList();    
 
             return Ok(dtoList);

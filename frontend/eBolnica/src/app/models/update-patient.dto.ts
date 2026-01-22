@@ -6,6 +6,6 @@ export interface UpdatePatientDto {
   phoneNumber?: string;
   address?: string;
   bloodType?: string;
-  medicalRecordId?: string;
+  recordNumber?: string;
 }
 

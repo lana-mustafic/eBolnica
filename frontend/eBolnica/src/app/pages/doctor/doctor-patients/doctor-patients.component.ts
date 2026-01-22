@@ -51,7 +51,7 @@ export class DoctorPatientsComponent {
       phoneNumber: ['', [Validators.pattern(/^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,9}$/)]],
       address: ['', [Validators.maxLength(200)]],
       bloodType: [''],
-      medicalRecordId: ['', [Validators.maxLength(50)]]
+      recordNumber: ['', [Validators.maxLength(50)]]
     });
   }
 
@@ -108,7 +108,7 @@ export class DoctorPatientsComponent {
       phoneNumber: patient.phoneNumber || '',
       address: patient.address || '',
       bloodType: patient.bloodType || '',
-      medicalRecordId: patient.medicalRecordId || ''
+      recordNumber: patient.recordNumber || ''
     });
 
     this.patientForm.get('password')?.clearValidators();
@@ -154,7 +154,7 @@ export class DoctorPatientsComponent {
           phoneNumber: formValue.phoneNumber || undefined,
           address: formValue.address || undefined,
           bloodType: formValue.bloodType || undefined,
-          medicalRecordId: formValue.medicalRecordId || undefined
+          recordNumber: formValue.recordNumber || undefined
         };
 
         this.doctorService.updatePatient(this.editingPatient.id, updateDto).subscribe({

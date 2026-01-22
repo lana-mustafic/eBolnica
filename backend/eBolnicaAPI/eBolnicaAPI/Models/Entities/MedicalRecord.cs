@@ -10,6 +10,5 @@
 
         public string RecordNumber { get; set; }
 
-        public ICollection<MedicalReport> Reports { get; set; }
     }
 }

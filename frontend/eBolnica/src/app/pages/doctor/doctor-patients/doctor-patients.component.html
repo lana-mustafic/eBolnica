@@ -140,8 +140,8 @@
 
         <div class="form-group">
           <label>Medical Record ID</label>
-          <input type="text" formControlName="medicalRecordId" [class.error]="patientForm.get('medicalRecordId')?.invalid && patientForm.get('medicalRecordId')?.touched" [maxlength]="50">
-          <div class="error-message" *ngIf="patientForm.get('medicalRecordId')?.invalid && patientForm.get('medicalRecordId')?.touched">
+          <input type="text" formControlName="recordNumber" [class.error]="patientForm.get('recordNumber')?.invalid && patientForm.get('recordNumber')?.touched" [maxlength]="50">
+          <div class="error-message" *ngIf="patientForm.get('recordNumber')?.invalid && patientForm.get('recordNumber')?.touched">
             Max 50 characters
           </div>
         </div>
@@ -178,7 +178,7 @@
           <td>{{ patient.lastName }}</td>
           <td>{{ patient.dateOfBirth ? (patient.dateOfBirth | date:'dd.MM.yyyy') : '-' }}</td>
           <td>{{ patient.gender || '-' }}</td>
-          <td>{{ patient.medicalRecordId || '-' }}</td>
+          <td>{{ patient.recordNumber || '-' }}</td>
           <td>{{ patient.bloodType || '-' }}</td>
           <td>{{ patient.address || '-' }}</td>
           <td>{{ patient.phoneNumber || '-' }}</td>
