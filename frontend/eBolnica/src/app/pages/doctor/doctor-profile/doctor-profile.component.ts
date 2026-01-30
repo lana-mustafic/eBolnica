@@ -33,7 +33,7 @@ export class DoctorProfileComponent {
 
   openEditForm(){
     const dialogRef = this.dialog.open(DoctorProfileEditComponent,{
-      width:'400px',
+      width:'800px',
       data: this.doctor 
     }); 
 

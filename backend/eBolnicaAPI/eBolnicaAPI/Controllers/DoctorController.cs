@@ -51,12 +51,12 @@ namespace eBolnicaAPI.Controllers
             {
                 FirstName = doctorData.FirstName,
                 LastName = doctorData.LastName,
-                PhoneNumber = doctorData.PhoneNumber,
+                PhoneNumber = doctorData.PhoneNumber ?? "N/A",
                 Specialization = doctorData.Specialization,
                 LicenseNumber = doctorData.AppUser.LicenseNumber,
-                BirthDate = (DateTime)doctorData.BirthDate,
-                Address = doctorData.Address,
-                Email = doctorData.AppUser.Email
+                BirthDate = doctorData.BirthDate,
+                Address = doctorData.Address ?? "N/A",
+                Email = doctorData.AppUser?.Email ?? "N/A"
             };
 
             return Ok(dto);

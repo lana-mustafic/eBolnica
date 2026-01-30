@@ -1,1 +1,56 @@
-<p>{{recordNumber}}</p>
+<div class="patient-card">
+
+  <h1>Patient Medical Record</h1>
+
+  <section class="section">
+    <h2>Basic Information</h2>
+    <div class="grid">
+      <p><strong>Full Name:</strong> {{medicalRecord?.firstName}} {{medicalRecord?.lastName}}</p>
+      <p><strong>Date of Birth:</strong> {{medicalRecord?.dateOfBirth | date:'dd.MM.yyyy'}}</p>
+      <p><strong>Gender:</strong> {{medicalRecord?.gender}}</p>
+      <p><strong>Patient ID:</strong> {{medicalRecord?.recordNumber}}</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Contact Information</h2>
+    <div class="grid">
+      <p><strong>Phone:</strong> {{medicalRecord?.phoneNumber}}</p>
+      <p><strong>Email:</strong>{{medicalRecord?.email}}</p>
+      <p><strong>Address:</strong> {{medicalRecord?.address}}</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Medical Details</h2>
+    <div class="grid">
+      <p><strong>Blood Type:</strong> {{medicalRecord?.bloodType}}</p>
+      <p><strong>Allergies:</strong></p>
+      <p><strong>Chronic Diseases:</strong></p>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Diagnoses</h2>
+    <ul>
+      <li>Hypertension – 2023</li>
+      <li>Type 2 Diabetes – 2021</li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <h2>Therapy</h2>
+    <ul>
+      <li>Metformin – 500mg (2x daily)</li>
+      <li>Amlodipine – 5mg (1x daily)</li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <h2>Doctor Notes</h2>
+    <p class="notes">
+      Patient is responding well to therapy. Regular monitoring recommended.
+    </p>
+  </section>
+
+</div>
