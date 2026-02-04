@@ -1,4 +1,5 @@
-﻿namespace eBolnicaAPI.Models.DTOs
+﻿
+namespace eBolnicaAPI.Models.DTOs
 {
     public class MedicalRecordDto
     {
@@ -25,6 +26,6 @@
         public bool? IsAdmitted { get; set; }
 
         public string Email { get; set; }
-
+        public List<MedicalReportCreateDto> Reports { get; internal set; }
     }
 }

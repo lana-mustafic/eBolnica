@@ -83,7 +83,7 @@
         <label for="password">Password <span class="required">*</span></label>
         <div class="password-input-wrapper">
           <input 
-            type="password" 
+            [type]="hidePassword ? 'password' : 'text'" 
             id="password"
             class="form-input"
             [class.error]="form.get('password')?.invalid && form.get('password')?.touched"

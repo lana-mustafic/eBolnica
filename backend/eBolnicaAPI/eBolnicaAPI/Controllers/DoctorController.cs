@@ -142,31 +142,6 @@ namespace eBolnicaAPI.Controllers
             return Ok(dtoList);
         }
 
-        [HttpPost("patients/{id}/medical-record/reports")]
-        public async Task<IActionResult> AddReport(int id, [FromBody] MedicalReportCreateDto dto)
-        {
-            var record = await _dbContext.MedicalRecords.FirstOrDefaultAsync(r=>r.PatientId == id);
-
-            if(record == null)
-            {
-                return NotFound("Record not found");
-            }
-
-            var report = new MedicalReport
-            {
-                MedicalRecordId = record.Id,
-                DoctorId = dto.DoctorId,
-                Diagnosis = dto.Diagnosis,
-                Symptoms = dto.Symptoms,
-                Therapy = dto.Therapy
-            };
-
-            _dbContext.MedicalReports.Add(report);
-            await _dbContext.SaveChangesAsync();
-
-            return Ok(report.Id);
-        }
-
         [HttpGet("GetAllDoctors")]
         public async Task<IActionResult> GetDoctors()
         {

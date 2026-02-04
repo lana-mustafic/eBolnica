@@ -26,7 +26,6 @@
     <div class="grid">
       <p><strong>Blood Type:</strong> {{medicalRecord?.bloodType}}</p>
       <p><strong>Allergies:</strong></p>
-      <p><strong>Chronic Diseases:</strong></p>
     </div>
   </section>
 
@@ -46,11 +45,100 @@
     </ul>
   </section>
 
+    <section class="section">
+  <h2>Add New Medical Report</h2>
+  
+  <form [formGroup]="reportForm" (ngSubmit)="onSubmitReport()" class="report-form">
+    
+    <div class="form-group">
+      <label for="symptoms">Symptoms:</label>
+      <textarea 
+        id="symptoms" 
+        formControlName="symptoms" 
+        rows="3"
+        placeholder="Describe patient symptoms..."
+        required>
+      </textarea>
+      <span class="error" *ngIf="reportForm.get('symptoms')?.invalid && reportForm.get('symptoms')?.touched">
+        Symptoms are required
+      </span>
+    </div>
+
+    <div class="form-group">
+      <label for="diagnosis">Diagnosis:</label>
+      <textarea 
+        id="diagnosis" 
+        formControlName="diagnosis" 
+        rows="3"
+        placeholder="Enter diagnosis..."
+        required>
+      </textarea>
+      <span class="error" *ngIf="reportForm.get('diagnosis')?.invalid && reportForm.get('diagnosis')?.touched">
+        Diagnosis is required
+      </span>
+    </div>
+
+    <div class="form-group">
+      <label for="therapy">Therapy:</label>
+      <textarea 
+        id="therapy" 
+        formControlName="therapy" 
+        rows="3"
+        placeholder="Prescribed therapy..."
+        required>
+      </textarea>
+      <span class="error" *ngIf="reportForm.get('therapy')?.invalid && reportForm.get('therapy')?.touched">
+        Therapy is required
+      </span>
+    </div>
+
+    <div class="form-group">
+      <label for="description">Additional Notes:</label>
+      <textarea 
+        id="description" 
+        formControlName="description" 
+        rows="4"
+        placeholder="Any additional observations...">
+      </textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" [disabled]="reportForm.invalid" class="btn-primary">
+        Save Report
+      </button>
+      <button type="button" (click)="resetForm()" class="btn-secondary">
+        Clear
+      </button>
+    </div>
+
+  </form>
+</section>
+
   <section class="section">
-    <h2>Doctor Notes</h2>
-    <p class="notes">
-      Patient is responding well to therapy. Regular monitoring recommended.
-    </p>
-  </section>
+  <h2>Medical Reports</h2>
+
+  <div *ngIf="medicalRecord?.reports?.length; else noReports">
+    <div class="report-card" *ngFor="let report of medicalRecord?.reports">
+      
+      <p><strong>Date:</strong> {{ report.createdAt | date:'dd.MM.yyyy HH:mm' }}</p>
+
+      <p><strong>Symptoms:</strong></p>
+      <p>{{ report.symptoms }}</p>
+
+      <p><strong>Diagnosis:</strong></p>
+      <p>{{ report.diagnosis }}</p>
+
+      <p><strong>Therapy:</strong></p>
+      <p>{{ report.therapy }}</p>
+
+      <hr />
+    </div>
+  </div>
+
+
+  <ng-template #noReports>
+    <p>No medical reports available.</p>
+  </ng-template>
+</section>
 
 </div>

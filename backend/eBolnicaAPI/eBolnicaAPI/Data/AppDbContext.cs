@@ -32,6 +32,15 @@ namespace eBolnicaAPI.Data
                 .HasForeignKey(p => p.DoctorId)
                 .OnDelete(DeleteBehavior.NoAction);
 
+            modelBuilder.Entity<MedicalRecord>()
+                .HasMany(r => r.MedicalReports)
+                .WithOne(rp => rp.MedicalRecord)
+                .HasForeignKey(rp => rp.MedicalRecordId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<MedicalReport>()
+                .HasIndex(r => r.MedicalRecordId);
+
             var admin = new AppUser
             {
                 Id = "a1",
