@@ -41,6 +41,12 @@ namespace eBolnicaAPI.Data
             modelBuilder.Entity<MedicalReport>()
                 .HasIndex(r => r.MedicalRecordId);
 
+            modelBuilder.Entity<Patient>()
+                .HasMany(p=>p.Files)
+                .WithOne(f=>f.Patient)
+                .HasForeignKey(f=>f.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             var admin = new AppUser
             {
                 Id = "a1",
@@ -423,6 +429,7 @@ namespace eBolnicaAPI.Data
     public DbSet<Patient> Patients { get; set; }
     public DbSet<AppUser> AppUsers { get; set; }
 
+    public DbSet<FileEntity> Files { get; set; }
     public DbSet<MedicalRecord> MedicalRecords { get; set; }
 
     public DbSet<MedicalReport> MedicalReports { get; set; }

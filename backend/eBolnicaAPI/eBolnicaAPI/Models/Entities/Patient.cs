@@ -34,5 +34,7 @@ namespace eBolnicaAPI.Models.Entities
         public MedicalRecord MedicalRecord { get; set; }
 
         public bool? IsAdmitted { get; set; }
+
+        public virtual ICollection<FileEntity> Files { get; set; } = new List<FileEntity>();
     }
 }

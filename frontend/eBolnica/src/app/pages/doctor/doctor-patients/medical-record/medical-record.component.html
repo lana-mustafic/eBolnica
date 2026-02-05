@@ -112,7 +112,51 @@
     </div>
 
   </form>
+
 </section>
+
+  <section class="section">
+  <h2>Documents</h2>
+
+  <!-- Upload -->
+  <div class="upload-box">
+    <input 
+      type="file" 
+      (change)="onFileSelected($event)" 
+      accept=".pdf,.jpg,.png,.doc,.docx"
+    />
+    <button 
+      class="btn-primary"
+      (click)="uploadDocument()"
+      [disabled]="!selectedFile"
+    >
+      Upload
+    </button>
+  </div>
+
+  <!-- List -->
+  <div *ngIf="patientFiles.length; else noFiles">
+    <div class="file-card" *ngFor="let file of patientFiles">
+      <p>
+        <strong>{{ file.fileName }}</strong>
+        <small>({{ file.fileSize / 1024 | number:'1.0-0' }} KB)</small>
+      </p>
+
+      <div class="file-actions">
+        <button class="btn-secondary" (click)="downloadFile(file.id)">
+          Download
+        </button>
+        <button class="btn-danger" (click)="deleteFile(file.id)">
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #noFiles>
+    <p>No documents uploaded.</p>
+  </ng-template>
+</section>  
 
   <section class="section">
   <h2>Medical Reports</h2>
