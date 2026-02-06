@@ -51,12 +51,12 @@ namespace eBolnicaAPI.Controllers
             {
                 FirstName = doctorData.FirstName,
                 LastName = doctorData.LastName,
-                PhoneNumber = doctorData.PhoneNumber,
+                PhoneNumber = doctorData.PhoneNumber ?? "N/A",
                 Specialization = doctorData.Specialization,
                 LicenseNumber = doctorData.AppUser.LicenseNumber,
-                BirthDate = (DateTime)doctorData.BirthDate,
-                Address = doctorData.Address,
-                Email = doctorData.AppUser.Email
+                BirthDate = doctorData.BirthDate,
+                Address = doctorData.Address ?? "N/A",
+                Email = doctorData.AppUser?.Email ?? "N/A"
             };
 
             return Ok(dto);
@@ -120,7 +120,7 @@ namespace eBolnicaAPI.Controllers
                 return NotFound();
             }
 
-            var patients = await _dbContext.Patients.Where(p => p.DoctorId == doctor.Id).ToListAsync();
+            var patients = await _dbContext.Patients.Include(p=>p.MedicalRecord).Where(p => p.DoctorId == doctor.Id).ToListAsync();
 
             if (!patients.Any())
                 return NotFound("No patients assigned to this doctor.");
@@ -136,35 +136,10 @@ namespace eBolnicaAPI.Controllers
                 PhoneNumber = p.PhoneNumber,
                 Address = p.Address,
                 BloodType = p.BloodType,
-                MedicalRecordId = p.MedicalRecordId,
+                RecordNumber = p.MedicalRecord.RecordNumber,
             }).ToList();    
 
             return Ok(dtoList);
-        }
-
-        [HttpPost("patients/{id}/medical-record/reports")]
-        public async Task<IActionResult> AddReport(int id, [FromBody] MedicalReportCreateDto dto)
-        {
-            var record = await _dbContext.MedicalRecords.FirstOrDefaultAsync(r=>r.PatientId == id);
-
-            if(record == null)
-            {
-                return NotFound("Record not found");
-            }
-
-            var report = new MedicalReport
-            {
-                MedicalRecordId = record.Id,
-                DoctorId = dto.DoctorId,
-                Diagnosis = dto.Diagnosis,
-                Symptoms = dto.Symptoms,
-                Therapy = dto.Therapy
-            };
-
-            _dbContext.MedicalReports.Add(report);
-            await _dbContext.SaveChangesAsync();
-
-            return Ok(report.Id);
         }
 
         [HttpGet("GetAllDoctors")]

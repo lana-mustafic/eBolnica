@@ -5,13 +5,12 @@ import { AuthService } from '../../../shared/services/auth.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { CreatePatientDto } from '../../../models/create-patient.dto';
 import { UpdatePatientDto } from '../../../models/update-patient.dto';
-import { PatientWizardComponent } from '../patient-wizard/patient-wizard.component';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-doctor-patients',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, PatientWizardComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
   standalone: true,
   templateUrl: './doctor-patients.component.html',
   styleUrl: './doctor-patients.component.css'
@@ -21,6 +20,7 @@ export class DoctorPatientsComponent {
   doctorService = inject(DoctorService);
   authService = inject(AuthService);
   fb = inject(FormBuilder);
+  router = inject(Router);
   
   assignedPatients: DoctorAssignedPatientDto[] = [];
   showAddForm = false;
@@ -51,7 +51,7 @@ export class DoctorPatientsComponent {
       phoneNumber: ['', [Validators.pattern(/^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,9}$/)]],
       address: ['', [Validators.maxLength(200)]],
       bloodType: [''],
-      medicalRecordId: ['', [Validators.maxLength(50)]]
+      recordNumber: ['', [Validators.maxLength(50)]]
     });
   }
 
@@ -89,39 +89,6 @@ export class DoctorPatientsComponent {
     });
   }
 
-  openAddForm() {
-    this.showAddForm = true;
-    this.showEditForm = false;
-    this.errorMessage = null;
-    this.successMessage = null;
-  }
-
-  openEditForm(patient: DoctorAssignedPatientDto) {
-    this.editingPatient = patient;
-    const dateOfBirth = patient.dateOfBirth ? new Date(patient.dateOfBirth).toISOString().split('T')[0] : '';
-    
-    this.patientForm.patchValue({
-      firstName: patient.firstName,
-      lastName: patient.lastName,
-      dateOfBirth: dateOfBirth,
-      gender: patient.gender || '',
-      phoneNumber: patient.phoneNumber || '',
-      address: patient.address || '',
-      bloodType: patient.bloodType || '',
-      medicalRecordId: patient.medicalRecordId || ''
-    });
-
-    this.patientForm.get('password')?.clearValidators();
-    this.patientForm.get('password')?.updateValueAndValidity();
-    this.patientForm.get('email')?.clearValidators();
-    this.patientForm.get('email')?.updateValueAndValidity();
-    
-    this.showEditForm = true;
-    this.showAddForm = false;
-    this.errorMessage = null;
-    this.successMessage = null;
-  }
-
   closeForms() {
     this.showAddForm = false;
     this.showEditForm = false;
@@ -131,10 +98,8 @@ export class DoctorPatientsComponent {
     this.successMessage = null;
   }
 
-  onPatientCreated() {
-    this.successMessage = 'Patient created successfully';
-    this.closeForms();
-    this.loadPatients();
+  openMedicalRecord(patientId: number){
+    this.router.navigate(['/medical-record', patientId]);
   }
 
   onSubmit() {
@@ -154,7 +119,7 @@ export class DoctorPatientsComponent {
           phoneNumber: formValue.phoneNumber || undefined,
           address: formValue.address || undefined,
           bloodType: formValue.bloodType || undefined,
-          medicalRecordId: formValue.medicalRecordId || undefined
+          recordNumber: formValue.recordNumber || undefined
         };
 
         this.doctorService.updatePatient(this.editingPatient.id, updateDto).subscribe({
@@ -184,28 +149,5 @@ export class DoctorPatientsComponent {
     }
   }
 
-  deletePatient(patient: DoctorAssignedPatientDto) {
-    if (confirm(`Are you sure you want to delete patient ${patient.firstName} ${patient.lastName}?`)) {
-      this.isLoading = true;
-      this.errorMessage = null;
-      this.successMessage = null;
-
-      this.doctorService.deletePatient(patient.id).subscribe({
-        next: () => {
-          this.isLoading = false;
-          this.successMessage = 'Patient deleted successfully';
-          this.loadPatients();
-        },
-        error: (err) => {
-          this.isLoading = false;
-          if (err.error?.message) {
-            this.errorMessage = err.error.message;
-          } else {
-            this.errorMessage = 'Error deleting patient';
-          }
-        }
-      });
-    }
-  }
 }
 

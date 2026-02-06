@@ -23,7 +23,7 @@ namespace eBolnicaAPI.Models.DTOs
 
         public string? BloodType { get; set; }
 
-        public string? MedicalRecordId { get; set; }
+        public string? RecordNumber { get; set; }
 
         public bool? IsAdmitted { get; set; }
     }

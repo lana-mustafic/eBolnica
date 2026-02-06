@@ -61,7 +61,7 @@ export class RegistrationComponent implements OnInit{
                       Validators.minLength(6),
                       Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).+$/)]],
       confirmPassword: [''],
-      doctorId: [''], 
+      doctorId: ['', Validators.required], 
     }, {validators:this.passwordMatchValidator});
   }
 

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using eBolnicaAPI.Data;
 
@@ -11,9 +12,11 @@ using eBolnicaAPI.Data;
 namespace eBolnicaAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260122193555_NewMig")]
+    partial class NewMig
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -541,26 +544,6 @@ namespace eBolnicaAPI.Migrations
                             TwoFactorEnabled = false,
                             UserName = "teodora@gmail.com",
                             UserType = "Patient"
-                        },
-                        new
-                        {
-                            Id = "ph1",
-                            AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
-                            Email = "pharmacist@pharmacy.com",
-                            EmailConfirmed = false,
-                            FirstName = "Milan",
-                            LastName = "Jovanović",
-                            LicenseNumber = "PH-L1",
-                            LockoutEnabled = true,
-                            NormalizedEmail = "PHARMACIST@PHARMACY.COM",
-                            NormalizedUserName = "PHARMACIST@PHARMACY.COM",
-                            PhoneNumber = "061200200",
-                            PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
-                            TwoFactorEnabled = false,
-                            UserName = "pharmacist@pharmacy.com",
-                            UserType = "Pharmacist"
                         });
                 });
 
@@ -651,42 +634,6 @@ namespace eBolnicaAPI.Migrations
                             RegistrationStatus = "Approved",
                             Specialization = "Psychiatry"
                         });
-                });
-
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.FileEntity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FilePath")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<long>("FileSize")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("PatientId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UploadedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PatientId");
-
-                    b.ToTable("Files");
                 });
 
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.MedicalRecord", b =>
@@ -797,10 +744,8 @@ namespace eBolnicaAPI.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Diagnosis")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("DoctorId")
@@ -810,9 +755,11 @@ namespace eBolnicaAPI.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Symptoms")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Therapy")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
@@ -822,357 +769,6 @@ namespace eBolnicaAPI.Migrations
                     b.HasIndex("MedicalRecordId");
 
                     b.ToTable("MedicalReports");
-                });
-
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.Medication", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("BatchNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Category")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DosageForm")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("ExpiryDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("GenericName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Manufacturer")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("MinimumStockLevel")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<bool>("RequiresPrescription")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("StockQuantity")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Strength")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name");
-
-                    b.ToTable("Medications");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            BatchNumber = "BATCH-001",
-                            Category = "Painkillers",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Pain reliever and fever reducer",
-                            DosageForm = "Tablet",
-                            ExpiryDate = new DateTime(2026, 12, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            GenericName = "Acetaminophen",
-                            IsActive = true,
-                            Manufacturer = "PharmaCorp",
-                            MinimumStockLevel = 100,
-                            Name = "Paracetamol",
-                            Price = 250.00m,
-                            RequiresPrescription = false,
-                            StockQuantity = 500,
-                            Strength = "500mg"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            BatchNumber = "BATCH-002",
-                            Category = "Painkillers",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Nonsteroidal anti-inflammatory drug",
-                            DosageForm = "Tablet",
-                            ExpiryDate = new DateTime(2026, 6, 30, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            GenericName = "Ibuprofen",
-                            IsActive = true,
-                            Manufacturer = "MediPharm",
-                            MinimumStockLevel = 80,
-                            Name = "Ibuprofen",
-                            Price = 320.00m,
-                            RequiresPrescription = false,
-                            StockQuantity = 350,
-                            Strength = "400mg"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            BatchNumber = "BATCH-003",
-                            Category = "Antibiotics",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Antibiotic for bacterial infections",
-                            DosageForm = "Capsule",
-                            ExpiryDate = new DateTime(2025, 9, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            GenericName = "Amoxicillin",
-                            IsActive = true,
-                            Manufacturer = "AntibioPharm",
-                            MinimumStockLevel = 50,
-                            Name = "Amoxicillin",
-                            Price = 850.00m,
-                            RequiresPrescription = true,
-                            StockQuantity = 200,
-                            Strength = "500mg"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            BatchNumber = "BATCH-004",
-                            Category = "Painkillers",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Pain reliever, anti-inflammatory, and blood thinner",
-                            DosageForm = "Tablet",
-                            ExpiryDate = new DateTime(2027, 3, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            GenericName = "Acetylsalicylic acid",
-                            IsActive = true,
-                            Manufacturer = "PharmaCorp",
-                            MinimumStockLevel = 50,
-                            Name = "Aspirin",
-                            Price = 180.00m,
-                            RequiresPrescription = false,
-                            StockQuantity = 45,
-                            Strength = "100mg"
-                        },
-                        new
-                        {
-                            Id = 5,
-                            BatchNumber = "BATCH-005",
-                            Category = "Antihistamines",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Antihistamine for allergies",
-                            DosageForm = "Tablet",
-                            ExpiryDate = new DateTime(2026, 8, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            GenericName = "Cetirizine",
-                            IsActive = true,
-                            Manufacturer = "AllergyMed",
-                            MinimumStockLevel = 60,
-                            Name = "Cetirizine",
-                            Price = 420.00m,
-                            RequiresPrescription = false,
-                            StockQuantity = 280,
-                            Strength = "10mg"
-                        },
-                        new
-                        {
-                            Id = 6,
-                            BatchNumber = "BATCH-006",
-                            Category = "Gastrointestinal",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Proton pump inhibitor for acid reflux",
-                            DosageForm = "Capsule",
-                            ExpiryDate = new DateTime(2025, 11, 30, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            GenericName = "Omeprazole",
-                            IsActive = true,
-                            Manufacturer = "DigestPharm",
-                            MinimumStockLevel = 40,
-                            Name = "Omeprazole",
-                            Price = 650.00m,
-                            RequiresPrescription = true,
-                            StockQuantity = 150,
-                            Strength = "20mg"
-                        },
-                        new
-                        {
-                            Id = 7,
-                            BatchNumber = "BATCH-007",
-                            Category = "Antidiabetic",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Antidiabetic medication",
-                            DosageForm = "Tablet",
-                            ExpiryDate = new DateTime(2026, 4, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            GenericName = "Metformin",
-                            IsActive = true,
-                            Manufacturer = "DiabetPharm",
-                            MinimumStockLevel = 30,
-                            Name = "Metformin",
-                            Price = 550.00m,
-                            RequiresPrescription = true,
-                            StockQuantity = 120,
-                            Strength = "500mg"
-                        },
-                        new
-                        {
-                            Id = 8,
-                            BatchNumber = "BATCH-008",
-                            Category = "Antihistamines",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Antihistamine for seasonal allergies",
-                            DosageForm = "Tablet",
-                            ExpiryDate = new DateTime(2026, 7, 25, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            GenericName = "Loratadine",
-                            IsActive = true,
-                            Manufacturer = "AllergyMed",
-                            MinimumStockLevel = 70,
-                            Name = "Loratadine",
-                            Price = 380.00m,
-                            RequiresPrescription = false,
-                            StockQuantity = 320,
-                            Strength = "10mg"
-                        },
-                        new
-                        {
-                            Id = 9,
-                            BatchNumber = "BATCH-009",
-                            Category = "Antibiotics",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Broad-spectrum antibiotic",
-                            DosageForm = "Tablet",
-                            ExpiryDate = new DateTime(2025, 10, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            GenericName = "Azithromycin",
-                            IsActive = true,
-                            Manufacturer = "AntibioPharm",
-                            MinimumStockLevel = 25,
-                            Name = "Azithromycin",
-                            Price = 1200.00m,
-                            RequiresPrescription = true,
-                            StockQuantity = 80,
-                            Strength = "500mg"
-                        },
-                        new
-                        {
-                            Id = 10,
-                            BatchNumber = "BATCH-010",
-                            Category = "Vitamins",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Vitamin D supplement",
-                            DosageForm = "Capsule",
-                            ExpiryDate = new DateTime(2027, 1, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            GenericName = "Cholecalciferol",
-                            IsActive = true,
-                            Manufacturer = "VitaminsPlus",
-                            MinimumStockLevel = 150,
-                            Name = "Vitamin D3",
-                            Price = 450.00m,
-                            RequiresPrescription = false,
-                            StockQuantity = 600,
-                            Strength = "2000 IU"
-                        },
-                        new
-                        {
-                            Id = 11,
-                            BatchNumber = "BATCH-011",
-                            Category = "Antibiotics",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Fluoroquinolone antibiotic",
-                            DosageForm = "Tablet",
-                            ExpiryDate = new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            GenericName = "Ciprofloxacin",
-                            IsActive = true,
-                            Manufacturer = "AntibioPharm",
-                            MinimumStockLevel = 20,
-                            Name = "Ciprofloxacin",
-                            Price = 950.00m,
-                            RequiresPrescription = true,
-                            StockQuantity = 35,
-                            Strength = "500mg"
-                        },
-                        new
-                        {
-                            Id = 12,
-                            BatchNumber = "BATCH-012",
-                            Category = "Painkillers",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "NSAID for pain and inflammation",
-                            DosageForm = "Tablet",
-                            ExpiryDate = new DateTime(2026, 5, 12, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            GenericName = "Diclofenac",
-                            IsActive = true,
-                            Manufacturer = "MediPharm",
-                            MinimumStockLevel = 45,
-                            Name = "Diclofenac",
-                            Price = 520.00m,
-                            RequiresPrescription = true,
-                            StockQuantity = 180,
-                            Strength = "50mg"
-                        },
-                        new
-                        {
-                            Id = 13,
-                            BatchNumber = "BATCH-013",
-                            Category = "Antihistamines",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Antihistamine for allergies",
-                            DosageForm = "Tablet",
-                            ExpiryDate = new DateTime(2026, 9, 18, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            GenericName = "Fexofenadine",
-                            IsActive = true,
-                            Manufacturer = "AllergyMed",
-                            MinimumStockLevel = 55,
-                            Name = "Fexofenadine",
-                            Price = 480.00m,
-                            RequiresPrescription = false,
-                            StockQuantity = 250,
-                            Strength = "120mg"
-                        },
-                        new
-                        {
-                            Id = 14,
-                            BatchNumber = "BATCH-014",
-                            Category = "Supplements",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Calcium supplement and antacid",
-                            DosageForm = "Tablet",
-                            ExpiryDate = new DateTime(2027, 2, 28, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            GenericName = "Calcium Carbonate",
-                            IsActive = true,
-                            Manufacturer = "VitaminsPlus",
-                            MinimumStockLevel = 100,
-                            Name = "Calcium Carbonate",
-                            Price = 280.00m,
-                            RequiresPrescription = false,
-                            StockQuantity = 400,
-                            Strength = "500mg"
-                        },
-                        new
-                        {
-                            Id = 15,
-                            BatchNumber = "BATCH-015",
-                            Category = "Cardiovascular",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Cholesterol-lowering medication",
-                            DosageForm = "Tablet",
-                            ExpiryDate = new DateTime(2026, 11, 8, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            GenericName = "Atorvastatin",
-                            IsActive = true,
-                            Manufacturer = "CardioPharm",
-                            MinimumStockLevel = 25,
-                            Name = "Atorvastatin",
-                            Price = 1100.00m,
-                            RequiresPrescription = true,
-                            StockQuantity = 95,
-                            Strength = "20mg"
-                        });
                 });
 
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.Patient", b =>
@@ -1384,173 +980,6 @@ namespace eBolnicaAPI.Migrations
                         });
                 });
 
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.Pharmacist", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Address")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("AppUserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("HireDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("LicenseNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("PhoneNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AppUserId")
-                        .IsUnique();
-
-                    b.HasIndex("LicenseNumber")
-                        .IsUnique();
-
-                    b.ToTable("Pharmacists");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Address = "Apotekarska 15, Beograd",
-                            AppUserId = "ph1",
-                            CreatedAt = new DateTime(2020, 1, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FirstName = "Milan",
-                            HireDate = new DateTime(2020, 1, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            LastName = "Jovanović",
-                            LicenseNumber = "PH-L1",
-                            PhoneNumber = "061200200"
-                        });
-                });
-
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.Prescription", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DispensedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("DoctorId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MedicalReportId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("PatientId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("PharmacistId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("PrescribedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("PrescriptionNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DoctorId");
-
-                    b.HasIndex("MedicalReportId");
-
-                    b.HasIndex("PatientId");
-
-                    b.HasIndex("PharmacistId");
-
-                    b.HasIndex("PrescriptionNumber")
-                        .IsUnique();
-
-                    b.ToTable("Prescriptions");
-                });
-
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.PrescriptionItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Instructions")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("MedicationId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PrescriptionId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("TotalPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MedicationId");
-
-                    b.HasIndex("PrescriptionId");
-
-                    b.ToTable("PrescriptionItems");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -1613,17 +1042,6 @@ namespace eBolnicaAPI.Migrations
                     b.Navigation("AppUser");
                 });
 
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.FileEntity", b =>
-                {
-                    b.HasOne("eBolnicaAPI.Models.Entities.Patient", "Patient")
-                        .WithMany("Files")
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Patient");
-                });
-
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.MedicalRecord", b =>
                 {
                     b.HasOne("eBolnicaAPI.Models.Entities.Patient", "Patient")
@@ -1644,7 +1062,7 @@ namespace eBolnicaAPI.Migrations
                         .IsRequired();
 
                     b.HasOne("eBolnicaAPI.Models.Entities.MedicalRecord", "MedicalRecord")
-                        .WithMany("MedicalReports")
+                        .WithMany()
                         .HasForeignKey("MedicalRecordId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1672,77 +1090,11 @@ namespace eBolnicaAPI.Migrations
                     b.Navigation("Doctor");
                 });
 
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.Pharmacist", b =>
-                {
-                    b.HasOne("eBolnicaAPI.Models.Entities.AppUser", "AppUser")
-                        .WithOne("Pharmacist")
-                        .HasForeignKey("eBolnicaAPI.Models.Entities.Pharmacist", "AppUserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("AppUser");
-                });
-
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.Prescription", b =>
-                {
-                    b.HasOne("eBolnicaAPI.Models.Entities.Doctor", "Doctor")
-                        .WithMany()
-                        .HasForeignKey("DoctorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("eBolnicaAPI.Models.Entities.MedicalReport", "MedicalReport")
-                        .WithMany()
-                        .HasForeignKey("MedicalReportId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("eBolnicaAPI.Models.Entities.Patient", "Patient")
-                        .WithMany()
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("eBolnicaAPI.Models.Entities.Pharmacist", "Pharmacist")
-                        .WithMany("DispensedPrescriptions")
-                        .HasForeignKey("PharmacistId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.Navigation("Doctor");
-
-                    b.Navigation("MedicalReport");
-
-                    b.Navigation("Patient");
-
-                    b.Navigation("Pharmacist");
-                });
-
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.PrescriptionItem", b =>
-                {
-                    b.HasOne("eBolnicaAPI.Models.Entities.Medication", "Medication")
-                        .WithMany("PrescriptionItems")
-                        .HasForeignKey("MedicationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("eBolnicaAPI.Models.Entities.Prescription", "Prescription")
-                        .WithMany("PrescriptionItems")
-                        .HasForeignKey("PrescriptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Medication");
-
-                    b.Navigation("Prescription");
-                });
-
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.AppUser", b =>
                 {
                     b.Navigation("Doctor");
 
                     b.Navigation("Patient");
-
-                    b.Navigation("Pharmacist");
                 });
 
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.Doctor", b =>
@@ -1750,32 +1102,10 @@ namespace eBolnicaAPI.Migrations
                     b.Navigation("Patients");
                 });
 
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.MedicalRecord", b =>
-                {
-                    b.Navigation("MedicalReports");
-                });
-
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.Medication", b =>
-                {
-                    b.Navigation("PrescriptionItems");
-                });
-
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.Patient", b =>
                 {
-                    b.Navigation("Files");
-
                     b.Navigation("MedicalRecord")
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.Pharmacist", b =>
-                {
-                    b.Navigation("DispensedPrescriptions");
-                });
-
-            modelBuilder.Entity("eBolnicaAPI.Models.Entities.Prescription", b =>
-                {
-                    b.Navigation("PrescriptionItems");
                 });
 #pragma warning restore 612, 618
         }

@@ -2,6 +2,7 @@ using eBolnicaAPI.Data;
 using eBolnicaAPI.Models.Entities;
 using eBolnicaAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
@@ -149,6 +150,12 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IFileService, FileService>();
+
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 10 * 1024 * 1024;
+});
 builder.Services.AddScoped<IPharmacyService, PharmacyService>();
 builder.Services.AddScoped<IPharmacyAnalyticsService, PharmacyAnalyticsService>();
 

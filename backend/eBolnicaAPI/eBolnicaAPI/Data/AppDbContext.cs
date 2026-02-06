@@ -32,6 +32,21 @@ namespace eBolnicaAPI.Data
                 .HasForeignKey(p => p.DoctorId)
                 .OnDelete(DeleteBehavior.NoAction);
 
+            modelBuilder.Entity<MedicalRecord>()
+                .HasMany(r => r.MedicalReports)
+                .WithOne(rp => rp.MedicalRecord)
+                .HasForeignKey(rp => rp.MedicalRecordId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<MedicalReport>()
+                .HasIndex(r => r.MedicalRecordId);
+
+            modelBuilder.Entity<Patient>()
+                .HasMany(p=>p.Files)
+                .WithOne(f=>f.Patient)
+                .HasForeignKey(f=>f.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             modelBuilder.Entity<Pharmacist>()
                 .HasOne(p => p.AppUser)
                 .WithOne(u => u.Pharmacist)
@@ -525,18 +540,33 @@ namespace eBolnicaAPI.Data
                 );
 
             modelBuilder.Entity<Patient>().HasData(
-                new Patient { Id = 1, FirstName = patient1.FirstName, LastName = patient1.LastName, AppUserId = "p1", Gender="Male",Address = "Address1", DateOfBirth = new DateTime(1990, 3, 15), MedicalRecordId="MRID1", BloodType="A+", DoctorId=1, PhoneNumber=patient1.PhoneNumber },
-                new Patient { Id = 2, FirstName =patient2.FirstName, LastName = patient2.LastName, AppUserId = "p2", Gender="Female",Address = "Address2", DateOfBirth = new DateTime(1991, 3, 15), MedicalRecordId = "MRID2", BloodType = "B+", DoctorId = 1, PhoneNumber=patient2.PhoneNumber },
-                new Patient { Id = 3, FirstName = patient3.FirstName, LastName =patient3.LastName, AppUserId = "p3", Gender="Other", Address = "Address3", DateOfBirth = new DateTime(1992, 3, 14), MedicalRecordId = "MRID3", BloodType = "AB+", DoctorId = 1, PhoneNumber=patient3.PhoneNumber },
-                new Patient { Id = 4, FirstName = patient4.FirstName, LastName = patient4.LastName, AppUserId = "p4", Gender="Female", Address = "Bulevar Kralja Aleksandra 15", DateOfBirth = new DateTime(1988, 5, 20), MedicalRecordId = "MRID4", BloodType = "O+", DoctorId = 1, PhoneNumber=patient4.PhoneNumber },
-                new Patient { Id = 5, FirstName = patient5.FirstName, LastName = patient5.LastName, AppUserId = "p5", Gender="Male", Address = "Knez Mihailova 25", DateOfBirth = new DateTime(1985, 7, 10), MedicalRecordId = "MRID5", BloodType = "A-", DoctorId = 2, PhoneNumber=patient5.PhoneNumber },
-                new Patient { Id = 6, FirstName = patient6.FirstName, LastName = patient6.LastName, AppUserId = "p6", Gender="Female", Address = "Nemanjina 10", DateOfBirth = new DateTime(1993, 9, 5), MedicalRecordId = "MRID6", BloodType = "B-", DoctorId = 2, PhoneNumber=patient6.PhoneNumber },
-                new Patient { Id = 7, FirstName = patient7.FirstName, LastName = patient7.LastName, AppUserId = "p7", Gender="Male", Address = "Terazije 5", DateOfBirth = new DateTime(1987, 11, 18), MedicalRecordId = "MRID7", BloodType = "O-", DoctorId = 2, PhoneNumber=patient7.PhoneNumber },
-                new Patient { Id = 8, FirstName = patient8.FirstName, LastName = patient8.LastName, AppUserId = "p8", Gender="Female", Address = "Vračar 20", DateOfBirth = new DateTime(1994, 12, 25), MedicalRecordId = "MRID8", BloodType = "AB-", DoctorId = 3, PhoneNumber=patient8.PhoneNumber },
-                new Patient { Id = 9, FirstName = patient9.FirstName, LastName = patient9.LastName, AppUserId = "p9", Gender="Male", Address = "Svetog Save 45", DateOfBirth = new DateTime(1989, 2, 12), MedicalRecordId = "MRID9", BloodType = "A+", DoctorId = 1, PhoneNumber=patient9.PhoneNumber },
-                new Patient { Id = 10, FirstName = patient10.FirstName, LastName = patient10.LastName, AppUserId = "p10", Gender="Female", Address = "Kralja Milana 30", DateOfBirth = new DateTime(1995, 6, 8), MedicalRecordId = "MRID10", BloodType = "B+", DoctorId = 1, PhoneNumber=patient10.PhoneNumber },
-                new Patient { Id = 11, FirstName = patient11.FirstName, LastName = patient11.LastName, AppUserId = "p11", Gender="Male", Address = "Obilićev venac 12", DateOfBirth = new DateTime(1986, 8, 22), MedicalRecordId = "MRID11", BloodType = "O+", DoctorId = 1, PhoneNumber=patient11.PhoneNumber },
-                new Patient { Id = 12, FirstName = patient12.FirstName, LastName = patient12.LastName, AppUserId = "p12", Gender="Female", Address = "Dunavska 8", DateOfBirth = new DateTime(1996, 4, 30), MedicalRecordId = "MRID12", BloodType = "AB+", DoctorId = 1, PhoneNumber=patient12.PhoneNumber }
+                new Patient { Id = 1, FirstName = patient1.FirstName, LastName = patient1.LastName, AppUserId = "p1", Gender="Male",Address = "Address1", DateOfBirth = new DateTime(1990, 3, 15), BloodType="A+", DoctorId=1, PhoneNumber=patient1.PhoneNumber },
+                new Patient { Id = 2, FirstName =patient2.FirstName, LastName = patient2.LastName, AppUserId = "p2", Gender="Female",Address = "Address2", DateOfBirth = new DateTime(1991, 3, 15), BloodType = "B+", DoctorId = 1, PhoneNumber=patient2.PhoneNumber },
+                new Patient { Id = 3, FirstName = patient3.FirstName, LastName =patient3.LastName, AppUserId = "p3", Gender="Other", Address = "Address3", DateOfBirth = new DateTime(1992, 3, 14), BloodType = "AB+", DoctorId = 1, PhoneNumber=patient3.PhoneNumber },
+                new Patient { Id = 4, FirstName = patient4.FirstName, LastName = patient4.LastName, AppUserId = "p4", Gender="Female", Address = "Bulevar Kralja Aleksandra 15", DateOfBirth = new DateTime(1988, 5, 20), BloodType = "O+", DoctorId = 1, PhoneNumber=patient4.PhoneNumber },
+                new Patient { Id = 5, FirstName = patient5.FirstName, LastName = patient5.LastName, AppUserId = "p5", Gender="Male", Address = "Knez Mihailova 25", DateOfBirth = new DateTime(1985, 7, 10), BloodType = "A-", DoctorId = 2, PhoneNumber=patient5.PhoneNumber },
+                new Patient { Id = 6, FirstName = patient6.FirstName, LastName = patient6.LastName, AppUserId = "p6", Gender="Female", Address = "Nemanjina 10", DateOfBirth = new DateTime(1993, 9, 5), BloodType = "B-", DoctorId = 2, PhoneNumber=patient6.PhoneNumber },
+                new Patient { Id = 7, FirstName = patient7.FirstName, LastName = patient7.LastName, AppUserId = "p7", Gender="Male", Address = "Terazije 5", DateOfBirth = new DateTime(1987, 11, 18), BloodType = "O-", DoctorId = 2, PhoneNumber=patient7.PhoneNumber },
+                new Patient { Id = 8, FirstName = patient8.FirstName, LastName = patient8.LastName, AppUserId = "p8", Gender="Female", Address = "Vračar 20", DateOfBirth = new DateTime(1994, 12, 25), BloodType = "AB-", DoctorId = 3, PhoneNumber=patient8.PhoneNumber },
+                new Patient { Id = 9, FirstName = patient9.FirstName, LastName = patient9.LastName, AppUserId = "p9", Gender="Male", Address = "Svetog Save 45", DateOfBirth = new DateTime(1989, 2, 12), BloodType = "A+", DoctorId = 1, PhoneNumber=patient9.PhoneNumber },
+                new Patient { Id = 10, FirstName = patient10.FirstName, LastName = patient10.LastName, AppUserId = "p10", Gender="Female", Address = "Kralja Milana 30", DateOfBirth = new DateTime(1995, 6, 8), BloodType = "B+", DoctorId = 1, PhoneNumber=patient10.PhoneNumber },
+                new Patient { Id = 11, FirstName = patient11.FirstName, LastName = patient11.LastName, AppUserId = "p11", Gender="Male", Address = "Obilićev venac 12", DateOfBirth = new DateTime(1986, 8, 22), BloodType = "O+", DoctorId = 1, PhoneNumber=patient11.PhoneNumber },
+                new Patient { Id = 12, FirstName = patient12.FirstName, LastName = patient12.LastName, AppUserId = "p12", Gender="Female", Address = "Dunavska 8", DateOfBirth = new DateTime(1996, 4, 30), BloodType = "AB+", DoctorId = 1, PhoneNumber=patient12.PhoneNumber }
+                );
+
+            modelBuilder.Entity<MedicalRecord>().HasData(
+                new MedicalRecord { Id=1, PatientId=1, RecordNumber="MRID1"},
+                new MedicalRecord { Id = 2, PatientId = 2, RecordNumber = "MRID2" },
+                new MedicalRecord { Id = 3, PatientId = 3, RecordNumber = "MRID3" },
+                new MedicalRecord { Id = 4, PatientId = 4, RecordNumber = "MRID4" },
+                new MedicalRecord { Id = 5, PatientId = 5, RecordNumber = "MRID5" },
+                new MedicalRecord { Id = 6, PatientId = 6, RecordNumber = "MRID6" },
+                new MedicalRecord { Id = 7, PatientId = 7, RecordNumber = "MRID7" },
+                new MedicalRecord { Id = 8, PatientId = 8, RecordNumber = "MRID8" },
+                new MedicalRecord { Id = 9, PatientId = 9, RecordNumber = "MRID9" },
+                new MedicalRecord { Id = 10, PatientId = 10, RecordNumber = "MRID10" },
+                new MedicalRecord { Id = 11, PatientId = 11, RecordNumber = "MRID11" },
+                new MedicalRecord { Id = 12, PatientId = 12, RecordNumber = "MRID12" }
                 );
 
             modelBuilder.Entity<Pharmacist>().HasData(
@@ -579,6 +609,7 @@ namespace eBolnicaAPI.Data
     public DbSet<Patient> Patients { get; set; }
     public DbSet<AppUser> AppUsers { get; set; }
 
+    public DbSet<FileEntity> Files { get; set; }
     public DbSet<MedicalRecord> MedicalRecords { get; set; }
 
     public DbSet<MedicalReport> MedicalReports { get; set; }

@@ -14,10 +14,12 @@
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-        public string Diagnosis { get; set; }
+        public string? Diagnosis { get; set; }
 
-        public string Symptoms { get; set; }
+        public string? Symptoms { get; set; }
 
-        public string Therapy { get; set; }
+        public string? Therapy { get; set; }
+
+        public string? Description { get; set; }
     }
 }
