@@ -6,6 +6,7 @@ import { MedicalRecord } from '../../../../models/medical-record.dto';
 import { CommonModule} from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FileService, FileInfo } from '../../../../shared/services/file/file.service';
+import { saveAs } from 'file-saver';
 
 @Component({
   selector: 'app-medical-record',
@@ -28,11 +29,21 @@ export class MedicalRecordComponent implements OnInit{
     description:['']
   });
 
+  pdfForm: FormGroup = this.fb.group({
+    dateFrom:['', Validators.required],
+    dateTo:['', Validators.required]
+  });
+
   medicalRecord?: MedicalRecord;
   recordNumber: string | null = null;
   patientFiles: FileInfo[] = [];
   selectedFile: File | null = null;
   patientId!:number;
+  
+  showPdfModal = false;
+  isGeneratingPdf = false;
+  reportCountPreview: number | null = null;
+
 
   ngOnInit(): void {
     this.patientId = Number(this.route.snapshot.paramMap.get('patientId'));
@@ -46,6 +57,10 @@ export class MedicalRecordComponent implements OnInit{
     }})
 
     this.loadFiles();
+
+    this.pdfForm.valueChanges.subscribe(() => {
+    this.updateReportPreview();
+  });
   }
 
   onSubmitReport():void{
@@ -107,6 +122,64 @@ export class MedicalRecordComponent implements OnInit{
 
     this.fileService.deleteFile(fileId).subscribe(()=>{
       this.loadFiles();
+    })
+  }
+
+  formatDateForInput(date: Date): string {
+  return date.toISOString().split('T')[0];
+  }
+
+  openPdfModal(): void{
+    const today = new Date();
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(today.getMonth()-6);
+
+    this.pdfForm.patchValue({
+      dateFrom: this.formatDateForInput(sixMonthsAgo),
+      dateTo: this.formatDateForInput(today)
+    });
+
+    this.showPdfModal = true;
+    this.updateReportPreview();
+  }
+
+  closePdfModal(): void {
+  this.showPdfModal = false;
+  this.reportCountPreview = null;
+  }
+
+  updateReportPreview(): void {
+  if (!this.pdfForm.valid || !this.medicalRecord?.reports) return;
+
+  const dateFrom = new Date(this.pdfForm.value.dateFrom);
+  const dateTo = new Date(this.pdfForm.value.dateTo);
+
+  this.reportCountPreview = this.medicalRecord.reports.filter(r => {
+    const d = new Date(r.createdAt);
+    return d >= dateFrom && d <= dateTo;
+  }).length;
+  }
+
+  generatePdf(): void{
+    if(this.pdfForm.invalid || !this.medicalRecord) return;
+
+    const dateFrom = this.pdfForm.value.dateFrom;
+    const dateTo = this.pdfForm.value.dateTo;
+
+    if(new Date(dateFrom) > new Date(dateTo)){
+      alert('Date From must be before Date To');
+      return;
+    }
+
+    this.isGeneratingPdf = true;
+    
+    this.service.generatePdf(this.medicalRecord.id, dateFrom, dateTo).subscribe({
+      next: (blob) =>{
+        saveAs(blob, `MedicalRecord_${this.medicalRecord?.id}_${dateFrom}_${dateTo}.pdf`);
+        this.closePdfModal();
+      },
+      error: () => alert('Error generating PDF'),
+      complete: () => this.isGeneratingPdf = false
     })
   }
 

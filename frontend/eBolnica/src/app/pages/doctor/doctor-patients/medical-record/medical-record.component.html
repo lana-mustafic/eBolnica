@@ -186,3 +186,64 @@
 </section>
 
 </div>
+
+<div style="text-align:center; margin:30px 0;">
+  <button class="btn-primary" (click)="openPdfModal()">
+    📄 Download Full Medical Record (PDF)
+  </button>
+</div>
+
+<div class="modal-overlay" *ngIf="showPdfModal" (click)="closePdfModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>📄 Generate Medical Record PDF</h3>
+      <button class="close-btn" (click)="closePdfModal()">&times;</button>
+    </div>
+    
+    <form [formGroup]="pdfForm" (ngSubmit)="generatePdf()" class="pdf-form">
+      
+      <div class="info-box">
+        <p><strong>Patient:</strong> {{medicalRecord?.firstName}} {{medicalRecord?.lastName}}</p>
+        <p><strong>Record Number:</strong> {{medicalRecord?.recordNumber}}</p>
+      </div>
+
+      <div class="form-group">
+        <label>📅 Select Period for Medical Reports:</label>
+        <p class="help-text">Only Medical Reports created within this period will be included in PDF</p>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date From: <span class="required">*</span></label>
+          <input type="date" formControlName="dateFrom" required>
+          <span class="error" *ngIf="pdfForm.get('dateFrom')?.invalid && pdfForm.get('dateFrom')?.touched">
+            Date is required
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label>Date To: <span class="required">*</span></label>
+          <input type="date" formControlName="dateTo" required>
+          <span class="error" *ngIf="pdfForm.get('dateTo')?.invalid && pdfForm.get('dateTo')?.touched">
+            Date is required
+          </span>
+        </div>
+      </div>
+
+      <div class="preview-info" *ngIf="reportCountPreview !== null">
+        <p>📊 <strong>Preview:</strong> {{reportCountPreview}} Medical Report(s) will be included</p>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" (click)="closePdfModal()">
+          Cancel
+        </button>
+        <button type="submit" class="btn-primary" [disabled]="pdfForm.invalid || isGeneratingPdf">
+          <span *ngIf="!isGeneratingPdf">📥 Download PDF Report</span>
+          <span *ngIf="isGeneratingPdf">⏳ Generating PDF...</span>
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>

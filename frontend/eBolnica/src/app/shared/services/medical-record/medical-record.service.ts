@@ -21,4 +21,11 @@ export class MedicalRecordService {
   {
     return this.http.post<newMedicalReport>(this.apiUrl+'/new-medical-report', data);
   }
+
+  generatePdf(medicalRecordId: number, dateFrom: string, dateTo: string) {
+  return this.http.get(
+    `${this.apiUrl}/pdf/${medicalRecordId}?dateFrom=${dateFrom}&dateTo=${dateTo}`,
+    { responseType: 'blob' }
+  );
+  }
 }
