@@ -4,10 +4,13 @@ using eBolnicaAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using System.IO.Compression;
 using System.Security.Claims;
 using System.Text;
 
@@ -21,6 +24,14 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "eBolnica", Version = "v1" });
+
+    // Include XML comments for Swagger documentation
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath);
+    }
 
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
@@ -52,7 +63,56 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services
     .AddIdentityApiEndpoints<AppUser>()
     .AddEntityFrameworkStores<AppDbContext>();
-builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Configure DbContext with connection pooling and performance optimizations
+var performanceSettings = builder.Configuration.GetSection("PerformanceSettings");
+var enableQueryLogging = performanceSettings.GetValue<bool>("EnableQueryLogging", false);
+var queryTimeout = performanceSettings.GetValue<int>("QueryTimeoutSeconds", 30);
+
+builder.Services.AddDbContextPool<AppDbContext>(options =>
+{
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        sqlOptions =>
+        {
+            sqlOptions.CommandTimeout(queryTimeout); // 30 second timeout
+            sqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 3,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null);
+        });
+    
+    // Enable query logging in development only
+    if (enableQueryLogging && builder.Environment.IsDevelopment())
+    {
+        options.EnableSensitiveDataLogging();
+        options.LogTo(Console.WriteLine, LogLevel.Information);
+    }
+});
+
+// Add in-memory caching for query results
+builder.Services.AddMemoryCache(options =>
+{
+    options.SizeLimit = 1024; // Limit cache entries
+});
+
+// Add response compression for large result sets
+var enableCompression = performanceSettings.GetValue<bool>("EnableResponseCompression", true);
+if (enableCompression)
+{
+    builder.Services.AddResponseCompression(options =>
+    {
+        options.EnableForHttps = true;
+        options.Providers.Add<GzipCompressionProvider>();
+        options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+            new[] { "application/json", "application/xml" });
+    });
+    
+    builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+    {
+        options.Level = System.IO.Compression.CompressionLevel.Optimal;
+    });
+}
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -96,6 +156,15 @@ builder.Services.Configure<FormOptions>(options =>
 {
     options.MultipartBodyLengthLimit = 10 * 1024 * 1024;
 });
+builder.Services.AddScoped<IPharmacyService, PharmacyService>();
+builder.Services.AddScoped<IPharmacyAnalyticsService, PharmacyAnalyticsService>();
+
+// Configure PDF generation settings
+builder.Services.Configure<eBolnicaAPI.Models.Settings.PdfGenerationSettings>(
+    builder.Configuration.GetSection("PdfSettings"));
+
+// Add PDF report service
+builder.Services.AddScoped<IPdfReportService, PdfReportService>();
 
 var app = builder.Build();
 
@@ -116,6 +185,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowAngular");
 
+// Enable response compression
+if (enableCompression)
+{
+    app.UseResponseCompression();
+}
+
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
@@ -127,3 +202,6 @@ app.MapControllers();
 app.MapIdentityApi<AppUser>();
 
 app.Run();
+
+// Make Program class accessible for integration testing
+public partial class Program { }

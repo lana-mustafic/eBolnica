@@ -1,0 +1,348 @@
+<div class="medications-container">
+  <div class="header-section">
+    <div class="header-left">
+      <h2>Medications</h2>
+    </div>
+    <a routerLink="/pharmacy/medications/wizard" class="btn btn-primary">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      Add New Medication
+    </a>
+  </div>
+
+  <!-- Messages -->
+  <div class="message success" *ngIf="successMessage">
+    {{ successMessage }}
+  </div>
+
+  <div class="message success" *ngIf="clearSuccessMessage">
+    {{ clearSuccessMessage }}
+  </div>
+
+  <div class="message error" *ngIf="errorMessage">
+    <div class="error-content">
+      <span>{{ errorMessage }}</span>
+      <button class="btn-retry" (click)="retryLoad()" *ngIf="errorMessage" title="Retry loading">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+        Retry
+      </button>
+    </div>
+  </div>
+
+  <!-- Search and Filters -->
+  <div class="search-filters-section">
+    <div class="search-box">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <path d="m21 21-4.35-4.35"></path>
+      </svg>
+      <input 
+        type="text" 
+        placeholder="Search by name, description, category, manufacturer, or dosage..."
+        [value]="searchTerm"
+        (input)="onSearchChange($any($event.target).value)"
+        class="search-input"
+        [class.searching]="isSearching">
+      <!-- Loading indicator during search -->
+      <div *ngIf="isSearching" class="search-loading">
+        <svg class="spinner" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+        </svg>
+        <span class="searching-text">Searching...</span>
+      </div>
+      <button 
+        *ngIf="searchTerm && !isSearching" 
+        class="clear-search"
+        (click)="onSearchChange(''); searchTerm = ''">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="filters">
+      <select [(ngModel)]="selectedCategory" (ngModelChange)="onCategoryChange($event)">
+        <option value="">All Categories</option>
+        <option *ngFor="let category of categories" [value]="category">{{ category }}</option>
+      </select>
+
+      <select [(ngModel)]="selectedStockStatus" (ngModelChange)="onStockStatusChange($event)">
+        <option value="">All Stock Status</option>
+        <option value="Low Stock">Low Stock</option>
+        <option value="Out of Stock">Out of Stock</option>
+        <option value="Normal Stock">Normal Stock</option>
+      </select>
+
+      <select [(ngModel)]="selectedRequiresPrescription" (ngModelChange)="onRequiresPrescriptionChange($event)">
+        <option value="">All Prescription Types</option>
+        <option value="Yes">Requires Prescription</option>
+        <option value="No">No Prescription Required</option>
+      </select>
+
+      <select [(ngModel)]="selectedActiveStatus" (ngModelChange)="onActiveStatusChange($event)">
+        <option value="">All Status</option>
+        <option value="Active">Active</option>
+        <option value="Inactive">Inactive</option>
+      </select>
+
+      <button class="btn btn-secondary" (click)="clearFilters()" *ngIf="getActiveFilterCount() > 0">
+        Clear All Filters
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter Summary and Active Filters -->
+  <app-filter-summary
+    [filters]="filterService.getFilters()"
+    [totalCount]="totalCount"
+    [currentPage]="currentPage"
+    [pageSize]="pageSize"
+    [isLoading]="isLoading || isSearching"
+    [activeFilterCount]="getActiveFilterCount()"
+    (clearAll)="clearFilters()">
+  </app-filter-summary>
+
+  <app-active-filters
+    [filters]="filterService.getFilters()"
+    [activeFilters]="activeFilters"
+    (removeFilter)="removeFilter($event)">
+  </app-active-filters>
+
+  <!-- Sort Status Display -->
+  <app-sort-status
+    *ngIf="!isLoading && medications.length > 0"
+    [sortColumn]="sortColumn"
+    [sortOrder]="sortOrder"
+    [isDefaultSort]="isDefaultSort()"
+    [componentType]="'medications'"
+    [showResetButton]="true"
+    (reset)="resetToDefaultSort()">
+  </app-sort-status>
+
+  <!-- Sort Loading Indicator -->
+  <div *ngIf="isSorting" class="sort-loading-indicator" aria-live="polite" aria-atomic="true">
+    <svg class="spinner" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+    </svg>
+    <span>Sorting medications by {{sortColumn}} in {{sortOrder === 'asc' ? 'ascending' : 'descending'}} order...</span>
+  </div>
+
+  <!-- General Loading State -->
+  <div *ngIf="isLoading && !isSorting" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading medications...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && medications.length === 0" class="empty-state">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+      <circle cx="12" cy="10" r="3"></circle>
+    </svg>
+    <h3>No medications found</h3>
+    <p *ngIf="searchTerm || selectedCategory || selectedStockStatus || selectedRequiresPrescription || selectedActiveStatus">
+      Try adjusting your search or filters.
+    </p>
+    <p *ngIf="!searchTerm && !selectedCategory && !selectedStockStatus && !selectedRequiresPrescription && !selectedActiveStatus">
+      Get started by adding your first medication.
+    </p>
+    <a routerLink="/pharmacy/medications/wizard" class="btn btn-primary" *ngIf="!searchTerm && !selectedCategory && !selectedStockStatus && !selectedRequiresPrescription && !selectedActiveStatus">
+      Add Medication
+    </a>
+  </div>
+
+  <!-- Medications Table -->
+  <div *ngIf="!isLoading && medications.length > 0" class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th (click)="onSort('name')"
+              (keydown)="onSortKeydown($event, 'name')"
+              [class.sort-active]="sortColumn === 'name'"
+              [attr.aria-sort]="getAriaSort('name')"
+              [attr.aria-label]="'Sort by Name'"
+              tabindex="0"
+              class="sortable-header">
+            Name
+            <span class="sort-icons">
+              <span class="sort-asc" [class.active]="getSortIconClass('name', 'asc')" aria-hidden="true">↑</span>
+              <span class="sort-desc" [class.active]="getSortIconClass('name', 'desc')" aria-hidden="true">↓</span>
+            </span>
+          </th>
+          <th>Generic Name</th>
+          <th>Manufacturer</th>
+          <th (click)="onSort('category')"
+              (keydown)="onSortKeydown($event, 'category')"
+              [class.sort-active]="sortColumn === 'category'"
+              [attr.aria-sort]="getAriaSort('category')"
+              [attr.aria-label]="'Sort by Category'"
+              tabindex="0"
+              class="sortable-header">
+            Category
+            <span class="sort-icons">
+              <span class="sort-asc" [class.active]="getSortIconClass('category', 'asc')" aria-hidden="true">↑</span>
+              <span class="sort-desc" [class.active]="getSortIconClass('category', 'desc')" aria-hidden="true">↓</span>
+            </span>
+          </th>
+          <th (click)="onSort('price')"
+              (keydown)="onSortKeydown($event, 'price')"
+              [class.sort-active]="sortColumn === 'price'"
+              [attr.aria-sort]="getAriaSort('price')"
+              [attr.aria-label]="'Sort by Price'"
+              tabindex="0"
+              class="sortable-header">
+            Price
+            <span class="sort-icons">
+              <span class="sort-asc" [class.active]="getSortIconClass('price', 'asc')" aria-hidden="true">↑</span>
+              <span class="sort-desc" [class.active]="getSortIconClass('price', 'desc')" aria-hidden="true">↓</span>
+            </span>
+          </th>
+          <th (click)="onSort('stock')"
+              (keydown)="onSortKeydown($event, 'stock')"
+              [class.sort-active]="sortColumn === 'stockQuantity'"
+              [attr.aria-sort]="getAriaSort('stock')"
+              [attr.aria-label]="'Sort by Stock Quantity'"
+              tabindex="0"
+              class="sortable-header">
+            Stock
+            <span class="sort-icons">
+              <span class="sort-asc" [class.active]="getSortIconClass('stock', 'asc')" aria-hidden="true">↑</span>
+              <span class="sort-desc" [class.active]="getSortIconClass('stock', 'desc')" aria-hidden="true">↓</span>
+            </span>
+          </th>
+          <th>Expiry Date</th>
+          <th (click)="onSort('status')"
+              (keydown)="onSortKeydown($event, 'status')"
+              [class.sort-active]="sortColumn === 'name'"
+              [attr.aria-sort]="getAriaSort('status')"
+              [attr.aria-label]="'Sort by Status'"
+              tabindex="0"
+              class="sortable-header">
+            Status
+            <span class="sort-icons">
+              <span class="sort-asc" [class.active]="getSortIconClass('status', 'asc')" aria-hidden="true">↑</span>
+              <span class="sort-desc" [class.active]="getSortIconClass('status', 'desc')" aria-hidden="true">↓</span>
+            </span>
+          </th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let medication of medications">
+          <td class="medication-name">{{ medication.name }}</td>
+          <td>{{ medication.genericName || '-' }}</td>
+          <td>{{ medication.manufacturer || '-' }}</td>
+          <td>{{ medication.category || '-' }}</td>
+          <td>{{ formatCurrency(medication.price) }}</td>
+          <td>
+            <span [class]="medication.stockQuantity < medication.minimumStockLevel ? 'stock-low' : ''">
+              {{ medication.stockQuantity }}
+            </span>
+            <span class="stock-min" *ngIf="medication.minimumStockLevel">
+              / min: {{ medication.minimumStockLevel }}
+            </span>
+          </td>
+          <td>{{ formatDate(medication.expiryDate) }}</td>
+          <td>
+            <span [class]="'status-badge ' + getStockStatus(medication).class">
+              {{ getStockStatus(medication).label }}
+            </span>
+            <span class="prescription-badge" *ngIf="medication.requiresPrescription" title="Requires Prescription">
+              Rx
+            </span>
+          </td>
+          <td class="actions">
+            <a [routerLink]="['/pharmacy/medications', medication.id, 'edit']" class="btn btn-edit">Edit</a>
+            <button class="btn btn-delete" (click)="deleteMedication(medication)" [disabled]="isLoading">Delete</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div class="pagination-container" *ngIf="!isLoading && totalCount > 0" role="navigation" aria-label="Medications pagination">
+      <!-- Results Summary -->
+      <div class="pagination-info" aria-live="polite">
+        Showing {{ (currentPage - 1) * pageSize + 1 }} - {{ Math.min(currentPage * pageSize, totalCount) }} of {{ totalCount }} medication{{ totalCount !== 1 ? 's' : '' }}
+      </div>
+      
+      <!-- Pagination Controls -->
+      <div class="pagination-controls">
+        <!-- Page Size Selector -->
+        <div class="page-size-wrapper">
+          <label for="page-size-select" class="page-size-label">Items per page:</label>
+          <select 
+            id="page-size-select"
+            [(ngModel)]="pageSize" 
+            (ngModelChange)="changePageSize($event)" 
+            class="page-size-select"
+            aria-label="Items per page">
+            <option [value]="5">5</option>
+            <option [value]="10">10</option>
+            <option [value]="20">20</option>
+            <option [value]="50">50</option>
+          </select>
+        </div>
+        
+        <!-- Navigation Buttons -->
+        <div class="pagination-buttons">
+          <button 
+            type="button"
+            class="btn btn-nav"
+            (click)="previousPage()"
+            [disabled]="currentPage === 1"
+            [attr.aria-label]="'Go to previous page'"
+            [attr.aria-disabled]="currentPage === 1">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+            <span class="btn-text">Previous</span>
+          </button>
+          
+          <!-- Page Numbers -->
+          <nav class="page-numbers" aria-label="Page navigation">
+            <button
+              *ngFor="let pageNum of getPageNumbers(); trackBy: trackByPageNum"
+              type="button"
+              class="btn page-btn"
+              [class.btn-active]="pageNum === currentPage"
+              [class.btn-outline]="pageNum !== currentPage && !isEllipsis(pageNum)"
+              [class.ellipsis]="isEllipsis(pageNum)"
+              [disabled]="isEllipsis(pageNum) || pageNum === currentPage"
+              [attr.aria-label]="isEllipsis(pageNum) ? 'More pages' : 'Go to page ' + pageNum"
+              [attr.aria-current]="pageNum === currentPage ? 'page' : null"
+              [attr.aria-disabled]="pageNum === currentPage"
+              (click)="onPageNumberClick(pageNum)">
+              {{ pageNum }}
+            </button>
+          </nav>
+          
+          <button 
+            type="button"
+            class="btn btn-nav"
+            (click)="nextPage()"
+            [disabled]="currentPage >= totalPages || totalPages === 0"
+            [attr.aria-label]="'Go to next page'"
+            [attr.aria-disabled]="currentPage >= totalPages || totalPages === 0">
+            <span class="btn-text">Next</span>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+        </div>
+        
+        <!-- Page Info -->
+        <div class="page-info" aria-live="polite">
+          Page <span class="page-current">{{ currentPage }}</span> of <span class="page-total">{{ totalPages }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,161 @@
+<div class="stock-trends-chart-container" [attr.aria-label]="title + ' chart'">
+  <!-- Header -->
+  <div class="chart-header">
+    <h3 class="chart-title" [attr.aria-label]="title">{{ title }}</h3>
+    <div class="header-actions">
+      <button 
+        class="btn-refresh" 
+        (click)="refresh()"
+        aria-label="Refresh chart data"
+        title="Refresh data">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Medication Selector -->
+  <div *ngIf="availableMedications.length > 0 && !isLoading && !errorMessage" class="medication-selector">
+    <div class="selector-header">
+      <label class="selector-label">Select Medications to Compare (max 5):</label>
+      <div class="selector-actions">
+        <button 
+          class="btn-select-all" 
+          (click)="selectAllMedications()"
+          [disabled]="selectedMedicationIds.length >= 5"
+          aria-label="Select all medications">
+          Select All
+        </button>
+        <button 
+          class="btn-clear" 
+          (click)="clearAllMedications()"
+          [disabled]="selectedMedicationIds.length === 0"
+          aria-label="Clear all selections">
+          Clear
+        </button>
+      </div>
+    </div>
+    <div class="medication-list" role="list" aria-label="Available medications">
+      <button
+        *ngFor="let medication of availableMedications"
+        [class.selected]="isMedicationSelected(medication.id)"
+        [class.disabled]="!isMedicationSelected(medication.id) && selectedMedicationIds.length >= 5"
+        class="medication-item"
+        (click)="toggleMedication(medication.id)"
+        (keydown.enter)="toggleMedication(medication.id)"
+        (keydown.space)="toggleMedication(medication.id)"
+        [attr.aria-label]="(isMedicationSelected(medication.id) ? 'Remove' : 'Add') + ' ' + medication.name + ' from comparison'"
+        [attr.aria-pressed]="isMedicationSelected(medication.id)"
+        tabindex="0"
+        role="listitem">
+        <span class="medication-checkbox" [attr.aria-hidden]="true">
+          <svg *ngIf="isMedicationSelected(medication.id)" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </span>
+        <span class="medication-name">{{ medication.name }}</span>
+        <span class="medication-badge" *ngIf="isMedicationSelected(medication.id)">
+          Selected
+        </span>
+      </button>
+    </div>
+    <div *ngIf="selectedMedicationIds.length === 0" class="no-selection-message">
+      <p>No medications selected. Select at least one medication to view trends.</p>
+    </div>
+  </div>
+
+  <!-- Summary Stats -->
+  <div *ngIf="hasData && selectedMedicationIds.length > 0 && !isLoading && !errorMessage" class="chart-summary">
+    <div class="summary-item">
+      <span class="summary-label">Medications:</span>
+      <span class="summary-value">{{ selectedMedicationIds.length }}</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-label">Time Period:</span>
+      <span class="summary-value">{{ days }} days</span>
+    </div>
+    <div class="summary-item" *ngIf="showThresholds">
+      <span class="summary-label">Thresholds:</span>
+      <span class="summary-value">Enabled</span>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="chart-state loading-state" role="status" aria-live="polite">
+    <div class="spinner" aria-hidden="true"></div>
+    <p class="state-message">Loading stock trend data...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="errorMessage && !isLoading" class="chart-state error-state" role="alert">
+    <div class="error-icon" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    </div>
+    <p class="state-message">{{ errorMessage }}</p>
+    <button class="btn-retry" (click)="retry()" aria-label="Retry loading data">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <polyline points="1 20 1 14 7 14"></polyline>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+      </svg>
+      Retry
+    </button>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!hasData && !isLoading && !errorMessage && selectedMedicationIds.length > 0" class="chart-state empty-state" role="status">
+    <div class="empty-icon" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"></line>
+        <line x1="12" y1="20" x2="12" y2="4"></line>
+        <line x1="6" y1="20" x2="6" y2="14"></line>
+      </svg>
+    </div>
+    <p class="state-message">No stock trend data available for the selected medications.</p>
+    <button class="btn-retry" (click)="refresh()" aria-label="Refresh data">
+      Refresh
+    </button>
+  </div>
+
+  <!-- Chart Container -->
+  <div 
+    *ngIf="hasData && selectedMedicationIds.length > 0 && !isLoading && !errorMessage" 
+    class="chart-wrapper"
+    [style.height.px]="responsiveHeight"
+    role="img"
+    [attr.aria-label]="'Line chart showing stock trends for ' + selectedMedicationIds.length + ' medications over ' + days + ' days'">
+    <canvas 
+      baseChart
+      [data]="chartData"
+      [type]="chartType"
+      [options]="chartOptions"
+      [attr.aria-label]="'Stock trends line chart'">
+    </canvas>
+  </div>
+
+  <!-- Threshold Legend -->
+  <div *ngIf="showThresholds && hasData && selectedMedicationIds.length > 0" class="threshold-legend">
+    <h4 class="legend-title">Stock Level Thresholds</h4>
+    <div class="legend-items">
+      <div class="legend-item">
+        <span class="legend-line" style="border-color: #10b981;"></span>
+        <span class="legend-label">Ideal ({{ idealThreshold }}%)</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-line" style="border-color: #f59e0b;"></span>
+        <span class="legend-label">Critical ({{ criticalThreshold }}%)</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-line" style="border-color: #ef4444;"></span>
+        <span class="legend-label">Low Stock ({{ lowThreshold }}%)</span>
+      </div>
+    </div>
+  </div>
+</div>

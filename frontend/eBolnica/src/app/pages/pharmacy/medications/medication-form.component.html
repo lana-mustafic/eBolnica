@@ -1,0 +1,222 @@
+<div class="form-container">
+  <div class="form-card">
+    <div class="form-header">
+      <h2>{{ isEditMode ? 'Edit Medication' : 'Add New Medication' }}</h2>
+      <button class="close-btn" (click)="onCancel()" [disabled]="isLoading">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Messages -->
+    <div class="message success" *ngIf="successMessage">
+      {{ successMessage }}
+    </div>
+
+    <div class="message error" *ngIf="errorMessage">
+      {{ errorMessage }}
+    </div>
+
+    <form [formGroup]="medicationForm" (ngSubmit)="onSubmit()" class="medication-form">
+      <!-- Basic Information -->
+      <div class="form-section">
+        <h3 class="section-title">Basic Information</h3>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="name">Name <span class="required">*</span></label>
+            <input 
+              type="text" 
+              id="name"
+              formControlName="name"
+              [class.error]="medicationForm.get('name')?.invalid && medicationForm.get('name')?.touched"
+              placeholder="Enter medication name">
+            <div class="error-message" *ngIf="getFieldError('name')">
+              {{ getFieldError('name') }}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="genericName">Generic Name</label>
+            <input 
+              type="text" 
+              id="genericName"
+              formControlName="genericName"
+              placeholder="Enter generic name">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea 
+            id="description"
+            formControlName="description"
+            rows="3"
+            placeholder="Enter medication description"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="manufacturer">Manufacturer</label>
+            <input 
+              type="text" 
+              id="manufacturer"
+              formControlName="manufacturer"
+              placeholder="Enter manufacturer name">
+          </div>
+
+          <div class="form-group">
+            <label for="category">Category <span class="required">*</span></label>
+            <select 
+              id="category"
+              formControlName="category"
+              [class.error]="medicationForm.get('category')?.invalid && medicationForm.get('category')?.touched">
+              <option value="">Select category</option>
+              <option *ngFor="let category of categories" [value]="category">{{ category }}</option>
+            </select>
+            <div class="error-message" *ngIf="getFieldError('category')">
+              {{ getFieldError('category') }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dosage Information -->
+      <div class="form-section">
+        <h3 class="section-title">Dosage Information</h3>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="dosageForm">Dosage Form</label>
+            <select 
+              id="dosageForm"
+              formControlName="dosageForm">
+              <option value="">Select dosage form</option>
+              <option *ngFor="let form of dosageForms" [value]="form">{{ form }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="strength">Strength</label>
+            <input 
+              type="text" 
+              id="strength"
+              formControlName="strength"
+              placeholder="e.g., 500mg, 10ml">
+          </div>
+        </div>
+      </div>
+
+      <!-- Pricing & Stock -->
+      <div class="form-section">
+        <h3 class="section-title">Pricing & Stock</h3>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="price">Price <span class="required">*</span></label>
+            <input 
+              type="number" 
+              id="price"
+              formControlName="price"
+              step="0.01"
+              min="0.01"
+              [class.error]="medicationForm.get('price')?.invalid && medicationForm.get('price')?.touched"
+              placeholder="0.00">
+            <div class="error-message" *ngIf="getFieldError('price')">
+              {{ getFieldError('price') }}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="stockQuantity">Stock Quantity <span class="required">*</span></label>
+            <input 
+              type="number" 
+              id="stockQuantity"
+              formControlName="stockQuantity"
+              min="0"
+              [class.error]="medicationForm.get('stockQuantity')?.invalid && medicationForm.get('stockQuantity')?.touched"
+              placeholder="0">
+            <div class="error-message" *ngIf="getFieldError('stockQuantity')">
+              {{ getFieldError('stockQuantity') }}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="minimumStockLevel">Minimum Stock Level <span class="required">*</span></label>
+            <input 
+              type="number" 
+              id="minimumStockLevel"
+              formControlName="minimumStockLevel"
+              min="0"
+              [class.error]="medicationForm.get('minimumStockLevel')?.invalid && medicationForm.get('minimumStockLevel')?.touched"
+              placeholder="10">
+            <div class="error-message" *ngIf="getFieldError('minimumStockLevel')">
+              {{ getFieldError('minimumStockLevel') }}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="expiryDate">Expiry Date <span class="required">*</span></label>
+            <input 
+              type="date" 
+              id="expiryDate"
+              formControlName="expiryDate"
+              [class.error]="medicationForm.get('expiryDate')?.invalid && medicationForm.get('expiryDate')?.touched">
+            <div class="error-message" *ngIf="getFieldError('expiryDate')">
+              {{ getFieldError('expiryDate') }}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="batchNumber">Batch Number</label>
+          <input 
+            type="text" 
+            id="batchNumber"
+            formControlName="batchNumber"
+            placeholder="Enter batch number">
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div class="form-section">
+        <h3 class="section-title">Settings</h3>
+        
+        <div class="form-row">
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                formControlName="requiresPrescription">
+              <span>Requires Prescription</span>
+            </label>
+          </div>
+
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                formControlName="isActive">
+              <span>Active</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="onCancel()" [disabled]="isLoading">
+          Cancel
+        </button>
+        <button type="submit" class="btn btn-primary" [disabled]="isLoading || !medicationForm.valid">
+          <span *ngIf="!isLoading">{{ isEditMode ? 'Update' : 'Create' }} Medication</span>
+          <span *ngIf="isLoading">Processing...</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -47,6 +47,132 @@ namespace eBolnicaAPI.Data
                 .HasForeignKey(f=>f.PatientId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<Pharmacist>()
+                .HasOne(p => p.AppUser)
+                .WithOne(u => u.Pharmacist)
+                .HasForeignKey<Pharmacist>(p => p.AppUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Prescription>()
+                .HasOne(p => p.MedicalReport)
+                .WithMany()
+                .HasForeignKey(p => p.MedicalReportId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Prescription>()
+                .HasOne(p => p.Patient)
+                .WithMany()
+                .HasForeignKey(p => p.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Prescription>()
+                .HasOne(p => p.Doctor)
+                .WithMany()
+                .HasForeignKey(p => p.DoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Prescription>()
+                .HasOne(p => p.Pharmacist)
+                .WithMany(ph => ph.DispensedPrescriptions)
+                .HasForeignKey(p => p.PharmacistId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Prescription>()
+                .HasIndex(p => p.PrescriptionNumber)
+                .IsUnique();
+
+            // Performance optimization indexes for Prescriptions
+            // Composite index for status and created date (common filter and sort combination)
+            modelBuilder.Entity<Prescription>()
+                .HasIndex(p => new { p.Status, p.CreatedAt })
+                .HasDatabaseName("IX_Prescriptions_Status_CreatedAt");
+
+            // Composite index for patient ID and status (common filter combination)
+            modelBuilder.Entity<Prescription>()
+                .HasIndex(p => new { p.PatientId, p.Status })
+                .HasDatabaseName("IX_Prescriptions_PatientId_Status");
+
+            // Index for prescribed date (common sort field)
+            modelBuilder.Entity<Prescription>()
+                .HasIndex(p => p.PrescribedDate)
+                .HasDatabaseName("IX_Prescriptions_PrescribedDate");
+
+            // Index for doctor ID (common filter)
+            modelBuilder.Entity<Prescription>()
+                .HasIndex(p => p.DoctorId)
+                .HasDatabaseName("IX_Prescriptions_DoctorId");
+
+            // Performance optimization indexes for Analytics queries
+            // Composite index for dispensed date and status (revenue calculations)
+            modelBuilder.Entity<Prescription>()
+                .HasIndex(p => new { p.Status, p.DispensedDate })
+                .HasDatabaseName("IX_Prescriptions_Status_DispensedDate");
+
+            // Index for PrescriptionItems - MedicationId (category calculations)
+            modelBuilder.Entity<PrescriptionItem>()
+                .HasIndex(pi => pi.MedicationId)
+                .HasDatabaseName("IX_PrescriptionItems_MedicationId");
+
+            // Composite index for PrescriptionItems - PrescriptionId and MedicationId
+            modelBuilder.Entity<PrescriptionItem>()
+                .HasIndex(pi => new { pi.PrescriptionId, pi.MedicationId })
+                .HasDatabaseName("IX_PrescriptionItems_PrescriptionId_MedicationId");
+
+            // Index for Medications - Category (category queries)
+            modelBuilder.Entity<Medication>()
+                .HasIndex(m => new { m.Category, m.IsActive })
+                .HasDatabaseName("IX_Medications_Category_IsActive");
+
+            modelBuilder.Entity<PrescriptionItem>()
+                .HasOne(pi => pi.Prescription)
+                .WithMany(p => p.PrescriptionItems)
+                .HasForeignKey(pi => pi.PrescriptionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PrescriptionItem>()
+                .HasOne(pi => pi.Medication)
+                .WithMany(m => m.PrescriptionItems)
+                .HasForeignKey(pi => pi.MedicationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Medication>()
+                .HasIndex(m => m.Name);
+
+            // Performance optimization indexes for Medications
+            // Composite index for name and category (common filter combination)
+            modelBuilder.Entity<Medication>()
+                .HasIndex(m => new { m.Name, m.Category })
+                .HasDatabaseName("IX_Medications_Name_Category");
+
+            // Composite index for price and stock quantity (common filter combination)
+            modelBuilder.Entity<Medication>()
+                .HasIndex(m => new { m.Price, m.StockQuantity })
+                .HasDatabaseName("IX_Medications_Price_StockQuantity");
+
+            // Composite index for active status and created date (default sorting)
+            modelBuilder.Entity<Medication>()
+                .HasIndex(m => new { m.IsActive, m.CreatedAt })
+                .HasDatabaseName("IX_Medications_IsActive_CreatedAt");
+
+            // Index for category (frequently filtered)
+            modelBuilder.Entity<Medication>()
+                .HasIndex(m => m.Category)
+                .HasDatabaseName("IX_Medications_Category");
+
+            // Index for expiry date (inventory alerts)
+            modelBuilder.Entity<Medication>()
+                .HasIndex(m => m.ExpiryDate)
+                .HasDatabaseName("IX_Medications_ExpiryDate");
+
+            // Index for stock quantity (low stock alerts)
+            modelBuilder.Entity<Medication>()
+                .HasIndex(m => m.StockQuantity)
+                .HasDatabaseName("IX_Medications_StockQuantity");
+
+            modelBuilder.Entity<Pharmacist>()
+                .HasIndex(p => p.LicenseNumber)
+                .IsUnique();
+
             var admin = new AppUser
             {
                 Id = "a1",
@@ -384,7 +510,28 @@ namespace eBolnicaAPI.Data
                 SecurityStamp = "fixed-guid-2"
             };
 
-            modelBuilder.Entity<AppUser>().HasData(admin, doctor1, doctor2, doctor3, patient1, patient2, patient3, patient4, patient5, patient6, patient7, patient8, patient9, patient10, patient11, patient12);
+            var pharmacist1 = new AppUser
+            {
+                Id = "ph1",
+                FirstName = "Milan",
+                LastName = "Jovanović",
+                UserName = "pharmacist@pharmacy.com",
+                NormalizedUserName = "PHARMACIST@PHARMACY.COM",
+                Email = "pharmacist@pharmacy.com",
+                NormalizedEmail = "PHARMACIST@PHARMACY.COM",
+                EmailConfirmed = false,
+                PhoneNumber = "061200200",
+                PhoneNumberConfirmed = false,
+                TwoFactorEnabled = false,
+                LockoutEnabled = true,
+                AccessFailedCount = 0,
+                UserType = "Pharmacist",
+                LicenseNumber = "PH-L1",
+                ConcurrencyStamp = "fixed-guid-1",
+                SecurityStamp = "fixed-guid-2"
+            };
+
+            modelBuilder.Entity<AppUser>().HasData(admin, doctor1, doctor2, doctor3, patient1, patient2, patient3, patient4, patient5, patient6, patient7, patient8, patient9, patient10, patient11, patient12, pharmacist1);
 
             modelBuilder.Entity<Doctor>().HasData(
                 new Doctor { Id = 1,FirstName=doctor1.FirstName, LastName=doctor1.LastName, AppUserId = "d1", Specialization="Cardiology",RegistrationStatus="Approved", Address="Address1", BirthDate= new DateTime(1995, 3, 15), LicenseNumber=doctor1.LicenseNumber, PhoneNumber=doctor1.PhoneNumber },
@@ -422,6 +569,39 @@ namespace eBolnicaAPI.Data
                 new MedicalRecord { Id = 12, PatientId = 12, RecordNumber = "MRID12" }
                 );
 
+            modelBuilder.Entity<Pharmacist>().HasData(
+                new Pharmacist 
+                { 
+                    Id = 1, 
+                    FirstName = pharmacist1.FirstName, 
+                    LastName = pharmacist1.LastName, 
+                    AppUserId = "ph1", 
+                    LicenseNumber = pharmacist1.LicenseNumber, 
+                    PhoneNumber = pharmacist1.PhoneNumber,
+                    Address = "Apotekarska 15, Beograd",
+                    HireDate = new DateTime(2020, 1, 15),
+                    CreatedAt = new DateTime(2020, 1, 15)
+                }
+            );
+
+            modelBuilder.Entity<Medication>().HasData(
+                new Medication { Id = 1, Name = "Paracetamol", GenericName = "Acetaminophen", Description = "Pain reliever and fever reducer", Manufacturer = "PharmaCorp", Price = 250.00m, StockQuantity = 500, MinimumStockLevel = 100, ExpiryDate = new DateTime(2026, 12, 31), BatchNumber = "BATCH-001", IsActive = true, RequiresPrescription = false, Category = "Painkillers", DosageForm = "Tablet", Strength = "500mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 2, Name = "Ibuprofen", GenericName = "Ibuprofen", Description = "Nonsteroidal anti-inflammatory drug", Manufacturer = "MediPharm", Price = 320.00m, StockQuantity = 350, MinimumStockLevel = 80, ExpiryDate = new DateTime(2026, 6, 30), BatchNumber = "BATCH-002", IsActive = true, RequiresPrescription = false, Category = "Painkillers", DosageForm = "Tablet", Strength = "400mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 3, Name = "Amoxicillin", GenericName = "Amoxicillin", Description = "Antibiotic for bacterial infections", Manufacturer = "AntibioPharm", Price = 850.00m, StockQuantity = 200, MinimumStockLevel = 50, ExpiryDate = new DateTime(2025, 9, 15), BatchNumber = "BATCH-003", IsActive = true, RequiresPrescription = true, Category = "Antibiotics", DosageForm = "Capsule", Strength = "500mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 4, Name = "Aspirin", GenericName = "Acetylsalicylic acid", Description = "Pain reliever, anti-inflammatory, and blood thinner", Manufacturer = "PharmaCorp", Price = 180.00m, StockQuantity = 45, MinimumStockLevel = 50, ExpiryDate = new DateTime(2027, 3, 20), BatchNumber = "BATCH-004", IsActive = true, RequiresPrescription = false, Category = "Painkillers", DosageForm = "Tablet", Strength = "100mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 5, Name = "Cetirizine", GenericName = "Cetirizine", Description = "Antihistamine for allergies", Manufacturer = "AllergyMed", Price = 420.00m, StockQuantity = 280, MinimumStockLevel = 60, ExpiryDate = new DateTime(2026, 8, 10), BatchNumber = "BATCH-005", IsActive = true, RequiresPrescription = false, Category = "Antihistamines", DosageForm = "Tablet", Strength = "10mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 6, Name = "Omeprazole", GenericName = "Omeprazole", Description = "Proton pump inhibitor for acid reflux", Manufacturer = "DigestPharm", Price = 650.00m, StockQuantity = 150, MinimumStockLevel = 40, ExpiryDate = new DateTime(2025, 11, 30), BatchNumber = "BATCH-006", IsActive = true, RequiresPrescription = true, Category = "Gastrointestinal", DosageForm = "Capsule", Strength = "20mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 7, Name = "Metformin", GenericName = "Metformin", Description = "Antidiabetic medication", Manufacturer = "DiabetPharm", Price = 550.00m, StockQuantity = 120, MinimumStockLevel = 30, ExpiryDate = new DateTime(2026, 4, 15), BatchNumber = "BATCH-007", IsActive = true, RequiresPrescription = true, Category = "Antidiabetic", DosageForm = "Tablet", Strength = "500mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 8, Name = "Loratadine", GenericName = "Loratadine", Description = "Antihistamine for seasonal allergies", Manufacturer = "AllergyMed", Price = 380.00m, StockQuantity = 320, MinimumStockLevel = 70, ExpiryDate = new DateTime(2026, 7, 25), BatchNumber = "BATCH-008", IsActive = true, RequiresPrescription = false, Category = "Antihistamines", DosageForm = "Tablet", Strength = "10mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 9, Name = "Azithromycin", GenericName = "Azithromycin", Description = "Broad-spectrum antibiotic", Manufacturer = "AntibioPharm", Price = 1200.00m, StockQuantity = 80, MinimumStockLevel = 25, ExpiryDate = new DateTime(2025, 10, 5), BatchNumber = "BATCH-009", IsActive = true, RequiresPrescription = true, Category = "Antibiotics", DosageForm = "Tablet", Strength = "500mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 10, Name = "Vitamin D3", GenericName = "Cholecalciferol", Description = "Vitamin D supplement", Manufacturer = "VitaminsPlus", Price = 450.00m, StockQuantity = 600, MinimumStockLevel = 150, ExpiryDate = new DateTime(2027, 1, 10), BatchNumber = "BATCH-010", IsActive = true, RequiresPrescription = false, Category = "Vitamins", DosageForm = "Capsule", Strength = "2000 IU", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 11, Name = "Ciprofloxacin", GenericName = "Ciprofloxacin", Description = "Fluoroquinolone antibiotic", Manufacturer = "AntibioPharm", Price = 950.00m, StockQuantity = 35, MinimumStockLevel = 20, ExpiryDate = new DateTime(2025, 8, 20), BatchNumber = "BATCH-011", IsActive = true, RequiresPrescription = true, Category = "Antibiotics", DosageForm = "Tablet", Strength = "500mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 12, Name = "Diclofenac", GenericName = "Diclofenac", Description = "NSAID for pain and inflammation", Manufacturer = "MediPharm", Price = 520.00m, StockQuantity = 180, MinimumStockLevel = 45, ExpiryDate = new DateTime(2026, 5, 12), BatchNumber = "BATCH-012", IsActive = true, RequiresPrescription = true, Category = "Painkillers", DosageForm = "Tablet", Strength = "50mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 13, Name = "Fexofenadine", GenericName = "Fexofenadine", Description = "Antihistamine for allergies", Manufacturer = "AllergyMed", Price = 480.00m, StockQuantity = 250, MinimumStockLevel = 55, ExpiryDate = new DateTime(2026, 9, 18), BatchNumber = "BATCH-013", IsActive = true, RequiresPrescription = false, Category = "Antihistamines", DosageForm = "Tablet", Strength = "120mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 14, Name = "Calcium Carbonate", GenericName = "Calcium Carbonate", Description = "Calcium supplement and antacid", Manufacturer = "VitaminsPlus", Price = 280.00m, StockQuantity = 400, MinimumStockLevel = 100, ExpiryDate = new DateTime(2027, 2, 28), BatchNumber = "BATCH-014", IsActive = true, RequiresPrescription = false, Category = "Supplements", DosageForm = "Tablet", Strength = "500mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 15, Name = "Atorvastatin", GenericName = "Atorvastatin", Description = "Cholesterol-lowering medication", Manufacturer = "CardioPharm", Price = 1100.00m, StockQuantity = 95, MinimumStockLevel = 25, ExpiryDate = new DateTime(2026, 11, 8), BatchNumber = "BATCH-015", IsActive = true, RequiresPrescription = true, Category = "Cardiovascular", DosageForm = "Tablet", Strength = "20mg", CreatedAt = new DateTime(2024, 1, 1) }
+            );
+
 
         }
 
@@ -433,6 +613,11 @@ namespace eBolnicaAPI.Data
     public DbSet<MedicalRecord> MedicalRecords { get; set; }
 
     public DbSet<MedicalReport> MedicalReports { get; set; }
+
+    public DbSet<Pharmacist> Pharmacists { get; set; }
+    public DbSet<Medication> Medications { get; set; }
+    public DbSet<Prescription> Prescriptions { get; set; }
+    public DbSet<PrescriptionItem> PrescriptionItems { get; set; }
     }
 }
 

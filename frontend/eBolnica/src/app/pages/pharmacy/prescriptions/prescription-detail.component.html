@@ -1,0 +1,172 @@
+<div class="prescription-detail-container">
+  <!-- Back Button -->
+  <button class="back-button" (click)="onBack()">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6"></polyline>
+    </svg>
+    Back to Prescriptions
+  </button>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading prescription details...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="errorMessage && !isLoading" class="error-message">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <p>{{ errorMessage }}</p>
+  </div>
+
+  <!-- Prescription Details -->
+  <div *ngIf="!isLoading && prescription" class="prescription-detail">
+    <!-- Success Message -->
+    <div class="message success" *ngIf="successMessage">
+      {{ successMessage }}
+    </div>
+
+    <!-- Prescription Header -->
+    <div class="prescription-header">
+      <div class="header-left">
+        <h2>Prescription {{ prescription.prescriptionNumber }}</h2>
+        <span [class]="'status-badge status-' + prescription.status.toLowerCase()">
+          {{ prescription.status }}
+        </span>
+      </div>
+      <button 
+        *ngIf="prescription.status === 'Pending'"
+        class="btn btn-dispense"
+        (click)="onDispenseClick()"
+        [disabled]="isDispensing">
+        <span *ngIf="!isDispensing">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          Dispense Prescription
+        </span>
+        <span *ngIf="isDispensing">Processing...</span>
+      </button>
+    </div>
+
+    <!-- Information Cards -->
+    <div class="info-cards">
+      <!-- Patient Info -->
+      <div class="info-card">
+        <h3 class="card-title">Patient Information</h3>
+        <div class="info-content">
+          <div class="info-item">
+            <label>Name:</label>
+            <span>{{ getPatientName() }}</span>
+          </div>
+          <div class="info-item">
+            <label>Patient ID:</label>
+            <span>{{ prescription.patientId }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Doctor Info -->
+      <div class="info-card">
+        <h3 class="card-title">Prescribing Doctor</h3>
+        <div class="info-content">
+          <div class="info-item">
+            <label>Name:</label>
+            <span>{{ getDoctorName() }}</span>
+          </div>
+          <div class="info-item">
+            <label>Specialization:</label>
+            <span>{{ getDoctorSpecialization() }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dates -->
+      <div class="info-card">
+        <h3 class="card-title">Dates</h3>
+        <div class="info-content">
+          <div class="info-item">
+            <label>Prescribed:</label>
+            <span>{{ formatDate(prescription.prescribedDate) }}</span>
+          </div>
+          <div class="info-item" *ngIf="prescription.dispensedDate">
+            <label>Dispensed:</label>
+            <span>{{ formatDate(prescription.dispensedDate) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pharmacist Info (if dispensed) -->
+      <div class="info-card" *ngIf="prescription.pharmacist">
+        <h3 class="card-title">Dispensed By</h3>
+        <div class="info-content">
+          <div class="info-item">
+            <label>Pharmacist:</label>
+            <span>{{ getPharmacistName() }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prescription Items Table -->
+    <div class="items-section">
+      <h3 class="section-title">Prescription Items</h3>
+      <div class="table-container">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>Medication</th>
+              <th>Quantity</th>
+              <th>Unit Price</th>
+              <th>Total Price</th>
+              <th>Stock Status</th>
+              <th>Instructions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of prescription.prescriptionItems">
+              <td class="medication-name">{{ item.medicationName }}</td>
+              <td>{{ item.quantity }}</td>
+              <td>{{ formatCurrency(item.unitPrice) }}</td>
+              <td class="amount">{{ formatCurrency(item.totalPrice) }}</td>
+              <td>
+                <span [class]="'stock-status ' + getStockStatus(item.medicationId, item.quantity).class">
+                  <span class="stock-icon">{{ getStockStatus(item.medicationId, item.quantity).icon }}</span>
+                  {{ getStockStatus(item.medicationId, item.quantity).label }}
+                </span>
+              </td>
+              <td class="instructions">{{ item.instructions || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Totals Section -->
+    <div class="totals-section">
+      <div class="totals-card">
+        <div class="total-row">
+          <label>Subtotal:</label>
+          <span>{{ formatCurrency(calculateSubtotal()) }}</span>
+        </div>
+        <div class="total-row grand-total">
+          <label>Total Amount:</label>
+          <span>{{ formatCurrency(calculateTotal()) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes Section -->
+    <div class="notes-section" *ngIf="prescription.notes">
+      <h3 class="section-title">Notes</h3>
+      <div class="notes-content">
+        {{ prescription.notes }}
+      </div>
+    </div>
+  </div>
+</div>

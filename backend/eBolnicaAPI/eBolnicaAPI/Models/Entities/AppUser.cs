@@ -13,5 +13,6 @@ namespace eBolnicaAPI.Models.Entities
 
         public Doctor? Doctor { get; set; }
         public Patient? Patient { get; set; }
+        public Pharmacist? Pharmacist { get; set; }
     }
 }
