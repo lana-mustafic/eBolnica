@@ -48,13 +48,7 @@ export class MedicalRecordComponent implements OnInit{
   ngOnInit(): void {
     this.patientId = Number(this.route.snapshot.paramMap.get('patientId'));
     
-    this.service.getMedicalRecord(this.patientId).subscribe({next:(data)=>{
-      this.medicalRecord = data;
-      console.log('Medical Record:', data)
-    },
-    error: (err)=>{
-      console.error('Error', err);
-    }})
+    this.loadMedicalRecord();
 
     this.loadFiles();
 
@@ -62,6 +56,18 @@ export class MedicalRecordComponent implements OnInit{
     this.updateReportPreview();
   });
   }
+
+  loadMedicalRecord(): void {
+  this.service.getMedicalRecord(this.patientId).subscribe({
+    next:(data)=>{
+      this.medicalRecord = data;
+      console.log('Medical Record:', data)
+    },
+    error: (err)=>{
+      console.error('Error', err);
+    }
+  });
+}
 
   onSubmitReport():void{
     if(this.reportForm.valid && this.medicalRecord){
@@ -77,6 +83,7 @@ export class MedicalRecordComponent implements OnInit{
         next: (response) => {
           console.log('Report created successfully', response);
           this.resetForm();
+          this.loadMedicalRecord();
         },
         error: (err) =>{
           console.error('Error creating report', err);
