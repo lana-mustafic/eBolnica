@@ -155,5 +155,82 @@ namespace eBolnicaAPI.Controllers
 
             return Ok(doctors);
         }
+
+        [HttpGet("doctor-stats")]
+        [Authorize(Roles = "Doctor")]
+        public async Task<IActionResult> ShowDoctorStats()
+        {
+            var doctorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (doctorId == null)
+            {
+                return Unauthorized();
+            }
+
+            var doctor = await _dbContext.Doctors.FirstOrDefaultAsync(d => d.AppUserId == doctorId);
+
+            if (doctor == null)
+            {
+                return NotFound();
+            }
+
+            var lastMonth = DateTime.Now.AddMonths(-1);
+            var now = DateTime.Now;
+            var monthStart = new DateTime(now.Year, now.Month, 1);
+
+            var stats = new DoctorDashboardStatsDto
+            {
+                TotalPatients = await _dbContext.Patients.CountAsync(p => p.DoctorId == doctor.Id),
+
+                ReportsThisMonth = await _dbContext.MedicalReports.Where(r => r.MedicalRecord.Patient.DoctorId == doctor.Id && r.CreatedAt >= monthStart).CountAsync(),
+
+                ReportsToday = await _dbContext.MedicalReports.Where(r => r.MedicalRecord.Patient.DoctorId == doctor.Id && r.CreatedAt.Date == now.Date).CountAsync(),
+
+                MonthlyReportTrend = await GetMonthlyReportTrend(doctor.Id, 6),
+
+                BloodTypeDistribution = await _dbContext.Patients
+                    .Where(p => p.DoctorId == doctor.Id && p.BloodType != null)
+                    .GroupBy(p => p.BloodType)
+                    .Select(g => new BloodTypeCountDto
+                    {
+                        BloodType = g.Key,
+                        Count = g.Count()
+                    }).ToListAsync(),
+
+                AvgReportsPerPatient = await _dbContext.Patients
+                    .Where(p=>p.DoctorId==doctor.Id)
+                    .Select(p=>p.MedicalRecord.MedicalReports.Count)
+                    .AverageAsync()
+
+            };
+
+
+            return Ok(stats);
+        }
+
+        private async Task<List<MonthlyTrendDto>> GetMonthlyReportTrend(int doctorId, int months)
+        {
+            var startDate = DateTime.Now.AddMonths(-months);
+
+            var results = await _dbContext.MedicalReports.Where(r => r.MedicalRecord.Patient.DoctorId == doctorId && r.CreatedAt >= startDate)
+                .GroupBy(r => new { r.CreatedAt.Year, r.CreatedAt.Month })
+                .Select(g => new
+                {
+                    Year = g.Key.Year,
+                    Month = g.Key.Month,
+                    Count = g.Count()
+                })
+                .OrderBy(x => x.Year)
+                .ThenBy(x => x.Month)
+                .ToListAsync();
+
+            return results.Select(x => new MonthlyTrendDto
+            {
+                Year = x.Year,
+                Month = $"{x.Year}-{x.Month:00}",
+                Count = x.Count
+            })
+            .ToList();
+        }
     }
 }

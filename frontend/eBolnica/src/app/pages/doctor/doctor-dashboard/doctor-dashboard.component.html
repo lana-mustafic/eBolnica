@@ -41,6 +41,80 @@
   </nav>
 
   <main class="dashboard-content">
-    <router-outlet></router-outlet>
+    <div class="dashboard-stats">
+  
+  <!-- Refresh header -->
+  <div class="dashboard-stats-header">
+    <h1>Doctor Dashboard</h1>
+    <div class="refresh-info">
+      <span>Last updated: {{ lastUpdated | date:'short' }}</span>
+      <button (click)="manualRefresh()" [disabled]="isLoading">
+        <i class="refresh-icon" [class.spinning]="isLoading"></i>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading && !stats" class="loading-container">
+    <p>Loading dashboard data...</p>>
+  </div>
+
+  <!-- Stats cards -->
+  <div *ngIf="stats" class="stats-grid">
+    
+    <!-- Card 1: Total Patients -->
+    <div class="stat-card">
+      <div class="stat-icon patients-icon">👥</div>
+      <div class="stat-content">
+        <h3>Total Patients</h3>
+        <p class="stat-number">{{ stats.totalPatients }}</p>
+      </div>
+    </div>
+
+    <!-- Card 2: Reports This Month -->
+    <div class="stat-card">
+      <div class="stat-icon reports-icon">📋</div>
+      <div class="stat-content">
+        <h3>Reports This Month</h3>
+        <p class="stat-number">{{ stats.reportsThisMonth }}</p>
+      </div>
+    </div>
+
+    <!-- Card 3: Reports Today -->
+    <div class="stat-card">
+      <div class="stat-icon today-icon">📅</div>
+      <div class="stat-content">
+        <h3>Reports Today</h3>
+        <p class="stat-number">{{ stats.reportsToday }}</p>
+      </div>
+    </div>
+
+    <!-- Card 4: Avg Reports per Patient -->
+    <div class="stat-card">
+      <div class="stat-icon avg-icon">📊</div>
+      <div class="stat-content">
+        <h3>Avg Reports/Patient</h3>
+        <p class="stat-number">{{ stats.avgReportsPerPatient | number:'1.1-1' }}</p>
+      </div>
+    </div>
+
+  </div>
+
+  <div *ngIf="stats" class="charts-section">
+  
+  <div class="chart-container">
+    <canvas id="monthlyTrendChart"></canvas>
+  </div>
+
+  <div class="chart-container-half">
+    <canvas id="bloodTypeChart"></canvas>
+  </div>
+
+
+</div>
+
+</div>
   </main>
 </div>
+
+
