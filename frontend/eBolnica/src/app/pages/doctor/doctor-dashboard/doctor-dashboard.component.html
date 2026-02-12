@@ -43,7 +43,7 @@
   <main class="dashboard-content">
     <div class="dashboard-stats">
   
-  <!-- Header sa refresh -->
+  <!-- Refresh header -->
   <div class="dashboard-stats-header">
     <h1>Doctor Dashboard</h1>
     <div class="refresh-info">
@@ -100,10 +100,18 @@
 
   </div>
 
-  <!-- Charts section (idemo za sljedeći task) -->
   <div *ngIf="stats" class="charts-section">
-    <!-- ovdje idu grafikoni -->
+  
+  <div class="chart-container">
+    <canvas id="monthlyTrendChart"></canvas>
   </div>
+
+  <div class="chart-container-half">
+    <canvas id="bloodTypeChart"></canvas>
+  </div>
+
+
+</div>
 
 </div>
   </main>
