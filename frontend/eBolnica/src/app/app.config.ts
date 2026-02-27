@@ -2,7 +2,7 @@ import { ApplicationConfig, provideZoneChangeDetection, APP_INITIALIZER } from '
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
 import { provideHttpClient, withInterceptors, HttpClient } from '@angular/common/http';
-import { authInterceptor, AuthInterceptorService } from './shared/services/auth-interceptor.service';
+import { authInterceptor} from './shared/services/auth-interceptor.service';
 import { I18nService } from './shared/services/i18n.service';
 import { filter, take } from 'rxjs/operators';
 import { firstValueFrom } from 'rxjs';
