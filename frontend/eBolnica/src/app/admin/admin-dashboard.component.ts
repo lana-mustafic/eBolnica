@@ -15,10 +15,15 @@ import { UserOverview } from '../models/user-overview.dto';
 export class AdminDashboardComponent implements OnInit{
   users:  UserOverview[] = [];
   status = ['Pending','Approved','Rejected'];  
+
   totalCount = 0;
   page = 1;
   pageSize = 10;
+
   userType: string | null = null;
+
+  currentSortBy: string = 'firstName';
+  currentSortDirection: 'asc' | 'desc' = 'asc';
 
   private adminService = inject(AdminService);
   public authService = inject(AuthService);
@@ -28,12 +33,27 @@ export class AdminDashboardComponent implements OnInit{
   }
 
   loadUsers(): void{
-    this.adminService.getAllUsers(this.page, this.pageSize, this.userType?? undefined).subscribe(res=>{
+    this.adminService.getAllUsers(this.page, this.pageSize, this.userType?? undefined, this.currentSortBy, this.currentSortDirection).subscribe(res=>{
       console.log("Backend response:", res);
       this.users=res.users;
       this.totalCount=res.totalCount;
     }
     );
+  }
+
+  sortBy(column: string): void{
+    if(this.currentSortBy === column){
+      // Toggle direction if column already sorted
+       this.currentSortDirection = this.currentSortDirection === 'asc' ? 'desc' : 'asc';
+    }
+    else{
+      this.currentSortBy = column;
+      this.currentSortDirection = 'asc';
+    }
+
+    this.page = 1;
+    
+    this.loadUsers();
   }
 
   onPageChange(newPage: number): void {
