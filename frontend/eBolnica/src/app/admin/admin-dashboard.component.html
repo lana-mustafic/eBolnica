@@ -1,3 +1,6 @@
+<div class="dashboard-container">
+  <div class="dashboard-card">
+
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h2 class="mb-0">Admin Dashboard</h2>
 
@@ -10,7 +13,7 @@
 
  <div class="d-flex mb-3">
     <label class="me-2 fw-bold">Filter by role:</label>
-    <select class="form-select w-auto" [(ngModel)]="userType" (ngModelChange)="onFilterChange($event)">
+    <select class="form-select filter-select" [(ngModel)]="userType" (ngModelChange)="onFilterChange($event)">
       <option value="">All</option>
       <option value="Doctor">Doctors</option>
       <option value="Patient">Patients</option>
@@ -20,10 +23,38 @@
 <table border="1" cellpadding="8">
   <thead>
     <tr>
-      <th>First Name</th>
-      <th>Last Name</th>
-      <th>Email</th>
-      <th>Role</th>
+      <th class="sortable" (click)="sortBy('firstName')">First Name
+          <span class="sort-icon">
+            <ng-container *ngIf="currentSortBy === 'firstName'">
+                {{ currentSortDirection === 'asc' ? '▲' : '▼' }}
+            </ng-container>
+            <ng-container *ngIf="currentSortBy !== 'firstName'">⇅</ng-container>
+          </span>
+      </th> 
+      <th class="sortable" (click)="sortBy('lastName')">Last Name
+          <span class="sort-icon">
+            <ng-container *ngIf="currentSortBy === 'lastName'">
+                {{ currentSortDirection === 'asc' ? '▲' : '▼' }}
+            </ng-container>
+            <ng-container *ngIf="currentSortBy !== 'lastName'">⇅</ng-container>
+          </span>
+      </th>
+      <th class="sortable" (click)="sortBy('email')">Email
+          <span class="sort-icon">
+            <ng-container *ngIf="currentSortBy === 'email'">
+                {{ currentSortDirection === 'asc' ? '▲' : '▼' }}
+            </ng-container>
+            <ng-container *ngIf="currentSortBy !== 'email'">⇅</ng-container>
+          </span>
+      </th>
+      <th class="sortable" (click)="sortBy('userType')">Role
+          <span class="sort-icon">
+            <ng-container *ngIf="currentSortBy === 'userType'">
+                {{ currentSortDirection === 'asc' ? '▲' : '▼' }}
+            </ng-container>
+            <ng-container *ngIf="currentSortBy !== 'userType'">⇅</ng-container>
+          </span>
+      </th>
       <th>Status</th>
       <th>Change Status</th>
     </tr>
@@ -51,21 +82,26 @@
   </tbody>
 </table>
 
-<div class="justify-content-between align-items-center mt-3">
+<div class="d-flex flex-column align-items-center mt-3 pagination-wrapper">
   <div>User count: {{ users.length }} of total: {{ totalCount }}</div>
-  <div>
-    <button class="btn btn-outline-secondary btn-sm me-2"
-            (click)="onPageChange(page - 1)"
-            [disabled]="page === 1">
-      Previous
-    </button>
-    <span>Page {{ page }} of {{ totalPages }}</span>
-    <button class="btn btn-outline-secondary btn-sm me-2"
-            (click)="onPageChange(page + 1)"
-            [disabled]="page >= totalCount / pageSize">
-      Next
-    </button>
-  </div>
+
+<div class="mt-2">
+  <button class="btn btn-outline-secondary btn-sm me-2"
+          (click)="onPageChange(page - 1)"
+          [disabled]="page === 1">
+    Previous
+  </button>
+
+  <span class="mx-2">Page {{ page }} of {{ totalPages }}</span>
+
+  <button class="btn btn-outline-secondary btn-sm ms-2"
+          (click)="onPageChange(page + 1)"
+          [disabled]="page >= totalPages">
+    Next
+  </button>
 </div>
 
+
+  </div>
+</div>
 

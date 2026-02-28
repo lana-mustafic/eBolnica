@@ -11,8 +11,12 @@ export class AdminService {
 
   baseUrl = 'http://localhost:5004/api/admin'
 
-  getAllUsers(page:number, pageSize:number, userType?: string): Observable<any>{
-    let params = new HttpParams().set('page', page.toString()).set('pageSize', pageSize.toString());
+  getAllUsers(page:number, pageSize:number, userType?: string, sortBy: string = 'firstName', sortDirection: string = 'asc'): Observable<any>{
+    let params = new HttpParams()
+          .set('page', page.toString())
+          .set('pageSize', pageSize.toString())
+          .set('sortBy', sortBy)
+          .set('sortDirection', sortDirection);
 
     if(userType){ 
       params = params.set('userType', userType);

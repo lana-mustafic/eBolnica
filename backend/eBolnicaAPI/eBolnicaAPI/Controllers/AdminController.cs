@@ -29,8 +29,10 @@ namespace eBolnicaAPI.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetUsers(
                 int page = 1,
-                int pageSize=10,
-                string? userType = null
+                int pageSize = 10,
+                string? userType = null,
+                string sortBy = "firstName",
+                string sortDirection = "asc"
             )
         {
             var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -42,9 +44,11 @@ namespace eBolnicaAPI.Controllers
                 query=query.Where(u=>u.UserType == userType);
             }
 
+            query = ApplySorting(query, sortBy.ToLower(), sortDirection.ToLower());
+
             var totalCount = await query.CountAsync();
 
-            var users = await query.OrderBy(u=>u.FirstName).Skip((page-1)*pageSize).Take(pageSize).Select(u => new UserOverviewDto
+            var users = await query.Skip((page-1)*pageSize).Take(pageSize).Select(u => new UserOverviewDto
             {
                 AppUserId = u.Id,
                 FirstName = u.FirstName,
@@ -61,11 +65,14 @@ namespace eBolnicaAPI.Controllers
                 TotalCount = totalCount,
                 Page = page,
                 PageSize = pageSize,
-                Users = users
+                Users = users,
+                SortBy = sortBy,
+                SortDirection = sortDirection,
             });
         }
 
         [HttpPut("update-registration-status/{AppUserId}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateRegistrationStatus(string AppUserId, [FromBody]UpdateRegistrationStatusDto dto)
         {
 
@@ -81,6 +88,23 @@ namespace eBolnicaAPI.Controllers
             await _dbContext.SaveChangesAsync();
 
             return Ok(new { message = "Doctor registration status updated successfully." });
+        }
+
+        private IQueryable<AppUser> ApplySorting(IQueryable<AppUser> query, string sortBy, string sortDirection)
+        {
+            return sortBy switch
+            {
+                "firstName" => sortDirection == "asc" ? query.OrderBy(u=>u.FirstName) : query.OrderByDescending(u=>u.FirstName),
+
+                "lastname" => sortDirection == "asc" ? query.OrderBy(u => u.LastName) : query.OrderByDescending(u => u.LastName),
+
+                "email" => sortDirection == "asc" ? query.OrderBy(u => u.Email) : query.OrderByDescending(u => u.Email),
+
+                "usertype" => sortDirection == "asc" ? query.OrderBy(u => u.UserType) : query.OrderByDescending(u => u.UserType),
+
+                // Default: sort by FirstName
+                _ => sortDirection == "asc" ? query.OrderBy(u => u.FirstName) : query.OrderByDescending(u => u.FirstName)
+            };
         }
         
     }
