@@ -1,107 +1,182 @@
 <div class="dashboard-container">
   <div class="dashboard-card">
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h2 class="mb-0">Admin Dashboard</h2>
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="mb-0">Admin Dashboard</h2>
+      <div class="d-flex gap-2">
+        <button class="btn btn-success" (click)="openCreateModal()">+ Add User</button>
+        <button *ngIf="authService.isLoggedIn()" class="btn btn-danger" (click)="authService.logout()">Logout</button>
+      </div>
+    </div>
 
-  <button *ngIf="authService.isLoggedIn()"
-          class="btn btn-danger"
-          (click)="authService.logout()">
-    Logout
-  </button>
-</div>  
+    <!-- Messages -->
+    <div *ngIf="successMessage" class="alert alert-success alert-dismissible">
+      {{ successMessage }}
+      <button type="button" class="btn-close" (click)="successMessage=''"></button>
+    </div>
+    <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible">
+      {{ errorMessage }}
+      <button type="button" class="btn-close" (click)="errorMessage=''"></button>
+    </div>
 
- <div class="d-flex mb-3">
-    <label class="me-2 fw-bold">Filter by role:</label>
-    <select class="form-select filter-select" [(ngModel)]="userType" (ngModelChange)="onFilterChange($event)">
-      <option value="">All</option>
-      <option value="Doctor">Doctors</option>
-      <option value="Patient">Patients</option>
-    </select>
-</div>
+    <!-- Filter -->
+    <div class="d-flex mb-3">
+      <label class="me-2 fw-bold">Filter by role:</label>
+      <select class="form-select filter-select" [(ngModel)]="userType" (ngModelChange)="onFilterChange($event)">
+        <option value="">All</option>
+        <option value="Doctor">Doctors</option>
+        <option value="Patient">Patients</option>
+      </select>
+    </div>
 
-<table border="1" cellpadding="8">
-  <thead>
-    <tr>
-      <th class="sortable" (click)="sortBy('firstName')">First Name
-          <span class="sort-icon">
-            <ng-container *ngIf="currentSortBy === 'firstName'">
-                {{ currentSortDirection === 'asc' ? '▲' : '▼' }}
+    <!-- Table -->
+    <table border="1" cellpadding="8" class="w-100">
+      <thead>
+        <tr>
+          <th class="sortable" (click)="sortBy('firstName')">First Name
+            <span class="sort-icon">{{ currentSortBy === 'firstName' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '⇅' }}</span>
+          </th>
+          <th class="sortable" (click)="sortBy('lastName')">Last Name
+            <span class="sort-icon">{{ currentSortBy === 'lastName' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '⇅' }}</span>
+          </th>
+          <th class="sortable" (click)="sortBy('email')">Email
+            <span class="sort-icon">{{ currentSortBy === 'email' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '⇅' }}</span>
+          </th>
+          <th class="sortable" (click)="sortBy('userType')">Role
+            <span class="sort-icon">{{ currentSortBy === 'userType' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '⇅' }}</span>
+          </th>
+          <th>Status</th>
+          <th>Change Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let user of users">
+          <td>{{ user.firstName }}</td>
+          <td>{{ user.lastName }}</td>
+          <td>{{ user.email }}</td>
+          <td>{{ user.userType }}</td>
+          <td>{{ user?.registrationStatus || 'N/A' }}</td>
+          <td>
+            <ng-container *ngIf="user.userType === 'Doctor'">
+              <button class="btn btn-sm btn-outline-success me-1"
+                      (click)="changeStatus(user, 'Approved')"
+                      [disabled]="user?.registrationStatus === 'Approved'">Approve</button>
+              <button class="btn btn-sm btn-outline-danger"
+                      (click)="changeStatus(user, 'Rejected')"
+                      [disabled]="user?.registrationStatus === 'Rejected'">Reject</button>
             </ng-container>
-            <ng-container *ngIf="currentSortBy !== 'firstName'">⇅</ng-container>
-          </span>
-      </th> 
-      <th class="sortable" (click)="sortBy('lastName')">Last Name
-          <span class="sort-icon">
-            <ng-container *ngIf="currentSortBy === 'lastName'">
-                {{ currentSortDirection === 'asc' ? '▲' : '▼' }}
-            </ng-container>
-            <ng-container *ngIf="currentSortBy !== 'lastName'">⇅</ng-container>
-          </span>
-      </th>
-      <th class="sortable" (click)="sortBy('email')">Email
-          <span class="sort-icon">
-            <ng-container *ngIf="currentSortBy === 'email'">
-                {{ currentSortDirection === 'asc' ? '▲' : '▼' }}
-            </ng-container>
-            <ng-container *ngIf="currentSortBy !== 'email'">⇅</ng-container>
-          </span>
-      </th>
-      <th class="sortable" (click)="sortBy('userType')">Role
-          <span class="sort-icon">
-            <ng-container *ngIf="currentSortBy === 'userType'">
-                {{ currentSortDirection === 'asc' ? '▲' : '▼' }}
-            </ng-container>
-            <ng-container *ngIf="currentSortBy !== 'userType'">⇅</ng-container>
-          </span>
-      </th>
-      <th>Status</th>
-      <th>Change Status</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let user of users">
-      <td>{{ user.firstName }}</td>
-      <td>{{ user.lastName }}</td>
-      <td>{{ user.email }}</td>
-      <td>{{ user.userType }}</td>
-      <td>{{ user?.registrationStatus || 'N/A' }}</td>
-      <td>
-        <ng-container *ngIf="user.userType === 'Doctor'">
-      <button class="btn" (click)="changeStatus(user, 'Approved')" 
-              [disabled]="user?.registrationStatus === 'Approved'">
-        Approve
-      </button>
-      <button class="btn" (click)="changeStatus(user, 'Rejected')" 
-              [disabled]="user?.registrationStatus === 'Rejected'">
-        Reject
-      </button>
-        </ng-container>
-      </td>
-    </tr>
-  </tbody>
-</table>
+          </td>
+          <td>
+            <button class="btn btn-sm btn-primary me-1" (click)="openEditModal(user)">Edit</button>
+            <button class="btn btn-sm btn-danger" (click)="deleteUser(user)">Delete</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
 
-<div class="d-flex flex-column align-items-center mt-3 pagination-wrapper">
-  <div>User count: {{ users.length }} of total: {{ totalCount }}</div>
-
-<div class="mt-2">
-  <button class="btn btn-outline-secondary btn-sm me-2"
-          (click)="onPageChange(page - 1)"
-          [disabled]="page === 1">
-    Previous
-  </button>
-
-  <span class="mx-2">Page {{ page }} of {{ totalPages }}</span>
-
-  <button class="btn btn-outline-secondary btn-sm ms-2"
-          (click)="onPageChange(page + 1)"
-          [disabled]="page >= totalPages">
-    Next
-  </button>
-</div>
-
+    <!-- Pagination -->
+    <div class="d-flex flex-column align-items-center mt-3">
+      <div>Showing: {{ users.length }} of {{ totalCount }}</div>
+      <div class="mt-2">
+        <button class="btn btn-outline-secondary btn-sm me-2" (click)="onPageChange(page - 1)" [disabled]="page === 1">Previous</button>
+        <span class="mx-2">Page {{ page }} of {{ totalPages }}</span>
+        <button class="btn btn-outline-secondary btn-sm ms-2" (click)="onPageChange(page + 1)" [disabled]="page >= totalPages">Next</button>
+      </div>
+    </div>
 
   </div>
 </div>
 
+<!-- ===== MODAL ===== -->
+<div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()"></div>
+<div class="modal d-block" *ngIf="showModal" tabindex="-1">
+  <div class="modal-dialog" (click)="$event.stopPropagation()">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">{{ isEditMode ? 'Edit User' : 'Create New User' }}</h5>
+        <button type="button" class="btn-close" (click)="closeModal()"></button>
+      </div>
+
+      <div class="modal-body">
+        <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+
+        <!-- REACTIVE FORM -->
+        <form [formGroup]="userForm">
+
+          <!-- First Name -->
+          <div class="mb-3">
+            <label class="form-label">First Name *</label>
+            <input class="form-control"
+                   [class.is-invalid]="firstName?.invalid && firstName?.touched"
+                   formControlName="firstName" />
+            <div class="invalid-feedback">
+              <span *ngIf="firstName?.errors?.['required']">First name is required.</span>
+              <span *ngIf="firstName?.errors?.['minlength']">Minimum 2 characters.</span>
+            </div>
+          </div>
+
+          <!-- Last Name -->
+          <div class="mb-3">
+            <label class="form-label">Last Name *</label>
+            <input class="form-control"
+                   [class.is-invalid]="lastName?.invalid && lastName?.touched"
+                   formControlName="lastName" />
+            <div class="invalid-feedback">
+              <span *ngIf="lastName?.errors?.['required']">Last name is required.</span>
+              <span *ngIf="lastName?.errors?.['minlength']">Minimum 2 characters.</span>
+            </div>
+          </div>
+
+          <!-- Email -->
+          <div class="mb-3">
+            <label class="form-label">Email *</label>
+            <input class="form-control" type="email"
+                   [class.is-invalid]="email?.invalid && email?.touched"
+                   formControlName="email" />
+            <div class="invalid-feedback">
+              <span *ngIf="email?.errors?.['required']">Email is required.</span>
+              <span *ngIf="email?.errors?.['email']">Invalid email format.</span>
+            </div>
+          </div>
+
+          <!-- Password (for create) -->
+          <div class="mb-3" *ngIf="!isEditMode">
+            <label class="form-label">Password *</label>
+            <input class="form-control" type="password"
+                   [class.is-invalid]="password?.invalid && password?.touched"
+                   formControlName="password" />
+            <div class="invalid-feedback">
+              <span *ngIf="password?.errors?.['required']">Password is required.</span>
+              <span *ngIf="password?.errors?.['minlength']">Minimum 6 characters.</span>
+            </div>
+          </div>
+
+          <!-- User Type -->
+          <div class="mb-3">
+            <label class="form-label">Role *</label>
+            <select class="form-select"
+                    [class.is-invalid]="userTypeCtrl?.invalid && userTypeCtrl?.touched"
+                    formControlName="userType">
+              <option value="Patient">Patient</option>
+              <option value="Doctor">Doctor</option>
+              <option value="Admin">Admin</option>
+            </select>
+            <div class="invalid-feedback">Role is required.</div>
+          </div>
+
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeModal()">Cancel</button>
+        <button class="btn btn-primary" (click)="submitForm()">
+          {{ isEditMode ? 'Save Changes' : 'Create User' }}
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>

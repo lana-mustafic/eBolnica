@@ -28,4 +28,16 @@ export class AdminService {
   updateRegistrationStatus(appUserId: string, status:string):Observable<any>{
     return this.http.put(`${this.baseUrl}/update-registration-status/${appUserId}`, {registrationStatus:status});
   }
+
+  createUser(data: any): Observable<any> {
+  return this.http.post(`${this.baseUrl}/create-user`, data);
+  }
+
+  updateUser(appUserId: string, data: any): Observable<any> {
+    return this.http.put(`${this.baseUrl}/update-user/${appUserId}`, data);
+  }
+
+  deleteUser(appUserId: string): Observable<any> {
+    return this.http.delete(`${this.baseUrl}/delete-user/${appUserId}`);
+  }
 }
