@@ -106,6 +106,65 @@ namespace eBolnicaAPI.Controllers
                 _ => sortDirection == "asc" ? query.OrderBy(u => u.FirstName) : query.OrderByDescending(u => u.FirstName)
             };
         }
-        
+
+        [HttpPost("create-user")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> CreateUser([FromBody] CreateUserDto dto)
+        {
+            var existingUser = await _userManager.FindByEmailAsync(dto.Email);
+            if (existingUser != null)
+                return BadRequest(new { message = "User with this email already exists." });
+
+            var user = new AppUser
+            {
+                UserName = dto.Email,
+                Email = dto.Email,
+                FirstName = dto.FirstName,
+                LastName = dto.LastName,
+                UserType = dto.UserType
+            };
+
+            var result = await _userManager.CreateAsync(user, dto.Password);
+            if (!result.Succeeded)
+                return BadRequest(new { message = string.Join(", ", result.Errors.Select(e => e.Description)) });
+
+            return Ok(new { message = "User created successfully." });
+        }
+
+        [HttpPut("update-user/{appUserId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateUser(string appUserId, [FromBody] UpdateUserDto dto)
+        {
+            var user = await _userManager.FindByIdAsync(appUserId);
+            if (user == null)
+                return NotFound(new { message = "User not found." });
+
+            user.FirstName = dto.FirstName;
+            user.LastName = dto.LastName;
+            user.Email = dto.Email;
+            user.UserName = dto.Email;
+
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+                return BadRequest(new { message = string.Join(", ", result.Errors.Select(e => e.Description)) });
+
+            return Ok(new { message = "User updated successfully." });
+        }
+
+        [HttpDelete("delete-user/{appUserId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteUser(string appUserId)
+        {
+            var user = await _userManager.FindByIdAsync(appUserId);
+            if (user == null)
+                return NotFound(new { message = "User not found." });
+
+            var result = await _userManager.DeleteAsync(user);
+            if (!result.Succeeded)
+                return BadRequest(new { message = "Failed to delete user." });
+
+            return Ok(new { message = "User deleted successfully." });
+        }
+
     }
 }
