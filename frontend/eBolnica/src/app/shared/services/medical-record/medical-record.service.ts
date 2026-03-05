@@ -2,8 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { MedicalRecord } from '../../../models/medical-record.dto';
-import { Observable } from 'rxjs';
 import { newMedicalReport } from '../../../models/medical-record.dto';
+import { environment } from '../../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -11,7 +11,7 @@ import { newMedicalReport } from '../../../models/medical-record.dto';
 export class MedicalRecordService {
 
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:5004/api/patient/medical-record';
+  private apiUrl = environment.apiUrl + '/patient/medical-record';
 
   getMedicalRecord(id: number){
     return this.http.get<MedicalRecord>(`/api/patient/medical-record/${id}/medical-records`);

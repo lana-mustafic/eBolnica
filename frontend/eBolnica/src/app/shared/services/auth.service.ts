@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { jwtDecode } from 'jwt-decode';
 import { Router } from '@angular/router';
+import { environment } from '../../../environments/environment';
 
 interface JwtTokenPayload {
   role: string;
@@ -20,7 +21,7 @@ export class AuthService {
 
   constructor(private http:HttpClient) {}
 
-  baseUrl = 'http://localhost:5004/api'
+  baseUrl = environment.apiUrl;
 
   createPatient(formData:any){
     return this.http.post(this.baseUrl+'/accounts/patient-registration',formData);
