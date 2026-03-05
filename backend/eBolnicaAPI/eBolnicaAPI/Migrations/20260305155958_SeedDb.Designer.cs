@@ -12,8 +12,8 @@ using eBolnicaAPI.Data;
 namespace eBolnicaAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260114183634_AddPharmacyTables")]
-    partial class AddPharmacyTables
+    [Migration("20260305155958_SeedDb")]
+    partial class SeedDb
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -589,6 +589,9 @@ namespace eBolnicaAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Gender")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("LastName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -622,6 +625,7 @@ namespace eBolnicaAPI.Migrations
                             AppUserId = "d1",
                             BirthDate = new DateTime(1995, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             FirstName = "Marko",
+                            Gender = "Male",
                             LastName = "Marković",
                             LicenseNumber = "L1",
                             PhoneNumber = "061100100",
@@ -635,6 +639,7 @@ namespace eBolnicaAPI.Migrations
                             AppUserId = "d2",
                             BirthDate = new DateTime(1993, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             FirstName = "Senad",
+                            Gender = "Male",
                             LastName = "Husić",
                             LicenseNumber = "L2",
                             PhoneNumber = "061100101",
@@ -648,12 +653,49 @@ namespace eBolnicaAPI.Migrations
                             AppUserId = "d3",
                             BirthDate = new DateTime(1991, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             FirstName = "Petar",
+                            Gender = "Male",
                             LastName = "Petrović",
                             LicenseNumber = "L3",
                             PhoneNumber = "061100102",
                             RegistrationStatus = "Approved",
                             Specialization = "Psychiatry"
                         });
+                });
+
+            modelBuilder.Entity("eBolnicaAPI.Models.Entities.FileEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("PatientId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PatientId");
+
+                    b.ToTable("Files");
                 });
 
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.MedicalRecord", b =>
@@ -677,6 +719,80 @@ namespace eBolnicaAPI.Migrations
                         .IsUnique();
 
                     b.ToTable("MedicalRecords");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            PatientId = 1,
+                            RecordNumber = "MRID1"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            PatientId = 2,
+                            RecordNumber = "MRID2"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            PatientId = 3,
+                            RecordNumber = "MRID3"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            PatientId = 4,
+                            RecordNumber = "MRID4"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            PatientId = 5,
+                            RecordNumber = "MRID5"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            PatientId = 6,
+                            RecordNumber = "MRID6"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            PatientId = 7,
+                            RecordNumber = "MRID7"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            PatientId = 8,
+                            RecordNumber = "MRID8"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            PatientId = 9,
+                            RecordNumber = "MRID9"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            PatientId = 10,
+                            RecordNumber = "MRID10"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            PatientId = 11,
+                            RecordNumber = "MRID11"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            PatientId = 12,
+                            RecordNumber = "MRID12"
+                        });
                 });
 
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.MedicalReport", b =>
@@ -690,8 +806,10 @@ namespace eBolnicaAPI.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Diagnosis")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("DoctorId")
@@ -701,11 +819,9 @@ namespace eBolnicaAPI.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Symptoms")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Therapy")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
@@ -715,6 +831,328 @@ namespace eBolnicaAPI.Migrations
                     b.HasIndex("MedicalRecordId");
 
                     b.ToTable("MedicalReports");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedAt = new DateTime(2025, 10, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Tension headache",
+                            DoctorId = 1,
+                            MedicalRecordId = 1,
+                            Symptoms = "Headache, fatigue",
+                            Therapy = "Rest, Paracetamol 500mg"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            CreatedAt = new DateTime(2025, 11, 12, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Hypertension",
+                            DoctorId = 1,
+                            MedicalRecordId = 1,
+                            Symptoms = "High blood pressure",
+                            Therapy = "Amlodipine 5mg"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            CreatedAt = new DateTime(2025, 12, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Anxiety",
+                            DoctorId = 1,
+                            MedicalRecordId = 1,
+                            Symptoms = "Chest pain",
+                            Therapy = "Relaxation techniques"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            CreatedAt = new DateTime(2026, 1, 8, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Iron deficiency",
+                            DoctorId = 1,
+                            MedicalRecordId = 1,
+                            Symptoms = "Fatigue, dizziness",
+                            Therapy = "Iron supplements"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            CreatedAt = new DateTime(2025, 10, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Pharyngitis",
+                            DoctorId = 1,
+                            MedicalRecordId = 2,
+                            Symptoms = "Sore throat, fever",
+                            Therapy = "Amoxicillin 500mg"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            CreatedAt = new DateTime(2025, 11, 22, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Common cold",
+                            DoctorId = 1,
+                            MedicalRecordId = 2,
+                            Symptoms = "Cough, runny nose",
+                            Therapy = "Rest, fluids"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            CreatedAt = new DateTime(2026, 1, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Lumbar strain",
+                            DoctorId = 1,
+                            MedicalRecordId = 2,
+                            Symptoms = "Back pain",
+                            Therapy = "Ibuprofen 400mg, physiotherapy"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            CreatedAt = new DateTime(2026, 2, 14, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Gastroenteritis",
+                            DoctorId = 1,
+                            MedicalRecordId = 2,
+                            Symptoms = "Nausea, vomiting",
+                            Therapy = "Hydration, bland diet"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            CreatedAt = new DateTime(2025, 9, 18, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Arthritis",
+                            DoctorId = 1,
+                            MedicalRecordId = 3,
+                            Symptoms = "Joint pain, swelling",
+                            Therapy = "Diclofenac 50mg"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            CreatedAt = new DateTime(2025, 11, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Mild asthma",
+                            DoctorId = 1,
+                            MedicalRecordId = 3,
+                            Symptoms = "Shortness of breath",
+                            Therapy = "Inhaler prescribed"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            CreatedAt = new DateTime(2026, 1, 25, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Allergic reaction",
+                            DoctorId = 1,
+                            MedicalRecordId = 3,
+                            Symptoms = "Skin rash, itching",
+                            Therapy = "Cetirizine 10mg"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            CreatedAt = new DateTime(2026, 2, 28, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Stress-related insomnia",
+                            DoctorId = 1,
+                            MedicalRecordId = 3,
+                            Symptoms = "Insomnia, anxiety",
+                            Therapy = "Relaxation therapy"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            CreatedAt = new DateTime(2025, 10, 8, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Type 2 Diabetes",
+                            DoctorId = 1,
+                            MedicalRecordId = 4,
+                            Symptoms = "Frequent urination, thirst",
+                            Therapy = "Metformin 500mg"
+                        },
+                        new
+                        {
+                            Id = 14,
+                            CreatedAt = new DateTime(2025, 11, 18, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Hyperlipidemia",
+                            DoctorId = 1,
+                            MedicalRecordId = 4,
+                            Symptoms = "High cholesterol",
+                            Therapy = "Atorvastatin 20mg"
+                        },
+                        new
+                        {
+                            Id = 15,
+                            CreatedAt = new DateTime(2026, 1, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Diabetic check-up",
+                            DoctorId = 1,
+                            MedicalRecordId = 4,
+                            Symptoms = "Blurred vision",
+                            Therapy = "Continue Metformin"
+                        },
+                        new
+                        {
+                            Id = 16,
+                            CreatedAt = new DateTime(2026, 2, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Thyroid check",
+                            DoctorId = 1,
+                            MedicalRecordId = 4,
+                            Symptoms = "Weight gain, fatigue",
+                            Therapy = "Blood tests ordered"
+                        },
+                        new
+                        {
+                            Id = 17,
+                            CreatedAt = new DateTime(2025, 10, 3, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Migraine",
+                            DoctorId = 2,
+                            MedicalRecordId = 5,
+                            Symptoms = "Migraine, light sensitivity",
+                            Therapy = "Paracetamol, dark room rest"
+                        },
+                        new
+                        {
+                            Id = 18,
+                            CreatedAt = new DateTime(2025, 11, 14, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Carpal tunnel syndrome",
+                            DoctorId = 2,
+                            MedicalRecordId = 5,
+                            Symptoms = "Numbness in hands",
+                            Therapy = "Wrist splint, rest"
+                        },
+                        new
+                        {
+                            Id = 19,
+                            CreatedAt = new DateTime(2026, 1, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Stress-related cognitive issues",
+                            DoctorId = 2,
+                            MedicalRecordId = 5,
+                            Symptoms = "Memory issues, confusion",
+                            Therapy = "Stress management"
+                        },
+                        new
+                        {
+                            Id = 20,
+                            CreatedAt = new DateTime(2026, 2, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Vertigo",
+                            DoctorId = 2,
+                            MedicalRecordId = 5,
+                            Symptoms = "Dizziness, nausea",
+                            Therapy = "Epley maneuver"
+                        },
+                        new
+                        {
+                            Id = 21,
+                            CreatedAt = new DateTime(2025, 9, 25, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Otitis media",
+                            DoctorId = 2,
+                            MedicalRecordId = 6,
+                            Symptoms = "Ear pain, hearing loss",
+                            Therapy = "Amoxicillin 500mg"
+                        },
+                        new
+                        {
+                            Id = 22,
+                            CreatedAt = new DateTime(2025, 11, 8, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Conjunctivitis",
+                            DoctorId = 2,
+                            MedicalRecordId = 6,
+                            Symptoms = "Eye redness, discharge",
+                            Therapy = "Antibiotic eye drops"
+                        },
+                        new
+                        {
+                            Id = 23,
+                            CreatedAt = new DateTime(2026, 1, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Grade 1 sprain",
+                            DoctorId = 2,
+                            MedicalRecordId = 6,
+                            Symptoms = "Ankle sprain",
+                            Therapy = "RICE method, Ibuprofen"
+                        },
+                        new
+                        {
+                            Id = 24,
+                            CreatedAt = new DateTime(2026, 2, 18, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "IBS",
+                            DoctorId = 2,
+                            MedicalRecordId = 6,
+                            Symptoms = "Stomach cramps",
+                            Therapy = "Diet modification"
+                        },
+                        new
+                        {
+                            Id = 25,
+                            CreatedAt = new DateTime(2025, 10, 12, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Costochondritis",
+                            DoctorId = 2,
+                            MedicalRecordId = 7,
+                            Symptoms = "Chest tightness",
+                            Therapy = "Anti-inflammatory medication"
+                        },
+                        new
+                        {
+                            Id = 26,
+                            CreatedAt = new DateTime(2025, 12, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Osteoarthritis",
+                            DoctorId = 2,
+                            MedicalRecordId = 7,
+                            Symptoms = "Knee pain, stiffness",
+                            Therapy = "Physiotherapy, Diclofenac"
+                        },
+                        new
+                        {
+                            Id = 27,
+                            CreatedAt = new DateTime(2026, 1, 30, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Vitamin D deficiency",
+                            DoctorId = 2,
+                            MedicalRecordId = 7,
+                            Symptoms = "Hair loss, fatigue",
+                            Therapy = "Vitamin D3 supplements"
+                        },
+                        new
+                        {
+                            Id = 28,
+                            CreatedAt = new DateTime(2026, 2, 25, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "GERD",
+                            DoctorId = 2,
+                            MedicalRecordId = 7,
+                            Symptoms = "Acid reflux, heartburn",
+                            Therapy = "Omeprazole 20mg"
+                        },
+                        new
+                        {
+                            Id = 29,
+                            CreatedAt = new DateTime(2025, 10, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Anxiety disorder",
+                            DoctorId = 3,
+                            MedicalRecordId = 8,
+                            Symptoms = "Mood swings, irritability",
+                            Therapy = "Therapy sessions"
+                        },
+                        new
+                        {
+                            Id = 30,
+                            CreatedAt = new DateTime(2025, 11, 28, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Depression",
+                            DoctorId = 3,
+                            MedicalRecordId = 8,
+                            Symptoms = "Sleep problems, fatigue",
+                            Therapy = "CBT therapy"
+                        },
+                        new
+                        {
+                            Id = 31,
+                            CreatedAt = new DateTime(2026, 1, 12, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Panic disorder",
+                            DoctorId = 3,
+                            MedicalRecordId = 8,
+                            Symptoms = "Panic attacks",
+                            Therapy = "Breathing exercises"
+                        },
+                        new
+                        {
+                            Id = 32,
+                            CreatedAt = new DateTime(2026, 2, 22, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Social anxiety",
+                            DoctorId = 3,
+                            MedicalRecordId = 8,
+                            Symptoms = "Social withdrawal",
+                            Therapy = "Exposure therapy"
+                        });
                 });
 
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.Medication", b =>
@@ -729,7 +1167,7 @@ namespace eBolnicaAPI.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Category")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -776,7 +1214,28 @@ namespace eBolnicaAPI.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Category")
+                        .HasDatabaseName("IX_Medications_Category");
+
+                    b.HasIndex("ExpiryDate")
+                        .HasDatabaseName("IX_Medications_ExpiryDate");
+
                     b.HasIndex("Name");
+
+                    b.HasIndex("StockQuantity")
+                        .HasDatabaseName("IX_Medications_StockQuantity");
+
+                    b.HasIndex("Category", "IsActive")
+                        .HasDatabaseName("IX_Medications_Category_IsActive");
+
+                    b.HasIndex("IsActive", "CreatedAt")
+                        .HasDatabaseName("IX_Medications_IsActive_CreatedAt");
+
+                    b.HasIndex("Name", "Category")
+                        .HasDatabaseName("IX_Medications_Name_Category");
+
+                    b.HasIndex("Price", "StockQuantity")
+                        .HasDatabaseName("IX_Medications_Price_StockQuantity");
 
                     b.ToTable("Medications");
 
@@ -1106,10 +1565,6 @@ namespace eBolnicaAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("MedicalRecordId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("nvarchar(max)");
 
@@ -1134,7 +1589,6 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Ismet",
                             Gender = "Male",
                             LastName = "Horo",
-                            MedicalRecordId = "MRID1",
                             PhoneNumber = "061100103"
                         },
                         new
@@ -1148,7 +1602,6 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Elon",
                             Gender = "Female",
                             LastName = "Musk",
-                            MedicalRecordId = "MRID2",
                             PhoneNumber = "061100104"
                         },
                         new
@@ -1162,7 +1615,6 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Peter",
                             Gender = "Other",
                             LastName = "Griffin",
-                            MedicalRecordId = "MRID3",
                             PhoneNumber = "061100105"
                         },
                         new
@@ -1176,7 +1628,6 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Ana",
                             Gender = "Female",
                             LastName = "Jovanović",
-                            MedicalRecordId = "MRID4",
                             PhoneNumber = "061100106"
                         },
                         new
@@ -1190,7 +1641,6 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Marko",
                             Gender = "Male",
                             LastName = "Nikolić",
-                            MedicalRecordId = "MRID5",
                             PhoneNumber = "061100107"
                         },
                         new
@@ -1204,7 +1654,6 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Sara",
                             Gender = "Female",
                             LastName = "Stojanović",
-                            MedicalRecordId = "MRID6",
                             PhoneNumber = "061100108"
                         },
                         new
@@ -1218,7 +1667,6 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Nikola",
                             Gender = "Male",
                             LastName = "Popović",
-                            MedicalRecordId = "MRID7",
                             PhoneNumber = "061100109"
                         },
                         new
@@ -1232,7 +1680,6 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Jovana",
                             Gender = "Female",
                             LastName = "Milošević",
-                            MedicalRecordId = "MRID8",
                             PhoneNumber = "061100110"
                         },
                         new
@@ -1246,7 +1693,6 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Stefan",
                             Gender = "Male",
                             LastName = "Đorđević",
-                            MedicalRecordId = "MRID9",
                             PhoneNumber = "061100111"
                         },
                         new
@@ -1260,7 +1706,6 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Milica",
                             Gender = "Female",
                             LastName = "Radić",
-                            MedicalRecordId = "MRID10",
                             PhoneNumber = "061100112"
                         },
                         new
@@ -1274,7 +1719,6 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Luka",
                             Gender = "Male",
                             LastName = "Stefanović",
-                            MedicalRecordId = "MRID11",
                             PhoneNumber = "061100113"
                         },
                         new
@@ -1288,7 +1732,6 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Teodora",
                             Gender = "Female",
                             LastName = "Lazić",
-                            MedicalRecordId = "MRID12",
                             PhoneNumber = "061100114"
                         });
                 });
@@ -1395,7 +1838,7 @@ namespace eBolnicaAPI.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
@@ -1405,16 +1848,27 @@ namespace eBolnicaAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DoctorId");
+                    b.HasIndex("DoctorId")
+                        .HasDatabaseName("IX_Prescriptions_DoctorId");
 
                     b.HasIndex("MedicalReportId");
 
-                    b.HasIndex("PatientId");
-
                     b.HasIndex("PharmacistId");
+
+                    b.HasIndex("PrescribedDate")
+                        .HasDatabaseName("IX_Prescriptions_PrescribedDate");
 
                     b.HasIndex("PrescriptionNumber")
                         .IsUnique();
+
+                    b.HasIndex("PatientId", "Status")
+                        .HasDatabaseName("IX_Prescriptions_PatientId_Status");
+
+                    b.HasIndex("Status", "CreatedAt")
+                        .HasDatabaseName("IX_Prescriptions_Status_CreatedAt");
+
+                    b.HasIndex("Status", "DispensedDate")
+                        .HasDatabaseName("IX_Prescriptions_Status_DispensedDate");
 
                     b.ToTable("Prescriptions");
                 });
@@ -1453,9 +1907,11 @@ namespace eBolnicaAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MedicationId");
+                    b.HasIndex("MedicationId")
+                        .HasDatabaseName("IX_PrescriptionItems_MedicationId");
 
-                    b.HasIndex("PrescriptionId");
+                    b.HasIndex("PrescriptionId", "MedicationId")
+                        .HasDatabaseName("IX_PrescriptionItems_PrescriptionId_MedicationId");
 
                     b.ToTable("PrescriptionItems");
                 });
@@ -1522,6 +1978,17 @@ namespace eBolnicaAPI.Migrations
                     b.Navigation("AppUser");
                 });
 
+            modelBuilder.Entity("eBolnicaAPI.Models.Entities.FileEntity", b =>
+                {
+                    b.HasOne("eBolnicaAPI.Models.Entities.Patient", "Patient")
+                        .WithMany("Files")
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Patient");
+                });
+
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.MedicalRecord", b =>
                 {
                     b.HasOne("eBolnicaAPI.Models.Entities.Patient", "Patient")
@@ -1542,7 +2009,7 @@ namespace eBolnicaAPI.Migrations
                         .IsRequired();
 
                     b.HasOne("eBolnicaAPI.Models.Entities.MedicalRecord", "MedicalRecord")
-                        .WithMany("Reports")
+                        .WithMany("MedicalReports")
                         .HasForeignKey("MedicalRecordId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1650,7 +2117,7 @@ namespace eBolnicaAPI.Migrations
 
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.MedicalRecord", b =>
                 {
-                    b.Navigation("Reports");
+                    b.Navigation("MedicalReports");
                 });
 
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.Medication", b =>
@@ -1660,6 +2127,8 @@ namespace eBolnicaAPI.Migrations
 
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.Patient", b =>
                 {
+                    b.Navigation("Files");
+
                     b.Navigation("MedicalRecord")
                         .IsRequired();
                 });

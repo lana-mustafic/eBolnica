@@ -602,6 +602,56 @@ namespace eBolnicaAPI.Data
                 new Medication { Id = 15, Name = "Atorvastatin", GenericName = "Atorvastatin", Description = "Cholesterol-lowering medication", Manufacturer = "CardioPharm", Price = 1100.00m, StockQuantity = 95, MinimumStockLevel = 25, ExpiryDate = new DateTime(2026, 11, 8), BatchNumber = "BATCH-015", IsActive = true, RequiresPrescription = true, Category = "Cardiovascular", DosageForm = "Tablet", Strength = "20mg", CreatedAt = new DateTime(2024, 1, 1) }
             );
 
+            modelBuilder.Entity<MedicalReport>().HasData(
+                // Patient 1 (MedicalRecord 1)
+                new MedicalReport { Id = 1, MedicalRecordId = 1, DoctorId = 1, CreatedAt = new DateTime(2025, 10, 5), Symptoms = "Headache, fatigue", Diagnosis = "Tension headache", Therapy = "Rest, Paracetamol 500mg" },
+                new MedicalReport { Id = 2, MedicalRecordId = 1, DoctorId = 1, CreatedAt = new DateTime(2025, 11, 12), Symptoms = "High blood pressure", Diagnosis = "Hypertension", Therapy = "Amlodipine 5mg" },
+                new MedicalReport { Id = 3, MedicalRecordId = 1, DoctorId = 1, CreatedAt = new DateTime(2025, 12, 20), Symptoms = "Chest pain", Diagnosis = "Anxiety", Therapy = "Relaxation techniques" },
+                new MedicalReport { Id = 4, MedicalRecordId = 1, DoctorId = 1, CreatedAt = new DateTime(2026, 1, 8), Symptoms = "Fatigue, dizziness", Diagnosis = "Iron deficiency", Therapy = "Iron supplements" },
+
+                // Patient 2 (MedicalRecord 2)
+                new MedicalReport { Id = 5, MedicalRecordId = 2, DoctorId = 1, CreatedAt = new DateTime(2025, 10, 15), Symptoms = "Sore throat, fever", Diagnosis = "Pharyngitis", Therapy = "Amoxicillin 500mg" },
+                new MedicalReport { Id = 6, MedicalRecordId = 2, DoctorId = 1, CreatedAt = new DateTime(2025, 11, 22), Symptoms = "Cough, runny nose", Diagnosis = "Common cold", Therapy = "Rest, fluids" },
+                new MedicalReport { Id = 7, MedicalRecordId = 2, DoctorId = 1, CreatedAt = new DateTime(2026, 1, 10), Symptoms = "Back pain", Diagnosis = "Lumbar strain", Therapy = "Ibuprofen 400mg, physiotherapy" },
+                new MedicalReport { Id = 8, MedicalRecordId = 2, DoctorId = 1, CreatedAt = new DateTime(2026, 2, 14), Symptoms = "Nausea, vomiting", Diagnosis = "Gastroenteritis", Therapy = "Hydration, bland diet" },
+
+                // Patient 3 (MedicalRecord 3)
+                new MedicalReport { Id = 9, MedicalRecordId = 3, DoctorId = 1, CreatedAt = new DateTime(2025, 9, 18), Symptoms = "Joint pain, swelling", Diagnosis = "Arthritis", Therapy = "Diclofenac 50mg" },
+                new MedicalReport { Id = 10, MedicalRecordId = 3, DoctorId = 1, CreatedAt = new DateTime(2025, 11, 5), Symptoms = "Shortness of breath", Diagnosis = "Mild asthma", Therapy = "Inhaler prescribed" },
+                new MedicalReport { Id = 11, MedicalRecordId = 3, DoctorId = 1, CreatedAt = new DateTime(2026, 1, 25), Symptoms = "Skin rash, itching", Diagnosis = "Allergic reaction", Therapy = "Cetirizine 10mg" },
+                new MedicalReport { Id = 12, MedicalRecordId = 3, DoctorId = 1, CreatedAt = new DateTime(2026, 2, 28), Symptoms = "Insomnia, anxiety", Diagnosis = "Stress-related insomnia", Therapy = "Relaxation therapy" },
+
+                // Patient 4 (MedicalRecord 4)
+                new MedicalReport { Id = 13, MedicalRecordId = 4, DoctorId = 1, CreatedAt = new DateTime(2025, 10, 8), Symptoms = "Frequent urination, thirst", Diagnosis = "Type 2 Diabetes", Therapy = "Metformin 500mg" },
+                new MedicalReport { Id = 14, MedicalRecordId = 4, DoctorId = 1, CreatedAt = new DateTime(2025, 11, 18), Symptoms = "High cholesterol", Diagnosis = "Hyperlipidemia", Therapy = "Atorvastatin 20mg" },
+                new MedicalReport { Id = 15, MedicalRecordId = 4, DoctorId = 1, CreatedAt = new DateTime(2026, 1, 15), Symptoms = "Blurred vision", Diagnosis = "Diabetic check-up", Therapy = "Continue Metformin" },
+                new MedicalReport { Id = 16, MedicalRecordId = 4, DoctorId = 1, CreatedAt = new DateTime(2026, 2, 20), Symptoms = "Weight gain, fatigue", Diagnosis = "Thyroid check", Therapy = "Blood tests ordered" },
+
+                // Patient 5 (MedicalRecord 5)
+                new MedicalReport { Id = 17, MedicalRecordId = 5, DoctorId = 2, CreatedAt = new DateTime(2025, 10, 3), Symptoms = "Migraine, light sensitivity", Diagnosis = "Migraine", Therapy = "Paracetamol, dark room rest" },
+                new MedicalReport { Id = 18, MedicalRecordId = 5, DoctorId = 2, CreatedAt = new DateTime(2025, 11, 14), Symptoms = "Numbness in hands", Diagnosis = "Carpal tunnel syndrome", Therapy = "Wrist splint, rest" },
+                new MedicalReport { Id = 19, MedicalRecordId = 5, DoctorId = 2, CreatedAt = new DateTime(2026, 1, 20), Symptoms = "Memory issues, confusion", Diagnosis = "Stress-related cognitive issues", Therapy = "Stress management" },
+                new MedicalReport { Id = 20, MedicalRecordId = 5, DoctorId = 2, CreatedAt = new DateTime(2026, 2, 10), Symptoms = "Dizziness, nausea", Diagnosis = "Vertigo", Therapy = "Epley maneuver" },
+
+                // Patient 6 (MedicalRecord 6)
+                new MedicalReport { Id = 21, MedicalRecordId = 6, DoctorId = 2, CreatedAt = new DateTime(2025, 9, 25), Symptoms = "Ear pain, hearing loss", Diagnosis = "Otitis media", Therapy = "Amoxicillin 500mg" },
+                new MedicalReport { Id = 22, MedicalRecordId = 6, DoctorId = 2, CreatedAt = new DateTime(2025, 11, 8), Symptoms = "Eye redness, discharge", Diagnosis = "Conjunctivitis", Therapy = "Antibiotic eye drops" },
+                new MedicalReport { Id = 23, MedicalRecordId = 6, DoctorId = 2, CreatedAt = new DateTime(2026, 1, 5), Symptoms = "Ankle sprain", Diagnosis = "Grade 1 sprain", Therapy = "RICE method, Ibuprofen" },
+                new MedicalReport { Id = 24, MedicalRecordId = 6, DoctorId = 2, CreatedAt = new DateTime(2026, 2, 18), Symptoms = "Stomach cramps", Diagnosis = "IBS", Therapy = "Diet modification" },
+
+                // Patient 7 (MedicalRecord 7)
+                new MedicalReport { Id = 25, MedicalRecordId = 7, DoctorId = 2, CreatedAt = new DateTime(2025, 10, 12), Symptoms = "Chest tightness", Diagnosis = "Costochondritis", Therapy = "Anti-inflammatory medication" },
+                new MedicalReport { Id = 26, MedicalRecordId = 7, DoctorId = 2, CreatedAt = new DateTime(2025, 12, 5), Symptoms = "Knee pain, stiffness", Diagnosis = "Osteoarthritis", Therapy = "Physiotherapy, Diclofenac" },
+                new MedicalReport { Id = 27, MedicalRecordId = 7, DoctorId = 2, CreatedAt = new DateTime(2026, 1, 30), Symptoms = "Hair loss, fatigue", Diagnosis = "Vitamin D deficiency", Therapy = "Vitamin D3 supplements" },
+                new MedicalReport { Id = 28, MedicalRecordId = 7, DoctorId = 2, CreatedAt = new DateTime(2026, 2, 25), Symptoms = "Acid reflux, heartburn", Diagnosis = "GERD", Therapy = "Omeprazole 20mg" },
+
+                // Patient 8 (MedicalRecord 8)
+                new MedicalReport { Id = 29, MedicalRecordId = 8, DoctorId = 3, CreatedAt = new DateTime(2025, 10, 20), Symptoms = "Mood swings, irritability", Diagnosis = "Anxiety disorder", Therapy = "Therapy sessions" },
+                new MedicalReport { Id = 30, MedicalRecordId = 8, DoctorId = 3, CreatedAt = new DateTime(2025, 11, 28), Symptoms = "Sleep problems, fatigue", Diagnosis = "Depression", Therapy = "CBT therapy" },
+                new MedicalReport { Id = 31, MedicalRecordId = 8, DoctorId = 3, CreatedAt = new DateTime(2026, 1, 12), Symptoms = "Panic attacks", Diagnosis = "Panic disorder", Therapy = "Breathing exercises" },
+                new MedicalReport { Id = 32, MedicalRecordId = 8, DoctorId = 3, CreatedAt = new DateTime(2026, 2, 22), Symptoms = "Social withdrawal", Diagnosis = "Social anxiety", Therapy = "Exposure therapy" }
+);
+
 
         }
 
