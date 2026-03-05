@@ -180,3 +180,10 @@
     </div>
   </div>
 </div>
+
+<app-confirm-modal
+  [show]="showConfirmModal"
+  [message]="confirmMessage"
+  (confirmed)="onDeleteConfirmed()"
+  (cancelled)="onDeleteCancelled()">
+</app-confirm-modal>

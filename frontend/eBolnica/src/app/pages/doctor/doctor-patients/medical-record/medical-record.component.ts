@@ -7,10 +7,11 @@ import { CommonModule} from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FileService, FileInfo } from '../../../../shared/services/file/file.service';
 import { saveAs } from 'file-saver';
+import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
 
 @Component({
   selector: 'app-medical-record',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmModalComponent],
   standalone: true,
   templateUrl: './medical-record.component.html',
   styleUrl: './medical-record.component.css'
@@ -44,6 +45,9 @@ export class MedicalRecordComponent implements OnInit{
   isGeneratingPdf = false;
   reportCountPreview: number | null = null;
 
+  showConfirmModal = false;
+  confirmMessage = '';
+  pendingDeleteFileId: number | null = null;
 
   ngOnInit(): void {
     this.patientId = Number(this.route.snapshot.paramMap.get('patientId'));
@@ -124,12 +128,26 @@ export class MedicalRecordComponent implements OnInit{
     })
   }
 
-  deleteFile(fileId:number):void{
-    if(!confirm('Are you sure you want to delete this document?')) return;
+  deleteFile(fileId: number): void {
+    this.pendingDeleteFileId = fileId;
+    this.confirmMessage = 'Are you sure you want to delete this document?';
+    this.showConfirmModal = true;
+  }
 
-    this.fileService.deleteFile(fileId).subscribe(()=>{
+  onDeleteConfirmed(): void {
+    if (!this.pendingDeleteFileId) return;
+
+    this.fileService.deleteFile(this.pendingDeleteFileId).subscribe(() => {
       this.loadFiles();
-    })
+    });
+
+    this.showConfirmModal = false;
+    this.pendingDeleteFileId = null;
+  }
+
+  onDeleteCancelled(): void {
+    this.showConfirmModal = false;
+    this.pendingDeleteFileId = null;
   }
 
   formatDateForInput(date: Date): string {
