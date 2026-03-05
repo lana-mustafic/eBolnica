@@ -43,15 +43,11 @@
   <main class="dashboard-content">
     <div class="dashboard-stats">
   
-  <!-- Refresh header -->
+
   <div class="dashboard-stats-header">
     <h1>Doctor Dashboard</h1>
     <div class="refresh-info">
-      <span>Last updated: {{ lastUpdated | date:'short' }}</span>
-      <button (click)="manualRefresh()" [disabled]="isLoading">
-        <i class="refresh-icon" [class.spinning]="isLoading"></i>
-        Refresh
-      </button>
+      <span>Last updated: {{ lastUpdated | date:'dd.MM.yyyy : HH:mm' }}</span>
     </div>
   </div>
 
@@ -59,10 +55,10 @@
     <p>Loading dashboard data...</p>>
   </div>
 
-  <!-- Stats cards -->
+
   <div *ngIf="stats" class="stats-grid">
     
-    <!-- Card 1: Total Patients -->
+
     <div class="stat-card">
       <div class="stat-icon patients-icon">👥</div>
       <div class="stat-content">
@@ -71,7 +67,7 @@
       </div>
     </div>
 
-    <!-- Card 2: Reports This Month -->
+
     <div class="stat-card">
       <div class="stat-icon reports-icon">📋</div>
       <div class="stat-content">
@@ -80,7 +76,7 @@
       </div>
     </div>
 
-    <!-- Card 3: Reports Today -->
+
     <div class="stat-card">
       <div class="stat-icon today-icon">📅</div>
       <div class="stat-content">
@@ -89,7 +85,7 @@
       </div>
     </div>
 
-    <!-- Card 4: Avg Reports per Patient -->
+
     <div class="stat-card">
       <div class="stat-icon avg-icon">📊</div>
       <div class="stat-content">

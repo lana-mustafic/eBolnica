@@ -84,7 +84,6 @@ namespace eBolnicaAPI.Controllers
 
             existingDoctor.FirstName= UpdatedDoctorDto.FirstName;
             existingDoctor.LastName= UpdatedDoctorDto.LastName;
-            existingDoctor.BirthDate= UpdatedDoctorDto.BirthDate;
             existingDoctor.PhoneNumber= UpdatedDoctorDto.PhoneNumber;
             existingDoctor.Address= UpdatedDoctorDto.Address;
             existingDoctor.Specialization= UpdatedDoctorDto.Specialization;
@@ -123,7 +122,7 @@ namespace eBolnicaAPI.Controllers
             var patients = await _dbContext.Patients.Include(p=>p.MedicalRecord).Where(p => p.DoctorId == doctor.Id).ToListAsync();
 
             if (!patients.Any())
-                return NotFound("No patients assigned to this doctor.");
+                return Ok(new List<DoctorAssignedPatientDto>());
 
             var dtoList = patients.Select(p=> new DoctorAssignedPatientDto
             {
@@ -198,9 +197,13 @@ namespace eBolnicaAPI.Controllers
                     }).ToListAsync(),
 
                 AvgReportsPerPatient = await _dbContext.Patients
-                    .Where(p=>p.DoctorId==doctor.Id)
-                    .Select(p=>p.MedicalRecord.MedicalReports.Count)
-                    .AverageAsync()
+                    .Where(p => p.DoctorId == doctor.Id)
+                    .AnyAsync()
+                    ? await _dbContext.Patients
+                        .Where(p => p.DoctorId == doctor.Id)
+                        .Select(p => p.MedicalRecord.MedicalReports.Count)
+                        .AverageAsync()
+                    : 0
 
             };
 

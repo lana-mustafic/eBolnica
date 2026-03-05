@@ -61,7 +61,9 @@ namespace eBolnicaAPI.Controllers
                 AppUserId = user.Id,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
-                DoctorId = doctor.Id
+                DoctorId = doctor.Id,
+                DateOfBirth = patientForRegistration.DateOfBirth,
+                Gender = patientForRegistration.Gender
             };
 
             _dbcontext.Patients.Add(patient);
@@ -121,7 +123,9 @@ namespace eBolnicaAPI.Controllers
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 LicenseNumber= user.LicenseNumber,
-                RegistrationStatus="Pending"
+                RegistrationStatus="Pending",
+                BirthDate = doctorForRegistration.DateOfBirth,
+                Gender = doctorForRegistration.Gender
             };
 
             

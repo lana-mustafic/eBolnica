@@ -24,6 +24,8 @@ namespace eBolnicaAPI.Models.DTOs
         public string ConfirmPassword { get; set; }
 
         public int DoctorId { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public string? Gender { get; set; }
 
     }
     public class DoctorRegistrationDto
@@ -48,5 +50,7 @@ namespace eBolnicaAPI.Models.DTOs
         [Required(ErrorMessage = "Confirm Password is required.")]
         [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
         public string ConfirmPassword { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public string? Gender { get; set; }
     }
 }

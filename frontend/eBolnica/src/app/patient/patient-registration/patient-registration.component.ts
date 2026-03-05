@@ -26,8 +26,6 @@ export class RegistrationComponent implements OnInit{
   currentLanguage: Language = 'en';
   translationsLoaded = false;
  
-
-
   private doctorService = inject(DoctorService);
 
    doctors: DoctorListDto[] =[];
@@ -62,6 +60,8 @@ export class RegistrationComponent implements OnInit{
                       Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).+$/)]],
       confirmPassword: [''],
       doctorId: ['', Validators.required], 
+      dateOfBirth: ['', Validators.required],
+      gender: ['', Validators.required]
     }, {validators:this.passwordMatchValidator});
   }
 

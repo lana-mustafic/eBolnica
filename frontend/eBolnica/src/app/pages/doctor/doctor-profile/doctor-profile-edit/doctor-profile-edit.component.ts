@@ -23,11 +23,10 @@ export class DoctorProfileEditComponent {
 
   ngOnInit(){
     this.form=this.fb.group({
-      firstName: ['', [Validators.required, Validators.pattern(/^[A-Z][a-zA-Z]*$/), Validators.minLength(3)]],
-      lastName: ['', [Validators.required, Validators.pattern(/^[A-Z][a-zA-Z]*$/), Validators.minLength(3)]],
+      firstName: ['', [Validators.required, Validators.minLength(3), Validators.minLength(3)]],
+      lastName: ['', [Validators.required, Validators.minLength(3), Validators.minLength(3)]],
       phoneNumber: [''],
       specialization: ['', [Validators.required, Validators.pattern(/^[A-Z][a-zA-Z]*$/), Validators.minLength(3)]],
-      birthDate: ['', Validators.required],
       address: ['', Validators.required]
     });
     if(this.doctorData){

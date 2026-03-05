@@ -534,9 +534,9 @@ namespace eBolnicaAPI.Data
             modelBuilder.Entity<AppUser>().HasData(admin, doctor1, doctor2, doctor3, patient1, patient2, patient3, patient4, patient5, patient6, patient7, patient8, patient9, patient10, patient11, patient12, pharmacist1);
 
             modelBuilder.Entity<Doctor>().HasData(
-                new Doctor { Id = 1,FirstName=doctor1.FirstName, LastName=doctor1.LastName, AppUserId = "d1", Specialization="Cardiology",RegistrationStatus="Approved", Address="Address1", BirthDate= new DateTime(1995, 3, 15), LicenseNumber=doctor1.LicenseNumber, PhoneNumber=doctor1.PhoneNumber },
-                new Doctor { Id = 2, FirstName = doctor2.FirstName, LastName = doctor2.LastName, AppUserId = "d2", Specialization = "Neurology", RegistrationStatus = "Approved", Address = "Address2", BirthDate = new DateTime(1993, 3, 15), LicenseNumber =doctor2.LicenseNumber, PhoneNumber= doctor2.PhoneNumber },
-                new Doctor { Id = 3, FirstName = doctor3.FirstName, LastName = doctor3.LastName, AppUserId = "d3", Specialization = "Psychiatry", RegistrationStatus = "Approved", Address = "Address3", BirthDate = new DateTime(1991, 3, 15), LicenseNumber = doctor3.LicenseNumber, PhoneNumber = doctor3.PhoneNumber }
+                new Doctor { Id = 1,FirstName=doctor1.FirstName, LastName=doctor1.LastName, AppUserId = "d1", Gender = "Male", Specialization="Cardiology",RegistrationStatus="Approved", Address="Address1", BirthDate= new DateTime(1995, 3, 15), LicenseNumber=doctor1.LicenseNumber, PhoneNumber=doctor1.PhoneNumber },
+                new Doctor { Id = 2, FirstName = doctor2.FirstName, LastName = doctor2.LastName, AppUserId = "d2", Gender = "Male", Specialization = "Neurology", RegistrationStatus = "Approved", Address = "Address2", BirthDate = new DateTime(1993, 3, 15), LicenseNumber =doctor2.LicenseNumber, PhoneNumber= doctor2.PhoneNumber },
+                new Doctor { Id = 3, FirstName = doctor3.FirstName, LastName = doctor3.LastName, AppUserId = "d3", Gender = "Male", Specialization = "Psychiatry", RegistrationStatus = "Approved", Address = "Address3", BirthDate = new DateTime(1991, 3, 15), LicenseNumber = doctor3.LicenseNumber, PhoneNumber = doctor3.PhoneNumber }
                 );
 
             modelBuilder.Entity<Patient>().HasData(
