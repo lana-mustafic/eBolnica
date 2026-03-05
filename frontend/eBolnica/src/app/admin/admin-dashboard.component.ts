@@ -4,10 +4,11 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { AdminService } from '../shared/services/admin.service';
 import { AuthService } from '../shared/services/auth.service';
 import { UserOverview } from '../models/user-overview.dto';
+import { ConfirmModalComponent } from '../shared/components/confirm-modal/confirm-modal.component';
 
 @Component({
   selector: 'app-admin-dashboard',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmModalComponent],
   standalone: true,
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.css'
@@ -30,6 +31,10 @@ export class AdminDashboardComponent implements OnInit{
   selectedUserId: string | null = null;
   errorMessage = '';
   successMessage = '';
+
+  showConfirmModal = false;
+  confirmMessage = '';
+  pendingDeleteUserId: string | null = null;
 
   userForm!: FormGroup;
 
@@ -128,17 +133,30 @@ export class AdminDashboardComponent implements OnInit{
     }
   }
 
-  deleteUser(user:UserOverview): void{
-    if(!confirm(`Are you sure you want do delete ${user.firstName} ${user.lastName}?`))
-      return;
+  deleteUser(user: UserOverview): void {
+  this.pendingDeleteUserId = user.appUserId;
+  this.confirmMessage = `Are you sure you want to delete ${user.firstName} ${user.lastName}?`;
+  this.showConfirmModal = true;
+  }
 
-    this.adminService.deleteUser(user.appUserId).subscribe({
-      next: () => {
-        this.successMessage = 'User deleted.';
-        this.loadUsers();
-      },
-      error: (err) => this.errorMessage = err.error?.message || 'Delete failed.'
-    });
+  onDeleteConfirmed(): void {
+  if (!this.pendingDeleteUserId) return;
+
+  this.adminService.deleteUser(this.pendingDeleteUserId).subscribe({
+    next: () => {
+      this.successMessage = 'User deleted.';
+      this.loadUsers();
+    },
+    error: (err) => this.errorMessage = err.error?.message || 'Delete failed.'
+  });
+
+  this.showConfirmModal = false;
+  this.pendingDeleteUserId = null;
+  }
+
+  onDeleteCancelled(): void {
+    this.showConfirmModal = false;
+    this.pendingDeleteUserId = null;
   }
 
   sortBy(column: string): void{
