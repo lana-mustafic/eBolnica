@@ -828,6 +828,328 @@ namespace eBolnicaAPI.Migrations
                     b.HasIndex("MedicalRecordId");
 
                     b.ToTable("MedicalReports");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedAt = new DateTime(2025, 10, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Tension headache",
+                            DoctorId = 1,
+                            MedicalRecordId = 1,
+                            Symptoms = "Headache, fatigue",
+                            Therapy = "Rest, Paracetamol 500mg"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            CreatedAt = new DateTime(2025, 11, 12, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Hypertension",
+                            DoctorId = 1,
+                            MedicalRecordId = 1,
+                            Symptoms = "High blood pressure",
+                            Therapy = "Amlodipine 5mg"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            CreatedAt = new DateTime(2025, 12, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Anxiety",
+                            DoctorId = 1,
+                            MedicalRecordId = 1,
+                            Symptoms = "Chest pain",
+                            Therapy = "Relaxation techniques"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            CreatedAt = new DateTime(2026, 1, 8, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Iron deficiency",
+                            DoctorId = 1,
+                            MedicalRecordId = 1,
+                            Symptoms = "Fatigue, dizziness",
+                            Therapy = "Iron supplements"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            CreatedAt = new DateTime(2025, 10, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Pharyngitis",
+                            DoctorId = 1,
+                            MedicalRecordId = 2,
+                            Symptoms = "Sore throat, fever",
+                            Therapy = "Amoxicillin 500mg"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            CreatedAt = new DateTime(2025, 11, 22, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Common cold",
+                            DoctorId = 1,
+                            MedicalRecordId = 2,
+                            Symptoms = "Cough, runny nose",
+                            Therapy = "Rest, fluids"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            CreatedAt = new DateTime(2026, 1, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Lumbar strain",
+                            DoctorId = 1,
+                            MedicalRecordId = 2,
+                            Symptoms = "Back pain",
+                            Therapy = "Ibuprofen 400mg, physiotherapy"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            CreatedAt = new DateTime(2026, 2, 14, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Gastroenteritis",
+                            DoctorId = 1,
+                            MedicalRecordId = 2,
+                            Symptoms = "Nausea, vomiting",
+                            Therapy = "Hydration, bland diet"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            CreatedAt = new DateTime(2025, 9, 18, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Arthritis",
+                            DoctorId = 1,
+                            MedicalRecordId = 3,
+                            Symptoms = "Joint pain, swelling",
+                            Therapy = "Diclofenac 50mg"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            CreatedAt = new DateTime(2025, 11, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Mild asthma",
+                            DoctorId = 1,
+                            MedicalRecordId = 3,
+                            Symptoms = "Shortness of breath",
+                            Therapy = "Inhaler prescribed"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            CreatedAt = new DateTime(2026, 1, 25, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Allergic reaction",
+                            DoctorId = 1,
+                            MedicalRecordId = 3,
+                            Symptoms = "Skin rash, itching",
+                            Therapy = "Cetirizine 10mg"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            CreatedAt = new DateTime(2026, 2, 28, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Stress-related insomnia",
+                            DoctorId = 1,
+                            MedicalRecordId = 3,
+                            Symptoms = "Insomnia, anxiety",
+                            Therapy = "Relaxation therapy"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            CreatedAt = new DateTime(2025, 10, 8, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Type 2 Diabetes",
+                            DoctorId = 1,
+                            MedicalRecordId = 4,
+                            Symptoms = "Frequent urination, thirst",
+                            Therapy = "Metformin 500mg"
+                        },
+                        new
+                        {
+                            Id = 14,
+                            CreatedAt = new DateTime(2025, 11, 18, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Hyperlipidemia",
+                            DoctorId = 1,
+                            MedicalRecordId = 4,
+                            Symptoms = "High cholesterol",
+                            Therapy = "Atorvastatin 20mg"
+                        },
+                        new
+                        {
+                            Id = 15,
+                            CreatedAt = new DateTime(2026, 1, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Diabetic check-up",
+                            DoctorId = 1,
+                            MedicalRecordId = 4,
+                            Symptoms = "Blurred vision",
+                            Therapy = "Continue Metformin"
+                        },
+                        new
+                        {
+                            Id = 16,
+                            CreatedAt = new DateTime(2026, 2, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Thyroid check",
+                            DoctorId = 1,
+                            MedicalRecordId = 4,
+                            Symptoms = "Weight gain, fatigue",
+                            Therapy = "Blood tests ordered"
+                        },
+                        new
+                        {
+                            Id = 17,
+                            CreatedAt = new DateTime(2025, 10, 3, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Migraine",
+                            DoctorId = 2,
+                            MedicalRecordId = 5,
+                            Symptoms = "Migraine, light sensitivity",
+                            Therapy = "Paracetamol, dark room rest"
+                        },
+                        new
+                        {
+                            Id = 18,
+                            CreatedAt = new DateTime(2025, 11, 14, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Carpal tunnel syndrome",
+                            DoctorId = 2,
+                            MedicalRecordId = 5,
+                            Symptoms = "Numbness in hands",
+                            Therapy = "Wrist splint, rest"
+                        },
+                        new
+                        {
+                            Id = 19,
+                            CreatedAt = new DateTime(2026, 1, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Stress-related cognitive issues",
+                            DoctorId = 2,
+                            MedicalRecordId = 5,
+                            Symptoms = "Memory issues, confusion",
+                            Therapy = "Stress management"
+                        },
+                        new
+                        {
+                            Id = 20,
+                            CreatedAt = new DateTime(2026, 2, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Vertigo",
+                            DoctorId = 2,
+                            MedicalRecordId = 5,
+                            Symptoms = "Dizziness, nausea",
+                            Therapy = "Epley maneuver"
+                        },
+                        new
+                        {
+                            Id = 21,
+                            CreatedAt = new DateTime(2025, 9, 25, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Otitis media",
+                            DoctorId = 2,
+                            MedicalRecordId = 6,
+                            Symptoms = "Ear pain, hearing loss",
+                            Therapy = "Amoxicillin 500mg"
+                        },
+                        new
+                        {
+                            Id = 22,
+                            CreatedAt = new DateTime(2025, 11, 8, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Conjunctivitis",
+                            DoctorId = 2,
+                            MedicalRecordId = 6,
+                            Symptoms = "Eye redness, discharge",
+                            Therapy = "Antibiotic eye drops"
+                        },
+                        new
+                        {
+                            Id = 23,
+                            CreatedAt = new DateTime(2026, 1, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Grade 1 sprain",
+                            DoctorId = 2,
+                            MedicalRecordId = 6,
+                            Symptoms = "Ankle sprain",
+                            Therapy = "RICE method, Ibuprofen"
+                        },
+                        new
+                        {
+                            Id = 24,
+                            CreatedAt = new DateTime(2026, 2, 18, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "IBS",
+                            DoctorId = 2,
+                            MedicalRecordId = 6,
+                            Symptoms = "Stomach cramps",
+                            Therapy = "Diet modification"
+                        },
+                        new
+                        {
+                            Id = 25,
+                            CreatedAt = new DateTime(2025, 10, 12, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Costochondritis",
+                            DoctorId = 2,
+                            MedicalRecordId = 7,
+                            Symptoms = "Chest tightness",
+                            Therapy = "Anti-inflammatory medication"
+                        },
+                        new
+                        {
+                            Id = 26,
+                            CreatedAt = new DateTime(2025, 12, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Osteoarthritis",
+                            DoctorId = 2,
+                            MedicalRecordId = 7,
+                            Symptoms = "Knee pain, stiffness",
+                            Therapy = "Physiotherapy, Diclofenac"
+                        },
+                        new
+                        {
+                            Id = 27,
+                            CreatedAt = new DateTime(2026, 1, 30, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Vitamin D deficiency",
+                            DoctorId = 2,
+                            MedicalRecordId = 7,
+                            Symptoms = "Hair loss, fatigue",
+                            Therapy = "Vitamin D3 supplements"
+                        },
+                        new
+                        {
+                            Id = 28,
+                            CreatedAt = new DateTime(2026, 2, 25, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "GERD",
+                            DoctorId = 2,
+                            MedicalRecordId = 7,
+                            Symptoms = "Acid reflux, heartburn",
+                            Therapy = "Omeprazole 20mg"
+                        },
+                        new
+                        {
+                            Id = 29,
+                            CreatedAt = new DateTime(2025, 10, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Anxiety disorder",
+                            DoctorId = 3,
+                            MedicalRecordId = 8,
+                            Symptoms = "Mood swings, irritability",
+                            Therapy = "Therapy sessions"
+                        },
+                        new
+                        {
+                            Id = 30,
+                            CreatedAt = new DateTime(2025, 11, 28, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Depression",
+                            DoctorId = 3,
+                            MedicalRecordId = 8,
+                            Symptoms = "Sleep problems, fatigue",
+                            Therapy = "CBT therapy"
+                        },
+                        new
+                        {
+                            Id = 31,
+                            CreatedAt = new DateTime(2026, 1, 12, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Panic disorder",
+                            DoctorId = 3,
+                            MedicalRecordId = 8,
+                            Symptoms = "Panic attacks",
+                            Therapy = "Breathing exercises"
+                        },
+                        new
+                        {
+                            Id = 32,
+                            CreatedAt = new DateTime(2026, 2, 22, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Diagnosis = "Social anxiety",
+                            DoctorId = 3,
+                            MedicalRecordId = 8,
+                            Symptoms = "Social withdrawal",
+                            Therapy = "Exposure therapy"
+                        });
                 });
 
             modelBuilder.Entity("eBolnicaAPI.Models.Entities.Medication", b =>
