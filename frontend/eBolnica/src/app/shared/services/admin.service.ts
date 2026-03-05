@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -9,7 +10,7 @@ export class AdminService {
 
   constructor(private http:HttpClient) {}
 
-  baseUrl = 'http://localhost:5004/api/admin'
+  baseUrl = environment.apiUrl + '/admin';
 
   getAllUsers(page:number, pageSize:number, userType?: string, sortBy: string = 'firstName', sortDirection: string = 'asc'): Observable<any>{
     let params = new HttpParams()

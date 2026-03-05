@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient, HttpEvent, HttpRequest } from '@angular/common/http';
+import { HttpClient} from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 
 export interface FileInfo {
   id: number;
@@ -16,7 +17,7 @@ export interface FileInfo {
 })
 export class FileService {
 
-  private apiUrl = 'http://localhost:5004/api/file';
+  private apiUrl = environment.apiUrl + '/file';
 
   private http = inject(HttpClient);
 

@@ -11,13 +11,14 @@ import { PatientSearchDto } from '../../../models/patient-search.dto';
 import { AssignPatientDto } from '../../../models/assign-patient.dto';
 import { DoctorListDto } from '../../../models/doctor-list.dto';
 import { DashboardStats } from '../../../models/analytics.dto';
+import { environment } from '../../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class DoctorService {
 
-  private apiUrl = 'http://localhost:5004/api/doctor';
+  private apiUrl = environment.apiUrl + '/doctor';
 
   private http = inject(HttpClient);
 
