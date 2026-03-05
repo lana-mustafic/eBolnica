@@ -8,6 +8,7 @@ import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } 
 import { FileService, FileInfo } from '../../../../shared/services/file/file.service';
 import { saveAs } from 'file-saver';
 import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
+import { Location } from '@angular/common';
 
 @Component({
   selector: 'app-medical-record',
@@ -22,6 +23,7 @@ export class MedicalRecordComponent implements OnInit{
   private service = inject(MedicalRecordService);
   private fb = inject(FormBuilder);
   private fileService = inject(FileService);
+  private location = inject(Location);
 
   reportForm: FormGroup = this.fb.group({
     symptoms:['',Validators.required],
@@ -60,6 +62,10 @@ export class MedicalRecordComponent implements OnInit{
     this.updateReportPreview();
   });
   }
+
+  goBack(): void {
+  this.location.back();
+}
 
   loadMedicalRecord(): void {
   this.service.getMedicalRecord(this.patientId).subscribe({

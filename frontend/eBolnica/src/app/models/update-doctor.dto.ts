@@ -3,6 +3,5 @@ export interface updateDoctorDto {
     lastName: string;
     phoneNumber: string;
     specialization:string;
-    birthDate:string;
     address:string; 
 }

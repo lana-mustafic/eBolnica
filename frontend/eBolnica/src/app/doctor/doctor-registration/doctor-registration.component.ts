@@ -37,7 +37,9 @@ export class DoctorRegistrationComponent {
       password:['', [Validators.required,
                       Validators.minLength(6),
                       Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).+$/)]],
-      confirmPassword:['']
+      confirmPassword:[''],
+      dateOfBirth: ['', Validators.required],
+      gender: ['', Validators.required]
     },{validators:this.passwordMatchValidator});
   }
 

@@ -68,7 +68,7 @@ namespace eBolnicaAPI.Controllers
                     row.RelativeItem().Column(col =>
                     {
                         col.Item()
-                            .Text("MEDICAL REPORT REPORT")
+                            .Text("MEDICAL REPORT")
                             .FontSize(20)
                             .Bold()
                             .FontColor(Colors.Blue.Darken2);
@@ -124,7 +124,7 @@ namespace eBolnicaAPI.Controllers
                 row.ConstantItem(150).AlignRight().Text(text =>
                 {
                     text.Span("Generated: ").FontSize(10).FontColor(Colors.Grey.Darken1);
-                    text.Span(DateTime.Now.ToString("dd.MMMM.yyyy HH:mm")).Bold().FontSize(10);
+                    text.Span(DateTime.Now.ToString("dd.MM.yyyy HH:mm")).Bold().FontSize(10);
                 });
             });
         }

@@ -283,3 +283,140 @@
 .btn-secondary:hover {
   background: #e2e8f0;
 }
+
+.back-btn-wrapper {
+  margin-bottom: 1.5rem;
+}
+
+.btn-back {
+  background: none;
+  border: 2px solid #667eea;
+  color: #667eea;
+  padding: 0.5rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.btn-back:hover {
+  background: #667eea;
+  color: white;
+}
+
+/* Documents */
+.upload-box {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: white;
+  border: 2px dashed #cbd5e0;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.upload-box input[type="file"] {
+  flex: 1;
+  font-size: 0.9rem;
+  color: #4a5568;
+}
+
+.file-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.875rem 1rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  transition: all 0.2s;
+}
+
+.file-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+}
+
+.file-card p {
+  margin: 0;
+  color: #2d3748;
+  font-size: 0.9rem;
+}
+
+.file-card small {
+  color: #718096;
+  margin-left: 0.5rem;
+}
+
+.file-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Medical Reports */
+.report-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  border-left: 4px solid #667eea;
+  transition: all 0.2s;
+}
+
+.report-card:hover {
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+}
+
+.report-card p {
+  margin: 0.4rem 0;
+  color: #2d3748;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.report-card strong {
+  color: #4a5568;
+  font-weight: 600;
+}
+
+.report-card hr {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 1rem 0 0 0;
+}
+
+.btn-danger {
+  background: #fed7d7;
+  color: #c53030;
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.btn-danger:hover {
+  background: #fc8181;
+  color: white;
+}
+
+.record-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.record-header h1 {
+  margin: 0;
+  padding: 0;
+  border: none;
+}

@@ -13,9 +13,6 @@ namespace eBolnicaAPI.Models.DTOs
         public string LastName { get; set; }
 
         [Required]
-        [DataType(DataType.Date)]
-        public DateTime BirthDate { get; set; }
-
         public string PhoneNumber { get; set; }
 
         [Required]
