@@ -33,6 +33,9 @@ namespace eBolnicaAPI.Controllers
 
             var doctor = await _dbcontext.Doctors.FindAsync(patientForRegistration.DoctorId);
 
+            if (doctor == null)
+                return BadRequest(new { message = "Doctor not found." });
+
             var user = new AppUser
             {
                 Email = patientForRegistration.Email,

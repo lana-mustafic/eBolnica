@@ -1,5 +1,6 @@
 ﻿using eBolnicaAPI.Data;
 using eBolnicaAPI.Models.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,7 @@ namespace eBolnicaAPI.Controllers
         }
 
         [HttpGet("pdf/{medicalRecordId}")]
+        [Authorize(Roles = "Doctor")]
         public async Task<IActionResult> GenerateMedicalRecordPdf(int medicalRecordId, [FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo)
         {
             var medicalRecord = await _context.MedicalRecords.Include(mr => mr.Patient)

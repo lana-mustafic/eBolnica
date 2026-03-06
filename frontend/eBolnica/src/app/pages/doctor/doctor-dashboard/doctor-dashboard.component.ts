@@ -3,7 +3,6 @@ import { AuthService } from '../../../shared/services/auth.service';
 import { FormsModule } from "@angular/forms";
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { OnInit, OnDestroy } from '@angular/core';
 import { interval, Subscription } from 'rxjs';
 import { DoctorService } from '../../../shared/services/doctor/doctor.service';
 import { Chart } from 'chart.js/auto';

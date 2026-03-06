@@ -29,7 +29,6 @@ namespace eBolnicaAPI.Controllers
         public async Task<IActionResult> GetDoctorData()
         {
             var doctorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            Console.WriteLine("Doctor ID from token: " + doctorId);
 
             if (doctorId == null)
             {
@@ -103,7 +102,7 @@ namespace eBolnicaAPI.Controllers
 
         [HttpGet("list-patients")]
         [Authorize(Roles ="Doctor")]
-        public async Task<IActionResult> GetDoctorAssignedPatient()
+        public async Task<IActionResult> GetDoctorAssignedPatient([FromQuery] PatientFilterParams filterParams)
         {
             var doctorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -119,10 +118,36 @@ namespace eBolnicaAPI.Controllers
                 return NotFound();
             }
 
-            var patients = await _dbContext.Patients.Include(p=>p.MedicalRecord).Where(p => p.DoctorId == doctor.Id).ToListAsync();
+            var query = _dbContext.Patients
+                .Include(p => p.MedicalRecord)
+                .Where(p => p.DoctorId == doctor.Id)
+                .AsQueryable();
 
-            if (!patients.Any())
-                return Ok(new List<DoctorAssignedPatientDto>());
+            if (!string.IsNullOrWhiteSpace(filterParams.FirstName))
+                query = query.Where(p => p.FirstName.ToLower().Contains(filterParams.FirstName.ToLower()));
+
+            if (!string.IsNullOrWhiteSpace(filterParams.LastName))
+                query = query.Where(p => p.LastName.ToLower().Contains(filterParams.LastName.ToLower()));
+
+            if (!string.IsNullOrWhiteSpace(filterParams.Gender))
+                query = query.Where(p => p.Gender == filterParams.Gender);
+
+            if (!string.IsNullOrWhiteSpace(filterParams.BloodType))
+                query = query.Where(p => p.BloodType == filterParams.BloodType);
+
+            if (filterParams.BirthYear.HasValue)
+                query = query.Where(p => p.DateOfBirth.HasValue && p.DateOfBirth.Value.Year == filterParams.BirthYear.Value);
+
+            var totalCount = await query.CountAsync();
+
+            var page = filterParams.Page < 1 ? 1 : filterParams.Page;
+            var pageSize = filterParams.PageSize < 1 ? 10 : filterParams.PageSize;
+
+            var patients = await query
+                .OrderBy(p => p.LastName)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
 
             var dtoList = patients.Select(p=> new DoctorAssignedPatientDto
             {
@@ -136,9 +161,18 @@ namespace eBolnicaAPI.Controllers
                 Address = p.Address,
                 BloodType = p.BloodType,
                 RecordNumber = p.MedicalRecord.RecordNumber,
-            }).ToList();    
+            }).ToList();
 
-            return Ok(dtoList);
+            var response = new PaginatedResponse<DoctorAssignedPatientDto>
+            {
+                Items = dtoList,
+                TotalCount = totalCount,
+                CurrentPage = page,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            };
+
+            return Ok(response);
         }
 
         [HttpGet("GetAllDoctors")]

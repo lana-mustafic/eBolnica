@@ -128,6 +128,43 @@ namespace eBolnicaAPI.Controllers
             if (!result.Succeeded)
                 return BadRequest(new { message = string.Join(", ", result.Errors.Select(e => e.Description)) });
 
+            switch (dto.UserType)
+            {
+                case "Doctor":
+                    _dbContext.Doctors.Add(new Doctor
+                    {
+                        AppUserId = user.Id,
+                        FirstName = dto.FirstName,
+                        LastName = dto.LastName,
+                        RegistrationStatus = "Pending"
+                    });
+                    break;
+
+                case "Patient":
+                    _dbContext.Patients.Add(new Patient
+                    {
+                        AppUserId = user.Id,
+                        FirstName = dto.FirstName,
+                        LastName = dto.LastName,
+                        MedicalRecord = new MedicalRecord
+                        {
+                            RecordNumber = $"MR-{DateTime.Now:yyyyMMdd}-{user.Id[..4]}"
+                        }
+                    });
+                    break;
+
+                case "Pharmacist":
+                    _dbContext.Pharmacists.Add(new Pharmacist
+                    {
+                        AppUserId = user.Id,
+                        FirstName = dto.FirstName,
+                        LastName = dto.LastName
+                    });
+                    break;
+            }
+
+            await _dbContext.SaveChangesAsync();
+
             return Ok(new { message = "User created successfully." });
         }
 

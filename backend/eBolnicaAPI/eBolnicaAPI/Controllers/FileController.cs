@@ -1,4 +1,5 @@
 ﻿using eBolnicaAPI.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -18,6 +19,7 @@ namespace eBolnicaAPI.Controllers
         }
 
         [HttpPost("upload")]
+        [Authorize(Roles = "Doctor")]
         public async Task<IActionResult> UploadFile([FromForm] IFormFile file, [FromForm] int patientId)
         {
             try
@@ -45,6 +47,7 @@ namespace eBolnicaAPI.Controllers
         }
 
         [HttpGet("download/{id}")]
+        [Authorize(Roles = "Doctor")]
         public async Task<IActionResult> DownloadFile(int id)
         {
             try
@@ -63,6 +66,7 @@ namespace eBolnicaAPI.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Doctor")]
         public async Task<IActionResult> DeleteFile(int id)
         {
             try
@@ -81,6 +85,7 @@ namespace eBolnicaAPI.Controllers
         }
 
         [HttpGet("patient/{patientId}")]
+        [Authorize(Roles = "Doctor")]
         public async Task<IActionResult> GetPatientFiles(int patientId)
         {
             try
