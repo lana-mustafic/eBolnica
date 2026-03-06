@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { AuthService } from '../../../shared/services/auth.service';
 import { FormsModule } from "@angular/forms";
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { interval, Subscription } from 'rxjs';
 import { DoctorService } from '../../../shared/services/doctor/doctor.service';
@@ -17,6 +17,7 @@ import { Chart } from 'chart.js/auto';
 export class DoctorDashboardComponent {
   public authService = inject(AuthService);
   public doctorService = inject(DoctorService);
+  private router = inject(Router);
 
   stats: any = null;
   isLoading = true;
@@ -147,5 +148,9 @@ export class DoctorDashboardComponent {
         }
       });
     }
+
+    goToSettings(): void {
+  this.router.navigate(['/settings']);
+}
 
 }

@@ -5,10 +5,11 @@ import { AdminService } from '../shared/services/admin.service';
 import { AuthService } from '../shared/services/auth.service';
 import { UserOverview } from '../models/user-overview.dto';
 import { ConfirmModalComponent } from '../shared/components/confirm-modal/confirm-modal.component';
+import { RouterModule, Router } from '@angular/router';
 
 @Component({
   selector: 'app-admin-dashboard',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmModalComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmModalComponent, RouterModule],
   standalone: true,
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.css'
@@ -41,6 +42,7 @@ export class AdminDashboardComponent implements OnInit{
   private fb = inject(FormBuilder);
   private adminService = inject(AdminService);
   public authService = inject(AuthService);
+  private router = inject(Router);
 
   ngOnInit(): void {
     this.initForm();
@@ -204,4 +206,8 @@ export class AdminDashboardComponent implements OnInit{
   onLogout(): void{
       this.authService.logout();
   }
+
+  goToSettings(): void {
+  this.router.navigate(['/settings']);
+}
 }
