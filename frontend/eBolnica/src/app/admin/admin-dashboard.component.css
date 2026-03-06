@@ -163,3 +163,24 @@ table tbody tr:hover {
   height: 100%;
   z-index: 1050;
 }
+
+.btn-settings {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #f0f4f8;
+  color: #333;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-settings:hover {
+  background-color: #1976d2;
+  color: white;
+  border-color: #1976d2;
+}

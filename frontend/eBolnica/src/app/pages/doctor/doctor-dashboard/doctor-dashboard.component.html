@@ -1,6 +1,7 @@
 <div class="dashboard-container">
   <header class="dashboard-header">
     <div class="header-content">
+      <button class="btn-settings" (click)="goToSettings()">⚙️ Settings</button>
       <div class="user-info">
         <span class="user-greeting">Welcome, {{ authService.userLoggedInfo() }}</span>
       </div>
