@@ -7,6 +7,10 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { RouterModule } from '@angular/router';
 import { UpdatePatientDto } from '../../../models/update-patient.dto';
 import { Router } from '@angular/router';
+import { PatientFilterParams } from '../../../models/patient-filters.dto';
+import { Subject } from 'rxjs';
+import { debounceTime, map, filter } from 'rxjs';
+import { PagedResponse } from '../../../models/paged-response.dto';
 
 @Component({
   selector: 'app-doctor-patients',
@@ -30,13 +34,22 @@ export class DoctorPatientsComponent {
   successMessage: string | null = null;
   isLoading = false;
 
-  filters = {
+  currentPage = 1;
+  pageSize = 10;
+  totalCount = 0;
+  totalPages = 0;
+
+  filters: PatientFilterParams = {
     firstName: '',
     lastName: '',
     gender: '',
     bloodType: '',
-    birthYear: ''
+    birthYear: undefined,
+    page: 1,
+    pageSize: 10
   };
+
+  private filterChanged$ = new Subject<void>();
 
   patientForm: FormGroup;
 
@@ -53,30 +66,61 @@ export class DoctorPatientsComponent {
       bloodType: [''],
       recordNumber: ['', [Validators.maxLength(50)]]
     });
+
+    this.filterChanged$.pipe(
+      debounceTime(300),
+      filter(() => true),
+      map(() => ({ page: 1 }))
+    ).subscribe(() => {
+      this.currentPage = 1;
+      this.loadPatients();
+    });
   }
+
 
   ngOnInit(){
     this.loadPatients();
   }
 
   loadPatients() {
-    this.doctorService.getAssignedPatients().subscribe({
-      next: (data) => {
-        this.assignedPatients = data;
-      },
-      error: (err) => {
-        console.error('Error loading patients', err);
-        this.errorMessage = 'Error loading patients';
-      }
-    });
-  }
+    this.isLoading = true;
+    const params: PatientFilterParams = {
+      ...this.filters,
+      page: this.currentPage,
+      pageSize: this.pageSize
+    };
 
-  filteredPatients() {
-    return this.assignedPatients.filter(p => {
-      let year: string | null = null;
-      if (p.dateOfBirth) {
-        const d = new Date(p.dateOfBirth);
-        if (!isNaN(d.getTime())) year = d.getFullYear().toString();
+    this.doctorService.getAssignedPatients(params).subscribe({
+        next: (response: PagedResponse<DoctorAssignedPatientDto>) => {
+          this.assignedPatients = response.items;
+          this.totalCount = response.totalCount;
+          this.totalPages = response.totalPages;
+          this.isLoading = false;
+        },
+        error: (err) => {
+          console.error('Error loading patients', err);
+          this.errorMessage = 'Error loading patients';
+          this.isLoading = false;
+        }
+      });
+    }
+
+    onFilterChange() {
+    this.filterChanged$.next();
+    }
+
+     goToPage(page: number) {
+    if (page < 1 || page > this.totalPages) return;
+    this.currentPage = page;
+    this.loadPatients();
+    }
+
+    filteredPatients() {
+      return this.assignedPatients.filter(p => {
+        let year: string | null = null;
+        if (p.dateOfBirth) {
+          const d = new Date(p.dateOfBirth);
+          if (!isNaN(d.getTime())) year = d.getFullYear().toString();
       }
 
       const yearMatch = !this.filters.birthYear || (year && year === this.filters.birthYear.toString());

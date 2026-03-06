@@ -102,7 +102,6 @@
   <section class="section">
   <h2>Documents</h2>
 
-  <!-- Upload -->
   <div class="upload-box">
     <input 
       type="file" 
@@ -118,7 +117,7 @@
     </button>
   </div>
 
-  <!-- List -->
+
   <div *ngIf="patientFiles.length; else noFiles">
     <div class="file-card" *ngFor="let file of patientFiles">
       <p>
@@ -126,6 +125,12 @@
         <small>({{ file.fileSize / 1024 | number:'1.0-0' }} KB)</small>
       </p>
 
+      <img
+        *ngIf="imagePreviews[file.id]"
+        [src]="imagePreviews[file.id]"
+        class="preview-image"
+      />
+      
       <div class="file-actions">
         <button class="btn-secondary" (click)="downloadFile(file.id)">
           Download
@@ -216,6 +221,10 @@
 
       <div class="preview-info" *ngIf="reportCountPreview !== null">
         <p>📊 <strong>Preview:</strong> {{reportCountPreview}} Medical Report(s) will be included</p>
+      </div>
+
+      <div class="error" *ngIf="pdfErrorMessage">
+        {{ pdfErrorMessage }}
       </div>
 
       <div class="modal-actions">

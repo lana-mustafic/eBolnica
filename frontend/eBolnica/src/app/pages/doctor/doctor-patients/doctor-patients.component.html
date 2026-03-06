@@ -21,14 +21,14 @@
   </div>
 
   <div class="filters">
-    <input type="text" placeholder="First Name" [(ngModel)]="filters.firstName">
-    <input type="text" placeholder="Last Name" [(ngModel)]="filters.lastName">
-    <select [(ngModel)]="filters.gender">
+    <input type="text" placeholder="First Name" [(ngModel)]="filters.firstName" (input)="onFilterChange()">
+    <input type="text" placeholder="Last Name" [(ngModel)]="filters.lastName" (input)="onFilterChange()">
+    <select [(ngModel)]="filters.gender" (change)="onFilterChange()">
       <option value="">Gender</option>
       <option value="Male">Male</option>
       <option value="Female">Female</option>
     </select>
-    <select [(ngModel)]="filters.bloodType">
+    <select [(ngModel)]="filters.bloodType" (change)="onFilterChange()">
       <option value="">Blood type</option>
       <option value="A+">A+</option>
       <option value="A-">A-</option>
@@ -39,7 +39,12 @@
       <option value="O+">O+</option>
       <option value="O-">O-</option>
     </select>
-    <input type="number" placeholder="Birth Year" [(ngModel)]="filters.birthYear">
+    <input type="number" placeholder="Birth Year" [(ngModel)]="filters.birthYear" (input)="onFilterChange()">
+  </div>
+
+  <div class="results-count">
+    <span *ngIf="totalCount > 0">{{ totalCount }} patients found</span>
+    <span *ngIf="totalCount === 0 && !isLoading">No patients found</span>
   </div>
 
   <div class="table-container">
@@ -58,7 +63,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let patient of filteredPatients()">
+        <tr *ngFor="let patient of assignedPatients">
           <td>{{ patient.firstName }}</td>
           <td>{{ patient.lastName }}</td>
           <td>{{ patient.dateOfBirth ? (patient.dateOfBirth | date:'dd.MM.yyyy') : '-' }}</td>

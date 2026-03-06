@@ -1,7 +1,6 @@
 <div class="dashboard-container">
   <div class="dashboard-card">
 
-    <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h2 class="mb-0">Admin Dashboard</h2>
       <div class="d-flex gap-2">
@@ -10,7 +9,6 @@
       </div>
     </div>
 
-    <!-- Messages -->
     <div *ngIf="successMessage" class="alert alert-success alert-dismissible">
       {{ successMessage }}
       <button type="button" class="btn-close" (click)="successMessage=''"></button>
@@ -20,7 +18,6 @@
       <button type="button" class="btn-close" (click)="errorMessage=''"></button>
     </div>
 
-    <!-- Filter -->
     <div class="d-flex mb-3">
       <label class="me-2 fw-bold">Filter by role:</label>
       <select class="form-select filter-select" [(ngModel)]="userType" (ngModelChange)="onFilterChange($event)">
@@ -30,7 +27,6 @@
       </select>
     </div>
 
-    <!-- Table -->
     <table border="1" cellpadding="8" class="w-100">
       <thead>
         <tr>
@@ -76,7 +72,6 @@
       </tbody>
     </table>
 
-    <!-- Pagination -->
     <div class="d-flex flex-column align-items-center mt-3">
       <div>Showing: {{ users.length }} of {{ totalCount }}</div>
       <div class="mt-2">
@@ -89,7 +84,6 @@
   </div>
 </div>
 
-<!-- ===== MODAL ===== -->
 <div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()"></div>
 <div class="modal d-block" *ngIf="showModal" tabindex="-1">
   <div class="modal-dialog" (click)="$event.stopPropagation()">
@@ -103,10 +97,8 @@
       <div class="modal-body">
         <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
 
-        <!-- REACTIVE FORM -->
         <form [formGroup]="userForm">
 
-          <!-- First Name -->
           <div class="mb-3">
             <label class="form-label">First Name *</label>
             <input class="form-control"
@@ -118,7 +110,6 @@
             </div>
           </div>
 
-          <!-- Last Name -->
           <div class="mb-3">
             <label class="form-label">Last Name *</label>
             <input class="form-control"
@@ -130,7 +121,6 @@
             </div>
           </div>
 
-          <!-- Email -->
           <div class="mb-3">
             <label class="form-label">Email *</label>
             <input class="form-control" type="email"
@@ -142,7 +132,6 @@
             </div>
           </div>
 
-          <!-- Password (for create) -->
           <div class="mb-3" *ngIf="!isEditMode">
             <label class="form-label">Password *</label>
             <input class="form-control" type="password"
@@ -153,8 +142,7 @@
               <span *ngIf="password?.errors?.['minlength']">Minimum 6 characters.</span>
             </div>
           </div>
-
-          <!-- User Type -->
+ 
           <div class="mb-3">
             <label class="form-label">Role *</label>
             <select class="form-select"

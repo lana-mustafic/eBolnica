@@ -1,6 +1,7 @@
 ﻿using eBolnicaAPI.Data;
 using eBolnicaAPI.Models.DTOs;
 using eBolnicaAPI.Models.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -23,6 +24,7 @@ namespace eBolnicaAPI.Controllers
         }
 
         [HttpGet("{id}/medical-records")]
+        [Authorize(Roles = "Doctor")]
         public async Task<IActionResult> GetMedicalRecordById(int id)
         {
             var patient = await _dbContext.Patients.Include(p => p.MedicalRecord).ThenInclude(mr=>mr.MedicalReports).Include(p=>p.AppUser).FirstOrDefaultAsync(p=>p.Id == id);
@@ -67,6 +69,7 @@ namespace eBolnicaAPI.Controllers
         }
 
         [HttpPost("new-medical-report")]
+        [Authorize(Roles = "Doctor")]
         public async Task<IActionResult> NewReport(MedicalReportCreateDto dto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;

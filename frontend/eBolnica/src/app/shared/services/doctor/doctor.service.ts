@@ -5,13 +5,12 @@ import { Observable } from 'rxjs';
 import { updateDoctorDto } from '../../../models/update-doctor.dto';
 import { DoctorDataDto } from '../../../models/doctor-data.dto';
 import { DoctorAssignedPatientDto } from '../../../models/doctor-patients.dto';
-import { CreatePatientDto } from '../../../models/create-patient.dto';
 import { UpdatePatientDto } from '../../../models/update-patient.dto';
-import { PatientSearchDto } from '../../../models/patient-search.dto';
-import { AssignPatientDto } from '../../../models/assign-patient.dto';
 import { DoctorListDto } from '../../../models/doctor-list.dto';
 import { DashboardStats } from '../../../models/analytics.dto';
 import { environment } from '../../../../environments/environment';
+import { PatientFilterParams } from '../../../models/patient-filters.dto';
+import { PagedResponse } from '../../../models/paged-response.dto';
 
 @Injectable({
   providedIn: 'root'
@@ -30,34 +29,25 @@ export class DoctorService {
     return this.http.put<updateDoctorDto>(this.apiUrl+'/edit-doctor',updatedDoctor);
   }
 
-  getAssignedPatients(){
-    return this.http.get<DoctorAssignedPatientDto[]>(this.apiUrl+'/list-patients');
-  }
+  getAssignedPatients(filters: PatientFilterParams = {}): Observable<PagedResponse<DoctorAssignedPatientDto>>{
+    let params = new HttpParams();
 
-  createPatient(patient: CreatePatientDto): Observable<DoctorAssignedPatientDto> {
-    return this.http.post<DoctorAssignedPatientDto>(this.apiUrl+'/create-patient', patient);
+    if(filters.firstName) params = params.set('firstName', filters.firstName);
+    if (filters.lastName)   params = params.set('lastName', filters.lastName);
+    if (filters.gender)     params = params.set('gender', filters.gender);
+    if (filters.bloodType)  params = params.set('bloodType', filters.bloodType);
+    if (filters.birthYear)  params = params.set('birthYear', filters.birthYear.toString());
+
+    params = params.set('page', (filters.page ?? 1).toString());
+    params = params.set('pageSize', (filters.pageSize ?? 10).toString());
+
+    return this.http.get<PagedResponse<DoctorAssignedPatientDto>>(this.apiUrl+'/list-patients', { params });
   }
 
   updatePatient(patientId: number, patient: UpdatePatientDto): Observable<DoctorAssignedPatientDto> {
     return this.http.put<DoctorAssignedPatientDto>(this.apiUrl+`/update-patient/${patientId}`, patient);
   }
-
-  deletePatient(patientId: number): Observable<any> {
-    return this.http.delete(this.apiUrl+`/delete-patient/${patientId}`);
-  }
-
-  searchPatients(searchTerm?: string): Observable<PatientSearchDto[]> {
-    let params = new HttpParams();
-    if (searchTerm) {
-      params = params.set('searchTerm', searchTerm);
-    }
-    return this.http.get<PatientSearchDto[]>(this.apiUrl+'/search-patients', { params });
-  }
-
-  assignPatient(assignData: AssignPatientDto): Observable<DoctorAssignedPatientDto> {
-    return this.http.post<DoctorAssignedPatientDto>(this.apiUrl+'/assign-patient', assignData);
-  }
-
+  
   getAllDoctors(): Observable<DoctorListDto[]>{
     return this.http.get<DoctorListDto[]>(this.apiUrl+'/GetAllDoctors');
   }

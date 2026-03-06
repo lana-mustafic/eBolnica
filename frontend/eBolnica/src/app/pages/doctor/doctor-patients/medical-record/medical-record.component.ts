@@ -107,8 +107,16 @@ export class MedicalRecordComponent implements OnInit{
   }
 
   loadFiles(): void{
-    this.fileService.getPatientFiles(this.patientId).subscribe(files=>this.patientFiles = files);
-  }
+  this.fileService.getPatientFiles(this.patientId).subscribe(files=>{
+    this.patientFiles = files;
+
+    files.forEach(file=>{
+      if(file.fileName.match(/\.(jpg|jpeg|png)$/i)){
+        this.loadImagePreview(file.id);
+      }
+    });
+  });
+}
 
   onFileSelected(event: Event): void{
     const input = event.target as HTMLInputElement;
@@ -191,6 +199,8 @@ export class MedicalRecordComponent implements OnInit{
   }).length;
   }
 
+  pdfErrorMessage: string | null = null;
+
   generatePdf(): void{
     if(this.pdfForm.invalid || !this.medicalRecord) return;
 
@@ -198,10 +208,11 @@ export class MedicalRecordComponent implements OnInit{
     const dateTo = this.pdfForm.value.dateTo;
 
     if(new Date(dateFrom) > new Date(dateTo)){
-      alert('Date From must be before Date To');
+      this.pdfErrorMessage = 'Date From must be before Date To';
       return;
     }
 
+    this.pdfErrorMessage = null;
     this.isGeneratingPdf = true;
     
     this.service.generatePdf(this.medicalRecord.id, dateFrom, dateTo).subscribe({
@@ -209,9 +220,21 @@ export class MedicalRecordComponent implements OnInit{
         saveAs(blob, `MedicalRecord_${this.medicalRecord?.id}_${dateFrom}_${dateTo}.pdf`);
         this.closePdfModal();
       },
-      error: () => alert('Error generating PDF'),
+      error: () => {
+        this.pdfErrorMessage = 'Error generating PDF';
+        this.isGeneratingPdf = false;
+      },
       complete: () => this.isGeneratingPdf = false
     })
   }
+
+    imagePreviews: { [key: number]: string } = {};
+
+    loadImagePreview(fileId: number): void {
+      this.fileService.downloadFile(fileId).subscribe(blob => {
+        const url = URL.createObjectURL(blob);
+        this.imagePreviews[fileId] = url;
+  });
+}
 
 }

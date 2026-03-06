@@ -420,3 +420,10 @@
   padding: 0;
   border: none;
 }
+
+.preview-image{
+  max-width:200px;
+  margin-top:10px;
+  border-radius:6px;
+  border:1px solid #ddd;
+}
