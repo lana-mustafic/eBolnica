@@ -5,7 +5,6 @@ import { AuthService } from '../../../shared/services/auth.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { UpdatePatientDto } from '../../../models/update-patient.dto';
 import { Router } from '@angular/router';
 import { PatientFilterParams } from '../../../models/patient-filters.dto';
 import { Subject } from 'rxjs';
@@ -133,64 +132,8 @@ export class DoctorPatientsComponent {
     });
   }
 
-  closeForms() {
-    this.showAddForm = false;
-    this.showEditForm = false;
-    this.editingPatient = null;
-    this.patientForm.reset();
-    this.errorMessage = null;
-    this.successMessage = null;
-  }
-
   openMedicalRecord(patientId: number){
     this.router.navigate(['/medical-record', patientId]);
-  }
-
-  onSubmit() {
-    if (this.patientForm.valid) {
-      this.isLoading = true;
-      this.errorMessage = null;
-      this.successMessage = null;
-
-      const formValue = this.patientForm.value;
-
-      if (this.showEditForm && this.editingPatient) {
-        const updateDto: UpdatePatientDto = {
-          firstName: formValue.firstName,
-          lastName: formValue.lastName,
-          dateOfBirth: formValue.dateOfBirth || undefined,
-          gender: formValue.gender || undefined,
-          phoneNumber: formValue.phoneNumber || undefined,
-          address: formValue.address || undefined,
-          bloodType: formValue.bloodType || undefined,
-          recordNumber: formValue.recordNumber || undefined
-        };
-
-        this.doctorService.updatePatient(this.editingPatient.id, updateDto).subscribe({
-          next: () => {
-            this.isLoading = false;
-            this.successMessage = 'Patient updated successfully';
-            this.closeForms();
-            this.loadPatients();
-          },
-          error: (err) => {
-            this.isLoading = false;
-            if (err.error?.message) {
-              this.errorMessage = err.error.message;
-            } else if (err.error?.errors) {
-              const errors = Object.values(err.error.errors).flat();
-              this.errorMessage = errors.join(', ');
-            } else {
-              this.errorMessage = 'Error updating patient';
-            }
-          }
-        });
-      }
-    } else {
-      Object.keys(this.patientForm.controls).forEach(key => {
-        this.patientForm.get(key)?.markAsTouched();
-      });
-    }
   }
 
 }

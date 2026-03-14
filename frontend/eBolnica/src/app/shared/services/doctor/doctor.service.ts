@@ -44,10 +44,6 @@ export class DoctorService {
     return this.http.get<PagedResponse<DoctorAssignedPatientDto>>(this.apiUrl+'/list-patients', { params });
   }
 
-  updatePatient(patientId: number, patient: UpdatePatientDto): Observable<DoctorAssignedPatientDto> {
-    return this.http.put<DoctorAssignedPatientDto>(this.apiUrl+`/update-patient/${patientId}`, patient);
-  }
-  
   getAllDoctors(): Observable<DoctorListDto[]>{
     return this.http.get<DoctorListDto[]>(this.apiUrl+'/GetAllDoctors');
   }

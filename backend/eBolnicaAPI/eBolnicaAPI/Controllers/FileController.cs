@@ -1,7 +1,10 @@
-﻿using eBolnicaAPI.Services;
+﻿using eBolnicaAPI.Data;
+using eBolnicaAPI.Models.Entities;
+using eBolnicaAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace eBolnicaAPI.Controllers
@@ -12,10 +15,17 @@ namespace eBolnicaAPI.Controllers
     public class FileController : ControllerBase
     {
         private readonly IFileService _fileService;
-
-        public FileController(IFileService fileService)
+        private readonly AppDbContext _dbContext;
+        public FileController(IFileService fileService, AppDbContext dbcontext)
         {
             _fileService = fileService;
+            _dbContext = dbcontext;
+        }
+
+        private async Task<Doctor?> GetCurrentDoctor()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return await _dbContext.Doctors.FirstOrDefaultAsync(d => d.AppUserId == userId);
         }
 
         [HttpPost("upload")]
@@ -24,6 +34,13 @@ namespace eBolnicaAPI.Controllers
         {
             try
             {
+                var doctor = await GetCurrentDoctor();
+                if (doctor == null) return Forbid();
+
+                var patient = await _dbContext.Patients.FirstOrDefaultAsync(p => p.Id == patientId);
+                if (patient == null) return NotFound("Patient not found");
+                if (patient.DoctorId != doctor.Id) return Forbid();
+
                 if (file == null || file.Length == 0)
                     return BadRequest("No file uploaded");
 
@@ -52,6 +69,13 @@ namespace eBolnicaAPI.Controllers
         {
             try
             {
+                var doctor = await GetCurrentDoctor();
+                if (doctor == null) return Forbid();
+
+                var file = await _dbContext.Files.Include(f => f.Patient).FirstOrDefaultAsync(f => f.Id == id);
+                if (file == null) return NotFound("File not found");
+                if (file.Patient.DoctorId != doctor.Id) return Forbid();
+
                 var (fileBytes, contentType, fileName) = await _fileService.DownloadFileAsync(id);
                 return File(fileBytes, contentType, fileName);
             }
@@ -71,6 +95,13 @@ namespace eBolnicaAPI.Controllers
         {
             try
             {
+                var doctor = await GetCurrentDoctor();
+                if (doctor == null) return Forbid();
+
+                var file = await _dbContext.Files.Include(f => f.Patient).FirstOrDefaultAsync(f => f.Id == id);
+                if (file == null) return NotFound("File not found");
+                if (file.Patient.DoctorId != doctor.Id) return Forbid();
+
                 var result = await _fileService.DeleteFileAsync(id);
 
                 if (!result)
@@ -90,6 +121,13 @@ namespace eBolnicaAPI.Controllers
         {
             try
             {
+                var doctor = await GetCurrentDoctor();
+                if (doctor == null) return Forbid();
+
+                var patient = await _dbContext.Patients.FirstOrDefaultAsync(p => p.Id == patientId);
+                if (patient == null) return NotFound("Patient not found");
+                if (patient.DoctorId != doctor.Id) return Forbid();
+
                 var files = await _fileService.GetPatientFilesAsync(patientId);
                 return Ok(files);
             }

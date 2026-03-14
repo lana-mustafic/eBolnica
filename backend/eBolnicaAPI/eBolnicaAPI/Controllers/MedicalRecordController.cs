@@ -27,6 +27,12 @@ namespace eBolnicaAPI.Controllers
         [Authorize(Roles = "Doctor")]
         public async Task<IActionResult> GetMedicalRecordById(int id)
         {
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var doctor = await _dbContext.Doctors.FirstOrDefaultAsync(d => d.AppUserId == currentUserId);
+
+            if (doctor == null)
+                return Forbid();
+
             var patient = await _dbContext.Patients.Include(p => p.MedicalRecord).ThenInclude(mr=>mr.MedicalReports).Include(p=>p.AppUser).FirstOrDefaultAsync(p=>p.Id == id);
 
             if (patient == null)
@@ -38,6 +44,9 @@ namespace eBolnicaAPI.Controllers
             {
                 return NotFound("Medical record not found");
             }
+
+            if (patient.DoctorId != doctor.Id)
+                return Forbid();
 
             var records = new MedicalRecordDto
             {

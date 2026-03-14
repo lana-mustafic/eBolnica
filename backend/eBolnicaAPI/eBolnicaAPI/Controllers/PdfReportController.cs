@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using System.Security.Claims;
 
 namespace eBolnicaAPI.Controllers
 {
@@ -25,6 +26,12 @@ namespace eBolnicaAPI.Controllers
         [Authorize(Roles = "Doctor")]
         public async Task<IActionResult> GenerateMedicalRecordPdf(int medicalRecordId, [FromQuery] DateTime dateFrom, [FromQuery] DateTime dateTo)
         {
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.AppUserId == currentUserId);
+
+            if (doctor == null)
+                return Forbid();
+
             var medicalRecord = await _context.MedicalRecords.Include(mr => mr.Patient)
                 .Include(mr => mr.MedicalReports.Where(rep => rep.CreatedAt >= dateFrom && rep.CreatedAt <= dateTo))
                 .ThenInclude(rep => rep.Doctor).FirstOrDefaultAsync(mr => mr.Id == medicalRecordId);
@@ -33,6 +40,9 @@ namespace eBolnicaAPI.Controllers
             {
                 return NotFound(new { message = "Medical Record not found" });
             }
+
+            if (medicalRecord.Patient.DoctorId != doctor.Id)
+                return Forbid();
 
             var document = CreateMedicalRecordDocument(medicalRecord, dateFrom, dateTo);
             var pdfBytes = document.GeneratePdf();
