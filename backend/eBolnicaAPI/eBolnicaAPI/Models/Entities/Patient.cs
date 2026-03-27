@@ -35,6 +35,8 @@ namespace eBolnicaAPI.Models.Entities
 
         public bool? IsAdmitted { get; set; }
 
+        public string RegistrationStatus { get; set; } = "Pending";
+
         public virtual ICollection<FileEntity> Files { get; set; } = new List<FileEntity>();
     }
 }

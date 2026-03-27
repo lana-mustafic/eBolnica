@@ -30,59 +30,66 @@ namespace eBolnicaAPI.Controllers
             if (patientForRegistration == null || !ModelState.IsValid)
                 return BadRequest(ModelState);
 
+            using var transaction = await _dbcontext.Database.BeginTransactionAsync();
 
-            var doctor = await _dbcontext.Doctors.FindAsync(patientForRegistration.DoctorId);
-
-            if (doctor == null)
-                return BadRequest(new { message = "Doctor not found." });
-
-            var user = new AppUser
+            try
             {
-                Email = patientForRegistration.Email,
-                UserName = patientForRegistration.Email,
-                FirstName = patientForRegistration.FirstName,
-                LastName = patientForRegistration.LastName,
-                UserType = "Patient",
-            };
+                var user = new AppUser
+                {
+                    Email = patientForRegistration.Email,
+                    UserName = patientForRegistration.Email,
+                    FirstName = patientForRegistration.FirstName,
+                    LastName = patientForRegistration.LastName,
+                    UserType = "Patient",
+                };
 
-            var result = await _userManager.CreateAsync(user, patientForRegistration.Password);
+                var result = await _userManager.CreateAsync(user, patientForRegistration.Password);
 
-            if (!result.Succeeded)
-            {
-                return BadRequest(result.Errors);
+                if (!result.Succeeded)
+                {
+                    await transaction.RollbackAsync();
+                    return BadRequest(result.Errors);
+                }
+
+                user = await _userManager.FindByEmailAsync(user.Email);
+                if (user == null)
+                {
+                    await transaction.RollbackAsync();
+                    return BadRequest(new { message = "Failed to retrieve created user." });
+                }
+
+                var patient = new Patient
+                {
+                    AppUserId = user.Id,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    DoctorId = null,
+                    RegistrationStatus = "Pending",
+                    DateOfBirth = patientForRegistration.DateOfBirth,
+                    Gender = patientForRegistration.Gender
+                };
+
+                _dbcontext.Patients.Add(patient);
+                await _dbcontext.SaveChangesAsync();
+
+                var record = new MedicalRecord
+                {
+                    PatientId = patient.Id,
+                    RecordNumber = $"MR-{DateTime.UtcNow:yyyy}-{patient.Id}",
+                };
+
+                _dbcontext.MedicalRecords.Add(record);
+                await _dbcontext.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                return Ok(new { message = "Patient registered successfully" });
             }
-
-            // Refresh user to get the generated ID
-            user = await _userManager.FindByEmailAsync(user.Email);
-            if (user == null)
+            catch
             {
-                return BadRequest(new { message = "Failed to retrieve created user." });
+                await transaction.RollbackAsync();
+                return StatusCode(500, new { message = "An error occurred while registering the patient." });
             }
-
-            var patient = new Patient
-            {
-                AppUserId = user.Id,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                DoctorId = doctor.Id,
-                DateOfBirth = patientForRegistration.DateOfBirth,
-                Gender = patientForRegistration.Gender
-            };
-
-            _dbcontext.Patients.Add(patient);
-            await _dbcontext.SaveChangesAsync();
-
-            var record = new MedicalRecord
-            {
-                PatientId = patient.Id,
-                RecordNumber = $"MR-{DateTime.Now:yyyy}-{patient.Id}",
-            };
-
-            _dbcontext.MedicalRecords.Add(record);
-            await _dbcontext.SaveChangesAsync();
-
-            return Ok(new { message = "Patient registered successfully" });
-
         }
 
         [HttpPost("doctor-registration")]
@@ -91,53 +98,66 @@ namespace eBolnicaAPI.Controllers
             if (doctorForRegistration == null || !ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            bool licenseExist =await _dbcontext.Doctors.AnyAsync(d=>d.LicenseNumber==doctorForRegistration.LicenseNumber);
+            bool licenseExist = await _dbcontext.Doctors.AnyAsync(d => d.LicenseNumber == doctorForRegistration.LicenseNumber);
 
             if (licenseExist)
             {
                 var error = new IdentityError
                 {
                     Code = "LicenseNumberExists",
-                    Description="License Number is already in use."
+                    Description = "License Number is already in use."
                 };
 
                 return BadRequest(error);
             }
-            var user = new AppUser
-            {
-                Email = doctorForRegistration.Email,
-                UserName = doctorForRegistration.Email,
-                FirstName = doctorForRegistration.FirstName,
-                LastName = doctorForRegistration.LastName,
-                LicenseNumber = doctorForRegistration.LicenseNumber,
-                UserType = "Doctor"
-            };
 
-            var result = await _userManager.CreateAsync(user, doctorForRegistration.Password);
+            using var transaction = await _dbcontext.Database.BeginTransactionAsync();
 
-            if (!result.Succeeded)
+            try
             {
-                return BadRequest(result.Errors);
+                var user = new AppUser
+                {
+                    Email = doctorForRegistration.Email,
+                    UserName = doctorForRegistration.Email,
+                    FirstName = doctorForRegistration.FirstName,
+                    LastName = doctorForRegistration.LastName,
+                    LicenseNumber = doctorForRegistration.LicenseNumber,
+                    UserType = "Doctor"
+                };
+
+                var result = await _userManager.CreateAsync(user, doctorForRegistration.Password);
+
+                if (!result.Succeeded)
+                {
+                    await transaction.RollbackAsync();
+                    return BadRequest(result.Errors);
+                }
+
+                var doctor = new Doctor
+                {
+                    AppUserId = user.Id,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    LicenseNumber = user.LicenseNumber,
+                    RegistrationStatus = "Pending",
+                    BirthDate = doctorForRegistration.DateOfBirth,
+                    Gender = doctorForRegistration.Gender
+                };
+
+                _dbcontext.Doctors.Add(doctor);
+                await _dbcontext.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                return Ok(new { message = "Doctor registered successfully" });
             }
-
-            var doctor = new Doctor
+            catch
             {
-                AppUserId = user.Id,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                LicenseNumber= user.LicenseNumber,
-                RegistrationStatus="Pending",
-                BirthDate = doctorForRegistration.DateOfBirth,
-                Gender = doctorForRegistration.Gender
-            };
-
-            
-            _dbcontext.Doctors.Add(doctor);
-            await _dbcontext.SaveChangesAsync();
-
-            return Ok(new { message = "Doctor registered successfully" });
-
+                await transaction.RollbackAsync();
+                return StatusCode(500, new { message = "An error occurred while registering the doctor." });
+            }
         }
+
 
         [HttpPost("user-login")]
         public async Task<IActionResult> UserLogin([FromBody] UserLoginDto login)
@@ -148,7 +168,8 @@ namespace eBolnicaAPI.Controllers
             {
                 return Unauthorized("Invalid login attempt");
             }
-            if(user.UserType == "Doctor")
+
+            if (user.UserType == "Doctor")
             {
                 var doctor = await _dbcontext.Doctors.FirstOrDefaultAsync(d => d.AppUserId == user.Id);
 
@@ -157,6 +178,17 @@ namespace eBolnicaAPI.Controllers
                     return Forbid("Your account is not approved.");
                 }
             }
+
+            if (user.UserType == "Patient")
+            {
+                var patient = await _dbcontext.Patients.FirstOrDefaultAsync(p => p.AppUserId == user.Id);
+
+                if (patient == null || !string.Equals(patient.RegistrationStatus, "Approved", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Forbid("Your account is not approved.");
+                }
+            }
+
             var token = _jwtService.GenerateToken(user);
 
             return Ok(new {Token = token});

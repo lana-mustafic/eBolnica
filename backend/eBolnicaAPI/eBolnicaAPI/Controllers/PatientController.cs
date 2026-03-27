@@ -27,7 +27,6 @@ namespace eBolnicaAPI.Controllers
         public async Task<IActionResult> GetPatientData()
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            Console.WriteLine("Patient ID from token: " + userId);
 
             if (userId == null)
             {

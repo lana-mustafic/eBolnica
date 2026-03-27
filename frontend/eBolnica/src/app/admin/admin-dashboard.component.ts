@@ -67,7 +67,6 @@ export class AdminDashboardComponent implements OnInit{
 
   loadUsers(): void{
     this.adminService.getAllUsers(this.page, this.pageSize, this.userType?? undefined, this.currentSortBy, this.currentSortDirection).subscribe(res=>{
-      console.log("Backend response:", res);
       this.users=res.users;
       this.totalCount=res.totalCount;
     }
@@ -191,17 +190,28 @@ export class AdminDashboardComponent implements OnInit{
   return Math.ceil(this.totalCount / this.pageSize);
 }
 
-  changeStatus(user:any, status:string){
-    this.adminService.updateRegistrationStatus(user.appUserId, status).subscribe({
-      next: (res) =>{
-        user.registrationStatus = status;     
-        console.log(res.message);
-      },
-      error: (err) =>{
-        console.error(err.message);
-      } 
-    })
+  changeStatus(user: any, status: string) {
+  const request =
+    user.userType === 'Doctor'
+      ? this.adminService.updateRegistrationStatus(user.appUserId, status)
+      : user.userType === 'Patient'
+        ? this.adminService.updatePatientRegistrationStatus(user.appUserId, status)
+        : null;
+
+  if (!request) {
+    return;
   }
+
+  request.subscribe({
+    next: () => {
+      user.registrationStatus = status;
+    },
+    error: (err) => {
+      this.errorMessage = err.error?.message || 'Status update failed';
+    }
+  });
+}
+
 
   onLogout(): void{
       this.authService.logout();

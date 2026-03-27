@@ -4,9 +4,6 @@ import { AbstractControl, Form, FormBuilder, FormGroup, ReactiveFormsModule, Val
 import { AuthService } from '../../shared/services/auth.service';
 import { RouterModule } from '@angular/router';
 import { I18nService, Language } from '../../shared/services/i18n.service';
-import { DoctorService } from '../../shared/services/doctor/doctor.service';
-import { DoctorListDto } from '../../models/doctor-list.dto';
-
 
 @Component({
   selector: 'patient-registration',
@@ -25,17 +22,6 @@ export class RegistrationComponent implements OnInit{
   cdr = inject(ChangeDetectorRef);
   currentLanguage: Language = 'en';
   translationsLoaded = false;
- 
-  private doctorService = inject(DoctorService);
-
-   doctors: DoctorListDto[] =[];
-
-  loadDoctors(): void{
-    this.doctorService.getAllDoctors().subscribe({
-      next: (data) => this.doctors = data,
-      error: (err) => alert('Unable to load doctor list')
-    });
-  }
 
   passwordMatchValidator:ValidatorFn = (control:AbstractControl):null =>{
     const password = control.get('password')
@@ -59,14 +45,12 @@ export class RegistrationComponent implements OnInit{
                       Validators.minLength(6),
                       Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).+$/)]],
       confirmPassword: [''],
-      doctorId: ['', Validators.required], 
       dateOfBirth: ['', Validators.required],
       gender: ['', Validators.required]
     }, {validators:this.passwordMatchValidator});
   }
 
   ngOnInit(): void {
-    this.loadDoctors();
 
     // Set initial language
     this.currentLanguage = this.i18nService.getCurrentLanguageValue();
@@ -105,7 +89,6 @@ export class RegistrationComponent implements OnInit{
       this.errorMessage = null;
       this.authService.createPatient(this.form.value).subscribe({
         next: (response) => {
-          console.log('Success:', response);
           this.submitSuccess = this.t('patientRegistration.success.registrationSuccessful');
           this.form.reset();
         },

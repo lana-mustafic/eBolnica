@@ -33,20 +33,17 @@ namespace eBolnicaAPI.Controllers
             if (doctor == null)
                 return Forbid();
 
-            var patient = await _dbContext.Patients.Include(p => p.MedicalRecord).ThenInclude(mr=>mr.MedicalReports).Include(p=>p.AppUser).FirstOrDefaultAsync(p=>p.Id == id);
+            var patient = await _dbContext.Patients.Include(p => p.MedicalRecord).ThenInclude(mr=>mr.MedicalReports).Include(p=>p.AppUser).FirstOrDefaultAsync(p=>p.Id == id && p.DoctorId == doctor.Id);
 
             if (patient == null)
             {
-                return NotFound("Patient not found");
+                return NotFound("Patient not found or access denied");
             }
 
             if (patient.MedicalRecord == null)
             {
                 return NotFound("Medical record not found");
             }
-
-            if (patient.DoctorId != doctor.Id)
-                return Forbid();
 
             var records = new MedicalRecordDto
             {
@@ -95,10 +92,17 @@ namespace eBolnicaAPI.Controllers
                 return NotFound("Doctor profile not found for this user");
             }
 
+            var medicalRecord = await _dbContext.MedicalRecords
+                .Include(mr => mr.Patient)
+                .FirstOrDefaultAsync(mr => mr.Id == dto.MedicalRecordId && mr.Patient.DoctorId == doctor.Id);
+
+            if (medicalRecord == null)
+                return NotFound("Medical record not found or access denied");
+
             var report = new MedicalReport
             {
                 MedicalRecordId = dto.MedicalRecordId,
-                CreatedAt = DateTime.Now,
+                CreatedAt = DateTime.UtcNow,
                 DoctorId = doctor.Id,
                 Description = dto.Description,
                 Diagnosis = dto.Diagnosis,

@@ -36,24 +36,24 @@ namespace eBolnicaAPI.Services
             if (file == null || file.Length == 0)
                 throw new ArgumentException("File is empty");
 
-            // Generiši jedinstveno ime fajla
+            var patientExists = await _context.Patients.AnyAsync(p => p.Id == patientId);
+            if (!patientExists)
+                throw new ArgumentException("Patient does not exist");
+
             var fileName = $"{Guid.NewGuid()}_{file.FileName}";
             var filePath = Path.Combine(_uploadPath, fileName);
 
-            // Sačuvaj fajl na disk
             using(var stream = new FileStream(filePath, FileMode.Create)) 
             { 
                 await file.CopyToAsync(stream);
             }
-
-            // Sačuvaj u bazu
             var fileEntity = new FileEntity
             {
                 FileName = file.FileName,
                 FilePath = filePath,
                 ContentType = file.ContentType,
                 FileSize = file.Length,
-                UploadedAt = DateTime.Now,
+                UploadedAt = DateTime.UtcNow,
                 PatientId = patientId,
             };
 
@@ -64,7 +64,6 @@ namespace eBolnicaAPI.Services
             {
                 Id = fileEntity.Id,
                 FileName = fileEntity.FileName,
-                FilePath = fileEntity.FilePath,
                 ContentType = fileEntity.ContentType,
                 FileSize = fileEntity.FileSize,
                 UploadedAt = fileEntity.UploadedAt,

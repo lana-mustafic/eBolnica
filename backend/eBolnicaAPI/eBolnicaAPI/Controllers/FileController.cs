@@ -37,18 +37,30 @@ namespace eBolnicaAPI.Controllers
                 var doctor = await GetCurrentDoctor();
                 if (doctor == null) return Forbid();
 
-                var patient = await _dbContext.Patients.FirstOrDefaultAsync(p => p.Id == patientId);
-                if (patient == null) return NotFound("Patient not found");
-                if (patient.DoctorId != doctor.Id) return Forbid();
+                var patient = await _dbContext.Patients
+                .FirstOrDefaultAsync(p => p.Id == patientId && p.DoctorId == doctor.Id);
+                if (patient == null) return NotFound("Patient not found or access denied");
 
                 if (file == null || file.Length == 0)
                     return BadRequest("No file uploaded");
 
                 var allowedExtensions = new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" };
+                var allowedContentTypes = new[]
+                {
+                    "application/pdf",
+                    "image/jpeg",
+                    "image/png",
+                    "application/msword",
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                };
+
                 var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
 
                 if (!allowedExtensions.Contains(extension))
                     return BadRequest("File type not allowed");
+
+                if (!allowedContentTypes.Contains(file.ContentType))
+                    return BadRequest("File content type not allowed");
 
                 if (file.Length > 10 * 1024 * 1024)
                     return BadRequest("File size exceeds limit (10MB)");
@@ -57,9 +69,9 @@ namespace eBolnicaAPI.Controllers
 
                 return Ok(result);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, $"Error uploading file: {ex.Message}");
+                return StatusCode(500, new { message = "An error occurred while processing your request." });
             }
         }
 
@@ -72,9 +84,10 @@ namespace eBolnicaAPI.Controllers
                 var doctor = await GetCurrentDoctor();
                 if (doctor == null) return Forbid();
 
-                var file = await _dbContext.Files.Include(f => f.Patient).FirstOrDefaultAsync(f => f.Id == id);
-                if (file == null) return NotFound("File not found");
-                if (file.Patient.DoctorId != doctor.Id) return Forbid();
+                var file = await _dbContext.Files
+                .Include(f => f.Patient)
+                .FirstOrDefaultAsync(f => f.Id == id && f.Patient.DoctorId == doctor.Id);
+                if (file == null) return NotFound("File not found or access denied");
 
                 var (fileBytes, contentType, fileName) = await _fileService.DownloadFileAsync(id);
                 return File(fileBytes, contentType, fileName);
@@ -83,9 +96,9 @@ namespace eBolnicaAPI.Controllers
             {
                 return NotFound("File not found");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, $"Error downloading file: {ex.Message}");
+                return StatusCode(500, new { message = "An error occurred while processing your request." });
             }
         }
 
@@ -98,9 +111,10 @@ namespace eBolnicaAPI.Controllers
                 var doctor = await GetCurrentDoctor();
                 if (doctor == null) return Forbid();
 
-                var file = await _dbContext.Files.Include(f => f.Patient).FirstOrDefaultAsync(f => f.Id == id);
-                if (file == null) return NotFound("File not found");
-                if (file.Patient.DoctorId != doctor.Id) return Forbid();
+                var file = await _dbContext.Files
+                 .Include(f => f.Patient)
+                 .FirstOrDefaultAsync(f => f.Id == id && f.Patient.DoctorId == doctor.Id);
+                if (file == null) return NotFound("File not found or access denied");
 
                 var result = await _fileService.DeleteFileAsync(id);
 
@@ -109,9 +123,9 @@ namespace eBolnicaAPI.Controllers
 
                 return Ok(new { message = "File deleted successfully" });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, $"Error deleting file: {ex.Message}");
+                return StatusCode(500, new { message = "An error occurred while processing your request." });
             }
         }
 
@@ -124,16 +138,16 @@ namespace eBolnicaAPI.Controllers
                 var doctor = await GetCurrentDoctor();
                 if (doctor == null) return Forbid();
 
-                var patient = await _dbContext.Patients.FirstOrDefaultAsync(p => p.Id == patientId);
-                if (patient == null) return NotFound("Patient not found");
-                if (patient.DoctorId != doctor.Id) return Forbid();
+                var patient = await _dbContext.Patients
+                .FirstOrDefaultAsync(p => p.Id == patientId && p.DoctorId == doctor.Id);
+                if (patient == null) return NotFound("Patient not found or access denied");
 
                 var files = await _fileService.GetPatientFilesAsync(patientId);
                 return Ok(files);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, $"Error retrieving files: {ex.Message}");
+                return StatusCode(500, new { message = "An error occurred while processing your request." });
             }
 
         }

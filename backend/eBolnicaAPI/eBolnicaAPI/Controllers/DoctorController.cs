@@ -63,7 +63,7 @@ namespace eBolnicaAPI.Controllers
         }
 
         [HttpPut("edit-doctor")]
-        [Authorize(Roles="Doctor")]
+        [Authorize(Roles = "Doctor")]
         public async Task<IActionResult> EditDoctor([FromBody] DoctorUpdateDto UpdatedDoctorDto)
         {
             var doctorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -73,32 +73,31 @@ namespace eBolnicaAPI.Controllers
                 return Unauthorized();
             }
 
-
-            var existingDoctor = await _dbContext.Doctors.Include(d => d.AppUser).FirstOrDefaultAsync(d=>d.AppUserId==doctorId);
+            var existingDoctor = await _dbContext.Doctors
+                .Include(d => d.AppUser)
+                .FirstOrDefaultAsync(d => d.AppUserId == doctorId);
 
             if (existingDoctor == null)
             {
                 return NotFound();
             }
 
-            existingDoctor.FirstName= UpdatedDoctorDto.FirstName;
-            existingDoctor.LastName= UpdatedDoctorDto.LastName;
-            existingDoctor.PhoneNumber= UpdatedDoctorDto.PhoneNumber;
-            existingDoctor.Address= UpdatedDoctorDto.Address;
-            existingDoctor.Specialization= UpdatedDoctorDto.Specialization;
-
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
-
             }
+
+            existingDoctor.FirstName = UpdatedDoctorDto.FirstName;
+            existingDoctor.LastName = UpdatedDoctorDto.LastName;
+            existingDoctor.PhoneNumber = UpdatedDoctorDto.PhoneNumber;
+            existingDoctor.Address = UpdatedDoctorDto.Address;
+            existingDoctor.Specialization = UpdatedDoctorDto.Specialization;
 
             await _dbContext.SaveChangesAsync();
 
-
             return Ok(UpdatedDoctorDto);
-
         }
+
 
         [HttpGet("list-patients")]
         [Authorize(Roles ="Doctor")]
@@ -175,20 +174,6 @@ namespace eBolnicaAPI.Controllers
             return Ok(response);
         }
 
-        [HttpGet("GetAllDoctors")]
-        public async Task<IActionResult> GetDoctors()
-        {
-
-            var doctors = await _dbContext.Doctors.Select(d => new DoctorListDto
-            {
-                Id = d.Id,
-                FirstName = d.FirstName,
-                LastName = d.LastName,
-            }).ToListAsync();
-
-            return Ok(doctors);
-        }
-
         [HttpGet("doctor-stats")]
         [Authorize(Roles = "Doctor")]
         public async Task<IActionResult> ShowDoctorStats()
@@ -207,9 +192,9 @@ namespace eBolnicaAPI.Controllers
                 return NotFound();
             }
 
-            var lastMonth = DateTime.Now.AddMonths(-1);
-            var now = DateTime.Now;
-            var monthStart = new DateTime(now.Year, now.Month, 1);
+            var now = DateTime.UtcNow;
+            var lastMonth = now.AddMonths(-1);
+            var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
 
             var stats = new DoctorDashboardStatsDto
             {
@@ -247,7 +232,7 @@ namespace eBolnicaAPI.Controllers
 
         private async Task<List<MonthlyTrendDto>> GetMonthlyReportTrend(int doctorId, int months)
         {
-            var startDate = DateTime.Now.AddMonths(-months);
+            var startDate = DateTime.UtcNow.AddMonths(-months);
 
             var results = await _dbContext.MedicalReports.Where(r => r.MedicalRecord.Patient.DoctorId == doctorId && r.CreatedAt >= startDate)
                 .GroupBy(r => new { r.CreatedAt.Year, r.CreatedAt.Month })

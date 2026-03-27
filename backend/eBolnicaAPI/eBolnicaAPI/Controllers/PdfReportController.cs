@@ -34,20 +34,17 @@ namespace eBolnicaAPI.Controllers
 
             var medicalRecord = await _context.MedicalRecords.Include(mr => mr.Patient)
                 .Include(mr => mr.MedicalReports.Where(rep => rep.CreatedAt >= dateFrom && rep.CreatedAt <= dateTo))
-                .ThenInclude(rep => rep.Doctor).FirstOrDefaultAsync(mr => mr.Id == medicalRecordId);
+                .ThenInclude(rep => rep.Doctor).FirstOrDefaultAsync(mr => mr.Id == medicalRecordId && mr.Patient.DoctorId == doctor.Id);
 
             if(medicalRecord == null)
             {
-                return NotFound(new { message = "Medical Record not found" });
+                return NotFound(new { message = "Medical Record not found or access denied" });
             }
-
-            if (medicalRecord.Patient.DoctorId != doctor.Id)
-                return Forbid();
 
             var document = CreateMedicalRecordDocument(medicalRecord, dateFrom, dateTo);
             var pdfBytes = document.GeneratePdf();
 
-            var fileName = $"MedicalRecord_{medicalRecord.RecordNumber}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+            var fileName = $"MedicalRecord_{medicalRecord.RecordNumber}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf";
             return File(pdfBytes, "application/pdf", fileName);
             
         }
@@ -136,7 +133,7 @@ namespace eBolnicaAPI.Controllers
                 row.ConstantItem(150).AlignRight().Text(text =>
                 {
                     text.Span("Generated: ").FontSize(10).FontColor(Colors.Grey.Darken1);
-                    text.Span(DateTime.Now.ToString("dd.MM.yyyy HH:mm")).Bold().FontSize(10);
+                    text.Span(DateTime.UtcNow.ToString("dd.MM.yyyy HH:mm")).Bold().FontSize(10);
                 });
             });
         }

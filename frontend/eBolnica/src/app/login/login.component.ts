@@ -31,12 +31,10 @@ export class LoginComponent {
     onLogin(){
         this.authService.login(this.loginData.email,this.loginData.password).subscribe({
           next: (res) => {
-            console.log('User logged', res);
             const token = res.Token || res.token;
             localStorage.setItem('jwtToken', token); 
             
             const role = this.authService.getUserType();
-            console.log('User role:', role);
 
             if(role==='Admin'){
               this.router.navigateByUrl('/admin-dashboard');
@@ -52,7 +50,6 @@ export class LoginComponent {
             }
           },
           error: (err) =>{
-            console.log('Login failed', err)
             if(err.status === 401){
               this.errorMessage ='Incorrect email or password';
             } else if(err.status === 403){
