@@ -55,7 +55,6 @@ export class DoctorRegistrationComponent {
       this.errorMessage=null;
       this.authService.createDoctor(this.form.value).subscribe({
         next:(response)=>{
-          console.log('Success', response);
           this.submitSuccess="Registration successful (Approval pending)";
           this.form.reset();
         },

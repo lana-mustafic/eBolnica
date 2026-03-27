@@ -12,7 +12,7 @@
 
         public Doctor Doctor { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public string? Diagnosis { get; set; }
 

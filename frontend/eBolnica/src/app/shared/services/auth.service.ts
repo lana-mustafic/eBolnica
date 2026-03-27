@@ -45,7 +45,6 @@ export class AuthService {
 
     try{
         const decoded = jwtDecode<JwtTokenPayload>(token);
-        console.log('Decoded JWT:', decoded);
         return decoded.role;
     }
     catch{
@@ -64,7 +63,6 @@ export class AuthService {
 
   roleCheck(userRole: string): boolean {
   const expectedRole = this.getUserType();
-  console.log('roleCheck → required:', userRole, ' user has:', expectedRole);
   return expectedRole === userRole;
   }
 

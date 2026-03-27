@@ -55,7 +55,7 @@
           <td>{{ user.userType }}</td>
           <td>{{ user?.registrationStatus || 'N/A' }}</td>
           <td>
-            <ng-container *ngIf="user.userType === 'Doctor'">
+            <ng-container *ngIf="user.userType === 'Doctor' || user.userType === 'Patient'">
               <button class="btn btn-sm btn-outline-success me-1"
                       (click)="changeStatus(user, 'Approved')"
                       [disabled]="user?.registrationStatus === 'Approved'">Approve</button>

@@ -190,10 +190,9 @@ namespace eBolnicaAPI.Data
                 AccessFailedCount = 0,
                 UserType = "Admin",
                 LicenseNumber = null,
-                ConcurrencyStamp = "fixed-guid-3",
-                SecurityStamp = "fixed-guid-3"
+                ConcurrencyStamp = "a0b1c2d3-e4f5-4001-8001-000000000001",
+                SecurityStamp = "a0b1c2d3-e4f5-4001-8002-000000000001"
             };
-
 
             var doctor1 = new AppUser
             {
@@ -212,8 +211,8 @@ namespace eBolnicaAPI.Data
                 AccessFailedCount = 0,
                 UserType = "Doctor",
                 LicenseNumber = "L1",
-                ConcurrencyStamp = "fixed-guid-1",
-                SecurityStamp = "fixed-guid-2"
+                ConcurrencyStamp = "a0b1c2d3-e4f5-4002-8001-000000000002",
+                SecurityStamp = "a0b1c2d3-e4f5-4002-8002-000000000002"
             };
 
             var doctor2 = new AppUser
@@ -233,8 +232,8 @@ namespace eBolnicaAPI.Data
                 AccessFailedCount = 0,
                 UserType = "Doctor",
                 LicenseNumber = "L2",
-                ConcurrencyStamp = "fixed-guid-1",
-                SecurityStamp = "fixed-guid-2"
+                ConcurrencyStamp = "a0b1c2d3-e4f5-4003-8001-000000000003",
+                SecurityStamp = "a0b1c2d3-e4f5-4003-8002-000000000003"
             };
 
             var doctor3 = new AppUser
@@ -254,8 +253,8 @@ namespace eBolnicaAPI.Data
                 AccessFailedCount = 0,
                 UserType = "Doctor",
                 LicenseNumber = "L3",
-                ConcurrencyStamp = "fixed-guid-1",
-                SecurityStamp = "fixed-guid-2"
+                ConcurrencyStamp = "a0b1c2d3-e4f5-4004-8001-000000000004",
+                SecurityStamp = "a0b1c2d3-e4f5-4004-8002-000000000004"
             };
 
             var patient1 = new AppUser
@@ -275,8 +274,8 @@ namespace eBolnicaAPI.Data
                 AccessFailedCount = 0,
                 UserType = "Patient",
                 LicenseNumber = null,
-                ConcurrencyStamp = "fixed-guid-1",
-                SecurityStamp = "fixed-guid-2"
+                ConcurrencyStamp = "a0b1c2d3-e4f5-4005-8001-000000000005",
+                SecurityStamp = "a0b1c2d3-e4f5-4005-8002-000000000005"
             };
 
             var patient2 = new AppUser
@@ -296,8 +295,8 @@ namespace eBolnicaAPI.Data
                 AccessFailedCount = 0,
                 UserType = "Patient",
                 LicenseNumber = null,
-                ConcurrencyStamp = "fixed-guid-1",
-                SecurityStamp = "fixed-guid-2"
+                ConcurrencyStamp = "a0b1c2d3-e4f5-4006-8001-000000000006",
+                SecurityStamp = "a0b1c2d3-e4f5-4006-8002-000000000006"
             };
 
             var patient3 = new AppUser
@@ -317,8 +316,8 @@ namespace eBolnicaAPI.Data
                 AccessFailedCount = 0,
                 UserType = "Patient",
                 LicenseNumber = null,
-                ConcurrencyStamp = "fixed-guid-1",
-                SecurityStamp = "fixed-guid-2"
+                ConcurrencyStamp = "a0b1c2d3-e4f5-4007-8001-000000000007",
+                SecurityStamp = "a0b1c2d3-e4f5-4007-8002-000000000007"
             };
 
             var patient4 = new AppUser
@@ -338,8 +337,8 @@ namespace eBolnicaAPI.Data
                 AccessFailedCount = 0,
                 UserType = "Patient",
                 LicenseNumber = null,
-                ConcurrencyStamp = "fixed-guid-1",
-                SecurityStamp = "fixed-guid-2"
+                ConcurrencyStamp = "a0b1c2d3-e4f5-4008-8001-000000000008",
+                SecurityStamp = "a0b1c2d3-e4f5-4008-8002-000000000008"
             };
 
             var patient5 = new AppUser
@@ -359,8 +358,8 @@ namespace eBolnicaAPI.Data
                 AccessFailedCount = 0,
                 UserType = "Patient",
                 LicenseNumber = null,
-                ConcurrencyStamp = "fixed-guid-1",
-                SecurityStamp = "fixed-guid-2"
+                ConcurrencyStamp = "a0b1c2d3-e4f5-4009-8001-000000000009",
+                SecurityStamp = "a0b1c2d3-e4f5-4009-8002-000000000009"
             };
 
             var patient6 = new AppUser
@@ -380,8 +379,8 @@ namespace eBolnicaAPI.Data
                 AccessFailedCount = 0,
                 UserType = "Patient",
                 LicenseNumber = null,
-                ConcurrencyStamp = "fixed-guid-1",
-                SecurityStamp = "fixed-guid-2"
+                ConcurrencyStamp = "a0b1c2d3-e4f5-4010-8001-000000000010",
+                SecurityStamp = "a0b1c2d3-e4f5-4010-8002-000000000010"
             };
 
             var patient7 = new AppUser
@@ -401,8 +400,8 @@ namespace eBolnicaAPI.Data
                 AccessFailedCount = 0,
                 UserType = "Patient",
                 LicenseNumber = null,
-                ConcurrencyStamp = "fixed-guid-1",
-                SecurityStamp = "fixed-guid-2"
+                ConcurrencyStamp = "a0b1c2d3-e4f5-4011-8001-000000000011",
+                SecurityStamp = "a0b1c2d3-e4f5-4011-8002-000000000011"
             };
 
             var patient8 = new AppUser
@@ -422,8 +421,8 @@ namespace eBolnicaAPI.Data
                 AccessFailedCount = 0,
                 UserType = "Patient",
                 LicenseNumber = null,
-                ConcurrencyStamp = "fixed-guid-1",
-                SecurityStamp = "fixed-guid-2"
+                ConcurrencyStamp = "a0b1c2d3-e4f5-4012-8001-000000000012",
+                SecurityStamp = "a0b1c2d3-e4f5-4012-8002-000000000012"
             };
 
             var patient9 = new AppUser
@@ -443,8 +442,8 @@ namespace eBolnicaAPI.Data
                 AccessFailedCount = 0,
                 UserType = "Patient",
                 LicenseNumber = null,
-                ConcurrencyStamp = "fixed-guid-1",
-                SecurityStamp = "fixed-guid-2"
+                ConcurrencyStamp = "a0b1c2d3-e4f5-4013-8001-000000000013",
+                SecurityStamp = "a0b1c2d3-e4f5-4013-8002-000000000013"
             };
 
             var patient10 = new AppUser
@@ -464,8 +463,8 @@ namespace eBolnicaAPI.Data
                 AccessFailedCount = 0,
                 UserType = "Patient",
                 LicenseNumber = null,
-                ConcurrencyStamp = "fixed-guid-1",
-                SecurityStamp = "fixed-guid-2"
+                ConcurrencyStamp = "a0b1c2d3-e4f5-4014-8001-000000000014",
+                SecurityStamp = "a0b1c2d3-e4f5-4014-8002-000000000014"
             };
 
             var patient11 = new AppUser
@@ -485,8 +484,8 @@ namespace eBolnicaAPI.Data
                 AccessFailedCount = 0,
                 UserType = "Patient",
                 LicenseNumber = null,
-                ConcurrencyStamp = "fixed-guid-1",
-                SecurityStamp = "fixed-guid-2"
+                ConcurrencyStamp = "a0b1c2d3-e4f5-4015-8001-000000000015",
+                SecurityStamp = "a0b1c2d3-e4f5-4015-8002-000000000015"
             };
 
             var patient12 = new AppUser
@@ -506,8 +505,8 @@ namespace eBolnicaAPI.Data
                 AccessFailedCount = 0,
                 UserType = "Patient",
                 LicenseNumber = null,
-                ConcurrencyStamp = "fixed-guid-1",
-                SecurityStamp = "fixed-guid-2"
+                ConcurrencyStamp = "a0b1c2d3-e4f5-4016-8001-000000000016",
+                SecurityStamp = "a0b1c2d3-e4f5-4016-8002-000000000016"
             };
 
             var pharmacist1 = new AppUser
@@ -527,9 +526,10 @@ namespace eBolnicaAPI.Data
                 AccessFailedCount = 0,
                 UserType = "Pharmacist",
                 LicenseNumber = "PH-L1",
-                ConcurrencyStamp = "fixed-guid-1",
-                SecurityStamp = "fixed-guid-2"
+                ConcurrencyStamp = "a0b1c2d3-e4f5-4017-8001-000000000017",
+                SecurityStamp = "a0b1c2d3-e4f5-4017-8002-000000000017"
             };
+
 
             modelBuilder.Entity<AppUser>().HasData(admin, doctor1, doctor2, doctor3, patient1, patient2, patient3, patient4, patient5, patient6, patient7, patient8, patient9, patient10, patient11, patient12, pharmacist1);
 

@@ -38,7 +38,6 @@ export class DoctorProfileEditComponent {
     if(this.form.valid){
       this.doctorService.editDoctorData(this.form.value).subscribe({
         next: (res) =>{
-          console.log("Doctor info updated", res);
           this.dialogRef.close(true);
         },
         error: (err) =>{

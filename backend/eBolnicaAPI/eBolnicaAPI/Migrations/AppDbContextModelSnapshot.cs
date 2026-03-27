@@ -239,7 +239,7 @@ namespace eBolnicaAPI.Migrations
                         {
                             Id = "a1",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-3",
+                            ConcurrencyStamp = "a0b1c2d3-e4f5-4001-8001-000000000001",
                             Email = "admin@gmail.com",
                             EmailConfirmed = true,
                             FirstName = "Admin",
@@ -249,7 +249,7 @@ namespace eBolnicaAPI.Migrations
                             NormalizedUserName = "ADMIN@GMAIL.COM",
                             PhoneNumber = "061000000",
                             PhoneNumberConfirmed = true,
-                            SecurityStamp = "fixed-guid-3",
+                            SecurityStamp = "a0b1c2d3-e4f5-4001-8002-000000000001",
                             TwoFactorEnabled = false,
                             UserName = "admin@gmail.com",
                             UserType = "Admin"
@@ -258,7 +258,7 @@ namespace eBolnicaAPI.Migrations
                         {
                             Id = "d1",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
+                            ConcurrencyStamp = "a0b1c2d3-e4f5-4002-8001-000000000002",
                             Email = "marko@gmail.com",
                             EmailConfirmed = false,
                             FirstName = "Marko",
@@ -269,7 +269,7 @@ namespace eBolnicaAPI.Migrations
                             NormalizedUserName = "MARKO@GMAIL.COM",
                             PhoneNumber = "061100100",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
+                            SecurityStamp = "a0b1c2d3-e4f5-4002-8002-000000000002",
                             TwoFactorEnabled = false,
                             UserName = "marko@gmail.com",
                             UserType = "Doctor"
@@ -278,7 +278,7 @@ namespace eBolnicaAPI.Migrations
                         {
                             Id = "d2",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
+                            ConcurrencyStamp = "a0b1c2d3-e4f5-4003-8001-000000000003",
                             Email = "senad@gmail.com",
                             EmailConfirmed = false,
                             FirstName = "Senad",
@@ -289,7 +289,7 @@ namespace eBolnicaAPI.Migrations
                             NormalizedUserName = "SENAD@GMAIL.COM",
                             PhoneNumber = "061100101",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
+                            SecurityStamp = "a0b1c2d3-e4f5-4003-8002-000000000003",
                             TwoFactorEnabled = false,
                             UserName = "senad@gmail.com",
                             UserType = "Doctor"
@@ -298,7 +298,7 @@ namespace eBolnicaAPI.Migrations
                         {
                             Id = "d3",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
+                            ConcurrencyStamp = "a0b1c2d3-e4f5-4004-8001-000000000004",
                             Email = "petar@gmail.com",
                             EmailConfirmed = false,
                             FirstName = "Petar",
@@ -309,7 +309,7 @@ namespace eBolnicaAPI.Migrations
                             NormalizedUserName = "PETAR@GMAIL.COM",
                             PhoneNumber = "061100102",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
+                            SecurityStamp = "a0b1c2d3-e4f5-4004-8002-000000000004",
                             TwoFactorEnabled = false,
                             UserName = "petar@gmail.com",
                             UserType = "Doctor"
@@ -318,7 +318,7 @@ namespace eBolnicaAPI.Migrations
                         {
                             Id = "p1",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
+                            ConcurrencyStamp = "a0b1c2d3-e4f5-4005-8001-000000000005",
                             Email = "ismet@gmail.com",
                             EmailConfirmed = false,
                             FirstName = "Ismet",
@@ -328,7 +328,7 @@ namespace eBolnicaAPI.Migrations
                             NormalizedUserName = "ISMET@GMAIL.COM",
                             PhoneNumber = "061100103",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
+                            SecurityStamp = "a0b1c2d3-e4f5-4005-8002-000000000005",
                             TwoFactorEnabled = false,
                             UserName = "ismet@gmail.com",
                             UserType = "Patient"
@@ -337,7 +337,7 @@ namespace eBolnicaAPI.Migrations
                         {
                             Id = "p2",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
+                            ConcurrencyStamp = "a0b1c2d3-e4f5-4006-8001-000000000006",
                             Email = "elon@gmail.com",
                             EmailConfirmed = false,
                             FirstName = "Elon",
@@ -347,7 +347,7 @@ namespace eBolnicaAPI.Migrations
                             NormalizedUserName = "ELON@GMAIL.COM",
                             PhoneNumber = "061100104",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
+                            SecurityStamp = "a0b1c2d3-e4f5-4006-8002-000000000006",
                             TwoFactorEnabled = false,
                             UserName = "elon@gmail.com",
                             UserType = "Patient"
@@ -356,7 +356,7 @@ namespace eBolnicaAPI.Migrations
                         {
                             Id = "p3",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
+                            ConcurrencyStamp = "a0b1c2d3-e4f5-4007-8001-000000000007",
                             Email = "peter@gmail.com",
                             EmailConfirmed = false,
                             FirstName = "Peter",
@@ -366,7 +366,7 @@ namespace eBolnicaAPI.Migrations
                             NormalizedUserName = "PETER@GMAIL.COM",
                             PhoneNumber = "061100105",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
+                            SecurityStamp = "a0b1c2d3-e4f5-4007-8002-000000000007",
                             TwoFactorEnabled = false,
                             UserName = "peter@gmail.com",
                             UserType = "Patient"
@@ -375,7 +375,7 @@ namespace eBolnicaAPI.Migrations
                         {
                             Id = "p4",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
+                            ConcurrencyStamp = "a0b1c2d3-e4f5-4008-8001-000000000008",
                             Email = "ana@gmail.com",
                             EmailConfirmed = false,
                             FirstName = "Ana",
@@ -385,7 +385,7 @@ namespace eBolnicaAPI.Migrations
                             NormalizedUserName = "ANA@GMAIL.COM",
                             PhoneNumber = "061100106",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
+                            SecurityStamp = "a0b1c2d3-e4f5-4008-8002-000000000008",
                             TwoFactorEnabled = false,
                             UserName = "ana@gmail.com",
                             UserType = "Patient"
@@ -394,7 +394,7 @@ namespace eBolnicaAPI.Migrations
                         {
                             Id = "p5",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
+                            ConcurrencyStamp = "a0b1c2d3-e4f5-4009-8001-000000000009",
                             Email = "marko.patient@gmail.com",
                             EmailConfirmed = false,
                             FirstName = "Marko",
@@ -404,7 +404,7 @@ namespace eBolnicaAPI.Migrations
                             NormalizedUserName = "MARKO.PATIENT@GMAIL.COM",
                             PhoneNumber = "061100107",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
+                            SecurityStamp = "a0b1c2d3-e4f5-4009-8002-000000000009",
                             TwoFactorEnabled = false,
                             UserName = "marko.patient@gmail.com",
                             UserType = "Patient"
@@ -413,7 +413,7 @@ namespace eBolnicaAPI.Migrations
                         {
                             Id = "p6",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
+                            ConcurrencyStamp = "a0b1c2d3-e4f5-4010-8001-000000000010",
                             Email = "sara@gmail.com",
                             EmailConfirmed = false,
                             FirstName = "Sara",
@@ -423,7 +423,7 @@ namespace eBolnicaAPI.Migrations
                             NormalizedUserName = "SARA@GMAIL.COM",
                             PhoneNumber = "061100108",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
+                            SecurityStamp = "a0b1c2d3-e4f5-4010-8002-000000000010",
                             TwoFactorEnabled = false,
                             UserName = "sara@gmail.com",
                             UserType = "Patient"
@@ -432,7 +432,7 @@ namespace eBolnicaAPI.Migrations
                         {
                             Id = "p7",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
+                            ConcurrencyStamp = "a0b1c2d3-e4f5-4011-8001-000000000011",
                             Email = "nikola@gmail.com",
                             EmailConfirmed = false,
                             FirstName = "Nikola",
@@ -442,7 +442,7 @@ namespace eBolnicaAPI.Migrations
                             NormalizedUserName = "NIKOLA@GMAIL.COM",
                             PhoneNumber = "061100109",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
+                            SecurityStamp = "a0b1c2d3-e4f5-4011-8002-000000000011",
                             TwoFactorEnabled = false,
                             UserName = "nikola@gmail.com",
                             UserType = "Patient"
@@ -451,7 +451,7 @@ namespace eBolnicaAPI.Migrations
                         {
                             Id = "p8",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
+                            ConcurrencyStamp = "a0b1c2d3-e4f5-4012-8001-000000000012",
                             Email = "jovana@gmail.com",
                             EmailConfirmed = false,
                             FirstName = "Jovana",
@@ -461,7 +461,7 @@ namespace eBolnicaAPI.Migrations
                             NormalizedUserName = "JOVANA@GMAIL.COM",
                             PhoneNumber = "061100110",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
+                            SecurityStamp = "a0b1c2d3-e4f5-4012-8002-000000000012",
                             TwoFactorEnabled = false,
                             UserName = "jovana@gmail.com",
                             UserType = "Patient"
@@ -470,7 +470,7 @@ namespace eBolnicaAPI.Migrations
                         {
                             Id = "p9",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
+                            ConcurrencyStamp = "a0b1c2d3-e4f5-4013-8001-000000000013",
                             Email = "stefan@gmail.com",
                             EmailConfirmed = false,
                             FirstName = "Stefan",
@@ -480,7 +480,7 @@ namespace eBolnicaAPI.Migrations
                             NormalizedUserName = "STEFAN@GMAIL.COM",
                             PhoneNumber = "061100111",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
+                            SecurityStamp = "a0b1c2d3-e4f5-4013-8002-000000000013",
                             TwoFactorEnabled = false,
                             UserName = "stefan@gmail.com",
                             UserType = "Patient"
@@ -489,7 +489,7 @@ namespace eBolnicaAPI.Migrations
                         {
                             Id = "p10",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
+                            ConcurrencyStamp = "a0b1c2d3-e4f5-4014-8001-000000000014",
                             Email = "milica@gmail.com",
                             EmailConfirmed = false,
                             FirstName = "Milica",
@@ -499,7 +499,7 @@ namespace eBolnicaAPI.Migrations
                             NormalizedUserName = "MILICA@GMAIL.COM",
                             PhoneNumber = "061100112",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
+                            SecurityStamp = "a0b1c2d3-e4f5-4014-8002-000000000014",
                             TwoFactorEnabled = false,
                             UserName = "milica@gmail.com",
                             UserType = "Patient"
@@ -508,7 +508,7 @@ namespace eBolnicaAPI.Migrations
                         {
                             Id = "p11",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
+                            ConcurrencyStamp = "a0b1c2d3-e4f5-4015-8001-000000000015",
                             Email = "luka@gmail.com",
                             EmailConfirmed = false,
                             FirstName = "Luka",
@@ -518,7 +518,7 @@ namespace eBolnicaAPI.Migrations
                             NormalizedUserName = "LUKA@GMAIL.COM",
                             PhoneNumber = "061100113",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
+                            SecurityStamp = "a0b1c2d3-e4f5-4015-8002-000000000015",
                             TwoFactorEnabled = false,
                             UserName = "luka@gmail.com",
                             UserType = "Patient"
@@ -527,7 +527,7 @@ namespace eBolnicaAPI.Migrations
                         {
                             Id = "p12",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
+                            ConcurrencyStamp = "a0b1c2d3-e4f5-4016-8001-000000000016",
                             Email = "teodora@gmail.com",
                             EmailConfirmed = false,
                             FirstName = "Teodora",
@@ -537,7 +537,7 @@ namespace eBolnicaAPI.Migrations
                             NormalizedUserName = "TEODORA@GMAIL.COM",
                             PhoneNumber = "061100114",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
+                            SecurityStamp = "a0b1c2d3-e4f5-4016-8002-000000000016",
                             TwoFactorEnabled = false,
                             UserName = "teodora@gmail.com",
                             UserType = "Patient"
@@ -546,7 +546,7 @@ namespace eBolnicaAPI.Migrations
                         {
                             Id = "ph1",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "fixed-guid-1",
+                            ConcurrencyStamp = "a0b1c2d3-e4f5-4017-8001-000000000017",
                             Email = "pharmacist@pharmacy.com",
                             EmailConfirmed = false,
                             FirstName = "Milan",
@@ -557,7 +557,7 @@ namespace eBolnicaAPI.Migrations
                             NormalizedUserName = "PHARMACIST@PHARMACY.COM",
                             PhoneNumber = "061200200",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "fixed-guid-2",
+                            SecurityStamp = "a0b1c2d3-e4f5-4017-8002-000000000017",
                             TwoFactorEnabled = false,
                             UserName = "pharmacist@pharmacy.com",
                             UserType = "Pharmacist"
@@ -1565,6 +1565,10 @@ namespace eBolnicaAPI.Migrations
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("RegistrationStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AppUserId")
@@ -1586,7 +1590,8 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Ismet",
                             Gender = "Male",
                             LastName = "Horo",
-                            PhoneNumber = "061100103"
+                            PhoneNumber = "061100103",
+                            RegistrationStatus = "Pending"
                         },
                         new
                         {
@@ -1599,7 +1604,8 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Elon",
                             Gender = "Female",
                             LastName = "Musk",
-                            PhoneNumber = "061100104"
+                            PhoneNumber = "061100104",
+                            RegistrationStatus = "Pending"
                         },
                         new
                         {
@@ -1612,7 +1618,8 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Peter",
                             Gender = "Other",
                             LastName = "Griffin",
-                            PhoneNumber = "061100105"
+                            PhoneNumber = "061100105",
+                            RegistrationStatus = "Pending"
                         },
                         new
                         {
@@ -1625,7 +1632,8 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Ana",
                             Gender = "Female",
                             LastName = "Jovanović",
-                            PhoneNumber = "061100106"
+                            PhoneNumber = "061100106",
+                            RegistrationStatus = "Pending"
                         },
                         new
                         {
@@ -1638,7 +1646,8 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Marko",
                             Gender = "Male",
                             LastName = "Nikolić",
-                            PhoneNumber = "061100107"
+                            PhoneNumber = "061100107",
+                            RegistrationStatus = "Pending"
                         },
                         new
                         {
@@ -1651,7 +1660,8 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Sara",
                             Gender = "Female",
                             LastName = "Stojanović",
-                            PhoneNumber = "061100108"
+                            PhoneNumber = "061100108",
+                            RegistrationStatus = "Pending"
                         },
                         new
                         {
@@ -1664,7 +1674,8 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Nikola",
                             Gender = "Male",
                             LastName = "Popović",
-                            PhoneNumber = "061100109"
+                            PhoneNumber = "061100109",
+                            RegistrationStatus = "Pending"
                         },
                         new
                         {
@@ -1677,7 +1688,8 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Jovana",
                             Gender = "Female",
                             LastName = "Milošević",
-                            PhoneNumber = "061100110"
+                            PhoneNumber = "061100110",
+                            RegistrationStatus = "Pending"
                         },
                         new
                         {
@@ -1690,7 +1702,8 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Stefan",
                             Gender = "Male",
                             LastName = "Đorđević",
-                            PhoneNumber = "061100111"
+                            PhoneNumber = "061100111",
+                            RegistrationStatus = "Pending"
                         },
                         new
                         {
@@ -1703,7 +1716,8 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Milica",
                             Gender = "Female",
                             LastName = "Radić",
-                            PhoneNumber = "061100112"
+                            PhoneNumber = "061100112",
+                            RegistrationStatus = "Pending"
                         },
                         new
                         {
@@ -1716,7 +1730,8 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Luka",
                             Gender = "Male",
                             LastName = "Stefanović",
-                            PhoneNumber = "061100113"
+                            PhoneNumber = "061100113",
+                            RegistrationStatus = "Pending"
                         },
                         new
                         {
@@ -1729,7 +1744,8 @@ namespace eBolnicaAPI.Migrations
                             FirstName = "Teodora",
                             Gender = "Female",
                             LastName = "Lazić",
-                            PhoneNumber = "061100114"
+                            PhoneNumber = "061100114",
+                            RegistrationStatus = "Pending"
                         });
                 });
 

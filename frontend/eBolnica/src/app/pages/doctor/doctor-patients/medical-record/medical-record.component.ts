@@ -71,7 +71,6 @@ export class MedicalRecordComponent implements OnInit{
   this.service.getMedicalRecord(this.patientId).subscribe({
     next:(data)=>{
       this.medicalRecord = data;
-      console.log('Medical Record:', data)
     },
     error: (err)=>{
       console.error('Error', err);
@@ -91,7 +90,6 @@ export class MedicalRecordComponent implements OnInit{
 
       this.service.newMedicalReport(reportData).subscribe({
         next: (response) => {
-          console.log('Report created successfully', response);
           this.resetForm();
           this.loadMedicalRecord();
         },

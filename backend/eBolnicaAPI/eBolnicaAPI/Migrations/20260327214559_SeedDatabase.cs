@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace eBolnicaAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class SeedDb : Migration
+    public partial class SeedDatabase : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -258,7 +258,8 @@ namespace eBolnicaAPI.Migrations
                     PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Address = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     BloodType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    IsAdmitted = table.Column<bool>(type: "bit", nullable: true)
+                    IsAdmitted = table.Column<bool>(type: "bit", nullable: true),
+                    RegistrationStatus = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -434,23 +435,23 @@ namespace eBolnicaAPI.Migrations
                 columns: new[] { "Id", "AccessFailedCount", "ConcurrencyStamp", "Email", "EmailConfirmed", "FirstName", "LastName", "LicenseNumber", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "SecurityStamp", "TwoFactorEnabled", "UserName", "UserType" },
                 values: new object[,]
                 {
-                    { "a1", 0, "fixed-guid-3", "admin@gmail.com", true, "Admin", "User", null, true, null, "ADMIN@GMAIL.COM", "ADMIN@GMAIL.COM", null, "061000000", true, "fixed-guid-3", false, "admin@gmail.com", "Admin" },
-                    { "d1", 0, "fixed-guid-1", "marko@gmail.com", false, "Marko", "Marković", "L1", true, null, "MARKO@GMAIL.COM", "MARKO@GMAIL.COM", null, "061100100", false, "fixed-guid-2", false, "marko@gmail.com", "Doctor" },
-                    { "d2", 0, "fixed-guid-1", "senad@gmail.com", false, "Senad", "Husić", "L2", true, null, "SENAD@GMAIL.COM", "SENAD@GMAIL.COM", null, "061100101", false, "fixed-guid-2", false, "senad@gmail.com", "Doctor" },
-                    { "d3", 0, "fixed-guid-1", "petar@gmail.com", false, "Petar", "Petrović", "L3", true, null, "PETAR@GMAIL.COM", "PETAR@GMAIL.COM", null, "061100102", false, "fixed-guid-2", false, "petar@gmail.com", "Doctor" },
-                    { "p1", 0, "fixed-guid-1", "ismet@gmail.com", false, "Ismet", "Horo", null, true, null, "ISMET@GMAIL.COM", "ISMET@GMAIL.COM", null, "061100103", false, "fixed-guid-2", false, "ismet@gmail.com", "Patient" },
-                    { "p10", 0, "fixed-guid-1", "milica@gmail.com", false, "Milica", "Radić", null, true, null, "MILICA@GMAIL.COM", "MILICA@GMAIL.COM", null, "061100112", false, "fixed-guid-2", false, "milica@gmail.com", "Patient" },
-                    { "p11", 0, "fixed-guid-1", "luka@gmail.com", false, "Luka", "Stefanović", null, true, null, "LUKA@GMAIL.COM", "LUKA@GMAIL.COM", null, "061100113", false, "fixed-guid-2", false, "luka@gmail.com", "Patient" },
-                    { "p12", 0, "fixed-guid-1", "teodora@gmail.com", false, "Teodora", "Lazić", null, true, null, "TEODORA@GMAIL.COM", "TEODORA@GMAIL.COM", null, "061100114", false, "fixed-guid-2", false, "teodora@gmail.com", "Patient" },
-                    { "p2", 0, "fixed-guid-1", "elon@gmail.com", false, "Elon", "Musk", null, true, null, "ELON@GMAIL.COM", "ELON@GMAIL.COM", null, "061100104", false, "fixed-guid-2", false, "elon@gmail.com", "Patient" },
-                    { "p3", 0, "fixed-guid-1", "peter@gmail.com", false, "Peter", "Griffin", null, true, null, "PETER@GMAIL.COM", "PETER@GMAIL.COM", null, "061100105", false, "fixed-guid-2", false, "peter@gmail.com", "Patient" },
-                    { "p4", 0, "fixed-guid-1", "ana@gmail.com", false, "Ana", "Jovanović", null, true, null, "ANA@GMAIL.COM", "ANA@GMAIL.COM", null, "061100106", false, "fixed-guid-2", false, "ana@gmail.com", "Patient" },
-                    { "p5", 0, "fixed-guid-1", "marko.patient@gmail.com", false, "Marko", "Nikolić", null, true, null, "MARKO.PATIENT@GMAIL.COM", "MARKO.PATIENT@GMAIL.COM", null, "061100107", false, "fixed-guid-2", false, "marko.patient@gmail.com", "Patient" },
-                    { "p6", 0, "fixed-guid-1", "sara@gmail.com", false, "Sara", "Stojanović", null, true, null, "SARA@GMAIL.COM", "SARA@GMAIL.COM", null, "061100108", false, "fixed-guid-2", false, "sara@gmail.com", "Patient" },
-                    { "p7", 0, "fixed-guid-1", "nikola@gmail.com", false, "Nikola", "Popović", null, true, null, "NIKOLA@GMAIL.COM", "NIKOLA@GMAIL.COM", null, "061100109", false, "fixed-guid-2", false, "nikola@gmail.com", "Patient" },
-                    { "p8", 0, "fixed-guid-1", "jovana@gmail.com", false, "Jovana", "Milošević", null, true, null, "JOVANA@GMAIL.COM", "JOVANA@GMAIL.COM", null, "061100110", false, "fixed-guid-2", false, "jovana@gmail.com", "Patient" },
-                    { "p9", 0, "fixed-guid-1", "stefan@gmail.com", false, "Stefan", "Đorđević", null, true, null, "STEFAN@GMAIL.COM", "STEFAN@GMAIL.COM", null, "061100111", false, "fixed-guid-2", false, "stefan@gmail.com", "Patient" },
-                    { "ph1", 0, "fixed-guid-1", "pharmacist@pharmacy.com", false, "Milan", "Jovanović", "PH-L1", true, null, "PHARMACIST@PHARMACY.COM", "PHARMACIST@PHARMACY.COM", null, "061200200", false, "fixed-guid-2", false, "pharmacist@pharmacy.com", "Pharmacist" }
+                    { "a1", 0, "a0b1c2d3-e4f5-4001-8001-000000000001", "admin@gmail.com", true, "Admin", "User", null, true, null, "ADMIN@GMAIL.COM", "ADMIN@GMAIL.COM", null, "061000000", true, "a0b1c2d3-e4f5-4001-8002-000000000001", false, "admin@gmail.com", "Admin" },
+                    { "d1", 0, "a0b1c2d3-e4f5-4002-8001-000000000002", "marko@gmail.com", false, "Marko", "Marković", "L1", true, null, "MARKO@GMAIL.COM", "MARKO@GMAIL.COM", null, "061100100", false, "a0b1c2d3-e4f5-4002-8002-000000000002", false, "marko@gmail.com", "Doctor" },
+                    { "d2", 0, "a0b1c2d3-e4f5-4003-8001-000000000003", "senad@gmail.com", false, "Senad", "Husić", "L2", true, null, "SENAD@GMAIL.COM", "SENAD@GMAIL.COM", null, "061100101", false, "a0b1c2d3-e4f5-4003-8002-000000000003", false, "senad@gmail.com", "Doctor" },
+                    { "d3", 0, "a0b1c2d3-e4f5-4004-8001-000000000004", "petar@gmail.com", false, "Petar", "Petrović", "L3", true, null, "PETAR@GMAIL.COM", "PETAR@GMAIL.COM", null, "061100102", false, "a0b1c2d3-e4f5-4004-8002-000000000004", false, "petar@gmail.com", "Doctor" },
+                    { "p1", 0, "a0b1c2d3-e4f5-4005-8001-000000000005", "ismet@gmail.com", false, "Ismet", "Horo", null, true, null, "ISMET@GMAIL.COM", "ISMET@GMAIL.COM", null, "061100103", false, "a0b1c2d3-e4f5-4005-8002-000000000005", false, "ismet@gmail.com", "Patient" },
+                    { "p10", 0, "a0b1c2d3-e4f5-4014-8001-000000000014", "milica@gmail.com", false, "Milica", "Radić", null, true, null, "MILICA@GMAIL.COM", "MILICA@GMAIL.COM", null, "061100112", false, "a0b1c2d3-e4f5-4014-8002-000000000014", false, "milica@gmail.com", "Patient" },
+                    { "p11", 0, "a0b1c2d3-e4f5-4015-8001-000000000015", "luka@gmail.com", false, "Luka", "Stefanović", null, true, null, "LUKA@GMAIL.COM", "LUKA@GMAIL.COM", null, "061100113", false, "a0b1c2d3-e4f5-4015-8002-000000000015", false, "luka@gmail.com", "Patient" },
+                    { "p12", 0, "a0b1c2d3-e4f5-4016-8001-000000000016", "teodora@gmail.com", false, "Teodora", "Lazić", null, true, null, "TEODORA@GMAIL.COM", "TEODORA@GMAIL.COM", null, "061100114", false, "a0b1c2d3-e4f5-4016-8002-000000000016", false, "teodora@gmail.com", "Patient" },
+                    { "p2", 0, "a0b1c2d3-e4f5-4006-8001-000000000006", "elon@gmail.com", false, "Elon", "Musk", null, true, null, "ELON@GMAIL.COM", "ELON@GMAIL.COM", null, "061100104", false, "a0b1c2d3-e4f5-4006-8002-000000000006", false, "elon@gmail.com", "Patient" },
+                    { "p3", 0, "a0b1c2d3-e4f5-4007-8001-000000000007", "peter@gmail.com", false, "Peter", "Griffin", null, true, null, "PETER@GMAIL.COM", "PETER@GMAIL.COM", null, "061100105", false, "a0b1c2d3-e4f5-4007-8002-000000000007", false, "peter@gmail.com", "Patient" },
+                    { "p4", 0, "a0b1c2d3-e4f5-4008-8001-000000000008", "ana@gmail.com", false, "Ana", "Jovanović", null, true, null, "ANA@GMAIL.COM", "ANA@GMAIL.COM", null, "061100106", false, "a0b1c2d3-e4f5-4008-8002-000000000008", false, "ana@gmail.com", "Patient" },
+                    { "p5", 0, "a0b1c2d3-e4f5-4009-8001-000000000009", "marko.patient@gmail.com", false, "Marko", "Nikolić", null, true, null, "MARKO.PATIENT@GMAIL.COM", "MARKO.PATIENT@GMAIL.COM", null, "061100107", false, "a0b1c2d3-e4f5-4009-8002-000000000009", false, "marko.patient@gmail.com", "Patient" },
+                    { "p6", 0, "a0b1c2d3-e4f5-4010-8001-000000000010", "sara@gmail.com", false, "Sara", "Stojanović", null, true, null, "SARA@GMAIL.COM", "SARA@GMAIL.COM", null, "061100108", false, "a0b1c2d3-e4f5-4010-8002-000000000010", false, "sara@gmail.com", "Patient" },
+                    { "p7", 0, "a0b1c2d3-e4f5-4011-8001-000000000011", "nikola@gmail.com", false, "Nikola", "Popović", null, true, null, "NIKOLA@GMAIL.COM", "NIKOLA@GMAIL.COM", null, "061100109", false, "a0b1c2d3-e4f5-4011-8002-000000000011", false, "nikola@gmail.com", "Patient" },
+                    { "p8", 0, "a0b1c2d3-e4f5-4012-8001-000000000012", "jovana@gmail.com", false, "Jovana", "Milošević", null, true, null, "JOVANA@GMAIL.COM", "JOVANA@GMAIL.COM", null, "061100110", false, "a0b1c2d3-e4f5-4012-8002-000000000012", false, "jovana@gmail.com", "Patient" },
+                    { "p9", 0, "a0b1c2d3-e4f5-4013-8001-000000000013", "stefan@gmail.com", false, "Stefan", "Đorđević", null, true, null, "STEFAN@GMAIL.COM", "STEFAN@GMAIL.COM", null, "061100111", false, "a0b1c2d3-e4f5-4013-8002-000000000013", false, "stefan@gmail.com", "Patient" },
+                    { "ph1", 0, "a0b1c2d3-e4f5-4017-8001-000000000017", "pharmacist@pharmacy.com", false, "Milan", "Jovanović", "PH-L1", true, null, "PHARMACIST@PHARMACY.COM", "PHARMACIST@PHARMACY.COM", null, "061200200", false, "a0b1c2d3-e4f5-4017-8002-000000000017", false, "pharmacist@pharmacy.com", "Pharmacist" }
                 });
 
             migrationBuilder.InsertData(
@@ -492,21 +493,21 @@ namespace eBolnicaAPI.Migrations
 
             migrationBuilder.InsertData(
                 table: "Patients",
-                columns: new[] { "Id", "Address", "AppUserId", "BloodType", "DateOfBirth", "DoctorId", "FirstName", "Gender", "IsAdmitted", "LastName", "PhoneNumber" },
+                columns: new[] { "Id", "Address", "AppUserId", "BloodType", "DateOfBirth", "DoctorId", "FirstName", "Gender", "IsAdmitted", "LastName", "PhoneNumber", "RegistrationStatus" },
                 values: new object[,]
                 {
-                    { 1, "Address1", "p1", "A+", new DateTime(1990, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Ismet", "Male", null, "Horo", "061100103" },
-                    { 2, "Address2", "p2", "B+", new DateTime(1991, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Elon", "Female", null, "Musk", "061100104" },
-                    { 3, "Address3", "p3", "AB+", new DateTime(1992, 3, 14, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Peter", "Other", null, "Griffin", "061100105" },
-                    { 4, "Bulevar Kralja Aleksandra 15", "p4", "O+", new DateTime(1988, 5, 20, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Ana", "Female", null, "Jovanović", "061100106" },
-                    { 5, "Knez Mihailova 25", "p5", "A-", new DateTime(1985, 7, 10, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "Marko", "Male", null, "Nikolić", "061100107" },
-                    { 6, "Nemanjina 10", "p6", "B-", new DateTime(1993, 9, 5, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "Sara", "Female", null, "Stojanović", "061100108" },
-                    { 7, "Terazije 5", "p7", "O-", new DateTime(1987, 11, 18, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "Nikola", "Male", null, "Popović", "061100109" },
-                    { 8, "Vračar 20", "p8", "AB-", new DateTime(1994, 12, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), 3, "Jovana", "Female", null, "Milošević", "061100110" },
-                    { 9, "Svetog Save 45", "p9", "A+", new DateTime(1989, 2, 12, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Stefan", "Male", null, "Đorđević", "061100111" },
-                    { 10, "Kralja Milana 30", "p10", "B+", new DateTime(1995, 6, 8, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Milica", "Female", null, "Radić", "061100112" },
-                    { 11, "Obilićev venac 12", "p11", "O+", new DateTime(1986, 8, 22, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Luka", "Male", null, "Stefanović", "061100113" },
-                    { 12, "Dunavska 8", "p12", "AB+", new DateTime(1996, 4, 30, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Teodora", "Female", null, "Lazić", "061100114" }
+                    { 1, "Address1", "p1", "A+", new DateTime(1990, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Ismet", "Male", null, "Horo", "061100103", "Pending" },
+                    { 2, "Address2", "p2", "B+", new DateTime(1991, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Elon", "Female", null, "Musk", "061100104", "Pending" },
+                    { 3, "Address3", "p3", "AB+", new DateTime(1992, 3, 14, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Peter", "Other", null, "Griffin", "061100105", "Pending" },
+                    { 4, "Bulevar Kralja Aleksandra 15", "p4", "O+", new DateTime(1988, 5, 20, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Ana", "Female", null, "Jovanović", "061100106", "Pending" },
+                    { 5, "Knez Mihailova 25", "p5", "A-", new DateTime(1985, 7, 10, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "Marko", "Male", null, "Nikolić", "061100107", "Pending" },
+                    { 6, "Nemanjina 10", "p6", "B-", new DateTime(1993, 9, 5, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "Sara", "Female", null, "Stojanović", "061100108", "Pending" },
+                    { 7, "Terazije 5", "p7", "O-", new DateTime(1987, 11, 18, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "Nikola", "Male", null, "Popović", "061100109", "Pending" },
+                    { 8, "Vračar 20", "p8", "AB-", new DateTime(1994, 12, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), 3, "Jovana", "Female", null, "Milošević", "061100110", "Pending" },
+                    { 9, "Svetog Save 45", "p9", "A+", new DateTime(1989, 2, 12, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Stefan", "Male", null, "Đorđević", "061100111", "Pending" },
+                    { 10, "Kralja Milana 30", "p10", "B+", new DateTime(1995, 6, 8, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Milica", "Female", null, "Radić", "061100112", "Pending" },
+                    { 11, "Obilićev venac 12", "p11", "O+", new DateTime(1986, 8, 22, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Luka", "Male", null, "Stefanović", "061100113", "Pending" },
+                    { 12, "Dunavska 8", "p12", "AB+", new DateTime(1996, 4, 30, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Teodora", "Female", null, "Lazić", "061100114", "Pending" }
                 });
 
             migrationBuilder.InsertData(

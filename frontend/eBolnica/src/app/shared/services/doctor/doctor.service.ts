@@ -44,10 +44,6 @@ export class DoctorService {
     return this.http.get<PagedResponse<DoctorAssignedPatientDto>>(this.apiUrl+'/list-patients', { params });
   }
 
-  getAllDoctors(): Observable<DoctorListDto[]>{
-    return this.http.get<DoctorListDto[]>(this.apiUrl+'/GetAllDoctors');
-  }
-
   getStats(): Observable<DashboardStats>{
     return this.http.get<DashboardStats>(this.apiUrl+'/doctor-stats');
   }

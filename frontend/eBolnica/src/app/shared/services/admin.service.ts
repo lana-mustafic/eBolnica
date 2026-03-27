@@ -30,6 +30,10 @@ export class AdminService {
     return this.http.put(`${this.baseUrl}/update-registration-status/${appUserId}`, {registrationStatus:status});
   }
 
+  updatePatientRegistrationStatus(appUserId: string, status: string): Observable<any> {
+  return this.http.put(`${this.baseUrl}/update-patient-registration-status/${appUserId}`, { registrationStatus: status });
+}
+
   createUser(data: any): Observable<any> {
   return this.http.post(`${this.baseUrl}/create-user`, data);
   }
