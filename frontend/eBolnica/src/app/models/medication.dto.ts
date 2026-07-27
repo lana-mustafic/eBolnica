@@ -18,4 +18,5 @@ export interface MedicationDto {
   updatedAt?: string;
   isLowStock?: boolean;
   isExpired?: boolean;
+  primaryImageUrl?: string;
 }

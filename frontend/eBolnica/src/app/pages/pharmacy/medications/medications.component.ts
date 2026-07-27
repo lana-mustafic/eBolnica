@@ -7,6 +7,7 @@ import { PharmacyFilterService } from '../../../shared/services/pharmacy/pharmac
 import { FilterSummaryComponent } from '../../../shared/components/filter-summary/filter-summary.component';
 import { ActiveFiltersComponent } from '../../../shared/components/active-filters/active-filters.component';
 import { SortStatusComponent } from '../../../shared/components/sort-status/sort-status.component';
+import { MedicationThumbnailComponent } from './medication-thumbnail.component';
 import { MedicationDto } from '../../../models/medication.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { PagedResponse } from '../../../models/paged-response.dto';
@@ -16,7 +17,7 @@ import { TABLE_DEFAULT_SORTS } from '../../../constants/sort.constants';
 @Component({
   selector: 'app-medications',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, FilterSummaryComponent, ActiveFiltersComponent, SortStatusComponent],
+  imports: [CommonModule, FormsModule, RouterModule, FilterSummaryComponent, ActiveFiltersComponent, SortStatusComponent, MedicationThumbnailComponent],
   templateUrl: './medications.component.html',
   styleUrl: './medications.component.css'
 })
@@ -463,6 +464,10 @@ export class MedicationsComponent implements OnInit, OnDestroy {
 
   trackByPageNum(index: number, pageNum: number | string): number | string {
     return pageNum;
+  }
+
+  trackByMedicationId(_: number, medication: MedicationDto): number {
+    return medication.id;
   }
 
   getActiveFilterCount(): number {

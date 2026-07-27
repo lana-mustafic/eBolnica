@@ -163,6 +163,7 @@
     <table>
       <thead>
         <tr>
+          <th scope="col" class="thumbnail-header">Image</th>
           <th (click)="onSort('name')"
               (keydown)="onSortKeydown($event, 'name')"
               [class.sort-active]="sortColumn === 'name'"
@@ -235,7 +236,14 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let medication of medications">
+        <tr *ngFor="let medication of medications; trackBy: trackByMedicationId">
+          <td class="medication-thumbnail-cell">
+            <app-medication-thumbnail
+              [medicationId]="medication.id"
+              [imageUrl]="medication.primaryImageUrl"
+              [alt]="medication.name">
+            </app-medication-thumbnail>
+          </td>
           <td class="medication-name">{{ medication.name }}</td>
           <td>{{ medication.genericName || '-' }}</td>
           <td>{{ medication.manufacturer || '-' }}</td>

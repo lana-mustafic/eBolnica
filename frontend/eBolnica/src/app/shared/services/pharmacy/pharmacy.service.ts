@@ -75,6 +75,24 @@ export class PharmacyService {
   private apiUrl = 'http://localhost:5004/api/pharmacy';
   private http = inject(HttpClient);
 
+  /**
+   * Resolves a medication primary image URL for display.
+   * Supports absolute URLs and API-relative paths.
+   */
+  resolveMedicationImageUrl(imageUrl?: string): string | null {
+    if (!imageUrl?.trim()) {
+      return null;
+    }
+
+    const trimmed = imageUrl.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
+      return trimmed;
+    }
+
+    const apiOrigin = this.apiUrl.replace(/\/api\/pharmacy\/?$/, '');
+    return trimmed.startsWith('/') ? `${apiOrigin}${trimmed}` : `${apiOrigin}/${trimmed}`;
+  }
+
   // Medications CRUD
   
   /**
