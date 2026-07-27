@@ -7,4 +7,7 @@ export interface MedicationImageDto {
   isPrimary: boolean;
   sortOrder: number;
   uploadedAt: string;
+  fileSizeBytes?: number;
+  width?: number;
+  height?: number;
 }

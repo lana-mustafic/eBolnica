@@ -72,7 +72,7 @@ namespace eBolnicaAPI.Services.Pharmacy.MedicationImages
                 _ => "image/jpeg"
             };
 
-            return new ProcessedImageResult(output, normalizedExtension, contentType);
+            return new ProcessedImageResult(output, normalizedExtension, contentType, image.Width, image.Height);
         }
     }
 }

@@ -37,13 +37,14 @@ namespace eBolnicaAPI.Services
         {
             await GetMedicationOrThrow(medicationId);
 
-            return await _context.MedicationImages
+            var images = await _context.MedicationImages
                 .AsNoTracking()
                 .Where(i => i.MedicationId == medicationId)
                 .OrderByDescending(i => i.IsPrimary)
                 .ThenBy(i => i.SortOrder)
-                .Select(i => MapToDto(i))
                 .ToListAsync();
+
+            return images.Select(MapToDto).ToList();
         }
 
         public async Task<MedicationImageDto> UploadImageAsync(int medicationId, IFormFile file)
@@ -76,7 +77,10 @@ namespace eBolnicaAPI.Services
                 ThumbnailRelativeUrl = storedImage.ThumbnailRelativeUrl,
                 IsPrimary = isPrimary,
                 SortOrder = existingCount,
-                UploadedAt = DateTime.UtcNow
+                UploadedAt = DateTime.UtcNow,
+                FileSizeBytes = optimizedImage.Length,
+                Width = optimizedImage.Width,
+                Height = optimizedImage.Height
             };
 
             _context.MedicationImages.Add(image);
@@ -183,16 +187,37 @@ namespace eBolnicaAPI.Services
             return image.ThumbnailRelativeUrl ?? image.RelativeUrl;
         }
 
-        private static MedicationImageDto MapToDto(MedicationImage image) => new()
+        private MedicationImageDto MapToDto(MedicationImage image)
         {
-            Id = image.Id,
-            MedicationId = image.MedicationId,
-            FileName = image.FileName,
-            ImageUrl = image.RelativeUrl,
-            ThumbnailUrl = image.ThumbnailRelativeUrl,
-            IsPrimary = image.IsPrimary,
-            SortOrder = image.SortOrder,
-            UploadedAt = image.UploadedAt
-        };
+            var fileSizeBytes = image.FileSizeBytes;
+            var width = image.Width;
+            var height = image.Height;
+
+            if (fileSizeBytes is null || width is null || height is null)
+            {
+                var metadata = _storageService.TryGetFileMetadata(image.RelativeUrl);
+                if (metadata != null)
+                {
+                    fileSizeBytes ??= metadata.FileSizeBytes;
+                    width ??= metadata.Width;
+                    height ??= metadata.Height;
+                }
+            }
+
+            return new MedicationImageDto
+            {
+                Id = image.Id,
+                MedicationId = image.MedicationId,
+                FileName = image.FileName,
+                ImageUrl = image.RelativeUrl,
+                ThumbnailUrl = image.ThumbnailRelativeUrl,
+                IsPrimary = image.IsPrimary,
+                SortOrder = image.SortOrder,
+                UploadedAt = image.UploadedAt,
+                FileSizeBytes = fileSizeBytes,
+                Width = width,
+                Height = height
+            };
+        }
     }
 }

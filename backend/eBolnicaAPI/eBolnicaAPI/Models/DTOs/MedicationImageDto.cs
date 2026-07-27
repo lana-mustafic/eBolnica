@@ -20,5 +20,11 @@ namespace eBolnicaAPI.Models.DTOs
         public int SortOrder { get; set; }
 
         public DateTime UploadedAt { get; set; }
+
+        public long? FileSizeBytes { get; set; }
+
+        public int? Width { get; set; }
+
+        public int? Height { get; set; }
     }
 }

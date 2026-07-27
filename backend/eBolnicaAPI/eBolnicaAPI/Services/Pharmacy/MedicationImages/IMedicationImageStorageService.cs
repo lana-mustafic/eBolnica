@@ -16,5 +16,16 @@ namespace eBolnicaAPI.Services.Pharmacy.MedicationImages
         void Delete(string originalRelativeUrl, string? thumbnailRelativeUrl = null);
 
         void EnsureFolderStructure(int medicationId);
+
+        MedicationImageFileMetadata? TryGetFileMetadata(string relativeUrl);
+    }
+
+    public sealed class MedicationImageFileMetadata
+    {
+        public long FileSizeBytes { get; init; }
+
+        public int Width { get; init; }
+
+        public int Height { get; init; }
     }
 }

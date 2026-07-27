@@ -28,5 +28,11 @@ namespace eBolnicaAPI.Models.Entities
         public int SortOrder { get; set; }
 
         public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
+
+        public long? FileSizeBytes { get; set; }
+
+        public int? Width { get; set; }
+
+        public int? Height { get; set; }
     }
 }

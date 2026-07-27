@@ -314,11 +314,16 @@ namespace eBolnicaAPI.Controllers
         }
 
         /// <summary>
-        /// Get all images for a medication
+        /// Get all images for a medication, including metadata (filename, size, upload date, dimensions).
         /// </summary>
+        /// <param name="id">Medication identifier</param>
+        /// <response code="200">Returns the medication image list</response>
+        /// <response code="404">Medication not found</response>
         [HttpGet("medications/{id}/images")]
-        [Authorize(Roles = "Pharmacist")]
-        public async Task<IActionResult> GetMedicationImages(int id)
+        [Authorize(Roles = "Pharmacist,Admin")]
+        [ProducesResponseType(typeof(IEnumerable<MedicationImageDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<IEnumerable<MedicationImageDto>>> GetMedicationImages(int id)
         {
             try
             {

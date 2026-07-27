@@ -1,5 +1,6 @@
 using eBolnicaAPI.Models.Settings;
 using Microsoft.Extensions.Options;
+using SixLabors.ImageSharp;
 
 namespace eBolnicaAPI.Services.Pharmacy.MedicationImages
 {
@@ -116,6 +117,33 @@ namespace eBolnicaAPI.Services.Pharmacy.MedicationImages
             var absolutePath = Path.GetFullPath(Path.Combine(_env.ContentRootPath, relativePath));
             EnsurePathIsWithinRoot(absolutePath, _uploadRoot);
             return absolutePath;
+        }
+
+        public MedicationImageFileMetadata? TryGetFileMetadata(string relativeUrl)
+        {
+            try
+            {
+                var absolutePath = GetSecureAbsolutePath(relativeUrl);
+                if (!File.Exists(absolutePath))
+                {
+                    return null;
+                }
+
+                var fileInfo = new FileInfo(absolutePath);
+                using var stream = fileInfo.OpenRead();
+                var imageInfo = Image.Identify(stream);
+
+                return new MedicationImageFileMetadata
+                {
+                    FileSizeBytes = fileInfo.Length,
+                    Width = imageInfo?.Width ?? 0,
+                    Height = imageInfo?.Height ?? 0
+                };
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         private string GetSecureMedicationFolder(int medicationId)
