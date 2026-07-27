@@ -1,36 +1,36 @@
 using eBolnicaAPI.Data;
 using eBolnicaAPI.Models.DTOs;
 using eBolnicaAPI.Models.Entities;
+using eBolnicaAPI.Services.Pharmacy.MedicationImages;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace eBolnicaAPI.Services
 {
     public class MedicationImageService : IMedicationImageService
     {
         private readonly AppDbContext _context;
-        private readonly IWebHostEnvironment _env;
-        private readonly string _uploadRoot;
+        private readonly IMedicationImageFileValidator _fileValidator;
+        private readonly IMedicationImageVirusScanner _virusScanner;
+        private readonly IMedicationImageOptimizer _imageOptimizer;
+        private readonly IMedicationImageStorageService _storageService;
+        private readonly ILogger<MedicationImageService> _logger;
 
-        private static readonly string[] AllowedExtensions = { ".jpg", ".jpeg", ".png", ".webp" };
-        private static readonly string[] AllowedContentTypes =
-        {
-            "image/jpeg",
-            "image/png",
-            "image/webp"
-        };
-
-        private const long MaxFileSizeBytes = 5 * 1024 * 1024;
-
-        public MedicationImageService(AppDbContext context, IWebHostEnvironment env)
+        public MedicationImageService(
+            AppDbContext context,
+            IMedicationImageFileValidator fileValidator,
+            IMedicationImageVirusScanner virusScanner,
+            IMedicationImageOptimizer imageOptimizer,
+            IMedicationImageStorageService storageService,
+            ILogger<MedicationImageService> logger)
         {
             _context = context;
-            _env = env;
-            _uploadRoot = Path.Combine(_env.ContentRootPath, "Uploads", "medications");
-
-            if (!Directory.Exists(_uploadRoot))
-            {
-                Directory.CreateDirectory(_uploadRoot);
-            }
+            _fileValidator = fileValidator;
+            _virusScanner = virusScanner;
+            _imageOptimizer = imageOptimizer;
+            _storageService = storageService;
+            _logger = logger;
         }
 
         public async Task<List<MedicationImageDto>> GetImagesAsync(int medicationId)
@@ -49,23 +49,21 @@ namespace eBolnicaAPI.Services
         public async Task<MedicationImageDto> UploadImageAsync(int medicationId, IFormFile file)
         {
             var medication = await GetMedicationOrThrow(medicationId);
-            ValidateImageFile(file);
-
-            var medicationFolder = Path.Combine(_uploadRoot, medicationId.ToString());
-            if (!Directory.Exists(medicationFolder))
-            {
-                Directory.CreateDirectory(medicationFolder);
-            }
+            _fileValidator.ValidateUpload(file);
 
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            var storedFileName = $"{Guid.NewGuid()}{extension}";
-            var absolutePath = Path.Combine(medicationFolder, storedFileName);
-            var relativeUrl = $"/uploads/medications/{medicationId}/{storedFileName}";
+            var sanitizedFileName = _fileValidator.SanitizeOriginalFileName(file.FileName);
 
-            await using (var stream = new FileStream(absolutePath, FileMode.Create))
-            {
-                await file.CopyToAsync(stream);
-            }
+            await using var uploadStream = new MemoryStream();
+            await file.CopyToAsync(uploadStream);
+
+            await _virusScanner.ScanAsync(uploadStream);
+
+            using var optimizedImage = await _imageOptimizer.OptimizeAsync(uploadStream, extension);
+            var storedImage = await _storageService.SaveAsync(
+                medicationId,
+                optimizedImage.Content,
+                optimizedImage.Extension);
 
             var existingCount = await _context.MedicationImages.CountAsync(i => i.MedicationId == medicationId);
             var isPrimary = existingCount == 0;
@@ -73,8 +71,8 @@ namespace eBolnicaAPI.Services
             var image = new MedicationImage
             {
                 MedicationId = medicationId,
-                FileName = file.FileName,
-                RelativeUrl = relativeUrl,
+                FileName = sanitizedFileName,
+                RelativeUrl = storedImage.RelativeUrl,
                 IsPrimary = isPrimary,
                 SortOrder = existingCount,
                 UploadedAt = DateTime.UtcNow
@@ -84,10 +82,16 @@ namespace eBolnicaAPI.Services
 
             if (isPrimary)
             {
-                medication.ImageUrl = relativeUrl;
+                medication.ImageUrl = storedImage.RelativeUrl;
             }
 
             await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Medication image uploaded. MedicationId={MedicationId}, ImageId pending save, StoredFile={StoredFile}, OptimizedBytes={OptimizedBytes}",
+                medicationId,
+                storedImage.StoredFileName,
+                optimizedImage.Length);
 
             return MapToDto(image);
         }
@@ -128,7 +132,7 @@ namespace eBolnicaAPI.Services
             }
 
             var wasPrimary = image.IsPrimary;
-            DeletePhysicalFile(image.RelativeUrl);
+            _storageService.Delete(image.RelativeUrl);
             _context.MedicationImages.Remove(image);
 
             if (wasPrimary)
@@ -170,41 +174,6 @@ namespace eBolnicaAPI.Services
             }
 
             return medication;
-        }
-
-        private static void ValidateImageFile(IFormFile file)
-        {
-            if (file == null || file.Length == 0)
-            {
-                throw new ArgumentException("No file uploaded");
-            }
-
-            if (file.Length > MaxFileSizeBytes)
-            {
-                throw new ArgumentException("File size exceeds limit (5MB)");
-            }
-
-            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            if (!AllowedExtensions.Contains(extension))
-            {
-                throw new ArgumentException("File type not allowed. Use JPG, PNG, or WEBP.");
-            }
-
-            if (!AllowedContentTypes.Contains(file.ContentType))
-            {
-                throw new ArgumentException("File content type not allowed");
-            }
-        }
-
-        private void DeletePhysicalFile(string relativeUrl)
-        {
-            var relativePath = relativeUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
-            var absolutePath = Path.Combine(_env.ContentRootPath, relativePath);
-
-            if (File.Exists(absolutePath))
-            {
-                File.Delete(absolutePath);
-            }
         }
 
         private static MedicationImageDto MapToDto(MedicationImage image) => new()

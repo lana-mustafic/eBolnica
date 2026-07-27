@@ -2,6 +2,7 @@ using eBolnicaAPI.Data;
 using eBolnicaAPI.Models.DTOs;
 using eBolnicaAPI.Models.Entities;
 using eBolnicaAPI.Services;
+using eBolnicaAPI.Services.Pharmacy.MedicationImages;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -331,11 +332,23 @@ namespace eBolnicaAPI.Controllers
         }
 
         /// <summary>
-        /// Upload an image for a medication
+        /// Upload an image for a medication.
+        /// Validates file type and size, scans content, optimizes the image, and stores it securely.
         /// </summary>
+        /// <param name="id">Medication identifier</param>
+        /// <param name="file">Image file (JPG, PNG, or WEBP, max 5MB)</param>
+        /// <returns>Created medication image metadata</returns>
+        /// <response code="201">Image uploaded successfully</response>
+        /// <response code="400">Validation failed</response>
+        /// <response code="403">Security scan failed</response>
+        /// <response code="404">Medication not found</response>
         [HttpPost("medications/{id}/images")]
-        [Authorize(Roles = "Pharmacist")]
+        [Authorize(Roles = "Pharmacist,Admin")]
         [RequestSizeLimit(5 * 1024 * 1024)]
+        [ProducesResponseType(typeof(MedicationImageDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UploadMedicationImage(int id, [FromForm] IFormFile file)
         {
             try
@@ -347,7 +360,16 @@ namespace eBolnicaAPI.Controllers
             {
                 return NotFound("Medication not found");
             }
-            catch (ArgumentException ex)
+            catch (MedicationImageValidationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (MedicationImageSecurityException ex)
+            {
+                _logger.LogWarning("Medication image upload blocked by security scan. MedicationId={MedicationId}, Reason={Reason}", id, ex.Message);
+                return StatusCode(StatusCodes.Status403Forbidden, ex.Message);
+            }
+            catch (MedicationImageUploadException ex)
             {
                 return BadRequest(ex.Message);
             }
