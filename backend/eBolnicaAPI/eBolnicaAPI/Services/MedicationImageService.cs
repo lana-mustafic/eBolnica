@@ -35,7 +35,7 @@ namespace eBolnicaAPI.Services
 
         public async Task<List<MedicationImageDto>> GetImagesAsync(int medicationId)
         {
-            await EnsureMedicationExists(medicationId);
+            await GetMedicationOrThrow(medicationId);
 
             return await _context.MedicationImages
                 .AsNoTracking()
@@ -48,7 +48,7 @@ namespace eBolnicaAPI.Services
 
         public async Task<MedicationImageDto> UploadImageAsync(int medicationId, IFormFile file)
         {
-            await EnsureMedicationExists(medicationId);
+            var medication = await GetMedicationOrThrow(medicationId);
             ValidateImageFile(file);
 
             var medicationFolder = Path.Combine(_uploadRoot, medicationId.ToString());
@@ -81,6 +81,12 @@ namespace eBolnicaAPI.Services
             };
 
             _context.MedicationImages.Add(image);
+
+            if (isPrimary)
+            {
+                medication.ImageUrl = relativeUrl;
+            }
+
             await _context.SaveChangesAsync();
 
             return MapToDto(image);
@@ -88,7 +94,7 @@ namespace eBolnicaAPI.Services
 
         public async Task SetPrimaryImageAsync(int medicationId, int imageId)
         {
-            await EnsureMedicationExists(medicationId);
+            var medication = await GetMedicationOrThrow(medicationId);
 
             var images = await _context.MedicationImages
                 .Where(i => i.MedicationId == medicationId)
@@ -105,12 +111,13 @@ namespace eBolnicaAPI.Services
                 image.IsPrimary = image.Id == imageId;
             }
 
+            medication.ImageUrl = target.RelativeUrl;
             await _context.SaveChangesAsync();
         }
 
         public async Task DeleteImageAsync(int medicationId, int imageId)
         {
-            await EnsureMedicationExists(medicationId);
+            var medication = await GetMedicationOrThrow(medicationId);
 
             var image = await _context.MedicationImages
                 .FirstOrDefaultAsync(i => i.MedicationId == medicationId && i.Id == imageId);
@@ -122,43 +129,47 @@ namespace eBolnicaAPI.Services
 
             var wasPrimary = image.IsPrimary;
             DeletePhysicalFile(image.RelativeUrl);
-
             _context.MedicationImages.Remove(image);
-            await _context.SaveChangesAsync();
 
             if (wasPrimary)
             {
                 var nextPrimary = await _context.MedicationImages
-                    .Where(i => i.MedicationId == medicationId)
+                    .Where(i => i.MedicationId == medicationId && i.Id != imageId)
                     .OrderBy(i => i.SortOrder)
                     .FirstOrDefaultAsync();
 
                 if (nextPrimary != null)
                 {
                     nextPrimary.IsPrimary = true;
-                    await _context.SaveChangesAsync();
+                    medication.ImageUrl = nextPrimary.RelativeUrl;
+                }
+                else
+                {
+                    medication.ImageUrl = null;
                 }
             }
+
+            await _context.SaveChangesAsync();
         }
 
         public async Task<string?> GetPrimaryImageUrlAsync(int medicationId)
         {
-            return await _context.MedicationImages
+            return await _context.Medications
                 .AsNoTracking()
-                .Where(i => i.MedicationId == medicationId)
-                .OrderByDescending(i => i.IsPrimary)
-                .ThenBy(i => i.SortOrder)
-                .Select(i => i.RelativeUrl)
+                .Where(m => m.Id == medicationId)
+                .Select(m => m.ImageUrl)
                 .FirstOrDefaultAsync();
         }
 
-        private async Task EnsureMedicationExists(int medicationId)
+        private async Task<Medication> GetMedicationOrThrow(int medicationId)
         {
-            var exists = await _context.Medications.AnyAsync(m => m.Id == medicationId);
-            if (!exists)
+            var medication = await _context.Medications.FindAsync(medicationId);
+            if (medication == null)
             {
                 throw new KeyNotFoundException("Medication not found");
             }
+
+            return medication;
         }
 
         private static void ValidateImageFile(IFormFile file)

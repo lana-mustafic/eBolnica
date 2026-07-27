@@ -238,7 +238,7 @@ namespace eBolnicaAPI.Controllers
                     Strength = m.Strength,
                     CreatedAt = m.CreatedAt,
                     UpdatedAt = m.UpdatedAt,
-                    PrimaryImageUrl = m.Images
+                    PrimaryImageUrl = m.ImageUrl ?? m.Images
                         .OrderByDescending(i => i.IsPrimary)
                         .ThenBy(i => i.SortOrder)
                         .Select(i => i.RelativeUrl)
@@ -303,7 +303,8 @@ namespace eBolnicaAPI.Controllers
                 Strength = medication.Strength,
                 CreatedAt = medication.CreatedAt,
                 UpdatedAt = medication.UpdatedAt,
-                PrimaryImageUrl = images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl
+                PrimaryImageUrl = medication.ImageUrl
+                    ?? images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl
                     ?? images.FirstOrDefault()?.ImageUrl,
                 Images = images
             };
@@ -442,7 +443,8 @@ namespace eBolnicaAPI.Controllers
                 DosageForm = medication.DosageForm,
                 Strength = medication.Strength,
                 CreatedAt = medication.CreatedAt,
-                UpdatedAt = medication.UpdatedAt
+                UpdatedAt = medication.UpdatedAt,
+                PrimaryImageUrl = medication.ImageUrl
             };
 
             return CreatedAtAction(nameof(GetMedication), new { id = medication.Id }, resultDto);
@@ -505,7 +507,8 @@ namespace eBolnicaAPI.Controllers
                 DosageForm = medication.DosageForm,
                 Strength = medication.Strength,
                 CreatedAt = medication.CreatedAt,
-                UpdatedAt = medication.UpdatedAt
+                UpdatedAt = medication.UpdatedAt,
+                PrimaryImageUrl = medication.ImageUrl
             };
 
             return Ok(resultDto);
@@ -1212,7 +1215,7 @@ namespace eBolnicaAPI.Controllers
                     Strength = m.Strength,
                     CreatedAt = m.CreatedAt,
                     UpdatedAt = m.UpdatedAt,
-                    PrimaryImageUrl = m.Images
+                    PrimaryImageUrl = m.ImageUrl ?? m.Images
                         .OrderByDescending(i => i.IsPrimary)
                         .ThenBy(i => i.SortOrder)
                         .Select(i => i.RelativeUrl)
@@ -1243,7 +1246,7 @@ namespace eBolnicaAPI.Controllers
                     Strength = m.Strength,
                     CreatedAt = m.CreatedAt,
                     UpdatedAt = m.UpdatedAt,
-                    PrimaryImageUrl = m.Images
+                    PrimaryImageUrl = m.ImageUrl ?? m.Images
                         .OrderByDescending(i => i.IsPrimary)
                         .ThenBy(i => i.SortOrder)
                         .Select(i => i.RelativeUrl)
