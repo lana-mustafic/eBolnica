@@ -1,17 +1,28 @@
 <section class="image-gallery" aria-label="Medication images">
   <h3 class="gallery-title">Images</h3>
 
+  @if (successMessage) {
+    <div class="gallery-success" role="status" aria-live="polite">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+      {{ successMessage }}
+    </div>
+  }
+
   @if (errorMessage) {
-    <div class="gallery-error">{{ errorMessage }}</div>
+    <div class="gallery-error" role="alert">{{ errorMessage }}</div>
   }
 
   <!-- Main Image Display -->
-  <div class="main-image-container">
+  <div class="main-image-container" [class.is-deleting]="isDeleting">
     @if (selectedImageUrl) {
       <button
         type="button"
         class="main-image-button"
         (click)="openLightbox()"
+        [disabled]="isDeleting"
         [attr.aria-label]="'View ' + medicationName + ' image in fullscreen'">
         <img
           [src]="selectedImageUrl"
@@ -47,29 +58,47 @@
   @if (images.length > 0) {
     <div class="thumbnail-strip" role="listbox" aria-label="Image thumbnails">
       @for (image of images; track image.id; let i = $index) {
-        <button
-          type="button"
-          class="strip-thumbnail"
-          [class.active]="i === selectedIndex"
-          [class.is-primary]="image.isPrimary"
-          (click)="selectImage(i)"
-          [attr.aria-selected]="i === selectedIndex"
-          role="option"
-          [attr.aria-label]="'Image ' + (i + 1) + (image.isPrimary ? ', primary' : '')">
-          <img
-            [src]="resolveUrl(image.imageUrl)"
-            [alt]="medicationName + ' thumbnail ' + (i + 1)"
-            loading="lazy"
-            width="64"
-            height="64" />
-        </button>
+        <div
+          class="strip-thumbnail-wrapper"
+          [class.removing]="isImageDeleting(image.id)">
+          <button
+            type="button"
+            class="strip-thumbnail"
+            [class.active]="i === selectedIndex"
+            [class.is-primary]="image.isPrimary"
+            (click)="selectImage(i)"
+            [disabled]="isDeleting"
+            [attr.aria-selected]="i === selectedIndex"
+            role="option"
+            [attr.aria-label]="'Image ' + (i + 1) + (image.isPrimary ? ', primary' : '')">
+            <img
+              [src]="resolveUrl(image.imageUrl)"
+              [alt]="medicationName + ' thumbnail ' + (i + 1)"
+              loading="lazy"
+              width="64"
+              height="64" />
+          </button>
+          @if (canDeleteImages) {
+            <button
+              type="button"
+              class="strip-delete-btn"
+              (click)="confirmDelete(image); $event.stopPropagation()"
+              [disabled]="isDeleting"
+              [attr.aria-label]="'Delete image ' + (i + 1)">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          }
+        </div>
       }
     </div>
   }
 
   <!-- Management Controls -->
   <div class="gallery-controls">
-    <label class="btn btn-upload" [class.disabled]="isUploading">
+    <label class="btn btn-upload" [class.disabled]="isUploading || isDeleting">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
         <polyline points="17 8 12 3 7 8"></polyline>
@@ -80,7 +109,7 @@
         type="file"
         accept="image/jpeg,image/png,image/webp"
         (change)="onUpload($event)"
-        [disabled]="isUploading"
+        [disabled]="isUploading || isDeleting"
         hidden />
     </label>
 
@@ -88,17 +117,25 @@
       type="button"
       class="btn btn-secondary-action"
       (click)="setPrimary()"
-      [disabled]="!selectedImage || selectedImage.isPrimary || isManaging">
+      [disabled]="!selectedImage || selectedImage.isPrimary || isManaging || isDeleting">
       Set as Primary
     </button>
 
-    <button
-      type="button"
-      class="btn btn-danger-action"
-      (click)="confirmDelete()"
-      [disabled]="!selectedImage || isManaging">
-      Delete Image
-    </button>
+    @if (canDeleteImages) {
+      <button
+        type="button"
+        class="btn btn-danger-action"
+        (click)="confirmDelete()"
+        [disabled]="!selectedImage || isDeleting">
+        @if (isDeleting) {
+          Deleting...
+        } @else {
+          Delete Image
+        }
+      </button>
+    } @else {
+      <span class="permission-note">Image deletion requires Pharmacist or Admin role.</span>
+    }
   </div>
 </section>
 
@@ -107,13 +144,16 @@
   [images]="images"
   [currentIndex]="selectedIndex"
   [resolveUrl]="resolveUrl"
+  [canDelete]="canDeleteImages"
+  [isDeleting]="isDeleting"
   (closed)="closeLightbox()"
-  (indexChange)="onLightboxIndexChange($event)">
+  (indexChange)="onLightboxIndexChange($event)"
+  (deleteRequested)="confirmDelete()">
 </app-medication-image-lightbox>
 
 <app-confirm-modal
   [show]="showDeleteConfirm"
-  message="Are you sure you want to delete this image? This action cannot be undone."
-  (confirmed)="deleteSelected()"
+  [message]="deleteConfirmMessage"
+  (confirmed)="deleteConfirmed()"
   (cancelled)="cancelDelete()">
 </app-confirm-modal>

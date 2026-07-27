@@ -200,6 +200,7 @@ namespace eBolnicaAPI.Services
         {
             Id = image.Id,
             MedicationId = image.MedicationId,
+            FileName = image.FileName,
             ImageUrl = image.RelativeUrl,
             IsPrimary = image.IsPrimary,
             SortOrder = image.SortOrder,

@@ -14,9 +14,12 @@ export class MedicationImageLightboxComponent {
   @Input() images: MedicationImageDto[] = [];
   @Input() currentIndex = 0;
   @Input() resolveUrl!: (url: string) => string;
+  @Input() canDelete = false;
+  @Input() isDeleting = false;
 
   @Output() closed = new EventEmitter<void>();
   @Output() indexChange = new EventEmitter<number>();
+  @Output() deleteRequested = new EventEmitter<void>();
 
   @HostListener('document:keydown', ['$event'])
   onKeydown(event: KeyboardEvent): void {

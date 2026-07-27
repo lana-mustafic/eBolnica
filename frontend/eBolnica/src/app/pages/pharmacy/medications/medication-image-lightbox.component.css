@@ -100,6 +100,28 @@
   font-weight: 600;
 }
 
+.lightbox-delete-btn {
+  margin-left: auto;
+  background: rgba(245, 101, 101, 0.9);
+  color: white;
+  border: none;
+  padding: 0.375rem 0.875rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.lightbox-delete-btn:hover:not(:disabled) {
+  background: #e53e3e;
+}
+
+.lightbox-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 @media (max-width: 768px) {
   .lightbox-prev {
     left: 0.5rem;

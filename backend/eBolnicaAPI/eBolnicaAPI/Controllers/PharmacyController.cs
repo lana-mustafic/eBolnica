@@ -374,7 +374,7 @@ namespace eBolnicaAPI.Controllers
         /// Delete a medication image
         /// </summary>
         [HttpDelete("medications/{id}/images/{imageId}")]
-        [Authorize(Roles = "Pharmacist")]
+        [Authorize(Roles = "Pharmacist,Admin")]
         public async Task<IActionResult> DeleteMedicationImage(int id, int imageId)
         {
             try

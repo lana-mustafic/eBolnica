@@ -34,6 +34,16 @@
         @if (currentImage.isPrimary) {
           <span class="lightbox-primary-badge">Primary</span>
         }
+        @if (canDelete) {
+          <button
+            type="button"
+            class="lightbox-delete-btn"
+            (click)="deleteRequested.emit()"
+            [disabled]="isDeleting"
+            aria-label="Delete current image">
+            {{ isDeleting ? 'Deleting...' : 'Delete' }}
+          </button>
+        }
       </div>
     </div>
   </div>
