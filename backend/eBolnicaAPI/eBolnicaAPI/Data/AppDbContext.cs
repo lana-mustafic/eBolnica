@@ -169,6 +169,12 @@ namespace eBolnicaAPI.Data
                 .HasIndex(m => m.StockQuantity)
                 .HasDatabaseName("IX_Medications_StockQuantity");
 
+            modelBuilder.Entity<Medication>()
+                .Property(m => m.ImageUrl)
+                .HasMaxLength(2048)
+                .IsRequired(false)
+                .HasDefaultValue(null);
+
             modelBuilder.Entity<MedicationImage>()
                 .HasOne(mi => mi.Medication)
                 .WithMany(m => m.Images)

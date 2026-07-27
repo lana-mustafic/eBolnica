@@ -52,6 +52,7 @@ namespace eBolnicaAPI.Models.Entities
         /// URL of the primary medication image for quick list/detail display.
         /// Kept in sync with the primary entry in <see cref="Images"/>.
         /// </summary>
+        [MaxLength(2048)]
         public string? ImageUrl { get; set; }
 
         public ICollection<PrescriptionItem> PrescriptionItems { get; set; } = new List<PrescriptionItem>();

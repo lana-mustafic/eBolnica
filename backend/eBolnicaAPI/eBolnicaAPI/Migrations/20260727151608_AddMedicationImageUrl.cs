@@ -5,6 +5,10 @@
 namespace eBolnicaAPI.Migrations
 {
     /// <inheritdoc />
+    /// <summary>
+    /// PHA-5-1-T8: Adds nullable ImageUrl column to Medications for primary image URL storage.
+    /// Existing rows default to NULL; backfills from MedicationImages where available.
+    /// </summary>
     public partial class AddMedicationImageUrl : Migration
     {
         /// <inheritdoc />
@@ -13,113 +17,10 @@ namespace eBolnicaAPI.Migrations
             migrationBuilder.AddColumn<string>(
                 name: "ImageUrl",
                 table: "Medications",
-                type: "nvarchar(max)",
-                nullable: true);
-
-            migrationBuilder.UpdateData(
-                table: "Medications",
-                keyColumn: "Id",
-                keyValue: 1,
-                column: "ImageUrl",
-                value: null);
-
-            migrationBuilder.UpdateData(
-                table: "Medications",
-                keyColumn: "Id",
-                keyValue: 2,
-                column: "ImageUrl",
-                value: null);
-
-            migrationBuilder.UpdateData(
-                table: "Medications",
-                keyColumn: "Id",
-                keyValue: 3,
-                column: "ImageUrl",
-                value: null);
-
-            migrationBuilder.UpdateData(
-                table: "Medications",
-                keyColumn: "Id",
-                keyValue: 4,
-                column: "ImageUrl",
-                value: null);
-
-            migrationBuilder.UpdateData(
-                table: "Medications",
-                keyColumn: "Id",
-                keyValue: 5,
-                column: "ImageUrl",
-                value: null);
-
-            migrationBuilder.UpdateData(
-                table: "Medications",
-                keyColumn: "Id",
-                keyValue: 6,
-                column: "ImageUrl",
-                value: null);
-
-            migrationBuilder.UpdateData(
-                table: "Medications",
-                keyColumn: "Id",
-                keyValue: 7,
-                column: "ImageUrl",
-                value: null);
-
-            migrationBuilder.UpdateData(
-                table: "Medications",
-                keyColumn: "Id",
-                keyValue: 8,
-                column: "ImageUrl",
-                value: null);
-
-            migrationBuilder.UpdateData(
-                table: "Medications",
-                keyColumn: "Id",
-                keyValue: 9,
-                column: "ImageUrl",
-                value: null);
-
-            migrationBuilder.UpdateData(
-                table: "Medications",
-                keyColumn: "Id",
-                keyValue: 10,
-                column: "ImageUrl",
-                value: null);
-
-            migrationBuilder.UpdateData(
-                table: "Medications",
-                keyColumn: "Id",
-                keyValue: 11,
-                column: "ImageUrl",
-                value: null);
-
-            migrationBuilder.UpdateData(
-                table: "Medications",
-                keyColumn: "Id",
-                keyValue: 12,
-                column: "ImageUrl",
-                value: null);
-
-            migrationBuilder.UpdateData(
-                table: "Medications",
-                keyColumn: "Id",
-                keyValue: 13,
-                column: "ImageUrl",
-                value: null);
-
-            migrationBuilder.UpdateData(
-                table: "Medications",
-                keyColumn: "Id",
-                keyValue: 14,
-                column: "ImageUrl",
-                value: null);
-
-            migrationBuilder.UpdateData(
-                table: "Medications",
-                keyColumn: "Id",
-                keyValue: 15,
-                column: "ImageUrl",
-                value: null);
+                type: "nvarchar(2048)",
+                maxLength: 2048,
+                nullable: true,
+                defaultValue: null);
 
             migrationBuilder.Sql("""
                 UPDATE m
