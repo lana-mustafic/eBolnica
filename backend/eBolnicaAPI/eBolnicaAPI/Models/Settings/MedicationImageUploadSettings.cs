@@ -24,5 +24,13 @@ namespace eBolnicaAPI.Models.Settings
         public int ThumbnailHeight { get; set; } = 128;
 
         public int ThumbnailJpegQuality { get; set; } = 80;
+
+        public string StaticFilesPhysicalFolder { get; set; } = "Uploads";
+
+        public string StaticFilesRequestPath { get; set; } = "/uploads";
+
+        public int StaticFileCacheMaxAgeSeconds { get; set; } = 86400;
+
+        public bool StaticFileCacheImmutable { get; set; } = true;
     }
 }
