@@ -397,6 +397,18 @@ table tbody tr:hover {
   color: #2d3748;
 }
 
+.medication-link {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.medication-link:hover {
+  color: #5a67d8;
+  text-decoration: underline;
+}
+
 .thumbnail-header {
   width: 64px;
   text-align: center;
@@ -519,6 +531,18 @@ table tbody tr:hover {
   color: white;
   padding: 0.4rem 0.8rem;
   font-size: 0.85rem;
+}
+
+.btn-view {
+  background: #edf2f7;
+  color: #4a5568;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+}
+
+.btn-view:hover:not(:disabled) {
+  background: #e2e8f0;
+  color: #2d3748;
 }
 
 .btn-edit:hover:not(:disabled) {

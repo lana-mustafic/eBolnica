@@ -1,0 +1,127 @@
+<div class="medication-detail-container">
+  <button class="back-button" (click)="onBack()">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6"></polyline>
+    </svg>
+    Back to Medications
+  </button>
+
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading medication details...</p>
+  </div>
+
+  <div *ngIf="errorMessage && !isLoading" class="error-message">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <p>{{ errorMessage }}</p>
+  </div>
+
+  <div *ngIf="!isLoading && medication" class="medication-detail">
+    <div class="detail-header">
+      <div class="header-left">
+        <h2>{{ medication.name }}</h2>
+        <span [class]="'status-badge ' + getStockStatus().class">
+          {{ getStockStatus().label }}
+        </span>
+        <span class="prescription-badge" *ngIf="medication.requiresPrescription">Rx Required</span>
+      </div>
+      <button class="btn btn-edit" (click)="onEdit()">Edit Medication</button>
+    </div>
+
+    <div class="detail-layout">
+      <div class="gallery-section">
+        <app-medication-image-gallery
+          [medicationId]="medication.id"
+          [images]="images"
+          [medicationName]="medication.name"
+          (imagesChange)="onImagesChange($event)">
+        </app-medication-image-gallery>
+      </div>
+
+      <div class="info-section">
+        <div class="info-cards">
+          <div class="info-card">
+            <h3 class="card-title">Basic Information</h3>
+            <div class="info-content">
+              <div class="info-item">
+                <label>Generic Name:</label>
+                <span>{{ medication.genericName || '-' }}</span>
+              </div>
+              <div class="info-item">
+                <label>Category:</label>
+                <span>{{ medication.category || '-' }}</span>
+              </div>
+              <div class="info-item">
+                <label>Manufacturer:</label>
+                <span>{{ medication.manufacturer || '-' }}</span>
+              </div>
+              <div class="info-item">
+                <label>Dosage Form:</label>
+                <span>{{ medication.dosageForm || '-' }}</span>
+              </div>
+              <div class="info-item">
+                <label>Strength:</label>
+                <span>{{ medication.strength || '-' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-card">
+            <h3 class="card-title">Inventory</h3>
+            <div class="info-content">
+              <div class="info-item">
+                <label>Price:</label>
+                <span>{{ formatCurrency(medication.price) }}</span>
+              </div>
+              <div class="info-item">
+                <label>Stock Quantity:</label>
+                <span [class.stock-low]="medication.stockQuantity < medication.minimumStockLevel">
+                  {{ medication.stockQuantity }}
+                </span>
+              </div>
+              <div class="info-item">
+                <label>Minimum Stock:</label>
+                <span>{{ medication.minimumStockLevel }}</span>
+              </div>
+              <div class="info-item">
+                <label>Expiry Date:</label>
+                <span>{{ formatDate(medication.expiryDate) }}</span>
+              </div>
+              <div class="info-item">
+                <label>Batch Number:</label>
+                <span>{{ medication.batchNumber || '-' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-card">
+            <h3 class="card-title">Record</h3>
+            <div class="info-content">
+              <div class="info-item">
+                <label>Created:</label>
+                <span>{{ formatDate(medication.createdAt) }}</span>
+              </div>
+              <div class="info-item">
+                <label>Last Updated:</label>
+                <span>{{ formatDate(medication.updatedAt) }}</span>
+              </div>
+              <div class="info-item">
+                <label>Status:</label>
+                <span>{{ medication.isActive ? 'Active' : 'Inactive' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="description-section" *ngIf="medication.description">
+          <h3 class="section-title">Description</h3>
+          <p class="description-text">{{ medication.description }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

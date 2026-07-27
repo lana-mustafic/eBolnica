@@ -24,6 +24,7 @@ namespace eBolnicaAPI.Controllers
         private readonly IPharmacyService _pharmacyService;
         private readonly IPdfReportService _pdfReportService;
         private readonly IPharmacyAnalyticsService _analyticsService;
+        private readonly IMedicationImageService _medicationImageService;
         private readonly ILogger<PharmacyController> _logger;
         private readonly IMemoryCache _cache;
         private readonly IConfiguration _configuration;
@@ -34,6 +35,7 @@ namespace eBolnicaAPI.Controllers
             IPharmacyService pharmacyService,
             IPdfReportService pdfReportService,
             IPharmacyAnalyticsService analyticsService,
+            IMedicationImageService medicationImageService,
             ILogger<PharmacyController> logger,
             IMemoryCache cache,
             IConfiguration configuration)
@@ -43,6 +45,7 @@ namespace eBolnicaAPI.Controllers
             _pharmacyService = pharmacyService;
             _pdfReportService = pdfReportService;
             _analyticsService = analyticsService;
+            _medicationImageService = medicationImageService;
             _logger = logger;
             _cache = cache;
             _configuration = configuration;
@@ -234,7 +237,12 @@ namespace eBolnicaAPI.Controllers
                     DosageForm = m.DosageForm,
                     Strength = m.Strength,
                     CreatedAt = m.CreatedAt,
-                    UpdatedAt = m.UpdatedAt
+                    UpdatedAt = m.UpdatedAt,
+                    PrimaryImageUrl = m.Images
+                        .OrderByDescending(i => i.IsPrimary)
+                        .ThenBy(i => i.SortOrder)
+                        .Select(i => i.RelativeUrl)
+                        .FirstOrDefault()
                 })
                 .ToListAsync();
 
@@ -265,12 +273,16 @@ namespace eBolnicaAPI.Controllers
         [Authorize(Roles = "Pharmacist")]
         public async Task<IActionResult> GetMedication(int id)
         {
-            var medication = await _context.Medications.FindAsync(id);
+            var medication = await _context.Medications
+                .AsNoTracking()
+                .FirstOrDefaultAsync(m => m.Id == id);
 
-            if (medication == null || !medication.IsActive)
+            if (medication == null)
             {
                 return NotFound("Medication not found");
             }
+
+            var images = await _medicationImageService.GetImagesAsync(id);
 
             var dto = new MedicationDto
             {
@@ -290,10 +302,90 @@ namespace eBolnicaAPI.Controllers
                 DosageForm = medication.DosageForm,
                 Strength = medication.Strength,
                 CreatedAt = medication.CreatedAt,
-                UpdatedAt = medication.UpdatedAt
+                UpdatedAt = medication.UpdatedAt,
+                PrimaryImageUrl = images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl
+                    ?? images.FirstOrDefault()?.ImageUrl,
+                Images = images
             };
 
             return Ok(dto);
+        }
+
+        /// <summary>
+        /// Get all images for a medication
+        /// </summary>
+        [HttpGet("medications/{id}/images")]
+        [Authorize(Roles = "Pharmacist")]
+        public async Task<IActionResult> GetMedicationImages(int id)
+        {
+            try
+            {
+                var images = await _medicationImageService.GetImagesAsync(id);
+                return Ok(images);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound("Medication not found");
+            }
+        }
+
+        /// <summary>
+        /// Upload an image for a medication
+        /// </summary>
+        [HttpPost("medications/{id}/images")]
+        [Authorize(Roles = "Pharmacist")]
+        [RequestSizeLimit(5 * 1024 * 1024)]
+        public async Task<IActionResult> UploadMedicationImage(int id, [FromForm] IFormFile file)
+        {
+            try
+            {
+                var image = await _medicationImageService.UploadImageAsync(id, file);
+                return CreatedAtAction(nameof(GetMedicationImages), new { id }, image);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound("Medication not found");
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Set the primary image for a medication
+        /// </summary>
+        [HttpPut("medications/{id}/images/{imageId}/primary")]
+        [Authorize(Roles = "Pharmacist")]
+        public async Task<IActionResult> SetPrimaryMedicationImage(int id, int imageId)
+        {
+            try
+            {
+                await _medicationImageService.SetPrimaryImageAsync(id, imageId);
+                return NoContent();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Delete a medication image
+        /// </summary>
+        [HttpDelete("medications/{id}/images/{imageId}")]
+        [Authorize(Roles = "Pharmacist")]
+        public async Task<IActionResult> DeleteMedicationImage(int id, int imageId)
+        {
+            try
+            {
+                await _medicationImageService.DeleteImageAsync(id, imageId);
+                return NoContent();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
         }
 
         [HttpPost("medications")]
@@ -1119,7 +1211,12 @@ namespace eBolnicaAPI.Controllers
                     DosageForm = m.DosageForm,
                     Strength = m.Strength,
                     CreatedAt = m.CreatedAt,
-                    UpdatedAt = m.UpdatedAt
+                    UpdatedAt = m.UpdatedAt,
+                    PrimaryImageUrl = m.Images
+                        .OrderByDescending(i => i.IsPrimary)
+                        .ThenBy(i => i.SortOrder)
+                        .Select(i => i.RelativeUrl)
+                        .FirstOrDefault()
                 })
                 .ToListAsync();
 
@@ -1145,7 +1242,12 @@ namespace eBolnicaAPI.Controllers
                     DosageForm = m.DosageForm,
                     Strength = m.Strength,
                     CreatedAt = m.CreatedAt,
-                    UpdatedAt = m.UpdatedAt
+                    UpdatedAt = m.UpdatedAt,
+                    PrimaryImageUrl = m.Images
+                        .OrderByDescending(i => i.IsPrimary)
+                        .ThenBy(i => i.SortOrder)
+                        .Select(i => i.RelativeUrl)
+                        .FirstOrDefault()
                 })
                 .ToListAsync();
 

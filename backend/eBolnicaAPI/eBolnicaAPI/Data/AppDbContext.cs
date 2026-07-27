@@ -169,6 +169,16 @@ namespace eBolnicaAPI.Data
                 .HasIndex(m => m.StockQuantity)
                 .HasDatabaseName("IX_Medications_StockQuantity");
 
+            modelBuilder.Entity<MedicationImage>()
+                .HasOne(mi => mi.Medication)
+                .WithMany(m => m.Images)
+                .HasForeignKey(mi => mi.MedicationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<MedicationImage>()
+                .HasIndex(mi => new { mi.MedicationId, mi.IsPrimary })
+                .HasDatabaseName("IX_MedicationImages_MedicationId_IsPrimary");
+
             modelBuilder.Entity<Pharmacist>()
                 .HasIndex(p => p.LicenseNumber)
                 .IsUnique();
@@ -666,6 +676,7 @@ namespace eBolnicaAPI.Data
 
     public DbSet<Pharmacist> Pharmacists { get; set; }
     public DbSet<Medication> Medications { get; set; }
+    public DbSet<MedicationImage> MedicationImages { get; set; }
     public DbSet<Prescription> Prescriptions { get; set; }
     public DbSet<PrescriptionItem> PrescriptionItems { get; set; }
     }

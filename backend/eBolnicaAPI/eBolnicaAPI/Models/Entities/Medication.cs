@@ -49,5 +49,7 @@ namespace eBolnicaAPI.Models.Entities
         public DateTime? UpdatedAt { get; set; }
 
         public ICollection<PrescriptionItem> PrescriptionItems { get; set; } = new List<PrescriptionItem>();
+
+        public ICollection<MedicationImage> Images { get; set; } = new List<MedicationImage>();
     }
 }

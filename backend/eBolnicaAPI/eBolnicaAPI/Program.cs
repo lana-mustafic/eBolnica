@@ -158,6 +158,7 @@ builder.Services.Configure<FormOptions>(options =>
 });
 builder.Services.AddScoped<IPharmacyService, PharmacyService>();
 builder.Services.AddScoped<IPharmacyAnalyticsService, PharmacyAnalyticsService>();
+builder.Services.AddScoped<IMedicationImageService, MedicationImageService>();
 
 // Configure PDF generation settings
 builder.Services.Configure<eBolnicaAPI.Models.Settings.PdfGenerationSettings>(
@@ -192,6 +193,18 @@ if (enableCompression)
 }
 
 app.UseHttpsRedirection();
+
+var uploadsPath = Path.Combine(app.Environment.ContentRootPath, "Uploads");
+if (!Directory.Exists(uploadsPath))
+{
+    Directory.CreateDirectory(uploadsPath);
+}
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsPath),
+    RequestPath = "/uploads"
+});
 
 app.UseAuthentication();
 

@@ -244,7 +244,11 @@
               [alt]="medication.name">
             </app-medication-thumbnail>
           </td>
-          <td class="medication-name">{{ medication.name }}</td>
+          <td class="medication-name">
+            <a [routerLink]="['/pharmacy/medications', medication.id]" class="medication-link">
+              {{ medication.name }}
+            </a>
+          </td>
           <td>{{ medication.genericName || '-' }}</td>
           <td>{{ medication.manufacturer || '-' }}</td>
           <td>{{ medication.category || '-' }}</td>
@@ -267,6 +271,7 @@
             </span>
           </td>
           <td class="actions">
+            <a [routerLink]="['/pharmacy/medications', medication.id]" class="btn btn-view">View</a>
             <a [routerLink]="['/pharmacy/medications', medication.id, 'edit']" class="btn btn-edit">Edit</a>
             <button class="btn btn-delete" (click)="deleteMedication(medication)" [disabled]="isLoading">Delete</button>
           </td>
