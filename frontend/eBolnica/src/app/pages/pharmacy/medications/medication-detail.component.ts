@@ -59,7 +59,7 @@ export class MedicationDetailComponent implements OnInit {
       this.medication = {
         ...this.medication,
         images,
-        primaryImageUrl: primary?.imageUrl
+        primaryImageUrl: primary ? (primary.thumbnailUrl ?? primary.imageUrl) : undefined
       };
     }
   }

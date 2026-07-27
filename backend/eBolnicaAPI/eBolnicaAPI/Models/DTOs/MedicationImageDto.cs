@@ -13,6 +13,8 @@ namespace eBolnicaAPI.Models.DTOs
 
         public string ImageUrl { get; set; } = string.Empty;
 
+        public string? ThumbnailUrl { get; set; }
+
         public bool IsPrimary { get; set; }
 
         public int SortOrder { get; set; }

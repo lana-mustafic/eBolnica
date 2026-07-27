@@ -57,6 +57,11 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
     return this.pharmacyService.resolveMedicationImageUrl(url) ?? '';
   };
 
+  resolveThumbnailUrl = (image: MedicationImageDto): string => {
+    const url = image.thumbnailUrl ?? image.imageUrl;
+    return this.pharmacyService.resolveMedicationImageUrl(url) ?? '';
+  };
+
   get selectedImage(): MedicationImageDto | null {
     return this.images[this.selectedIndex] ?? null;
   }
@@ -118,8 +123,14 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
         this.selectedIndex = this.images.length - 1;
         this.imagesChange.emit(this.images);
       },
-      error: () => {
-        this.errorMessage = 'Failed to upload image. Please try again.';
+      error: (error) => {
+        if (error?.status === 403) {
+          this.errorMessage = error.error?.message || error.error || 'File failed security scan and was rejected.';
+        } else if (error?.error?.message) {
+          this.errorMessage = error.error.message;
+        } else {
+          this.errorMessage = 'Failed to upload image. Please try again.';
+        }
       }
     });
   }

@@ -18,5 +18,11 @@ namespace eBolnicaAPI.Models.Settings
         public bool StripMetadata { get; set; } = true;
 
         public string UploadSubDirectory { get; set; } = "medications";
+
+        public int ThumbnailWidth { get; set; } = 128;
+
+        public int ThumbnailHeight { get; set; } = 128;
+
+        public int ThumbnailJpegQuality { get; set; } = 80;
     }
 }

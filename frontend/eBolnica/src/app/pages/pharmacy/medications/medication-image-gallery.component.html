@@ -71,9 +71,9 @@
             [attr.aria-selected]="i === selectedIndex"
             role="option"
             [attr.aria-label]="'Image ' + (i + 1) + (image.isPrimary ? ', primary' : '')">
-            <img
-              [src]="resolveUrl(image.imageUrl)"
-              [alt]="medicationName + ' thumbnail ' + (i + 1)"
+          <img
+            [src]="resolveThumbnailUrl(image)"
+            [alt]="medicationName + ' thumbnail ' + (i + 1)"
               loading="lazy"
               width="64"
               height="64" />

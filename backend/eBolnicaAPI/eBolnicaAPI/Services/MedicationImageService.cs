@@ -73,6 +73,7 @@ namespace eBolnicaAPI.Services
                 MedicationId = medicationId,
                 FileName = sanitizedFileName,
                 RelativeUrl = storedImage.RelativeUrl,
+                ThumbnailRelativeUrl = storedImage.ThumbnailRelativeUrl,
                 IsPrimary = isPrimary,
                 SortOrder = existingCount,
                 UploadedAt = DateTime.UtcNow
@@ -82,15 +83,16 @@ namespace eBolnicaAPI.Services
 
             if (isPrimary)
             {
-                medication.ImageUrl = storedImage.RelativeUrl;
+                medication.ImageUrl = GetListDisplayUrl(image);
             }
 
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
-                "Medication image uploaded. MedicationId={MedicationId}, ImageId pending save, StoredFile={StoredFile}, OptimizedBytes={OptimizedBytes}",
+                "Medication image uploaded. MedicationId={MedicationId}, Original={OriginalUrl}, Thumbnail={ThumbnailUrl}, Bytes={OptimizedBytes}",
                 medicationId,
-                storedImage.StoredFileName,
+                storedImage.RelativeUrl,
+                storedImage.ThumbnailRelativeUrl,
                 optimizedImage.Length);
 
             return MapToDto(image);
@@ -115,7 +117,7 @@ namespace eBolnicaAPI.Services
                 image.IsPrimary = image.Id == imageId;
             }
 
-            medication.ImageUrl = target.RelativeUrl;
+            medication.ImageUrl = GetListDisplayUrl(target);
             await _context.SaveChangesAsync();
         }
 
@@ -132,7 +134,7 @@ namespace eBolnicaAPI.Services
             }
 
             var wasPrimary = image.IsPrimary;
-            _storageService.Delete(image.RelativeUrl);
+            _storageService.Delete(image.RelativeUrl, image.ThumbnailRelativeUrl);
             _context.MedicationImages.Remove(image);
 
             if (wasPrimary)
@@ -145,7 +147,7 @@ namespace eBolnicaAPI.Services
                 if (nextPrimary != null)
                 {
                     nextPrimary.IsPrimary = true;
-                    medication.ImageUrl = nextPrimary.RelativeUrl;
+                    medication.ImageUrl = GetListDisplayUrl(nextPrimary);
                 }
                 else
                 {
@@ -176,12 +178,18 @@ namespace eBolnicaAPI.Services
             return medication;
         }
 
+        private static string GetListDisplayUrl(MedicationImage image)
+        {
+            return image.ThumbnailRelativeUrl ?? image.RelativeUrl;
+        }
+
         private static MedicationImageDto MapToDto(MedicationImage image) => new()
         {
             Id = image.Id,
             MedicationId = image.MedicationId,
             FileName = image.FileName,
             ImageUrl = image.RelativeUrl,
+            ThumbnailUrl = image.ThumbnailRelativeUrl,
             IsPrimary = image.IsPrimary,
             SortOrder = image.SortOrder,
             UploadedAt = image.UploadedAt

@@ -21,6 +21,8 @@ namespace eBolnicaAPI.Models.Entities
         [Required]
         public string RelativeUrl { get; set; } = string.Empty;
 
+        public string? ThumbnailRelativeUrl { get; set; }
+
         public bool IsPrimary { get; set; }
 
         public int SortOrder { get; set; }

@@ -3,6 +3,7 @@ export interface MedicationImageDto {
   medicationId: number;
   fileName?: string;
   imageUrl: string;
+  thumbnailUrl?: string;
   isPrimary: boolean;
   sortOrder: number;
   uploadedAt: string;

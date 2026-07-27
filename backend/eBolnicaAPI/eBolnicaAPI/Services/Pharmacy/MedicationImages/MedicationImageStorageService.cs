@@ -4,21 +4,34 @@ using Microsoft.Extensions.Options;
 namespace eBolnicaAPI.Services.Pharmacy.MedicationImages
 {
     /// <summary>
-    /// Stores medication images outside web root using randomized file names and path traversal protection.
+    /// Stores medication images in /uploads/medications/{medicationId}/original/ and /thumbnails/.
     /// </summary>
     public class MedicationImageStorageService : IMedicationImageStorageService
     {
         private readonly IWebHostEnvironment _env;
+        private readonly IMedicationImageThumbnailGenerator _thumbnailGenerator;
         private readonly MedicationImageUploadSettings _settings;
         private readonly string _uploadRoot;
 
-        public MedicationImageStorageService(IWebHostEnvironment env, IOptions<MedicationImageUploadSettings> settings)
+        public MedicationImageStorageService(
+            IWebHostEnvironment env,
+            IMedicationImageThumbnailGenerator thumbnailGenerator,
+            IOptions<MedicationImageUploadSettings> settings)
         {
             _env = env;
+            _thumbnailGenerator = thumbnailGenerator;
             _settings = settings.Value;
             _uploadRoot = Path.GetFullPath(Path.Combine(_env.ContentRootPath, "Uploads", _settings.UploadSubDirectory));
 
             Directory.CreateDirectory(_uploadRoot);
+        }
+
+        public void EnsureFolderStructure(int medicationId)
+        {
+            var medicationFolder = GetSecureMedicationFolder(medicationId);
+            Directory.CreateDirectory(GetOriginalFolder(medicationId));
+            Directory.CreateDirectory(GetThumbnailsFolder(medicationId));
+            EnsurePathIsWithinRoot(medicationFolder, _uploadRoot);
         }
 
         public async Task<StoredMedicationImageResult> SaveAsync(int medicationId, Stream content, string extension)
@@ -28,15 +41,22 @@ namespace eBolnicaAPI.Services.Pharmacy.MedicationImages
                 throw new MedicationImageValidationException("Invalid medication identifier.");
             }
 
-            var medicationFolder = GetSecureMedicationFolder(medicationId);
-            Directory.CreateDirectory(medicationFolder);
+            EnsureFolderStructure(medicationId);
 
             var storedFileName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
-            var absolutePath = Path.GetFullPath(Path.Combine(medicationFolder, storedFileName));
-            EnsurePathIsWithinRoot(absolutePath, medicationFolder);
+            var thumbnailFileName = $"{Path.GetFileNameWithoutExtension(storedFileName)}.jpg";
+
+            var originalFolder = GetOriginalFolder(medicationId);
+            var thumbnailsFolder = GetThumbnailsFolder(medicationId);
+
+            var originalAbsolutePath = Path.GetFullPath(Path.Combine(originalFolder, storedFileName));
+            var thumbnailAbsolutePath = Path.GetFullPath(Path.Combine(thumbnailsFolder, thumbnailFileName));
+
+            EnsurePathIsWithinRoot(originalAbsolutePath, GetSecureMedicationFolder(medicationId));
+            EnsurePathIsWithinRoot(thumbnailAbsolutePath, GetSecureMedicationFolder(medicationId));
 
             await using (var fileStream = new FileStream(
-                absolutePath,
+                originalAbsolutePath,
                 FileMode.CreateNew,
                 FileAccess.Write,
                 FileShare.None,
@@ -47,15 +67,41 @@ namespace eBolnicaAPI.Services.Pharmacy.MedicationImages
                 await content.CopyToAsync(fileStream);
             }
 
-            var relativeUrl = $"/uploads/{_settings.UploadSubDirectory}/{medicationId}/{storedFileName}";
+            content.Position = 0;
+            using var thumbnailStream = await _thumbnailGenerator.GenerateAsync(content);
+            await using (var thumbnailFileStream = new FileStream(
+                thumbnailAbsolutePath,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.None,
+                bufferSize: 81920,
+                useAsync: true))
+            {
+                await thumbnailStream.CopyToAsync(thumbnailFileStream);
+            }
+
+            var relativeUrl = BuildRelativeUrl(medicationId, MedicationImageFolders.Original, storedFileName);
+            var thumbnailRelativeUrl = BuildRelativeUrl(medicationId, MedicationImageFolders.Thumbnails, thumbnailFileName);
+
             return new StoredMedicationImageResult
             {
                 RelativeUrl = relativeUrl,
+                ThumbnailRelativeUrl = thumbnailRelativeUrl,
                 StoredFileName = storedFileName
             };
         }
 
-        public void Delete(string relativeUrl)
+        public void Delete(string originalRelativeUrl, string? thumbnailRelativeUrl = null)
+        {
+            DeleteIfExists(originalRelativeUrl);
+
+            if (!string.IsNullOrWhiteSpace(thumbnailRelativeUrl))
+            {
+                DeleteIfExists(thumbnailRelativeUrl);
+            }
+        }
+
+        private void DeleteIfExists(string relativeUrl)
         {
             var absolutePath = GetSecureAbsolutePath(relativeUrl);
             if (File.Exists(absolutePath))
@@ -77,6 +123,21 @@ namespace eBolnicaAPI.Services.Pharmacy.MedicationImages
             var folder = Path.GetFullPath(Path.Combine(_uploadRoot, medicationId.ToString()));
             EnsurePathIsWithinRoot(folder, _uploadRoot);
             return folder;
+        }
+
+        private string GetOriginalFolder(int medicationId)
+        {
+            return Path.Combine(GetSecureMedicationFolder(medicationId), MedicationImageFolders.Original);
+        }
+
+        private string GetThumbnailsFolder(int medicationId)
+        {
+            return Path.Combine(GetSecureMedicationFolder(medicationId), MedicationImageFolders.Thumbnails);
+        }
+
+        private string BuildRelativeUrl(int medicationId, string subFolder, string fileName)
+        {
+            return $"/uploads/{_settings.UploadSubDirectory}/{medicationId}/{subFolder}/{fileName}";
         }
 
         private static void EnsurePathIsWithinRoot(string targetPath, string rootPath)

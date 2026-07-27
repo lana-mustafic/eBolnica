@@ -165,6 +165,7 @@ builder.Services.Configure<eBolnicaAPI.Models.Settings.MedicationImageUploadSett
 builder.Services.AddScoped<IMedicationImageFileValidator, MedicationImageFileValidator>();
 builder.Services.AddScoped<IMedicationImageVirusScanner, MedicationImageVirusScanner>();
 builder.Services.AddScoped<IMedicationImageOptimizer, MedicationImageOptimizer>();
+builder.Services.AddScoped<IMedicationImageThumbnailGenerator, MedicationImageThumbnailGenerator>();
 builder.Services.AddScoped<IMedicationImageStorageService, MedicationImageStorageService>();
 builder.Services.AddScoped<IMedicationImageService, MedicationImageService>();
 
