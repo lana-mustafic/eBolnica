@@ -481,8 +481,31 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     return medication.id;
   }
 
+  trackByFilterKey(_: number, filter: ActiveFilter): string {
+    return filter.key;
+  }
+
   getActiveFilterCount(): number {
     return this.filterService.getActiveFilterCount();
+  }
+
+  hasActiveFilters(): boolean {
+    return this.getActiveFilterCount() > 0;
+  }
+
+  getEmptyStateTitle(): string {
+    return this.hasActiveFilters()
+      ? 'No medications match your filters'
+      : 'No medications yet';
+  }
+
+  getEmptyStateDescription(): string {
+    if (this.hasActiveFilters()) {
+      const filterWord = this.getActiveFilterCount() === 1 ? 'filter' : 'filters';
+      return `None of your medications match the current ${this.getActiveFilterCount()} active ${filterWord}. Try removing a filter or broadening your search.`;
+    }
+
+    return 'Get started by adding your first medication to the pharmacy inventory.';
   }
 
   updateActiveFilters(): void {
