@@ -71,26 +71,34 @@ var performanceSettings = builder.Configuration.GetSection("PerformanceSettings"
 var enableQueryLogging = performanceSettings.GetValue<bool>("EnableQueryLogging", false);
 var queryTimeout = performanceSettings.GetValue<int>("QueryTimeoutSeconds", 30);
 
-builder.Services.AddDbContextPool<AppDbContext>(options =>
+if (builder.Environment.IsEnvironment("Testing"))
 {
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        sqlOptions =>
-        {
-            sqlOptions.CommandTimeout(queryTimeout); // 30 second timeout
-            sqlOptions.EnableRetryOnFailure(
-                maxRetryCount: 3,
-                maxRetryDelay: TimeSpan.FromSeconds(30),
-                errorNumbersToAdd: null);
-        });
-    
-    // Enable query logging in development only
-    if (enableQueryLogging && builder.Environment.IsDevelopment())
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseInMemoryDatabase("PharmacyIntegrationTests"));
+}
+else
+{
+    builder.Services.AddDbContextPool<AppDbContext>(options =>
     {
-        options.EnableSensitiveDataLogging();
-        options.LogTo(Console.WriteLine, LogLevel.Information);
-    }
-});
+        options.UseSqlServer(
+            builder.Configuration.GetConnectionString("DefaultConnection"),
+            sqlOptions =>
+            {
+                sqlOptions.CommandTimeout(queryTimeout); // 30 second timeout
+                sqlOptions.EnableRetryOnFailure(
+                    maxRetryCount: 3,
+                    maxRetryDelay: TimeSpan.FromSeconds(30),
+                    errorNumbersToAdd: null);
+            });
+        
+        // Enable query logging in development only
+        if (enableQueryLogging && builder.Environment.IsDevelopment())
+        {
+            options.EnableSensitiveDataLogging();
+            options.LogTo(Console.WriteLine, LogLevel.Information);
+        }
+    });
+}
 
 // Add in-memory caching for query results
 builder.Services.AddMemoryCache(options =>
@@ -181,10 +189,13 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var services = scope.ServiceProvider;
-    var userManager = services.GetRequiredService<UserManager<AppUser>>();
+    if (!app.Environment.IsEnvironment("Testing"))
+    {
+        var services = scope.ServiceProvider;
+        var userManager = services.GetRequiredService<UserManager<AppUser>>();
 
-    await DbInitializer.SeedPasswords(userManager);
+        await DbInitializer.SeedPasswords(userManager);
+    }
 }
 
 // Configure the HTTP request pipeline.
