@@ -105,6 +105,13 @@ namespace eBolnicaAPI.Controllers
             var stopwatch = Stopwatch.StartNew();
 
             ApplyLegacyMedicationQueryAliases(parameters, search, page);
+
+            var filterValidationError = ValidateFilterParameters(parameters);
+            if (filterValidationError != null)
+            {
+                return filterValidationError;
+            }
+
             NormalizePagination(parameters);
 
             var query = _context.Medications.AsNoTracking().AsQueryable();
@@ -528,6 +535,12 @@ namespace eBolnicaAPI.Controllers
         public async Task<IActionResult> GetPrescriptions([FromQuery] PharmacyQueryParameters parameters)
         {
             var stopwatch = Stopwatch.StartNew();
+
+            var filterValidationError = ValidateFilterParameters(parameters);
+            if (filterValidationError != null)
+            {
+                return filterValidationError;
+            }
 
             NormalizePagination(parameters);
             
@@ -1065,6 +1078,12 @@ namespace eBolnicaAPI.Controllers
         public async Task<IActionResult> GetInventory([FromQuery] PharmacyQueryParameters parameters)
         {
             var stopwatch = Stopwatch.StartNew();
+
+            var filterValidationError = ValidateFilterParameters(parameters);
+            if (filterValidationError != null)
+            {
+                return filterValidationError;
+            }
 
             NormalizePagination(parameters);
 
@@ -1900,6 +1919,31 @@ namespace eBolnicaAPI.Controllers
             }
 
             parameters.PageSize = Math.Clamp(parameters.PageSize, 1, 100);
+        }
+
+        private IActionResult? ValidateFilterParameters(PharmacyQueryParameters parameters)
+        {
+            var validationResults = PharmacyQueryParameterValidator.Validate(parameters);
+            if (validationResults.Count == 0)
+            {
+                return null;
+            }
+
+            foreach (var result in validationResults)
+            {
+                var memberNames = result.MemberNames.Any()
+                    ? result.MemberNames
+                    : new[] { string.Empty };
+
+                foreach (var memberName in memberNames)
+                {
+                    ModelState.AddModelError(
+                        memberName,
+                        result.ErrorMessage ?? "Invalid filter parameter.");
+                }
+            }
+
+            return ValidationProblem(ModelState);
         }
 
         private static int CountMedicationFilters(PharmacyQueryParameters parameters)

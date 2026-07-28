@@ -204,6 +204,45 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
         }
 
         [Fact]
+        public async Task GetMedications_MinPriceGreaterThanMaxPrice_ReturnsBadRequest()
+        {
+            // Arrange
+            var url = "/api/pharmacy/medications?minPrice=50&maxPrice=10";
+
+            // Act
+            var response = await _client.GetAsync(url);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetMedications_InvalidStockStatus_ReturnsBadRequest()
+        {
+            // Arrange
+            var url = "/api/pharmacy/medications?stockStatus=invalid";
+
+            // Act
+            var response = await _client.GetAsync(url);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetMedications_NegativeMinPrice_ReturnsBadRequest()
+        {
+            // Arrange
+            var url = "/api/pharmacy/medications?minPrice=-5";
+
+            // Act
+            var response = await _client.GetAsync(url);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
         public async Task GetMedications_InvalidPageNumber_ReturnsFirstPage()
         {
             // Arrange

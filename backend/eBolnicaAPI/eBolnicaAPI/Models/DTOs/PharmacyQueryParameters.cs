@@ -12,15 +12,13 @@ namespace eBolnicaAPI.Models.DTOs
         #region Pagination Parameters
 
         /// <summary>
-        /// Page number (1-based). Default: 1
+        /// Page number (1-based). Default: 1. Values below 1 are normalized by the controller.
         /// </summary>
-        [Range(1, int.MaxValue, ErrorMessage = "PageNumber must be greater than 0")]
         public int PageNumber { get; set; } = 1;
 
         /// <summary>
-        /// Number of items per page. Default: 10, Maximum: 100
+        /// Number of items per page. Default: 10. Clamped to 1–100 by the controller.
         /// </summary>
-        [Range(1, 100, ErrorMessage = "PageSize must be between 1 and 100")]
         public int PageSize { get; set; } = 10;
 
         #endregion
@@ -33,9 +31,9 @@ namespace eBolnicaAPI.Models.DTOs
         public string? SortBy { get; set; }
 
         /// <summary>
-        /// Sort order: "asc" or "desc". Default: "desc"
+        /// Sort order: "asc" or "desc", or comma-separated for multi-column sort (e.g. "asc,desc").
+        /// Default: "desc"
         /// </summary>
-        [RegularExpression("^(asc|desc)$", ErrorMessage = "SortOrder must be 'asc' or 'desc'")]
         public string? SortOrder { get; set; } = "desc";
 
         #endregion
