@@ -16,7 +16,7 @@
   
   <div class="filter-badges" role="list" aria-label="Active filters">
     <span 
-      *ngFor="let filter of activeFilters" 
+      *ngFor="let filter of activeFilters; trackBy: trackByFilterKey" 
       class="filter-badge"
       [class]="getBadgeClass(filter.type)"
       role="listitem"

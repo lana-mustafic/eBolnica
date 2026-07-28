@@ -98,96 +98,31 @@ namespace eBolnicaAPI.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> GetMedications(
-            [FromQuery] string? category = null,
-            [FromQuery] string? search = null,
-            [FromQuery] string? stockStatus = null,
-            [FromQuery] bool? requiresPrescription = null,
-            [FromQuery] bool? isActive = null,
-            [FromQuery] int page = 1, // Backward compatibility: keep 'page' parameter
-            [FromQuery] int pageNumber = 1, // New parameter name
-            [FromQuery] int pageSize = 10,
-            [FromQuery] string? sortBy = null,
-            [FromQuery] string? sortOrder = "desc")
+            [FromQuery] PharmacyQueryParameters parameters,
+            [FromQuery(Name = "search")] string? search = null,
+            [FromQuery] int page = 1)
         {
             var stopwatch = Stopwatch.StartNew();
-            
-            // Start with optimized base query using AsNoTracking for read-only
+
+            ApplyLegacyMedicationQueryAliases(parameters, search, page);
+
+            var filterValidationError = ValidateFilterParameters(parameters);
+            if (filterValidationError != null)
+            {
+                return filterValidationError;
+            }
+
+            NormalizePagination(parameters);
+
             var query = _context.Medications.AsNoTracking().AsQueryable();
-
-            // Filter 1: Active Status
-            // Default behavior: show only active medications (isActive=null means use default)
-            // If isActive has a value (true/false), apply that filter
-            // To show all medications, frontend should explicitly pass isActive=null or handle it differently
-            // For backwards compatibility and default behavior, we show active only when not specified
-            if (isActive.HasValue)
-            {
-                query = query.Where(m => m.IsActive == isActive.Value);
-            }
-            else
-            {
-                // Default: show only active medications when isActive is not provided
-                query = query.Where(m => m.IsActive);
-            }
-
-            // Filter 2: Category (exact match, case-insensitive)
-            if (!string.IsNullOrEmpty(category))
-            {
-                query = query.Where(m => m.Category != null && m.Category.ToLower() == category.ToLower());
-            }
-
-            // Filter 3: Search (across Name, GenericName, and Manufacturer - case-insensitive)
-            if (!string.IsNullOrEmpty(search))
-            {
-                var searchTerm = search.ToLower();
-                query = query.Where(m =>
-                    m.Name.ToLower().Contains(searchTerm) ||
-                    (m.GenericName != null && m.GenericName.ToLower().Contains(searchTerm)) ||
-                    (m.Manufacturer != null && m.Manufacturer.ToLower().Contains(searchTerm))
-                );
-            }
-
-            // Filter 4: Stock Status
-            if (!string.IsNullOrEmpty(stockStatus))
-            {
-                var status = stockStatus.ToLower();
-                switch (status)
-                {
-                    case "low stock":
-                        query = query.Where(m => m.StockQuantity < m.MinimumStockLevel && m.StockQuantity > 0);
-                        break;
-                    case "out of stock":
-                        query = query.Where(m => m.StockQuantity == 0);
-                        break;
-                    case "normal stock":
-                        query = query.Where(m => m.StockQuantity >= m.MinimumStockLevel);
-                        break;
-                    // If invalid stockStatus, ignore the filter
-                }
-            }
-
-            // Filter 5: Requires Prescription
-            if (requiresPrescription.HasValue)
-            {
-                query = query.Where(m => m.RequiresPrescription == requiresPrescription.Value);
-            }
-
-            // NEW: Apply dynamic filters from query parameters using PharmacyService
-            // Supports filters like: minPrice=10, maxPrice=100, category=antibiotics, status=active
-            query = _pharmacyService.GetFilteredMedications(query, Request.Query);
+            var defaultActiveOnly = !Request.Query.ContainsKey("isActive");
+            query = _pharmacyService.GetFilteredMedications(query, parameters, defaultActiveOnly);
 
             // Get total count BEFORE pagination (for performance optimization)
-            // Use AsNoTracking() for read-only count query
-            var totalCount = await query.AsNoTracking().CountAsync();
+            var totalCount = await query.CountAsync();
 
-            // NEW: Parameter validation and normalization
-            // Use pageNumber if provided, otherwise fall back to 'page' for backward compatibility
-            var currentPage = pageNumber != 1 ? pageNumber : (page != 1 ? page : 1);
-            
-            // Edge case: Validate pageNumber > 0
-            if (currentPage < 1) currentPage = 1;
-
-            // Validate and clamp pageSize (1-100 range, default: 10)
-            pageSize = Math.Clamp(pageSize, 1, 100);
+            var currentPage = parameters.PageNumber;
+            var pageSize = parameters.PageSize;
 
             // Edge case: Handle empty results
             if (totalCount == 0)
@@ -207,8 +142,7 @@ namespace eBolnicaAPI.Controllers
                 currentPage = totalPages;
             }
 
-            // NEW: Apply sorting using PharmacyService
-            query = _pharmacyService.ApplySorting(query, sortBy, sortOrder);
+            query = _pharmacyService.ApplySorting(query, parameters.SortBy, parameters.SortOrder);
 
             // Calculate Skip and Take values for server-side pagination
             // Skip = (pageNumber - 1) * pageSize
@@ -250,7 +184,7 @@ namespace eBolnicaAPI.Controllers
             stopwatch.Stop();
 
             // Log performance metrics
-            var activeFilters = GetActiveFilterCount(category, search, stockStatus, requiresPrescription, isActive);
+            var activeFilters = CountMedicationFilters(parameters);
             _logger.LogInformation(
                 "Medications query executed in {ElapsedMs}ms. Filters: {FilterCount}, Results: {ResultCount}, Page: {Page}, PageSize: {PageSize}",
                 stopwatch.ElapsedMilliseconds,
@@ -598,14 +532,17 @@ namespace eBolnicaAPI.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        public async Task<IActionResult> GetPrescriptions(
-            [FromQuery] string? status = null,
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 10,
-            [FromQuery] string? sortBy = null,
-            [FromQuery] string? sortOrder = "desc")
+        public async Task<IActionResult> GetPrescriptions([FromQuery] PharmacyQueryParameters parameters)
         {
             var stopwatch = Stopwatch.StartNew();
+
+            var filterValidationError = ValidateFilterParameters(parameters);
+            if (filterValidationError != null)
+            {
+                return filterValidationError;
+            }
+
+            NormalizePagination(parameters);
             
             // Use AsNoTracking and AsSplitQuery for optimal read-only performance
             var query = _context.Prescriptions
@@ -621,25 +558,13 @@ namespace eBolnicaAPI.Controllers
                     .ThenInclude(pi => pi.Medication)
                 .AsQueryable();
 
-            // Existing filter: Status
-            if (!string.IsNullOrEmpty(status))
-            {
-                query = query.Where(p => p.Status == status);
-            }
-
-            // NEW: Apply dynamic filters from query parameters using PharmacyService
-            // Supports filters like: patientId=1, doctorId=2, minAmount=100, maxAmount=500
-            query = _pharmacyService.GetFilteredPrescriptions(query, Request.Query);
+            query = _pharmacyService.GetFilteredPrescriptions(query, parameters);
 
             // Get total count BEFORE pagination (for performance optimization)
-            // Use AsNoTracking() for read-only count query
-            var totalCount = await query.AsNoTracking().CountAsync();
+            var totalCount = await query.CountAsync();
 
-            // Parameter validation: pageNumber > 0
-            if (pageNumber < 1) pageNumber = 1;
-            
-            // Validate and clamp pageSize (1-100 range, default: 10)
-            pageSize = Math.Clamp(pageSize, 1, 100);
+            var pageNumber = parameters.PageNumber;
+            var pageSize = parameters.PageSize;
 
             // Edge case: Handle empty results
             if (totalCount == 0)
@@ -660,7 +585,7 @@ namespace eBolnicaAPI.Controllers
             }
 
             // Apply sorting using PharmacyService
-            query = _pharmacyService.ApplySorting(query, sortBy, sortOrder);
+            query = _pharmacyService.ApplySorting(query, parameters.SortBy, parameters.SortOrder);
 
             // Calculate Skip and Take values for server-side pagination
             // Skip = (pageNumber - 1) * pageSize
@@ -731,7 +656,7 @@ namespace eBolnicaAPI.Controllers
             stopwatch.Stop();
 
             // Log performance metrics
-            var activeFilters = GetActiveFilterCountPrescription(status);
+            var activeFilters = CountPrescriptionFilters(parameters);
             _logger.LogInformation(
                 "Prescriptions query executed in {ElapsedMs}ms. Filters: {FilterCount}, Results: {ResultCount}, Page: {Page}, PageSize: {PageSize}",
                 stopwatch.ElapsedMilliseconds,
@@ -1150,40 +1075,25 @@ namespace eBolnicaAPI.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        public async Task<IActionResult> GetInventory(
-            [FromQuery] string? category = null,
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 10,
-            [FromQuery] string? sortBy = null,
-            [FromQuery] string? sortOrder = "desc")
+        public async Task<IActionResult> GetInventory([FromQuery] PharmacyQueryParameters parameters)
         {
             var stopwatch = Stopwatch.StartNew();
-            
-            // Start with optimized base query using AsNoTracking for read-only
-            var query = _context.Medications
-                .AsNoTracking()
-                .Where(m => m.IsActive)
-                .AsQueryable();
 
-            // Existing filter: Category
-            if (!string.IsNullOrEmpty(category))
+            var filterValidationError = ValidateFilterParameters(parameters);
+            if (filterValidationError != null)
             {
-                query = query.Where(m => m.Category == category);
+                return filterValidationError;
             }
 
-            // NEW: Apply dynamic filters from query parameters using PharmacyService
-            // Supports filters like: minPrice=10, maxPrice=100, minStock=5, requiresPrescription=true
-            query = _pharmacyService.GetFilteredInventory(query, Request.Query);
+            NormalizePagination(parameters);
 
-            // Get total count BEFORE pagination (for performance optimization)
-            // Use AsNoTracking() for read-only count query
-            var totalCount = await query.AsNoTracking().CountAsync();
+            var query = _context.Medications.AsNoTracking().AsQueryable();
+            query = _pharmacyService.GetFilteredInventory(query, parameters);
 
-            // Parameter validation: pageNumber > 0
-            if (pageNumber < 1) pageNumber = 1;
-            
-            // Validate and clamp pageSize (1-100 range, default: 10)
-            pageSize = Math.Clamp(pageSize, 1, 100);
+            var totalCount = await query.CountAsync();
+
+            var pageNumber = parameters.PageNumber;
+            var pageSize = parameters.PageSize;
 
             // Edge case: Handle empty results
             if (totalCount == 0)
@@ -1210,7 +1120,7 @@ namespace eBolnicaAPI.Controllers
             }
 
             // Apply sorting using PharmacyService
-            query = _pharmacyService.ApplySorting(query, sortBy, sortOrder);
+            query = _pharmacyService.ApplySorting(query, parameters.SortBy, parameters.SortOrder);
 
             // Calculate Skip and Take values for server-side pagination
             // Skip = (pageNumber - 1) * pageSize
@@ -1284,7 +1194,7 @@ namespace eBolnicaAPI.Controllers
             stopwatch.Stop();
 
             // Log performance metrics
-            var activeFilters = GetActiveFilterCount(category, null, null, null, null);
+            var activeFilters = CountMedicationFilters(parameters);
             _logger.LogInformation(
                 "Inventory query executed in {ElapsedMs}ms. Filters: {FilterCount}, Results: {ResultCount}, Page: {Page}, PageSize: {PageSize}",
                 stopwatch.ElapsedMilliseconds,
@@ -1985,57 +1895,91 @@ namespace eBolnicaAPI.Controllers
         }
 
 
-        /// <summary>
-        /// Counts active filters for medications query
-        /// </summary>
-        private int GetActiveFilterCount(string? category, string? search, string? stockStatus, bool? requiresPrescription, bool? isActive)
+        private static void ApplyLegacyMedicationQueryAliases(
+            PharmacyQueryParameters parameters,
+            string? search,
+            int page)
         {
-            int count = 0;
-            if (!string.IsNullOrEmpty(category)) count++;
-            if (!string.IsNullOrEmpty(search)) count++;
-            if (!string.IsNullOrEmpty(stockStatus)) count++;
-            if (requiresPrescription.HasValue) count++;
-            if (isActive.HasValue) count++;
-            return count;
-        }
-
-        /// <summary>
-        /// Counts active filters for prescriptions query
-        /// </summary>
-        private int GetActiveFilterCountPrescription(string? status)
-        {
-            int count = 0;
-            if (!string.IsNullOrEmpty(status)) count++;
-            return count;
-        }
-
-        /// <summary>
-        /// Builds PharmacyQueryParameters from individual query parameters for backward compatibility
-        /// </summary>
-        private PharmacyQueryParameters BuildQueryParameters(
-            string? category = null,
-            string? search = null,
-            string? stockStatus = null,
-            bool? requiresPrescription = null,
-            bool? isActive = null,
-            int page = 1,
-            int pageNumber = 1,
-            int pageSize = 10,
-            string? sortBy = null,
-            string? sortOrder = "desc")
-        {
-            return new PharmacyQueryParameters
+            if (string.IsNullOrEmpty(parameters.SearchTerm) && !string.IsNullOrEmpty(search))
             {
-                PageNumber = pageNumber != 1 ? pageNumber : (page != 1 ? page : 1),
-                PageSize = pageSize,
-                SortBy = sortBy,
-                SortOrder = sortOrder,
-                SearchTerm = search,
-                Category = category,
-                StockStatus = stockStatus,
-                RequiresPrescription = requiresPrescription,
-                IsActive = isActive
-            };
+                parameters.SearchTerm = search;
+            }
+
+            if (parameters.PageNumber == 1 && page != 1)
+            {
+                parameters.PageNumber = page;
+            }
+        }
+
+        private static void NormalizePagination(PharmacyQueryParameters parameters)
+        {
+            if (parameters.PageNumber < 1)
+            {
+                parameters.PageNumber = 1;
+            }
+
+            parameters.PageSize = Math.Clamp(parameters.PageSize, 1, 100);
+        }
+
+        private IActionResult? ValidateFilterParameters(PharmacyQueryParameters parameters)
+        {
+            var validationResults = PharmacyQueryParameterValidator.Validate(parameters);
+            if (validationResults.Count == 0)
+            {
+                return null;
+            }
+
+            foreach (var result in validationResults)
+            {
+                var memberNames = result.MemberNames.Any()
+                    ? result.MemberNames
+                    : new[] { string.Empty };
+
+                foreach (var memberName in memberNames)
+                {
+                    ModelState.AddModelError(
+                        memberName,
+                        result.ErrorMessage ?? "Invalid filter parameter.");
+                }
+            }
+
+            return ValidationProblem(ModelState);
+        }
+
+        private static int CountMedicationFilters(PharmacyQueryParameters parameters)
+        {
+            var count = 0;
+            if (!string.IsNullOrEmpty(parameters.Category)) count++;
+            if (!string.IsNullOrEmpty(parameters.SearchTerm)) count++;
+            if (!string.IsNullOrEmpty(parameters.StockStatus)) count++;
+            if (parameters.RequiresPrescription.HasValue) count++;
+            if (parameters.IsActive.HasValue) count++;
+            if (parameters.MinPrice.HasValue) count++;
+            if (parameters.MaxPrice.HasValue) count++;
+            if (parameters.MinStock.HasValue) count++;
+            if (parameters.MaxStock.HasValue) count++;
+            if (!string.IsNullOrEmpty(parameters.Status)) count++;
+            if (parameters.CreatedAfter.HasValue) count++;
+            if (parameters.CreatedBefore.HasValue) count++;
+            if (parameters.ExpiryAfter.HasValue) count++;
+            if (parameters.ExpiryBefore.HasValue) count++;
+            return count;
+        }
+
+        private static int CountPrescriptionFilters(PharmacyQueryParameters parameters)
+        {
+            var count = 0;
+            if (!string.IsNullOrEmpty(parameters.Status)) count++;
+            if (parameters.PatientId.HasValue) count++;
+            if (parameters.DoctorId.HasValue) count++;
+            if (parameters.PharmacistId.HasValue) count++;
+            if (parameters.MinAmount.HasValue) count++;
+            if (parameters.MaxAmount.HasValue) count++;
+            if (parameters.PrescribedAfter.HasValue) count++;
+            if (parameters.PrescribedBefore.HasValue) count++;
+            if (parameters.DispensedAfter.HasValue) count++;
+            if (parameters.DispensedBefore.HasValue) count++;
+            return count;
         }
 
         private async Task<string> GeneratePrescriptionNumberAsync()

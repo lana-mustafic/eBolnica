@@ -9,10 +9,13 @@ import { ActiveFiltersComponent } from '../../../shared/components/active-filter
 import { SortStatusComponent } from '../../../shared/components/sort-status/sort-status.component';
 import { MedicationThumbnailComponent } from './medication-thumbnail.component';
 import { MedicationDto } from '../../../models/medication.dto';
-import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
+import { ActiveFilter, PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { PagedResponse } from '../../../models/paged-response.dto';
-import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, combineLatest, catchError, of, Subscription } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, catchError, of } from 'rxjs';
 import { TABLE_DEFAULT_SORTS } from '../../../constants/sort.constants';
+
+/** Debounce delay for medication search input before combining with other filters */
+const MEDICATION_SEARCH_DEBOUNCE_MS = 300;
 
 @Component({
   selector: 'app-medications',
@@ -49,6 +52,13 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   selectedRequiresPrescription: string = '';
   selectedActiveStatus: string = '';
 
+  /**
+   * RS1 requires 5+ functional filter parameters. The medications list already exposes five:
+   * search, category, stock status, requires prescription, and active/inactive.
+   * Price range UI is intentionally omitted; backend support (minPrice/maxPrice) remains available.
+   */
+  priceFilterError: string | null = null;
+
   // Available categories (populated from medications)
   categories: string[] = [];
 
@@ -58,41 +68,37 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   private previousSortColumn: string = TABLE_DEFAULT_SORTS.MEDICATIONS.column; // For error recovery
   private previousSortOrder: 'asc' | 'desc' = TABLE_DEFAULT_SORTS.MEDICATIONS.order; // For error recovery
   private sortDebounceTimer: any; // Timer for debouncing sort requests
-  private sortRequest$: Subscription | null = null; // For cancelling pending requests
 
   // Active filters for display
-  activeFilters = this.filterService.getActiveFilters();
+  activeFilters: ActiveFilter[] = this.filterService.getActiveFilters();
 
   // Success message for clear operation
   clearSuccessMessage: string | null = null;
 
   ngOnInit(): void {
-    // Initialize filters from service
-    const currentFilters = this.filterService.getFilters();
-    this.syncUIFromFilters(currentFilters);
+    this.syncUIFromFilters(this.filterService.getFilters());
 
-    // Load initial data
-    this.loadMedications();
-
-    // Setup debounced search that combines with dropdown filters
+    // Debounced search: waits 300ms, then pushes full filter set (search + dropdowns)
     this.searchSubject.pipe(
-      debounceTime(300),
+      debounceTime(MEDICATION_SEARCH_DEBOUNCE_MS),
       distinctUntilChanged(),
       takeUntil(this.destroy$)
     ).subscribe(searchTerm => {
       this.searchTerm = searchTerm;
-      this.updateFilters({ searchTerm: searchTerm || undefined });
+      this.pushFiltersFromUI();
     });
 
-    // Subscribe to filter changes from service
+    // Single API pipeline — all filter changes (search + dropdowns + paging + sort) flow here
     this.filterService.getFilters$().pipe(
-      debounceTime(150), // Additional debounce for combined filters
       switchMap(filters => {
         this.isSearching = true;
-        this.errorMessage = null; // Clear previous errors
+        this.errorMessage = null;
         this.syncUIFromFilters(filters);
         return this.pharmacyService.getMedicationsWithFilters(filters).pipe(
-          finalize(() => this.isSearching = false),
+          finalize(() => {
+            this.isSearching = false;
+            this.isSorting = false;
+          }),
           catchError((error) => {
             this.handleApiError(error);
             return of({
@@ -120,6 +126,9 @@ export class MedicationsComponent implements OnInit, OnDestroy {
         this.errorMessage = null;
       }
     });
+
+    // Initial load (one emission; debounce in getFilters$ coalesces with subscription setup)
+    this.pushFiltersFromUI();
   }
 
   ngOnDestroy(): void {
@@ -127,13 +136,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     if (this.sortDebounceTimer) {
       clearTimeout(this.sortDebounceTimer);
     }
-    
-    // Cancel pending sort request
-    if (this.sortRequest$) {
-      this.sortRequest$.unsubscribe();
-      this.sortRequest$ = null;
-    }
-    
+
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -144,7 +147,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   private syncUIFromFilters(filters: PharmacyFilters): void {
     this.searchTerm = filters.searchTerm || '';
     this.selectedCategory = filters.category || '';
-    this.selectedStockStatus = filters.stockStatus || '';
+    this.selectedStockStatus = this.toStockStatusDisplayLabel(filters.stockStatus);
     this.selectedRequiresPrescription = filters.requiresPrescription !== undefined 
       ? (filters.requiresPrescription ? 'Yes' : 'No') 
       : '';
@@ -158,43 +161,95 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Build PharmacyFilters from current UI state
+   * Build PharmacyFilters from current UI state.
+   * Explicit undefined values clear filters in PharmacyFilterService.
    */
   private buildFiltersFromUI(): Partial<PharmacyFilters> {
-    const filters: Partial<PharmacyFilters> = {
+    return {
       pageNumber: this.currentPage,
-      pageSize: this.pageSize
+      pageSize: this.pageSize,
+      searchTerm: this.searchTerm?.trim() || undefined,
+      category: this.selectedCategory || undefined,
+      stockStatus: this.selectedStockStatus
+        ? this.selectedStockStatus.toLowerCase()
+        : undefined,
+      requiresPrescription: this.selectedRequiresPrescription
+        ? this.selectedRequiresPrescription === 'Yes'
+        : undefined,
+      isActive: this.selectedActiveStatus
+        ? this.selectedActiveStatus === 'Active'
+        : undefined,
+      minPrice: undefined,
+      maxPrice: undefined,
+      sortBy: this.sortColumn || undefined,
+      sortOrder: this.sortOrder || undefined
     };
+  }
 
-    if (this.searchTerm?.trim()) {
-      filters.searchTerm = this.searchTerm.trim();
+  /**
+   * Push all current UI filter values to PharmacyFilterService (triggers API reload).
+   * Skips update when the serialized filter set is unchanged to avoid duplicate API calls.
+   */
+  private pushFiltersFromUI(): void {
+    const filters = this.buildFiltersFromUI();
+    this.priceFilterError = this.validatePriceRange(filters.minPrice, filters.maxPrice);
+
+    if (this.priceFilterError) {
+      return;
     }
 
-    if (this.selectedCategory) {
-      filters.category = this.selectedCategory;
+    if (this.filtersMatchServiceState(filters)) {
+      return;
     }
 
-    if (this.selectedStockStatus) {
-      filters.stockStatus = this.selectedStockStatus.toLowerCase();
+    this.filterService.updateFilters(filters);
+  }
+
+  private filtersMatchServiceState(filters: Partial<PharmacyFilters>): boolean {
+    return this.serializeMedicationFilters(filters)
+      === this.serializeMedicationFilters(this.filterService.getFilters());
+  }
+
+  private serializeMedicationFilters(filters: Partial<PharmacyFilters>): string {
+    return JSON.stringify({
+      searchTerm: filters.searchTerm?.trim() || undefined,
+      category: filters.category || undefined,
+      stockStatus: filters.stockStatus || undefined,
+      requiresPrescription: filters.requiresPrescription,
+      isActive: filters.isActive,
+      minPrice: filters.minPrice,
+      maxPrice: filters.maxPrice,
+      pageNumber: filters.pageNumber ?? 1,
+      pageSize: filters.pageSize ?? 10,
+      sortBy: filters.sortBy,
+      sortOrder: filters.sortOrder
+    });
+  }
+
+  /**
+   * Validates optional price range filters before sending them to the backend.
+   */
+  private validatePriceRange(minPrice?: number, maxPrice?: number): string | null {
+    const hasMin = minPrice !== undefined && minPrice !== null;
+    const hasMax = maxPrice !== undefined && maxPrice !== null;
+
+    if (!hasMin && !hasMax) {
+      return null;
     }
 
-    if (this.selectedRequiresPrescription) {
-      filters.requiresPrescription = this.selectedRequiresPrescription === 'Yes';
+    if (hasMin && minPrice! < 0) {
+      return 'Minimum price cannot be negative.';
     }
 
-    if (this.selectedActiveStatus) {
-      filters.isActive = this.selectedActiveStatus === 'Active';
+    if (hasMax && maxPrice! < 0) {
+      return 'Maximum price cannot be negative.';
     }
 
-    // Add sort parameters
-    if (this.sortColumn) {
-      filters.sortBy = this.sortColumn;
-    }
-    if (this.sortOrder) {
-      filters.sortOrder = this.sortOrder;
+    if (hasMin && hasMax && minPrice! > maxPrice!) {
+      return 'Minimum price cannot be greater than maximum price.';
     }
 
-    return filters;
+    return null;
   }
 
   /**
@@ -205,8 +260,21 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   }
 
   loadMedications(): void {
-    const filters = this.buildFiltersFromUI();
-    this.updateFilters(filters);
+    this.pushFiltersFromUI();
+  }
+
+  private toStockStatusDisplayLabel(value?: string): string {
+    if (!value) {
+      return '';
+    }
+
+    const labels: Record<string, string> = {
+      'low stock': 'Low Stock',
+      'out of stock': 'Out of Stock',
+      'normal stock': 'Normal Stock'
+    };
+
+    return labels[value.toLowerCase()] ?? value;
   }
 
   private extractCategories(): void {
@@ -220,41 +288,29 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   }
 
   onSearchChange(searchTerm: string): void {
+    // Update input immediately; API call is debounced via searchSubject → pushFiltersFromUI
     this.searchTerm = searchTerm;
     this.searchSubject.next(searchTerm);
   }
 
   onCategoryChange(category: string): void {
     this.selectedCategory = category;
-    this.updateFilters({ category: category || undefined });
+    this.pushFiltersFromUI();
   }
 
   onStockStatusChange(stockStatus: string): void {
     this.selectedStockStatus = stockStatus;
-    this.updateFilters({ stockStatus: stockStatus ? stockStatus.toLowerCase() : undefined });
+    this.pushFiltersFromUI();
   }
 
   onRequiresPrescriptionChange(value: string): void {
     this.selectedRequiresPrescription = value;
-    if (value) {
-      this.updateFilters({ requiresPrescription: value === 'Yes' });
-    } else {
-      this.filterService.clearFilter('requiresPrescription');
-    }
+    this.pushFiltersFromUI();
   }
 
   onActiveStatusChange(value: string): void {
     this.selectedActiveStatus = value;
-    if (value) {
-      this.updateFilters({ isActive: value === 'Active' });
-    } else {
-      this.filterService.clearFilter('isActive');
-    }
-  }
-
-  onFilterChange(): void {
-    // Legacy method - now handled by individual change handlers
-    this.loadMedications();
+    this.pushFiltersFromUI();
   }
 
   /**
@@ -262,30 +318,21 @@ export class MedicationsComponent implements OnInit, OnDestroy {
    * Resets all UI controls and reloads data with default filters
    */
   clearFilters(): void {
-    // Clear service state
-    this.filterService.clearAllFilters();
-
-    // Clear template-bound properties
     this.searchTerm = '';
     this.selectedCategory = '';
     this.selectedStockStatus = '';
     this.selectedRequiresPrescription = '';
     this.selectedActiveStatus = '';
-
-    // Reset pagination to defaults
+    this.priceFilterError = null;
     this.currentPage = 1;
     this.pageSize = 10;
-
-    // Reset sorting to default (newest first)
     this.resetSortingToDefault();
 
-    // Update active filters display
+    this.filterService.clearAllFilters();
+    this.pushFiltersFromUI();
+
     this.updateActiveFilters();
-
-    // Show success feedback
     this.showClearSuccessMessage();
-
-    // Data will be reloaded automatically via filterService subscription
   }
 
   /**
@@ -324,12 +371,8 @@ export class MedicationsComponent implements OnInit, OnDestroy {
    */
   resetToDefaultSort(): void {
     this.resetSortingToDefault();
-    // Update filters to trigger reload
-    this.updateFilters({
-      sortBy: this.sortColumn,
-      sortOrder: this.sortOrder,
-      pageNumber: 1
-    });
+    this.currentPage = 1;
+    this.pushFiltersFromUI();
   }
 
   /**
@@ -369,27 +412,22 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   }
 
   removeFilter(filterKey: string): void {
-    this.filterService.clearFilter(filterKey as keyof PharmacyFilters);
-    
-    // Update UI state
-    switch (filterKey) {
-      case 'searchTerm':
-        this.searchTerm = '';
-        break;
-      case 'category':
-        this.selectedCategory = '';
-        break;
-      case 'stockStatus':
-        this.selectedStockStatus = '';
-        break;
-      case 'requiresPrescription':
-        this.selectedRequiresPrescription = '';
-        break;
-      case 'isActive':
-        this.selectedActiveStatus = '';
-        break;
+    const uiResetters: Record<string, () => void> = {
+      searchTerm: () => { this.searchTerm = ''; },
+      category: () => { this.selectedCategory = ''; },
+      stockStatus: () => { this.selectedStockStatus = ''; },
+      requiresPrescription: () => { this.selectedRequiresPrescription = ''; },
+      isActive: () => { this.selectedActiveStatus = ''; }
+    };
+
+    if (uiResetters[filterKey]) {
+      uiResetters[filterKey]();
+      this.pushFiltersFromUI();
+    } else {
+      this.filterService.clearFilterByBadgeKey(filterKey);
+      this.syncUIFromFilters(this.filterService.getFilters());
     }
-    
+
     this.updateActiveFilters();
   }
 
@@ -470,8 +508,31 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     return medication.id;
   }
 
+  trackByFilterKey(_: number, filter: ActiveFilter): string {
+    return filter.key;
+  }
+
   getActiveFilterCount(): number {
     return this.filterService.getActiveFilterCount();
+  }
+
+  hasActiveFilters(): boolean {
+    return this.getActiveFilterCount() > 0;
+  }
+
+  getEmptyStateTitle(): string {
+    return this.hasActiveFilters()
+      ? 'No medications match your filters'
+      : 'No medications yet';
+  }
+
+  getEmptyStateDescription(): string {
+    if (this.hasActiveFilters()) {
+      const filterWord = this.getActiveFilterCount() === 1 ? 'filter' : 'filters';
+      return `None of your medications match the current ${this.getActiveFilterCount()} active ${filterWord}. Try removing a filter or broadening your search.`;
+    }
+
+    return 'Get started by adding your first medication to the pharmacy inventory.';
   }
 
   updateActiveFilters(): void {
@@ -587,77 +648,16 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     this.isSorting = true;
     this.errorMessage = null;
 
-    // Cancel any pending sort requests
-    if (this.sortRequest$) {
-      this.sortRequest$.unsubscribe();
-      this.sortRequest$ = null;
-    }
-
-    // Clear any existing debounce timer
+    // Cancel any pending sort debounce
     if (this.sortDebounceTimer) {
       clearTimeout(this.sortDebounceTimer);
     }
 
     // Debounce sort requests (200ms) to avoid rapid API calls
     this.sortDebounceTimer = setTimeout(() => {
-      this.loadMedicationsWithSort();
+      this.currentPage = 1;
+      this.pushFiltersFromUI();
     }, 200);
-  }
-
-  /**
-   * Load medications with sort parameters (server-side)
-   * Includes request cancellation and error handling
-   */
-  private loadMedicationsWithSort(): void {
-    // Cancel previous request if still pending
-    if (this.sortRequest$) {
-      this.sortRequest$.unsubscribe();
-      this.sortRequest$ = null;
-    }
-
-    this.isLoading = true;
-    this.isSorting = true;
-
-    const partialFilters = this.buildFiltersFromUI();
-    // Build complete filters object with required properties
-    const filters: PharmacyFilters = {
-      pageNumber: 1, // Reset to first page on sort
-      pageSize: partialFilters.pageSize || this.pageSize || 10,
-      ...partialFilters,
-      sortBy: this.sortColumn,
-      sortOrder: this.sortOrder
-    };
-
-    this.sortRequest$ = this.pharmacyService.getMedicationsWithFilters(filters).pipe(
-      finalize(() => {
-        this.isLoading = false;
-        this.isSorting = false;
-        this.sortRequest$ = null;
-      }),
-      catchError((error) => {
-        this.handleSortError(error);
-        return of({
-          items: [],
-          totalCount: 0,
-          totalPages: 0,
-          currentPage: 1,
-          pageSize: filters.pageSize || 10,
-          hasNext: false,
-          hasPrevious: false
-        } as PagedResponse<MedicationDto>);
-      })
-    ).subscribe({
-      next: (response) => {
-        this.medications = response.items || [];
-        this.totalCount = response.totalCount || 0;
-        this.totalPages = response.totalPages || 0;
-        this.currentPage = response.currentPage || 1;
-        this.pageSize = response.pageSize || 10;
-        this.extractCategories();
-        this.updateActiveFilters();
-        this.errorMessage = null;
-      }
-    });
   }
 
   /**

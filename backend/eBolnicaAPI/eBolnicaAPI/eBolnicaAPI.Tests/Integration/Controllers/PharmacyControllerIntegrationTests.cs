@@ -16,6 +16,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -81,6 +82,47 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
             {
                 Assert.Equal("antibiotics", m.Category?.ToLower());
                 Assert.True(m.Price >= 10 && m.Price <= 20);
+            });
+        }
+
+        [Fact]
+        public async Task GetMedications_WithSearchTerm_ReturnsFilteredResults()
+        {
+            // Arrange
+            var url = "/api/pharmacy/medications?searchTerm=amoxicillin&pageSize=100";
+
+            // Act
+            var response = await _client.GetAsync(url);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<MedicationDto>>();
+            Assert.NotNull(result);
+            Assert.NotEmpty(result.Items);
+            Assert.All(result.Items, m =>
+                Assert.Contains("amoxicillin", m.Name, StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public async Task GetMedications_WithAllMedicationFilterParams_ReturnsFilteredResults()
+        {
+            // Arrange — query names aligned with PharmacyQueryParameters / FE buildMedicationQueryParams
+            var url = "/api/pharmacy/medications?pageNumber=1&pageSize=20&searchTerm=amox&category=antibiotics&stockStatus=normal stock&requiresPrescription=true&isActive=true&minPrice=1&maxPrice=100&sortBy=name&sortOrder=asc";
+
+            // Act
+            var response = await _client.GetAsync(url);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<MedicationDto>>();
+            Assert.NotNull(result);
+            Assert.All(result.Items, m =>
+            {
+                Assert.Equal("antibiotics", m.Category?.ToLower());
+                Assert.True(m.RequiresPrescription);
+                Assert.True(m.IsActive);
+                Assert.True(m.Price >= 1 && m.Price <= 100);
+                Assert.True(m.StockQuantity >= m.MinimumStockLevel);
             });
         }
 
@@ -163,6 +205,170 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
         }
 
         [Fact]
+        public async Task GetMedications_WithRequiresPrescriptionFilter_ReturnsOnlyMatching()
+        {
+            var url = "/api/pharmacy/medications?requiresPrescription=false&pageSize=100";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<MedicationDto>>();
+            Assert.NotNull(result);
+            Assert.NotEmpty(result.Items);
+            Assert.All(result.Items, m => Assert.False(m.RequiresPrescription));
+        }
+
+        [Fact]
+        public async Task GetMedications_WithIsActiveFalse_ReturnsInactiveOnly()
+        {
+            var url = "/api/pharmacy/medications?isActive=false&pageSize=100";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<MedicationDto>>();
+            Assert.NotNull(result);
+            Assert.NotEmpty(result.Items);
+            Assert.All(result.Items, m => Assert.False(m.IsActive));
+            Assert.Contains(result.Items, m => m.Name == "Discontinued Drug");
+        }
+
+        [Fact]
+        public async Task GetMedications_WithStockStatusLowStock_ReturnsLowStockOnly()
+        {
+            var url = "/api/pharmacy/medications?stockStatus=low stock&pageSize=100";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<MedicationDto>>();
+            Assert.NotNull(result);
+            Assert.NotEmpty(result.Items);
+            Assert.All(result.Items, m =>
+            {
+                Assert.True(m.StockQuantity > 0);
+                Assert.True(m.StockQuantity < m.MinimumStockLevel);
+            });
+            Assert.Contains(result.Items, m => m.Name == "Ibuprofen");
+        }
+
+        [Fact]
+        public async Task GetMedications_WithStockStatusOutOfStock_ReturnsOutOfStockOnly()
+        {
+            var url = "/api/pharmacy/medications?stockStatus=out of stock&pageSize=100";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<MedicationDto>>();
+            Assert.NotNull(result);
+            Assert.NotEmpty(result.Items);
+            Assert.All(result.Items, m => Assert.Equal(0, m.StockQuantity));
+            Assert.Contains(result.Items, m => m.Name == "EmptyStock Med");
+        }
+
+        [Fact]
+        public async Task GetMedications_WithLegacySearchParam_ReturnsFilteredResults()
+        {
+            var url = "/api/pharmacy/medications?search=penicillin&pageSize=100";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<MedicationDto>>();
+            Assert.NotNull(result);
+            Assert.NotEmpty(result.Items);
+            Assert.Contains(result.Items, m =>
+                m.Name.Contains("Penicillin", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public async Task GetMedications_CategoryAndSearchTerm_CombinesWithAndLogic()
+        {
+            var url = "/api/pharmacy/medications?category=antibiotics&searchTerm=amox&pageSize=100";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<MedicationDto>>();
+            Assert.NotNull(result);
+            Assert.Single(result.Items);
+            Assert.Equal("Amoxicillin", result.Items[0].Name);
+        }
+
+        [Fact]
+        public async Task GetMedications_PriceRangeAndCategory_ReturnsMatchingSubset()
+        {
+            var url = "/api/pharmacy/medications?category=painkiller&minPrice=7&maxPrice=9&pageSize=100";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<MedicationDto>>();
+            Assert.NotNull(result);
+            Assert.Equal(2, result.Items.Count);
+            Assert.All(result.Items, m =>
+            {
+                Assert.Equal("painkiller", m.Category?.ToLower());
+                Assert.True(m.Price >= 7 && m.Price <= 9);
+            });
+        }
+
+        [Fact]
+        public async Task GetMedications_FilterPlusPagination_ReturnsCorrectPageOfFilteredSet()
+        {
+            var url = "/api/pharmacy/medications?category=painkiller&sortBy=name&sortOrder=asc&pageNumber=1&pageSize=1";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<MedicationDto>>();
+            Assert.NotNull(result);
+            Assert.Single(result.Items);
+            Assert.Equal(3, result.TotalCount);
+            Assert.Equal("Aspirin", result.Items[0].Name);
+        }
+
+        [Fact]
+        public async Task GetMedications_MinPriceGreaterThanMaxPrice_ReturnsBadRequest()
+        {
+            // Arrange
+            var url = "/api/pharmacy/medications?minPrice=50&maxPrice=10";
+
+            // Act
+            var response = await _client.GetAsync(url);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetMedications_InvalidStockStatus_ReturnsBadRequest()
+        {
+            // Arrange
+            var url = "/api/pharmacy/medications?stockStatus=invalid";
+
+            // Act
+            var response = await _client.GetAsync(url);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetMedications_NegativeMinPrice_ReturnsBadRequest()
+        {
+            // Arrange
+            var url = "/api/pharmacy/medications?minPrice=-5";
+
+            // Act
+            var response = await _client.GetAsync(url);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
         public async Task GetMedications_InvalidPageNumber_ReturnsFirstPage()
         {
             // Arrange
@@ -216,7 +422,17 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
         }
 
         [Fact]
-        public async Task GetPrescriptions_WithFiltering_ReturnsFilteredResults()
+        public async Task GetPrescriptions_MinAmountGreaterThanMaxAmount_ReturnsBadRequest()
+        {
+            var url = "/api/pharmacy/prescriptions?minAmount=500&maxAmount=50";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetPrescriptions_WithStatusAndAmountRange_ReturnsFilteredResults()
         {
             // Arrange
             var url = "/api/pharmacy/prescriptions?status=Pending&minAmount=50";
@@ -269,9 +485,40 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
             // Assert
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var content = await response.Content.ReadAsStringAsync();
-            Assert.Contains("items", content);
-            Assert.Contains("LowStockAlerts", content);
-            Assert.Contains("ExpiryAlerts", content);
+            Assert.Contains("items", content, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("lowStockAlerts", content, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("expiryAlerts", content, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task GetInventory_WithCategoryAndMinStock_ReturnsFilteredActiveResults()
+        {
+            var url = "/api/pharmacy/inventory?category=painkiller&minStock=10&pageSize=100";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var json = await response.Content.ReadFromJsonAsync<InventoryResponse>();
+            Assert.NotNull(json);
+            Assert.NotEmpty(json.Items);
+            Assert.Single(json.Items);
+            Assert.All(json.Items, m =>
+            {
+                Assert.Equal("painkiller", m.Category?.ToLower());
+                Assert.True(m.StockQuantity >= 10);
+                Assert.True(m.IsActive);
+            });
+            Assert.Equal("Aspirin", json.Items[0].Name);
+        }
+
+        [Fact]
+        public async Task GetInventory_MinStockGreaterThanMaxStock_ReturnsBadRequest()
+        {
+            var url = "/api/pharmacy/inventory?minStock=100&maxStock=10";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
         [Fact]
@@ -290,6 +537,12 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
         }
 
         #endregion
+
+        private sealed class InventoryResponse
+        {
+            [JsonPropertyName("items")]
+            public List<MedicationDto> Items { get; set; } = new();
+        }
 
         #region Helper Methods
 
@@ -343,6 +596,28 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
                     IsActive = true,
                     RequiresPrescription = false,
                     CreatedAt = DateTime.Now.AddDays(-1)
+                },
+                new Medication
+                {
+                    Name = "Discontinued Drug",
+                    Category = "antibiotics",
+                    Price = 20.00m,
+                    StockQuantity = 30,
+                    MinimumStockLevel = 10,
+                    IsActive = false,
+                    RequiresPrescription = true,
+                    CreatedAt = DateTime.Now.AddDays(-20)
+                },
+                new Medication
+                {
+                    Name = "EmptyStock Med",
+                    Category = "painkiller",
+                    Price = 9.00m,
+                    StockQuantity = 0,
+                    MinimumStockLevel = 10,
+                    IsActive = true,
+                    RequiresPrescription = false,
+                    CreatedAt = DateTime.Now.AddDays(-2)
                 }
             };
 
@@ -367,26 +642,16 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
+            builder.UseEnvironment("Testing");
+
             builder.ConfigureServices(services =>
             {
-                // Remove the real database
-                var descriptor = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
-
-                if (descriptor != null)
-                {
-                    services.Remove(descriptor);
-                }
-
-                // Add in-memory database
-                services.AddDbContext<AppDbContext>(options =>
-                {
-                    options.UseInMemoryDatabase("TestDb_" + Guid.NewGuid().ToString());
-                });
-
-                // Add test authentication handler to bypass JWT requirement
-                services.AddAuthentication("Test")
-                    .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("Test", options => { });
+                services.AddAuthentication(options =>
+                    {
+                        options.DefaultAuthenticateScheme = "Test";
+                        options.DefaultChallengeScheme = "Test";
+                    })
+                    .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("Test", _ => { });
             });
         }
     }

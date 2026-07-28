@@ -21,6 +21,10 @@
     {{ clearSuccessMessage }}
   </div>
 
+  <div class="message error" *ngIf="priceFilterError">
+    {{ priceFilterError }}
+  </div>
+
   <div class="message error" *ngIf="errorMessage">
     <div class="error-content">
       <span>{{ errorMessage }}</span>
@@ -59,7 +63,7 @@
       <button 
         *ngIf="searchTerm && !isSearching" 
         class="clear-search"
-        (click)="onSearchChange(''); searchTerm = ''">
+        (click)="onSearchChange('')">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -141,21 +145,36 @@
   </div>
 
   <!-- Empty State -->
-  <div *ngIf="!isLoading && medications.length === 0" class="empty-state">
+  <div *ngIf="!isLoading && !isSearching && !isSorting && medications.length === 0" class="empty-state">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
       <circle cx="12" cy="10" r="3"></circle>
     </svg>
-    <h3>No medications found</h3>
-    <p *ngIf="searchTerm || selectedCategory || selectedStockStatus || selectedRequiresPrescription || selectedActiveStatus">
-      Try adjusting your search or filters.
-    </p>
-    <p *ngIf="!searchTerm && !selectedCategory && !selectedStockStatus && !selectedRequiresPrescription && !selectedActiveStatus">
-      Get started by adding your first medication.
-    </p>
-    <a routerLink="/pharmacy/medications/wizard" class="btn btn-primary" *ngIf="!searchTerm && !selectedCategory && !selectedStockStatus && !selectedRequiresPrescription && !selectedActiveStatus">
-      Add Medication
-    </a>
+    <h3>{{ getEmptyStateTitle() }}</h3>
+    <p>{{ getEmptyStateDescription() }}</p>
+
+    <ul *ngIf="hasActiveFilters()" class="empty-state-filters" aria-label="Active filters with no results">
+      <li *ngFor="let filter of activeFilters; trackBy: trackByFilterKey">
+        <span class="empty-state-filter-label">{{ filter.label }}:</span>
+        <span class="empty-state-filter-value">{{ filter.value }}</span>
+      </li>
+    </ul>
+
+    <div class="empty-state-actions">
+      <button
+        *ngIf="hasActiveFilters()"
+        type="button"
+        class="btn btn-secondary"
+        (click)="clearFilters()">
+        Clear all filters
+      </button>
+      <a
+        *ngIf="!hasActiveFilters()"
+        routerLink="/pharmacy/medications/wizard"
+        class="btn btn-primary">
+        Add Medication
+      </a>
+    </div>
   </div>
 
   <!-- Medications Table -->

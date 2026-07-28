@@ -11,6 +11,7 @@ import { PrescriptionCreateDto } from '../../../models/prescription-create.dto';
 import { PrescriptionDispenseDto } from '../../../models/prescription-dispense.dto';
 import { PagedResponse } from '../../../models/paged-response.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
+import { PHARMACY_MEDICATION_QUERY_PARAMS as MED_Q } from '../../../constants/pharmacy-query-params.constants';
 import { 
   MonthlyRevenueData, 
   MedicationCategoryData, 
@@ -121,7 +122,7 @@ export class PharmacyService {
     if (filters?.search) {
       const searchTerm = filters.search.trim();
       if (searchTerm) {
-        params = params.set('search', searchTerm);
+        params = params.set(MED_Q.searchTerm, searchTerm);
       }
     }
     
@@ -332,52 +333,45 @@ export class PharmacyService {
    */
   private buildMedicationQueryParams(filters: PharmacyFilters): HttpParams {
     let params = new HttpParams()
-      .set('pageNumber', (filters.pageNumber || 1).toString())
-      .set('pageSize', Math.max(5, Math.min(100, filters.pageSize || 10)).toString());
+      .set(MED_Q.pageNumber, (filters.pageNumber || 1).toString())
+      .set(MED_Q.pageSize, Math.max(5, Math.min(100, filters.pageSize || 10)).toString());
 
-    // Search
     if (filters.searchTerm?.trim()) {
-      params = params.set('search', filters.searchTerm.trim());
+      params = params.set(MED_Q.searchTerm, filters.searchTerm.trim());
     }
 
-    // Category
     if (filters.category) {
-      params = params.set('category', filters.category);
+      params = params.set(MED_Q.category, filters.category);
     }
 
-    // Stock status
     if (filters.stockStatus) {
       const validStatuses = ['low stock', 'out of stock', 'normal stock'];
       const normalizedStatus = filters.stockStatus.toLowerCase();
       if (validStatuses.includes(normalizedStatus)) {
-        params = params.set('stockStatus', normalizedStatus);
+        params = params.set(MED_Q.stockStatus, normalizedStatus);
       }
     }
 
-    // Requires prescription
     if (filters.requiresPrescription !== undefined && filters.requiresPrescription !== null) {
-      params = params.set('requiresPrescription', filters.requiresPrescription.toString());
+      params = params.set(MED_Q.requiresPrescription, filters.requiresPrescription.toString());
     }
 
-    // Active status
     if (filters.isActive !== undefined && filters.isActive !== null) {
-      params = params.set('isActive', filters.isActive.toString());
+      params = params.set(MED_Q.isActive, filters.isActive.toString());
     }
 
-    // Price range
     if (filters.minPrice !== undefined && filters.minPrice !== null) {
-      params = params.set('minPrice', filters.minPrice.toString());
+      params = params.set(MED_Q.minPrice, filters.minPrice.toString());
     }
     if (filters.maxPrice !== undefined && filters.maxPrice !== null) {
-      params = params.set('maxPrice', filters.maxPrice.toString());
+      params = params.set(MED_Q.maxPrice, filters.maxPrice.toString());
     }
 
-    // Sorting
     if (filters.sortBy) {
-      params = params.set('sortBy', filters.sortBy);
+      params = params.set(MED_Q.sortBy, filters.sortBy);
     }
     if (filters.sortOrder) {
-      params = params.set('sortOrder', filters.sortOrder);
+      params = params.set(MED_Q.sortOrder, filters.sortOrder);
     }
 
     return params;
@@ -394,7 +388,7 @@ export class PharmacyService {
     // Search (with URL encoding)
     if (filters.searchTerm?.trim()) {
       const encodedSearch = this.encodeSearchTerm(filters.searchTerm.trim());
-      params = params.set('search', encodedSearch);
+      params = params.set(MED_Q.searchTerm, encodedSearch);
     }
 
     // Status (prescriptionStatus maps to status)
@@ -424,7 +418,7 @@ export class PharmacyService {
     // Search (with URL encoding)
     if (filters.searchTerm?.trim()) {
       const encodedSearch = this.encodeSearchTerm(filters.searchTerm.trim());
-      params = params.set('search', encodedSearch);
+      params = params.set(MED_Q.searchTerm, encodedSearch);
     }
 
     // Category

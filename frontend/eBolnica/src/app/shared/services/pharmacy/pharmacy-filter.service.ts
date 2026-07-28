@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { debounceTime, distinctUntilChanged, map } from 'rxjs/operators';
-import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { ActiveFilter, PharmacyFilters } from '../../../models/pharmacy-filters.model';
 
 /**
  * Service to manage unified filter state for Pharmacy module
@@ -133,17 +133,29 @@ export class PharmacyFilterService {
   }
 
   /**
+   * Clear a filter using the badge key emitted by ActiveFiltersComponent.
+   */
+  clearFilterByBadgeKey(key: string): void {
+    if (key === 'priceRange') {
+      this.updateFilters({ minPrice: undefined, maxPrice: undefined });
+      return;
+    }
+
+    this.clearFilter(key as keyof PharmacyFilters);
+  }
+
+  /**
    * Get list of active filters for display
    */
-  getActiveFilters(): Array<{ key: string; label: string; value: string; type: string }> {
+  getActiveFilters(): ActiveFilter[] {
     const filters = this.filters$.value;
-    const active: Array<{ key: string; label: string; value: string; type: string }> = [];
+    const active: ActiveFilter[] = [];
 
     if (filters.searchTerm?.trim()) {
       active.push({
         key: 'searchTerm',
         label: 'Search',
-        value: filters.searchTerm,
+        value: filters.searchTerm.trim(),
         type: 'search'
       });
     }
@@ -170,7 +182,7 @@ export class PharmacyFilterService {
       active.push({
         key: 'stockStatus',
         label: 'Stock Status',
-        value: filters.stockStatus,
+        value: this.formatStockStatusLabel(filters.stockStatus),
         type: 'dropdown'
       });
     }
@@ -193,16 +205,20 @@ export class PharmacyFilterService {
       });
     }
 
-    if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
-      const range = [
-        filters.minPrice !== undefined ? `$${filters.minPrice}` : '',
-        filters.maxPrice !== undefined ? `$${filters.maxPrice}` : ''
-      ].filter(Boolean).join(' - ');
-      
+    if (filters.minPrice !== undefined) {
       active.push({
-        key: 'priceRange',
-        label: 'Price Range',
-        value: range,
+        key: 'minPrice',
+        label: 'Min Price',
+        value: this.formatCurrency(filters.minPrice),
+        type: 'range'
+      });
+    }
+
+    if (filters.maxPrice !== undefined) {
+      active.push({
+        key: 'maxPrice',
+        label: 'Max Price',
+        value: this.formatCurrency(filters.maxPrice),
         type: 'range'
       });
     }
@@ -235,6 +251,25 @@ export class PharmacyFilterService {
     }
 
     return active;
+  }
+
+  private formatStockStatusLabel(value: string): string {
+    const labels: Record<string, string> = {
+      'low stock': 'Low Stock',
+      'out of stock': 'Out of Stock',
+      'normal stock': 'Normal Stock'
+    };
+
+    return labels[value.toLowerCase()] ?? value;
+  }
+
+  private formatCurrency(amount: number): string {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount);
   }
 
   /**

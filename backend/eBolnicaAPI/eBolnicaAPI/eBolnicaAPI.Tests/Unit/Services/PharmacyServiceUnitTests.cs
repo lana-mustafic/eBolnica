@@ -164,6 +164,23 @@ namespace eBolnicaAPI.Tests.Unit.Services
         }
 
         [Fact]
+        public async Task GetFilteredMedications_SearchTermQueryParam_FiltersByName()
+        {
+            // Arrange
+            var queryParams = CreateQueryCollection(new Dictionary<string, string> { { "searchTerm", "amoxicillin" } });
+            var baseQuery = _context.Medications.AsQueryable();
+
+            // Act
+            var filteredQuery = _pharmacyService.GetFilteredMedications(baseQuery, queryParams);
+            var results = await filteredQuery.ToListAsync();
+
+            // Assert
+            Assert.NotEmpty(results);
+            Assert.All(results, m =>
+                Assert.Contains("amoxicillin", m.Name, StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
         public async Task GetFilteredMedications_SearchTerm_WithSpecialCharacters_EscapesCorrectly()
         {
             // Arrange
