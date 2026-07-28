@@ -9,7 +9,7 @@ import { ActiveFiltersComponent } from '../../../shared/components/active-filter
 import { SortStatusComponent } from '../../../shared/components/sort-status/sort-status.component';
 import { MedicationThumbnailComponent } from './medication-thumbnail.component';
 import { MedicationDto } from '../../../models/medication.dto';
-import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
+import { ActiveFilter, PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { PagedResponse } from '../../../models/paged-response.dto';
 import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, catchError, of } from 'rxjs';
 import { TABLE_DEFAULT_SORTS } from '../../../constants/sort.constants';
@@ -67,7 +67,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   private sortDebounceTimer: any; // Timer for debouncing sort requests
 
   // Active filters for display
-  activeFilters = this.filterService.getActiveFilters();
+  activeFilters: ActiveFilter[] = this.filterService.getActiveFilters();
 
   // Success message for clear operation
   clearSuccessMessage: string | null = null;
@@ -179,6 +179,8 @@ export class MedicationsComponent implements OnInit, OnDestroy {
       isActive: this.selectedActiveStatus
         ? this.selectedActiveStatus === 'Active'
         : undefined,
+      minPrice: undefined,
+      maxPrice: undefined,
       sortBy: this.sortColumn || undefined,
       sortOrder: this.sortOrder || undefined
     };
@@ -383,25 +385,22 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   }
 
   removeFilter(filterKey: string): void {
-    switch (filterKey) {
-      case 'searchTerm':
-        this.searchTerm = '';
-        break;
-      case 'category':
-        this.selectedCategory = '';
-        break;
-      case 'stockStatus':
-        this.selectedStockStatus = '';
-        break;
-      case 'requiresPrescription':
-        this.selectedRequiresPrescription = '';
-        break;
-      case 'isActive':
-        this.selectedActiveStatus = '';
-        break;
+    const uiResetters: Record<string, () => void> = {
+      searchTerm: () => { this.searchTerm = ''; },
+      category: () => { this.selectedCategory = ''; },
+      stockStatus: () => { this.selectedStockStatus = ''; },
+      requiresPrescription: () => { this.selectedRequiresPrescription = ''; },
+      isActive: () => { this.selectedActiveStatus = ''; }
+    };
+
+    if (uiResetters[filterKey]) {
+      uiResetters[filterKey]();
+      this.pushFiltersFromUI();
+    } else {
+      this.filterService.clearFilterByBadgeKey(filterKey);
+      this.syncUIFromFilters(this.filterService.getFilters());
     }
 
-    this.pushFiltersFromUI();
     this.updateActiveFilters();
   }
 

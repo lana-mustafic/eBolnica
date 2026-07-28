@@ -29,3 +29,11 @@ RS1 requires **5+** filter parameters. Adding min/max price would be a **6th opt
 2. Bind UI state in `buildFiltersFromUI()` and `syncUIFromFilters()`
 3. Handle `priceRange` badge removal in `removeFilter()`
 4. Existing validation in `pushFiltersFromUI()` will apply automatically
+
+## Task 4 — Active filter badges
+
+- `PharmacyFilterService.getActiveFilters()` returns typed `ActiveFilter[]` with readable labels
+- Stock status badges show title case (e.g. `Low Stock`)
+- Min/max price use separate removable badges (`minPrice`, `maxPrice`)
+- `ActiveFiltersComponent` uses `ActiveFilter` type and `trackByFilterKey`
+- `medications.component.removeFilter()` clears all five medication filters plus price keys via `clearFilterByBadgeKey`
