@@ -49,6 +49,13 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   selectedRequiresPrescription: string = '';
   selectedActiveStatus: string = '';
 
+  /**
+   * RS1 requires 5+ functional filter parameters. The medications list already exposes five:
+   * search, category, stock status, requires prescription, and active/inactive.
+   * Price range UI is intentionally omitted; backend support (minPrice/maxPrice) remains available.
+   */
+  priceFilterError: string | null = null;
+
   // Available categories (populated from medications)
   categories: string[] = [];
 
@@ -181,7 +188,40 @@ export class MedicationsComponent implements OnInit, OnDestroy {
    * Push all current UI filter values to PharmacyFilterService (triggers API reload).
    */
   private pushFiltersFromUI(): void {
-    this.filterService.updateFilters(this.buildFiltersFromUI());
+    const filters = this.buildFiltersFromUI();
+    this.priceFilterError = this.validatePriceRange(filters.minPrice, filters.maxPrice);
+
+    if (this.priceFilterError) {
+      return;
+    }
+
+    this.filterService.updateFilters(filters);
+  }
+
+  /**
+   * Validates optional price range filters before sending them to the backend.
+   */
+  private validatePriceRange(minPrice?: number, maxPrice?: number): string | null {
+    const hasMin = minPrice !== undefined && minPrice !== null;
+    const hasMax = maxPrice !== undefined && maxPrice !== null;
+
+    if (!hasMin && !hasMax) {
+      return null;
+    }
+
+    if (hasMin && minPrice! < 0) {
+      return 'Minimum price cannot be negative.';
+    }
+
+    if (hasMax && maxPrice! < 0) {
+      return 'Maximum price cannot be negative.';
+    }
+
+    if (hasMin && hasMax && minPrice! > maxPrice!) {
+      return 'Minimum price cannot be greater than maximum price.';
+    }
+
+    return null;
   }
 
   /**
@@ -254,6 +294,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     this.selectedStockStatus = '';
     this.selectedRequiresPrescription = '';
     this.selectedActiveStatus = '';
+    this.priceFilterError = null;
     this.currentPage = 1;
     this.pageSize = 10;
     this.resetSortingToDefault();

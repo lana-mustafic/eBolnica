@@ -21,6 +21,10 @@
     {{ clearSuccessMessage }}
   </div>
 
+  <div class="message error" *ngIf="priceFilterError">
+    {{ priceFilterError }}
+  </div>
+
   <div class="message error" *ngIf="errorMessage">
     <div class="error-content">
       <span>{{ errorMessage }}</span>
