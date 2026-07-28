@@ -37,3 +37,14 @@ RS1 requires **5+** filter parameters. Adding min/max price would be a **6th opt
 - Min/max price use separate removable badges (`minPrice`, `maxPrice`)
 - `ActiveFiltersComponent` uses `ActiveFilter` type and `trackByFilterKey`
 - `medications.component.removeFilter()` clears all five medication filters plus price keys via `clearFilterByBadgeKey`
+
+## Task 6 — Debounced search verification
+
+- **Search debounce:** 300ms via `MEDICATION_SEARCH_DEBOUNCE_MS` on `searchSubject`
+- **Dropdown filters:** immediate `pushFiltersFromUI()` including current `searchTerm` (AND combination)
+- **Single API pipeline:** `getFilters$()` → `switchMap` (cancels in-flight requests)
+- **Service debounce:** 200ms on `PharmacyFilterService.getFilters$()` coalesces rapid updates
+- **Removed:** extra 150ms debounce on component subscription (was stacking with service debounce)
+- **Removed:** duplicate `loadMedications()` on init before subscription setup
+- **Added:** `filtersMatchServiceState()` skips `updateFilters` when filter JSON is unchanged
+- **Init:** subscribe first, then one `pushFiltersFromUI()` — debounce coalesces to a single API call

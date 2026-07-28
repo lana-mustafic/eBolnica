@@ -14,6 +14,9 @@ import { PagedResponse } from '../../../models/paged-response.dto';
 import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, catchError, of } from 'rxjs';
 import { TABLE_DEFAULT_SORTS } from '../../../constants/sort.constants';
 
+/** Debounce delay for medication search input before combining with other filters */
+const MEDICATION_SEARCH_DEBOUNCE_MS = 300;
+
 @Component({
   selector: 'app-medications',
   standalone: true,
@@ -73,16 +76,11 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   clearSuccessMessage: string | null = null;
 
   ngOnInit(): void {
-    // Initialize filters from service
-    const currentFilters = this.filterService.getFilters();
-    this.syncUIFromFilters(currentFilters);
+    this.syncUIFromFilters(this.filterService.getFilters());
 
-    // Load initial data
-    this.loadMedications();
-
-    // Setup debounced search that combines with dropdown filters
+    // Debounced search: waits 300ms, then pushes full filter set (search + dropdowns)
     this.searchSubject.pipe(
-      debounceTime(300),
+      debounceTime(MEDICATION_SEARCH_DEBOUNCE_MS),
       distinctUntilChanged(),
       takeUntil(this.destroy$)
     ).subscribe(searchTerm => {
@@ -90,12 +88,11 @@ export class MedicationsComponent implements OnInit, OnDestroy {
       this.pushFiltersFromUI();
     });
 
-    // Subscribe to filter changes from service
+    // Single API pipeline — all filter changes (search + dropdowns + paging + sort) flow here
     this.filterService.getFilters$().pipe(
-      debounceTime(150), // Additional debounce for combined filters
       switchMap(filters => {
         this.isSearching = true;
-        this.errorMessage = null; // Clear previous errors
+        this.errorMessage = null;
         this.syncUIFromFilters(filters);
         return this.pharmacyService.getMedicationsWithFilters(filters).pipe(
           finalize(() => {
@@ -129,6 +126,9 @@ export class MedicationsComponent implements OnInit, OnDestroy {
         this.errorMessage = null;
       }
     });
+
+    // Initial load (one emission; debounce in getFilters$ coalesces with subscription setup)
+    this.pushFiltersFromUI();
   }
 
   ngOnDestroy(): void {
@@ -188,6 +188,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
 
   /**
    * Push all current UI filter values to PharmacyFilterService (triggers API reload).
+   * Skips update when the serialized filter set is unchanged to avoid duplicate API calls.
    */
   private pushFiltersFromUI(): void {
     const filters = this.buildFiltersFromUI();
@@ -197,7 +198,32 @@ export class MedicationsComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.filtersMatchServiceState(filters)) {
+      return;
+    }
+
     this.filterService.updateFilters(filters);
+  }
+
+  private filtersMatchServiceState(filters: Partial<PharmacyFilters>): boolean {
+    return this.serializeMedicationFilters(filters)
+      === this.serializeMedicationFilters(this.filterService.getFilters());
+  }
+
+  private serializeMedicationFilters(filters: Partial<PharmacyFilters>): string {
+    return JSON.stringify({
+      searchTerm: filters.searchTerm?.trim() || undefined,
+      category: filters.category || undefined,
+      stockStatus: filters.stockStatus || undefined,
+      requiresPrescription: filters.requiresPrescription,
+      isActive: filters.isActive,
+      minPrice: filters.minPrice,
+      maxPrice: filters.maxPrice,
+      pageNumber: filters.pageNumber ?? 1,
+      pageSize: filters.pageSize ?? 10,
+      sortBy: filters.sortBy,
+      sortOrder: filters.sortOrder
+    });
   }
 
   /**
@@ -262,6 +288,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   }
 
   onSearchChange(searchTerm: string): void {
+    // Update input immediately; API call is debounced via searchSubject → pushFiltersFromUI
     this.searchTerm = searchTerm;
     this.searchSubject.next(searchTerm);
   }
