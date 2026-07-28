@@ -13,7 +13,10 @@ namespace eBolnicaAPI.Services
         /// <summary>
         /// Builds a filtered query for medications based on query parameters
         /// </summary>
-        IQueryable<Medication> GetFilteredMedications(IQueryable<Medication> baseQuery, IQueryCollection queryParams);
+        IQueryable<Medication> GetFilteredMedications(
+            IQueryable<Medication> baseQuery,
+            IQueryCollection queryParams,
+            bool defaultToActiveOnly = false);
 
         /// <summary>
         /// Builds a filtered query for prescriptions based on query parameters
@@ -38,7 +41,10 @@ namespace eBolnicaAPI.Services
         /// <summary>
         /// Builds a filtered query for medications based on PharmacyQueryParameters DTO
         /// </summary>
-        IQueryable<Medication> GetFilteredMedications(IQueryable<Medication> baseQuery, PharmacyQueryParameters queryParams);
+        IQueryable<Medication> GetFilteredMedications(
+            IQueryable<Medication> baseQuery,
+            PharmacyQueryParameters queryParams,
+            bool defaultToActiveOnly = false);
 
         /// <summary>
         /// Builds a filtered query for prescriptions based on PharmacyQueryParameters DTO
