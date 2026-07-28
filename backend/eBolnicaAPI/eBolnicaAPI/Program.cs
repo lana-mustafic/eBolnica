@@ -1,6 +1,8 @@
 using eBolnicaAPI.Data;
+using eBolnicaAPI.Extensions;
 using eBolnicaAPI.Models.Entities;
 using eBolnicaAPI.Services;
+using eBolnicaAPI.Services.Pharmacy.MedicationImages;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
@@ -158,6 +160,15 @@ builder.Services.Configure<FormOptions>(options =>
 });
 builder.Services.AddScoped<IPharmacyService, PharmacyService>();
 builder.Services.AddScoped<IPharmacyAnalyticsService, PharmacyAnalyticsService>();
+builder.Services.Configure<eBolnicaAPI.Models.Settings.MedicationImageUploadSettings>(
+    builder.Configuration.GetSection(eBolnicaAPI.Models.Settings.MedicationImageUploadSettings.SectionName));
+
+builder.Services.AddScoped<IMedicationImageFileValidator, MedicationImageFileValidator>();
+builder.Services.AddScoped<IMedicationImageVirusScanner, MedicationImageVirusScanner>();
+builder.Services.AddScoped<IMedicationImageOptimizer, MedicationImageOptimizer>();
+builder.Services.AddScoped<IMedicationImageThumbnailGenerator, MedicationImageThumbnailGenerator>();
+builder.Services.AddScoped<IMedicationImageStorageService, MedicationImageStorageService>();
+builder.Services.AddScoped<IMedicationImageService, MedicationImageService>();
 
 // Configure PDF generation settings
 builder.Services.Configure<eBolnicaAPI.Models.Settings.PdfGenerationSettings>(
@@ -192,6 +203,8 @@ if (enableCompression)
 }
 
 app.UseHttpsRedirection();
+
+app.UseMedicationImageStaticFiles();
 
 app.UseAuthentication();
 

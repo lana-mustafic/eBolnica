@@ -1,0 +1,50 @@
+@if (isOpen && currentImage) {
+  <div class="lightbox-backdrop" (click)="close()" role="dialog" aria-modal="true" aria-label="Image viewer">
+    <div class="lightbox-container" (click)="$event.stopPropagation()">
+      <button type="button" class="lightbox-close" (click)="close()" aria-label="Close image viewer">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      @if (images.length > 1) {
+        <button type="button" class="lightbox-nav lightbox-prev" (click)="previous()" aria-label="Previous image">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+      }
+
+      <img
+        [src]="resolveUrl(currentImage.imageUrl)"
+        [alt]="'Medication image ' + (currentIndex + 1)"
+        class="lightbox-image" />
+
+      @if (images.length > 1) {
+        <button type="button" class="lightbox-nav lightbox-next" (click)="next()" aria-label="Next image">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      }
+
+      <div class="lightbox-footer">
+        <span class="lightbox-counter">{{ currentIndex + 1 }} / {{ images.length }}</span>
+        @if (currentImage.isPrimary) {
+          <span class="lightbox-primary-badge">Primary</span>
+        }
+        @if (canDelete) {
+          <button
+            type="button"
+            class="lightbox-delete-btn"
+            (click)="deleteRequested.emit()"
+            [disabled]="isDeleting"
+            aria-label="Delete current image">
+            {{ isDeleting ? 'Deleting...' : 'Delete' }}
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+}

@@ -40,6 +40,16 @@ namespace eBolnicaAPI.Models.DTOs
         public DateTime? UpdatedAt { get; set; }
 
         /// <summary>
+        /// URL of the primary medication image
+        /// </summary>
+        public string? PrimaryImageUrl { get; set; }
+
+        /// <summary>
+        /// All images associated with this medication
+        /// </summary>
+        public List<MedicationImageDto>? Images { get; set; }
+
+        /// <summary>
         /// Indicates if medication stock is below minimum level
         /// </summary>
         public bool IsLowStock => StockQuantity < MinimumStockLevel;

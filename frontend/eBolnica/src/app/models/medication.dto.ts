@@ -1,3 +1,5 @@
+import { MedicationImageDto } from './medication-image.dto';
+
 export interface MedicationDto {
   id: number;
   name: string;
@@ -18,4 +20,6 @@ export interface MedicationDto {
   updatedAt?: string;
   isLowStock?: boolean;
   isExpired?: boolean;
+  primaryImageUrl?: string;
+  images?: MedicationImageDto[];
 }

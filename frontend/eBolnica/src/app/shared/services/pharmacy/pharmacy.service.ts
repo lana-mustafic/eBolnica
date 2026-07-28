@@ -3,6 +3,7 @@ import { HttpClient, HttpParams, HttpErrorResponse, HttpResponse } from '@angula
 import { Observable, throwError, of, timer, forkJoin } from 'rxjs';
 import { catchError, tap, retry, retryWhen, delayWhen, take, concatMap } from 'rxjs/operators';
 import { MedicationDto } from '../../../models/medication.dto';
+import { MedicationImageDto } from '../../../models/medication-image.dto';
 import { MedicationCreateDto } from '../../../models/medication-create.dto';
 import { PharmacistDataDto } from '../../../models/pharmacist-data.dto';
 import { PrescriptionDto } from '../../../models/prescription.dto';
@@ -75,6 +76,24 @@ export class PharmacyService {
   private apiUrl = 'http://localhost:5004/api/pharmacy';
   private http = inject(HttpClient);
 
+  /**
+   * Resolves a medication primary image URL for display.
+   * Supports absolute URLs and API-relative paths.
+   */
+  resolveMedicationImageUrl(imageUrl?: string): string | null {
+    if (!imageUrl?.trim()) {
+      return null;
+    }
+
+    const trimmed = imageUrl.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
+      return trimmed;
+    }
+
+    const apiOrigin = this.apiUrl.replace(/\/api\/pharmacy\/?$/, '');
+    return trimmed.startsWith('/') ? `${apiOrigin}${trimmed}` : `${apiOrigin}/${trimmed}`;
+  }
+
   // Medications CRUD
   
   /**
@@ -143,6 +162,26 @@ export class PharmacyService {
 
   deleteMedication(id: number): Observable<any> {
     return this.http.delete(this.apiUrl + `/medications/${id}`);
+  }
+
+  // Medication Images
+
+  getMedicationImages(medicationId: number): Observable<MedicationImageDto[]> {
+    return this.http.get<MedicationImageDto[]>(`${this.apiUrl}/medications/${medicationId}/images`);
+  }
+
+  uploadMedicationImage(medicationId: number, file: File): Observable<MedicationImageDto> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<MedicationImageDto>(`${this.apiUrl}/medications/${medicationId}/images`, formData);
+  }
+
+  setPrimaryMedicationImage(medicationId: number, imageId: number): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/medications/${medicationId}/images/${imageId}/primary`, {});
+  }
+
+  deleteMedicationImage(medicationId: number, imageId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/medications/${medicationId}/images/${imageId}`);
   }
 
   // Prescriptions Management
