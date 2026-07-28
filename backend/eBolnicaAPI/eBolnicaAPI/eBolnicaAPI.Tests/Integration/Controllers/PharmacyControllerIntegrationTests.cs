@@ -85,6 +85,47 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
         }
 
         [Fact]
+        public async Task GetMedications_WithSearchTerm_ReturnsFilteredResults()
+        {
+            // Arrange
+            var url = "/api/pharmacy/medications?searchTerm=amoxicillin&pageSize=100";
+
+            // Act
+            var response = await _client.GetAsync(url);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<MedicationDto>>();
+            Assert.NotNull(result);
+            Assert.NotEmpty(result.Items);
+            Assert.All(result.Items, m =>
+                Assert.Contains("amoxicillin", m.Name, StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public async Task GetMedications_WithAllMedicationFilterParams_ReturnsFilteredResults()
+        {
+            // Arrange — query names aligned with PharmacyQueryParameters / FE buildMedicationQueryParams
+            var url = "/api/pharmacy/medications?pageNumber=1&pageSize=20&searchTerm=amox&category=antibiotics&stockStatus=normal stock&requiresPrescription=true&isActive=true&minPrice=1&maxPrice=100&sortBy=name&sortOrder=asc";
+
+            // Act
+            var response = await _client.GetAsync(url);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<MedicationDto>>();
+            Assert.NotNull(result);
+            Assert.All(result.Items, m =>
+            {
+                Assert.Equal("antibiotics", m.Category?.ToLower());
+                Assert.True(m.RequiresPrescription);
+                Assert.True(m.IsActive);
+                Assert.True(m.Price >= 1 && m.Price <= 100);
+                Assert.True(m.StockQuantity >= m.MinimumStockLevel);
+            });
+        }
+
+        [Fact]
         public async Task GetMedications_WithSorting_ReturnsSortedResults()
         {
             // Arrange

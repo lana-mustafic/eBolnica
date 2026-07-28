@@ -5,7 +5,7 @@ namespace eBolnicaAPI.Models.DTOs
     /// <summary>
     /// Query parameters for Pharmacy module endpoints supporting pagination, filtering, and sorting.
     /// ASP.NET Core automatically binds query string parameters to this DTO.
-    /// Example: /api/pharmacy/medications?pageNumber=1&amp;pageSize=10&amp;category=antibiotics&amp;minPrice=10&amp;maxPrice=50
+    /// Example: /api/pharmacy/medications?pageNumber=1&amp;pageSize=10&amp;searchTerm=aspirin&amp;category=antibiotics&amp;stockStatus=low stock&amp;requiresPrescription=true&amp;isActive=true&amp;minPrice=10&amp;maxPrice=50&amp;sortBy=name&amp;sortOrder=asc
     /// </summary>
     public class PharmacyQueryParameters : IValidatableObject
     {
@@ -43,7 +43,8 @@ namespace eBolnicaAPI.Models.DTOs
         #region Common Filters
 
         /// <summary>
-        /// Search term for searching across name, generic name, or manufacturer
+        /// Search term for searching across name, generic name, or manufacturer.
+        /// Query string: searchTerm (legacy alias: search)
         /// </summary>
         public string? SearchTerm { get; set; }
 

@@ -14,7 +14,7 @@ namespace eBolnicaAPI.Services
         /// <summary>
         /// Builds a filtered query for medications based on query parameters
         /// Supports: category, status, minPrice, maxPrice, stockStatus, requiresPrescription, isActive, 
-        /// minStock, maxStock, search, createdAfter, createdBefore, expiryAfter, expiryBefore
+        /// minStock, maxStock, searchTerm (legacy: search), createdAfter, createdBefore, expiryAfter, expiryBefore
         /// </summary>
         public IQueryable<Medication> GetFilteredMedications(IQueryable<Medication> baseQuery, IQueryCollection queryParams)
         {
@@ -28,9 +28,10 @@ namespace eBolnicaAPI.Services
             }
 
             // String filters: Search (across Name, GenericName, and Manufacturer - case-insensitive)
-            if (queryParams.ContainsKey("search") && !string.IsNullOrEmpty(queryParams["search"]))
+            var searchValue = GetQueryParamValue(queryParams, "searchTerm", "search");
+            if (!string.IsNullOrEmpty(searchValue))
             {
-                var searchTerm = queryParams["search"].ToString().ToLower();
+                var searchTerm = searchValue.ToLower();
                 query = query.Where(m =>
                     m.Name.ToLower().Contains(searchTerm) ||
                     (m.GenericName != null && m.GenericName.ToLower().Contains(searchTerm)) ||
@@ -658,5 +659,18 @@ namespace eBolnicaAPI.Services
         }
 
         #endregion
+
+        private static string? GetQueryParamValue(IQueryCollection queryParams, params string[] keys)
+        {
+            foreach (var key in keys)
+            {
+                if (queryParams.TryGetValue(key, out var value) && !string.IsNullOrEmpty(value))
+                {
+                    return value.ToString();
+                }
+            }
+
+            return null;
+        }
     }
 }

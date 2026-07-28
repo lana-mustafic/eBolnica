@@ -99,6 +99,7 @@ namespace eBolnicaAPI.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> GetMedications(
             [FromQuery] string? category = null,
+            [FromQuery] string? searchTerm = null,
             [FromQuery] string? search = null,
             [FromQuery] string? stockStatus = null,
             [FromQuery] bool? requiresPrescription = null,
@@ -110,6 +111,7 @@ namespace eBolnicaAPI.Controllers
             [FromQuery] string? sortOrder = "desc")
         {
             var stopwatch = Stopwatch.StartNew();
+            var effectiveSearch = !string.IsNullOrEmpty(searchTerm) ? searchTerm : search;
             
             // Start with optimized base query using AsNoTracking for read-only
             var query = _context.Medications.AsNoTracking().AsQueryable();
@@ -136,13 +138,13 @@ namespace eBolnicaAPI.Controllers
             }
 
             // Filter 3: Search (across Name, GenericName, and Manufacturer - case-insensitive)
-            if (!string.IsNullOrEmpty(search))
+            if (!string.IsNullOrEmpty(effectiveSearch))
             {
-                var searchTerm = search.ToLower();
+                var searchLower = effectiveSearch.ToLower();
                 query = query.Where(m =>
-                    m.Name.ToLower().Contains(searchTerm) ||
-                    (m.GenericName != null && m.GenericName.ToLower().Contains(searchTerm)) ||
-                    (m.Manufacturer != null && m.Manufacturer.ToLower().Contains(searchTerm))
+                    m.Name.ToLower().Contains(searchLower) ||
+                    (m.GenericName != null && m.GenericName.ToLower().Contains(searchLower)) ||
+                    (m.Manufacturer != null && m.Manufacturer.ToLower().Contains(searchLower))
                 );
             }
 
@@ -250,7 +252,7 @@ namespace eBolnicaAPI.Controllers
             stopwatch.Stop();
 
             // Log performance metrics
-            var activeFilters = GetActiveFilterCount(category, search, stockStatus, requiresPrescription, isActive);
+            var activeFilters = GetActiveFilterCount(category, effectiveSearch, stockStatus, requiresPrescription, isActive);
             _logger.LogInformation(
                 "Medications query executed in {ElapsedMs}ms. Filters: {FilterCount}, Results: {ResultCount}, Page: {Page}, PageSize: {PageSize}",
                 stopwatch.ElapsedMilliseconds,
@@ -2014,6 +2016,7 @@ namespace eBolnicaAPI.Controllers
         /// </summary>
         private PharmacyQueryParameters BuildQueryParameters(
             string? category = null,
+            string? searchTerm = null,
             string? search = null,
             string? stockStatus = null,
             bool? requiresPrescription = null,
@@ -2030,7 +2033,7 @@ namespace eBolnicaAPI.Controllers
                 PageSize = pageSize,
                 SortBy = sortBy,
                 SortOrder = sortOrder,
-                SearchTerm = search,
+                SearchTerm = !string.IsNullOrEmpty(searchTerm) ? searchTerm : search,
                 Category = category,
                 StockStatus = stockStatus,
                 RequiresPrescription = requiresPrescription,
