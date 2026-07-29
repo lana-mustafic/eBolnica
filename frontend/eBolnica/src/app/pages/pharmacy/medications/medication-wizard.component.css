@@ -222,7 +222,8 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.5rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
+  align-items: flex-start;
 }
 
 label {
@@ -312,6 +313,11 @@ textarea.form-control {
 
 .wizard-form mat-form-field {
   width: 100%;
+  display: block;
+}
+
+.wizard-form mat-form-field.full-width {
+  margin-bottom: 0.25rem;
 }
 
 .form-row mat-form-field {

@@ -345,7 +345,6 @@
   box-shadow: none;
   transition: none;
   min-width: 0;
-  overflow: hidden;
 }
 
 .chart-card:hover {

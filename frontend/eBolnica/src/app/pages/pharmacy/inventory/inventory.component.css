@@ -2,7 +2,6 @@
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
-  overflow-x: clip;
 }
 
 .header-section {
@@ -641,7 +640,7 @@ table tbody tr.row-expiring {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  align-items: flex-start;
+  align-items: center;
 }
 
 .btn-export {
@@ -903,6 +902,7 @@ table tbody tr.row-expiring {
 @media (max-width: 768px) {
   .inventory-container {
     padding: 1rem;
+    overflow-x: clip;
   }
 
   .header-section {

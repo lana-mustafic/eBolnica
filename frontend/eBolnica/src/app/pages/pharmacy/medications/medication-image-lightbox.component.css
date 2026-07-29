@@ -7,6 +7,7 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  overflow: hidden;
 }
 
 .lightbox-container {
@@ -30,14 +31,15 @@
 
 .lightbox-close {
   position: absolute;
-  top: -2.5rem;
-  right: 0;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 44px;
   min-height: 44px;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.5);
   border: none;
   color: white;
   cursor: pointer;
@@ -60,6 +62,7 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -85,11 +88,11 @@
 }
 
 .lightbox-prev {
-  left: -3.5rem;
+  left: 0.5rem;
 }
 
 .lightbox-next {
-  right: -3.5rem;
+  right: 0.5rem;
 }
 
 .lightbox-thumbnail-strip {
