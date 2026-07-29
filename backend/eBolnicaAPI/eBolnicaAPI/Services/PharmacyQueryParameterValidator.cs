@@ -9,7 +9,9 @@ namespace eBolnicaAPI.Services
     /// </summary>
     public static class PharmacyQueryParameterValidator
     {
-        public static IReadOnlyList<ValidationResult> Validate(PharmacyQueryParameters parameters)
+        public static IReadOnlyList<ValidationResult> Validate(
+            PharmacyQueryParameters parameters,
+            PharmacyListEndpoint? endpoint = null)
         {
             var results = new List<ValidationResult>();
             Validator.TryValidateObject(
@@ -17,6 +19,12 @@ namespace eBolnicaAPI.Services
                 new ValidationContext(parameters),
                 results,
                 validateAllProperties: true);
+
+            if (endpoint.HasValue)
+            {
+                results.AddRange(PharmacySortValidator.Validate(parameters, endpoint.Value));
+            }
+
             return results;
         }
     }

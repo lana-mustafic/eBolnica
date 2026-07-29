@@ -15,6 +15,7 @@ import { InventoryResponse } from '../../../models/inventory-response.dto';
 import { PagedResponse } from '../../../models/paged-response.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { PHARMACY_MEDICATION_QUERY_PARAMS as MED_Q } from '../../../constants/pharmacy-query-params.constants';
+import { mapInventorySortColumn } from '../../../constants/sort.constants';
 import { 
   MonthlyRevenueData, 
   MedicationCategoryData, 
@@ -317,13 +318,15 @@ export class PharmacyService {
     const params = this.buildInventoryQueryParams(filters);
     
     console.log('[PharmacyService] Loading inventory with filters:', filters);
-    
+
     return this.http.get<any>(`${this.apiUrl}/inventory`, { params }).pipe(
       map(response => normalizeInventoryResponse(response, filters.pageSize || 10)),
       tap(response => {
         console.log('[PharmacyService] Inventory loaded:', {
           count: response.items?.length || 0,
           total: response.totalCount,
+          sortBy: filters.sortBy,
+          sortOrder: filters.sortOrder,
           lowStockAlerts: response.lowStockAlerts?.length || 0,
           expiryAlerts: response.expiryAlerts?.length || 0
         });
@@ -422,7 +425,8 @@ export class PharmacyService {
   }
 
   /**
-   * Build query parameters for inventory from PharmacyFilters
+   * Build query parameters for inventory from PharmacyFilters.
+   * Sends pagination, filters, and sort together in one request.
    */
   private buildInventoryQueryParams(filters: PharmacyFilters): HttpParams {
     const { pageNumber, pageSize } = normalizePaginationParams(
@@ -464,15 +468,34 @@ export class PharmacyService {
       params = params.set('expiryBefore', filters.expiryBefore);
     }
 
-    // Sorting
-    if (filters.sortBy) {
-      params = params.set('sortBy', filters.sortBy);
+    const { sortBy, sortOrder } = this.resolveInventorySortParams(filters);
+    if (sortBy) {
+      params = params.set(MED_Q.sortBy, sortBy);
     }
-    if (filters.sortOrder) {
-      params = params.set('sortOrder', filters.sortOrder);
+    if (sortOrder) {
+      params = params.set(MED_Q.sortOrder, sortOrder);
     }
 
     return params;
+  }
+
+  /**
+   * Maps inventory UI sort keys to backend sortBy and normalizes sortOrder.
+   */
+  private resolveInventorySortParams(
+    filters: PharmacyFilters
+  ): { sortBy?: string; sortOrder?: 'asc' | 'desc' } {
+    if (!filters.sortBy?.trim()) {
+      return {};
+    }
+
+    const sortBy = mapInventorySortColumn(filters.sortBy.trim());
+    const normalizedOrder = filters.sortOrder?.toLowerCase();
+    const sortOrder = normalizedOrder === 'asc' || normalizedOrder === 'desc'
+      ? normalizedOrder
+      : undefined;
+
+    return sortOrder ? { sortBy, sortOrder } : { sortBy };
   }
 
   /**

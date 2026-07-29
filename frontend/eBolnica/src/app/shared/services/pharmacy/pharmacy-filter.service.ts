@@ -68,6 +68,21 @@ export class PharmacyFilterService {
   }
 
   /**
+   * Update server-side sort parameters and reset to page 1.
+   */
+  updateSort(sortBy: string, sortOrder: 'asc' | 'desc'): void {
+    this.updateFilters({ sortBy, sortOrder });
+  }
+
+  /**
+   * Returns current sort params stored in filter state.
+   */
+  getSortParams(): Pick<PharmacyFilters, 'sortBy' | 'sortOrder'> {
+    const { sortBy, sortOrder } = this.filters$.value;
+    return { sortBy, sortOrder };
+  }
+
+  /**
    * Clear all filters and reset to defaults
    * Resets all filter properties to undefined/null except pagination defaults
    */

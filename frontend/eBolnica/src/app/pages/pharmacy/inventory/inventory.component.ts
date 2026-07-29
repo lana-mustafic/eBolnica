@@ -12,8 +12,12 @@ import { MedicationDto } from '../../../models/medication.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { InventoryResponse } from '../../../models/inventory-response.dto';
 import { PagedResponse } from '../../../models/paged-response.dto';
-import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, catchError, of } from 'rxjs';
-import { TABLE_DEFAULT_SORTS } from '../../../constants/sort.constants';
+import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, catchError, of, EMPTY } from 'rxjs';
+import {
+  INVENTORY_SORT_DISPLAY_NAMES,
+  mapInventorySortColumn,
+  TABLE_DEFAULT_SORTS
+} from '../../../constants/sort.constants';
 import { getPageRangeEnd, getPageRangeStart } from '../../../shared/utils/paged-response.util';
 
 type StockStatus = 'adequate' | 'low' | 'critical' | 'out-of-stock';
@@ -65,8 +69,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
   // Sort state (server-side)
   sortColumn: string = TABLE_DEFAULT_SORTS.INVENTORY.column;
   sortOrder: 'asc' | 'desc' = TABLE_DEFAULT_SORTS.INVENTORY.order;
-  private previousSortColumn: string = TABLE_DEFAULT_SORTS.INVENTORY.column;
-  private previousSortOrder: 'asc' | 'desc' = TABLE_DEFAULT_SORTS.INVENTORY.order;
+  private previousSortColumn: string = TABLE_DEFAULT_SORTS.INVENTORY.column; // For error recovery
+  private previousSortOrder: 'asc' | 'desc' = TABLE_DEFAULT_SORTS.INVENTORY.order; // For error recovery
   private sortDebounceTimer?: ReturnType<typeof setTimeout>;
 
   // Summary statistics
@@ -105,6 +109,11 @@ export class InventoryComponent implements OnInit, OnDestroy {
             this.isSorting = false;
           }),
           catchError((error) => {
+            if (this.isSorting) {
+              this.handleSortError(error);
+              return EMPTY;
+            }
+
             this.handleApiError(error);
             return of({
               items: [],
@@ -204,8 +213,14 @@ export class InventoryComponent implements OnInit, OnDestroy {
       expiryStatus: expiryFilters.expiryStatus,
       expiryAfter: expiryFilters.expiryAfter,
       expiryBefore: expiryFilters.expiryBefore,
-      sortBy: this.sortColumn || undefined,
-      sortOrder: this.sortOrder || undefined
+      ...this.buildSortFiltersFromUI()
+    };
+  }
+
+  private buildSortFiltersFromUI(): Pick<PharmacyFilters, 'sortBy' | 'sortOrder'> {
+    return {
+      sortBy: this.sortColumn || TABLE_DEFAULT_SORTS.INVENTORY.column,
+      sortOrder: this.sortOrder || TABLE_DEFAULT_SORTS.INVENTORY.order
     };
   }
 
@@ -411,15 +426,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
    * Get display name for current sort column
    */
   getSortDisplayName(): string {
-    const columnNames: { [key: string]: string } = {
-      'name': 'Medication Name',
-      'stockQuantity': 'Stock Quantity',
-      'stockStatus': 'Stock Status',
-      'expiryDate': 'Expiry Date',
-      'createdAt': 'Date Created',
-      'updatedAt': 'Date Updated'
-    };
-    return columnNames[this.sortColumn] || this.sortColumn;
+    return INVENTORY_SORT_DISPLAY_NAMES[this.sortColumn] ?? this.sortColumn;
   }
 
   /**
@@ -578,7 +585,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
    * Handle column header sort click — server-side sorting via API
    */
   onSort(column: string): void {
-    const backendColumn = this.mapSortColumnToBackend(column);
+    const backendColumn = mapInventorySortColumn(column);
 
     this.previousSortColumn = this.sortColumn;
     this.previousSortOrder = this.sortOrder;
@@ -602,17 +609,48 @@ export class InventoryComponent implements OnInit, OnDestroy {
     }, 200);
   }
 
+  /**
+   * Handle sort-specific errors
+   */
+  private handleSortError(error: any): void {
+    console.error('Sort failed:', error);
+
+    this.revertSortState();
+
+    if (error?.status === 400) {
+      this.errorMessage = 'Invalid sort column. Please try a different column.';
+      console.warn('Invalid sort parameters:', error.error);
+    } else if (error?.status === 0) {
+      this.errorMessage = 'Network error. Unable to sort inventory. Please check your connection.';
+    } else {
+      this.errorMessage = 'Unable to sort inventory. Please try again.';
+    }
+
+    this.isSorting = false;
+  }
+
+  /**
+   * Revert sort state to previous values or default
+   */
+  private revertSortState(): void {
+    this.sortColumn = this.previousSortColumn || TABLE_DEFAULT_SORTS.INVENTORY.column;
+    this.sortOrder = this.previousSortOrder || TABLE_DEFAULT_SORTS.INVENTORY.order;
+    this.pushFiltersFromUI();
+  }
+
+  isSortColumnActive(column: string): boolean {
+    return this.sortColumn === mapInventorySortColumn(column);
+  }
+
   getSortIconClass(column: string, direction: 'asc' | 'desc'): string {
-    const backendColumn = this.mapSortColumnToBackend(column);
-    if (this.sortColumn !== backendColumn) {
+    if (!this.isSortColumnActive(column)) {
       return '';
     }
     return this.sortOrder === direction ? 'active' : '';
   }
 
   getAriaSort(column: string): string {
-    const backendColumn = this.mapSortColumnToBackend(column);
-    if (this.sortColumn !== backendColumn) {
+    if (!this.isSortColumnActive(column)) {
       return 'none';
     }
     return this.sortOrder === 'asc' ? 'ascending' : 'descending';
@@ -623,23 +661,6 @@ export class InventoryComponent implements OnInit, OnDestroy {
       event.preventDefault();
       this.onSort(column);
     }
-  }
-
-  private mapSortColumnToBackend(column: string): string {
-    const columnMapping: Record<string, string> = {
-      medicationName: 'name',
-      name: 'name',
-      quantity: 'stockQuantity',
-      stockQuantity: 'stockQuantity',
-      stock: 'stockQuantity',
-      expiryDate: 'expiryDate',
-      expiry: 'expiryDate',
-      stockStatus: 'stockQuantity',
-      createdAt: 'createdAt',
-      updatedAt: 'updatedAt'
-    };
-
-    return columnMapping[column] || column;
   }
 
   Math = Math;
