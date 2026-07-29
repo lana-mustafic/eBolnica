@@ -34,6 +34,12 @@ import {
   AnalyticsPeriod,
   AnalyticsDateRange
 } from '../../../models/analytics.dto';
+import { MedicationNameAvailabilityResult } from '../../validators/medication-name-async.validator';
+
+/** API response for GET /medications/check-name */
+export interface MedicationNameAvailabilityDto {
+  isAvailable: boolean;
+}
 
 /**
  * Filter parameters for medication queries
@@ -162,6 +168,36 @@ export class PharmacyService {
 
   getMedicationById(id: number): Observable<MedicationDto> {
     return this.http.get<MedicationDto>(this.apiUrl + `/medications/${id}`);
+  }
+
+  /**
+   * Check whether a medication name is available (case-insensitive, backend DB check).
+   * @param name Medication name to validate
+   * @param excludeId Optional medication ID to exclude (edit mode — current record)
+   * @returns Availability result; sets checkFailed on network/API errors (no silent pass)
+   */
+  checkMedicationNameAvailability(
+    name: string,
+    excludeId?: number
+  ): Observable<MedicationNameAvailabilityResult> {
+    const trimmed = name?.trim() ?? '';
+
+    if (!trimmed) {
+      return of({ isAvailable: true });
+    }
+
+    let params = new HttpParams().set('name', trimmed);
+
+    if (excludeId != null) {
+      params = params.set('excludeId', excludeId.toString());
+    }
+
+    return this.http
+      .get<MedicationNameAvailabilityDto>(`${this.apiUrl}/medications/check-name`, { params })
+      .pipe(
+        map(response => ({ isAvailable: response.isAvailable })),
+        catchError(() => of({ isAvailable: false, checkFailed: true }))
+      );
   }
 
   createMedication(medication: MedicationCreateDto): Observable<MedicationDto> {

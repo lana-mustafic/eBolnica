@@ -201,3 +201,87 @@ describe('PharmacyService inventory sort mapping', () => {
     });
   });
 });
+
+describe('PharmacyService checkMedicationNameAvailability', () => {
+  let service: PharmacyService;
+  let httpMock: HttpTestingController;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [PharmacyService]
+    });
+
+    service = TestBed.inject(PharmacyService);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+  });
+
+  it('returns available without HTTP call for blank names', () => {
+    let result: { isAvailable: boolean; checkFailed?: boolean } | undefined;
+
+    service.checkMedicationNameAvailability('   ').subscribe(r => {
+      result = r;
+    });
+
+    httpMock.expectNone(request => request.url.includes('/medications/check-name'));
+    expect(result).toEqual({ isAvailable: true });
+  });
+
+  it('calls check-name endpoint with trimmed name', () => {
+    service.checkMedicationNameAvailability('  Paracetamol  ').subscribe();
+
+    const req = httpMock.expectOne(
+      request => request.url.endsWith('/api/pharmacy/medications/check-name')
+    );
+
+    expect(req.request.params.get('name')).toBe('Paracetamol');
+    expect(req.request.params.has('excludeId')).toBeFalse();
+    req.flush({ isAvailable: true });
+  });
+
+  it('passes excludeId when provided', () => {
+    service.checkMedicationNameAvailability('Paracetamol', 5).subscribe();
+
+    const req = httpMock.expectOne(
+      request => request.url.endsWith('/api/pharmacy/medications/check-name')
+    );
+
+    expect(req.request.params.get('name')).toBe('Paracetamol');
+    expect(req.request.params.get('excludeId')).toBe('5');
+    req.flush({ isAvailable: true });
+  });
+
+  it('maps unavailable response from API', () => {
+    let result: { isAvailable: boolean; checkFailed?: boolean } | undefined;
+
+    service.checkMedicationNameAvailability('Paracetamol').subscribe(r => {
+      result = r;
+    });
+
+    const req = httpMock.expectOne(
+      request => request.url.endsWith('/api/pharmacy/medications/check-name')
+    );
+    req.flush({ isAvailable: false });
+
+    expect(result).toEqual({ isAvailable: false });
+  });
+
+  it('returns checkFailed when API request fails', () => {
+    let result: { isAvailable: boolean; checkFailed?: boolean } | undefined;
+
+    service.checkMedicationNameAvailability('Paracetamol').subscribe(r => {
+      result = r;
+    });
+
+    const req = httpMock.expectOne(
+      request => request.url.endsWith('/api/pharmacy/medications/check-name')
+    );
+    req.error(new ProgressEvent('error'), { status: 0 });
+
+    expect(result).toEqual({ isAvailable: false, checkFailed: true });
+  });
+});
