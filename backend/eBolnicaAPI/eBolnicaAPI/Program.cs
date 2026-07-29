@@ -2,6 +2,7 @@ using eBolnicaAPI.Data;
 using eBolnicaAPI.Extensions;
 using eBolnicaAPI.Models.Entities;
 using eBolnicaAPI.Services;
+using eBolnicaAPI.Services.Pharmacy;
 using eBolnicaAPI.Services.Pharmacy.MedicationImages;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
@@ -167,6 +168,7 @@ builder.Services.Configure<FormOptions>(options =>
     options.MultipartBodyLengthLimit = 10 * 1024 * 1024;
 });
 builder.Services.AddScoped<IPharmacyService, PharmacyService>();
+builder.Services.AddScoped<IMedicationCsvExportService, MedicationCsvExportService>();
 builder.Services.AddScoped<IPharmacyAnalyticsService, PharmacyAnalyticsService>();
 builder.Services.Configure<eBolnicaAPI.Models.Settings.MedicationImageUploadSettings>(
     builder.Configuration.GetSection(eBolnicaAPI.Models.Settings.MedicationImageUploadSettings.SectionName));

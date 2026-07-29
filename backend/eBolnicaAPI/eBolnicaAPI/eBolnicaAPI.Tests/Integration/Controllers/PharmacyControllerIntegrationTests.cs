@@ -297,6 +297,32 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
         }
 
         [Fact]
+        public async Task ExportMedicationsCsv_WithCategoryFilter_ReturnsFilteredCsv()
+        {
+            var response = await _client.GetAsync("/api/pharmacy/medications/export/csv?category=antibiotics");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("text/csv", response.Content.Headers.ContentType?.MediaType);
+
+            var content = await response.Content.ReadAsStringAsync();
+            Assert.Contains("Name", content);
+            Assert.Contains("Penicillin", content);
+            Assert.Contains("Amoxicillin", content);
+            Assert.DoesNotContain("Aspirin", content);
+        }
+
+        [Fact]
+        public async Task ExportMedicationsCsv_WithSearchFilter_ReturnsMatchingRows()
+        {
+            var response = await _client.GetAsync("/api/pharmacy/medications/export/csv?search=aspirin");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var content = await response.Content.ReadAsStringAsync();
+            Assert.Contains("Aspirin", content);
+            Assert.DoesNotContain("Penicillin", content);
+        }
+
+        [Fact]
         public async Task GetMedications_PriceRangeAndCategory_ReturnsMatchingSubset()
         {
             var url = "/api/pharmacy/medications?category=painkiller&minPrice=7&maxPrice=9&pageSize=100";

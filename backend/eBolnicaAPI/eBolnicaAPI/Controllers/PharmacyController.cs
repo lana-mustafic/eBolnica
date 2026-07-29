@@ -2,6 +2,7 @@ using eBolnicaAPI.Data;
 using eBolnicaAPI.Models.DTOs;
 using eBolnicaAPI.Models.Entities;
 using eBolnicaAPI.Services;
+using eBolnicaAPI.Services.Pharmacy;
 using eBolnicaAPI.Services.Pharmacy.MedicationImages;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -12,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Security.Claims;
+using System.Text;
 using System.Text.Json;
 
 namespace eBolnicaAPI.Controllers
@@ -26,6 +28,7 @@ namespace eBolnicaAPI.Controllers
         private readonly IPdfReportService _pdfReportService;
         private readonly IPharmacyAnalyticsService _analyticsService;
         private readonly IMedicationImageService _medicationImageService;
+        private readonly IMedicationCsvExportService _medicationCsvExportService;
         private readonly ILogger<PharmacyController> _logger;
         private readonly IMemoryCache _cache;
         private readonly IConfiguration _configuration;
@@ -37,6 +40,7 @@ namespace eBolnicaAPI.Controllers
             IPdfReportService pdfReportService,
             IPharmacyAnalyticsService analyticsService,
             IMedicationImageService medicationImageService,
+            IMedicationCsvExportService medicationCsvExportService,
             ILogger<PharmacyController> logger,
             IMemoryCache cache,
             IConfiguration configuration)
@@ -47,6 +51,7 @@ namespace eBolnicaAPI.Controllers
             _pdfReportService = pdfReportService;
             _analyticsService = analyticsService;
             _medicationImageService = medicationImageService;
+            _medicationCsvExportService = medicationCsvExportService;
             _logger = logger;
             _cache = cache;
             _configuration = configuration;
@@ -202,6 +207,52 @@ namespace eBolnicaAPI.Controllers
             );
 
             return Ok(response);
+        }
+
+        /// <summary>
+        /// Export medications matching the current filters as CSV.
+        /// </summary>
+        /// <remarks>
+        /// Accepts the same filter and sort query parameters as GET /medications.
+        /// Pagination parameters are ignored — all matching rows are exported (up to 10,000).
+        /// </remarks>
+        [HttpGet("medications/export/csv")]
+        [Authorize(Roles = "Pharmacist")]
+        [Produces("text/csv")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ExportMedicationsCsv(
+            [FromQuery] PharmacyQueryParameters parameters,
+            [FromQuery(Name = "search")] string? search = null,
+            [FromQuery] int page = 1)
+        {
+            ApplyLegacyMedicationQueryAliases(parameters, search, page);
+
+            var filterValidationError = ValidateFilterParameters(parameters, PharmacyListEndpoint.Medications);
+            if (filterValidationError != null)
+            {
+                return filterValidationError;
+            }
+
+            var query = _context.Medications.AsNoTracking().AsQueryable();
+            var defaultActiveOnly = !Request.Query.ContainsKey("isActive");
+            query = _pharmacyService.GetFilteredMedications(query, parameters, defaultActiveOnly);
+            query = _pharmacyService.ApplySorting(query, parameters.SortBy, parameters.SortOrder);
+
+            var totalCount = await query.CountAsync();
+            if (totalCount > _medicationCsvExportService.MaxExportRows)
+            {
+                return BadRequest(new
+                {
+                    error = $"Export is limited to {_medicationCsvExportService.MaxExportRows} rows. Refine your filters and try again."
+                });
+            }
+
+            var medications = await query.Take(_medicationCsvExportService.MaxExportRows).ToListAsync();
+            var csvContent = _medicationCsvExportService.BuildCsv(medications);
+            var fileName = _medicationCsvExportService.GetExportFileName();
+
+            return ReturnCsvFile(Encoding.UTF8.GetBytes(csvContent), fileName);
         }
 
         [HttpGet("medications/{id}")]
@@ -1831,6 +1882,23 @@ namespace eBolnicaAPI.Controllers
             Response.Headers["Content-Disposition"] = contentDisposition;
 
             return File(pdfBytes, "application/pdf");
+        }
+
+        /// <summary>
+        /// Returns CSV file with proper download headers.
+        /// </summary>
+        private IActionResult ReturnCsvFile(byte[] csvBytes, string fileName)
+        {
+            Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+            Response.Headers["Pragma"] = "no-cache";
+            Response.Headers["Expires"] = "0";
+            Response.Headers["X-Content-Type-Options"] = "nosniff";
+            Response.Headers["Content-Length"] = csvBytes.Length.ToString();
+
+            var contentDisposition = $"attachment; filename=\"{fileName}\"; filename*=UTF-8''{Uri.EscapeDataString(fileName)}";
+            Response.Headers["Content-Disposition"] = contentDisposition;
+
+            return File(csvBytes, "text/csv", fileName);
         }
 
         /// <summary>
