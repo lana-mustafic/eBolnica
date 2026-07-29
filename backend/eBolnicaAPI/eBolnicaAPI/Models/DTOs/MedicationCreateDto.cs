@@ -5,7 +5,7 @@ namespace eBolnicaAPI.Models.DTOs
     /// <summary>
     /// Data transfer object for creating or updating medication
     /// </summary>
-    public class MedicationCreateDto
+    public class MedicationCreateDto : IValidatableObject
     {
         [Required(ErrorMessage = "Medication name is required")]
         [StringLength(100, MinimumLength = 3, ErrorMessage = "Name must be between 3 and 100 characters")]
@@ -54,5 +54,15 @@ namespace eBolnicaAPI.Models.DTOs
 
         [StringLength(50, ErrorMessage = "Strength cannot exceed 50 characters")]
         public string? Strength { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (ExpiryDate <= DateTime.Now)
+            {
+                yield return new ValidationResult(
+                    "Expiry date must be in the future.",
+                    new[] { nameof(ExpiryDate) });
+            }
+        }
     }
 }

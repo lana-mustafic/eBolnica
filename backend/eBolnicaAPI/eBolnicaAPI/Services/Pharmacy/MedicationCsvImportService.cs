@@ -3,7 +3,6 @@ using eBolnicaAPI.Models.DTOs;
 using eBolnicaAPI.Models.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using System.Globalization;
 using System.Text;
 
 namespace eBolnicaAPI.Services.Pharmacy
@@ -13,24 +12,6 @@ namespace eBolnicaAPI.Services.Pharmacy
     /// </summary>
     public class MedicationCsvImportService : IMedicationCsvImportService
     {
-        private static readonly string[] RequiredHeaders =
-        {
-            "Name",
-            "Generic Name",
-            "Category",
-            "Manufacturer",
-            "Description",
-            "Price",
-            "Stock Quantity",
-            "Minimum Stock Level",
-            "Expiry Date",
-            "Batch Number",
-            "Dosage Form",
-            "Strength",
-            "Requires Prescription",
-            "Active"
-        };
-
         private static readonly HashSet<string> IgnoredHeaders = new(StringComparer.OrdinalIgnoreCase)
         {
             "Status"
@@ -124,28 +105,33 @@ namespace eBolnicaAPI.Services.Pharmacy
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                if (!TryParseRow(row, headerMapResult.ColumnIndexes!, out var parsed, out var rowErrors))
+                if (!MedicationCsvRowValidator.TryValidateRow(
+                        row.RowNumber,
+                        row.Cells,
+                        headerMapResult.ColumnIndexes!,
+                        out var dto,
+                        out var rowErrors))
                 {
                     summary.Errors.AddRange(rowErrors);
                     summary.FailureCount++;
                     continue;
                 }
 
-                if (reservedNames.Contains(parsed!.Name))
+                if (reservedNames.Contains(dto!.Name))
                 {
                     summary.Errors.Add(new MedicationImportRowErrorDto
                     {
                         RowNumber = row.RowNumber,
                         Field = "Name",
-                        Value = parsed.Name,
+                        Value = dto.Name,
                         Reason = "A medication with this name already exists."
                     });
                     summary.FailureCount++;
                     continue;
                 }
 
-                reservedNames.Add(parsed.Name);
-                medicationsToInsert.Add(parsed.ToEntity());
+                reservedNames.Add(dto.Name);
+                medicationsToInsert.Add(ToEntity(dto));
                 summary.SuccessCount++;
             }
 
@@ -216,7 +202,7 @@ namespace eBolnicaAPI.Services.Pharmacy
                 columnIndexes[header] = i;
             }
 
-            var missing = RequiredHeaders
+            var missing = MedicationCsvRowValidator.RequiredHeaders
                 .Where(required => !columnIndexes.ContainsKey(required))
                 .ToList();
 
@@ -231,271 +217,25 @@ namespace eBolnicaAPI.Services.Pharmacy
         private static bool IsBlankRow(string[] cells) =>
             cells.All(cell => string.IsNullOrWhiteSpace(cell));
 
-        private static bool TryParseRow(
-            CsvDataRow row,
-            Dictionary<string, int> columnIndexes,
-            out ParsedMedicationRow? parsed,
-            out List<MedicationImportRowErrorDto> errors)
+        private static Medication ToEntity(MedicationCreateDto dto) => new()
         {
-            parsed = null;
-            var rowErrors = new List<MedicationImportRowErrorDto>();
-            errors = rowErrors;
-
-            string GetField(string header)
-            {
-                if (!columnIndexes.TryGetValue(header, out var index) || index >= row.Cells.Length)
-                {
-                    return string.Empty;
-                }
-
-                return row.Cells[index].Trim();
-            }
-
-            void AddError(string field, string? value, string reason)
-            {
-                rowErrors.Add(new MedicationImportRowErrorDto
-                {
-                    RowNumber = row.RowNumber,
-                    Field = field,
-                    Value = value,
-                    Reason = reason
-                });
-            }
-
-            var name = GetField("Name");
-            if (name.Length < 3 || name.Length > 100)
-            {
-                AddError("Name", name, "Name is required and must be between 3 and 100 characters.");
-            }
-
-            var genericName = GetField("Generic Name");
-            if (genericName.Length > 100)
-            {
-                AddError("Generic Name", genericName, "Generic name cannot exceed 100 characters.");
-            }
-
-            var category = GetField("Category");
-            if (string.IsNullOrWhiteSpace(category))
-            {
-                AddError("Category", category, "Category is required.");
-            }
-            else if (category.Length > 50)
-            {
-                AddError("Category", category, "Category cannot exceed 50 characters.");
-            }
-
-            var manufacturer = GetField("Manufacturer");
-            if (manufacturer.Length > 100)
-            {
-                AddError("Manufacturer", manufacturer, "Manufacturer cannot exceed 100 characters.");
-            }
-
-            var description = GetField("Description");
-            if (description.Length > 500)
-            {
-                AddError("Description", description, "Description cannot exceed 500 characters.");
-            }
-
-            var priceRaw = GetField("Price");
-            if (!TryParseDecimal(priceRaw, out var price) || price <= 0 || price > 10_000)
-            {
-                AddError("Price", priceRaw, "Price is required and must be greater than 0 and at most 10,000.");
-            }
-
-            var stockRaw = GetField("Stock Quantity");
-            if (!TryParseInt(stockRaw, out var stockQuantity) || stockQuantity < 0 || stockQuantity > 10_000)
-            {
-                AddError("Stock Quantity", stockRaw, "Stock quantity is required and must be an integer between 0 and 10,000.");
-            }
-
-            var minimumStockRaw = GetField("Minimum Stock Level");
-            if (!TryParseInt(minimumStockRaw, out var minimumStockLevel) || minimumStockLevel < 0 || minimumStockLevel > 10_000)
-            {
-                AddError("Minimum Stock Level", minimumStockRaw, "Minimum stock level is required and must be an integer between 0 and 10,000.");
-            }
-
-            var expiryRaw = GetField("Expiry Date");
-            if (!TryParseDate(expiryRaw, out var expiryDate))
-            {
-                AddError("Expiry Date", expiryRaw, "Expiry date is required and must use YYYY-MM-DD format.");
-            }
-            else if (expiryDate.Date <= DateTime.Now.Date)
-            {
-                AddError("Expiry Date", expiryRaw, "Expiry date must be in the future.");
-            }
-
-            var batchNumber = GetField("Batch Number");
-            if (batchNumber.Length > 50)
-            {
-                AddError("Batch Number", batchNumber, "Batch number cannot exceed 50 characters.");
-            }
-
-            var dosageForm = GetField("Dosage Form");
-            if (dosageForm.Length > 50)
-            {
-                AddError("Dosage Form", dosageForm, "Dosage form cannot exceed 50 characters.");
-            }
-
-            var strength = GetField("Strength");
-            if (strength.Length > 50)
-            {
-                AddError("Strength", strength, "Strength cannot exceed 50 characters.");
-            }
-
-            var requiresPrescriptionRaw = GetField("Requires Prescription");
-            if (!TryParseYesNo(requiresPrescriptionRaw, out var requiresPrescription))
-            {
-                AddError("Requires Prescription", requiresPrescriptionRaw, "Requires Prescription is required and must be Yes or No.");
-            }
-
-            var activeRaw = GetField("Active");
-            if (!TryParseYesNo(activeRaw, out var isActive))
-            {
-                AddError("Active", activeRaw, "Active is required and must be Yes or No.");
-            }
-
-            if (rowErrors.Count > 0)
-            {
-                return false;
-            }
-
-            parsed = new ParsedMedicationRow
-            {
-                Name = name,
-                GenericName = string.IsNullOrWhiteSpace(genericName) ? null : genericName,
-                Category = category,
-                Manufacturer = string.IsNullOrWhiteSpace(manufacturer) ? null : manufacturer,
-                Description = string.IsNullOrWhiteSpace(description) ? null : description,
-                Price = price,
-                StockQuantity = stockQuantity,
-                MinimumStockLevel = minimumStockLevel,
-                ExpiryDate = expiryDate,
-                BatchNumber = string.IsNullOrWhiteSpace(batchNumber) ? null : batchNumber,
-                DosageForm = string.IsNullOrWhiteSpace(dosageForm) ? null : dosageForm,
-                Strength = string.IsNullOrWhiteSpace(strength) ? null : strength,
-                RequiresPrescription = requiresPrescription,
-                IsActive = isActive
-            };
-
-            return true;
-        }
-
-        private static bool TryParseDecimal(string raw, out decimal value)
-        {
-            value = 0;
-            if (string.IsNullOrWhiteSpace(raw))
-            {
-                return false;
-            }
-
-            return decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out value);
-        }
-
-        private static bool TryParseInt(string raw, out int value)
-        {
-            value = 0;
-            if (string.IsNullOrWhiteSpace(raw))
-            {
-                return false;
-            }
-
-            if (!int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out value))
-            {
-                return false;
-            }
-
-            return raw.Trim() == value.ToString(CultureInfo.InvariantCulture);
-        }
-
-        private static bool TryParseDate(string raw, out DateTime value)
-        {
-            value = default;
-            if (string.IsNullOrWhiteSpace(raw))
-            {
-                return false;
-            }
-
-            return DateTime.TryParseExact(
-                raw,
-                "yyyy-MM-dd",
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.None,
-                out value);
-        }
-
-        private static bool TryParseYesNo(string raw, out bool value)
-        {
-            value = false;
-            if (string.IsNullOrWhiteSpace(raw))
-            {
-                return false;
-            }
-
-            if (raw.Equals("yes", StringComparison.OrdinalIgnoreCase))
-            {
-                value = true;
-                return true;
-            }
-
-            if (raw.Equals("no", StringComparison.OrdinalIgnoreCase))
-            {
-                value = false;
-                return true;
-            }
-
-            return false;
-        }
+            Name = dto.Name,
+            GenericName = dto.GenericName,
+            Category = dto.Category,
+            Manufacturer = dto.Manufacturer,
+            Description = dto.Description,
+            Price = dto.Price,
+            StockQuantity = dto.StockQuantity,
+            MinimumStockLevel = dto.MinimumStockLevel,
+            ExpiryDate = dto.ExpiryDate,
+            BatchNumber = dto.BatchNumber,
+            DosageForm = dto.DosageForm,
+            Strength = dto.Strength,
+            RequiresPrescription = dto.RequiresPrescription,
+            IsActive = dto.IsActive,
+            CreatedAt = DateTime.UtcNow
+        };
 
         private sealed record CsvDataRow(int RowNumber, string[] Cells);
-
-        private sealed class ParsedMedicationRow
-        {
-            public required string Name { get; init; }
-
-            public string? GenericName { get; init; }
-
-            public required string Category { get; init; }
-
-            public string? Manufacturer { get; init; }
-
-            public string? Description { get; init; }
-
-            public decimal Price { get; init; }
-
-            public int StockQuantity { get; init; }
-
-            public int MinimumStockLevel { get; init; }
-
-            public DateTime ExpiryDate { get; init; }
-
-            public string? BatchNumber { get; init; }
-
-            public string? DosageForm { get; init; }
-
-            public string? Strength { get; init; }
-
-            public bool RequiresPrescription { get; init; }
-
-            public bool IsActive { get; init; }
-
-            public Medication ToEntity() => new()
-            {
-                Name = Name,
-                GenericName = GenericName,
-                Category = Category,
-                Manufacturer = Manufacturer,
-                Description = Description,
-                Price = Price,
-                StockQuantity = StockQuantity,
-                MinimumStockLevel = MinimumStockLevel,
-                ExpiryDate = ExpiryDate,
-                BatchNumber = BatchNumber,
-                DosageForm = DosageForm,
-                Strength = Strength,
-                RequiresPrescription = RequiresPrescription,
-                IsActive = IsActive,
-                CreatedAt = DateTime.UtcNow
-            };
-        }
     }
 }
