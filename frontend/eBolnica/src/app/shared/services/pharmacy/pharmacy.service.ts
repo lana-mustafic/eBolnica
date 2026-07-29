@@ -15,10 +15,10 @@ import { MedicationImportSummary } from '../../../models/medication-import.dto';
 import {
   buildMedicationExportCsv,
   buildMedicationImportTemplateCsv,
-  downloadMedicationCsv,
   getMedicationExportFilename,
   MEDICATION_IMPORT_TEMPLATE_FILENAME
 } from '../../utils/medication-csv.util';
+import { downloadCsv } from '../../utils/csv.util';
 import { InventoryResponse } from '../../../models/inventory-response.dto';
 import { PagedResponse } from '../../../models/paged-response.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
@@ -190,7 +190,7 @@ export class PharmacyService {
       return;
     }
 
-    downloadMedicationCsv(
+    downloadCsv(
       buildMedicationExportCsv(medications),
       getMedicationExportFilename()
     );
@@ -200,7 +200,7 @@ export class PharmacyService {
    * Download the medication import CSV template (headers + example row).
    */
   downloadTemplate(): void {
-    downloadMedicationCsv(
+    downloadCsv(
       buildMedicationImportTemplateCsv(),
       MEDICATION_IMPORT_TEMPLATE_FILENAME
     );

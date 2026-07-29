@@ -19,6 +19,8 @@ import {
   TABLE_DEFAULT_SORTS
 } from '../../../constants/sort.constants';
 import { getPageRangeEnd, getPageRangeStart } from '../../../shared/utils/paged-response.util';
+import { buildInventoryExportCsv, getInventoryExportFilename } from '../../../shared/utils/inventory-csv.util';
+import { downloadCsv } from '../../../shared/utils/csv.util';
 
 type StockStatus = 'adequate' | 'low' | 'critical' | 'out-of-stock';
 type ExpiryStatus = 'good' | 'warning' | 'critical' | 'expired';
@@ -998,68 +1000,10 @@ export class InventoryComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const headers = [
-      'Medication Name',
-      'Generic Name',
-      'Category',
-      'Manufacturer',
-      'Current Stock',
-      'Minimum Stock Level',
-      'Stock Status',
-      'Price',
-      'Expiry Date',
-      'Days Until Expiry',
-      'Expiry Status',
-      'Batch Number',
-      'Last Updated'
-    ];
-
-    const csvData = this.inventoryItems.map(item => [
-      this.escapeCSV(item.name),
-      this.escapeCSV(item.genericName || ''),
-      this.escapeCSV(item.category || ''),
-      this.escapeCSV(item.manufacturer || ''),
-      item.stockQuantity.toString(),
-      item.minimumStockLevel.toString(),
-      this.getStockStatusText(item),
-      item.price.toString(),
-      item.expiryDate ? this.formatDate(item.expiryDate) : '',
-      item.expiryDate ? this.getDaysUntilExpiry(item.expiryDate).toString() : '',
-      this.getExpiryStatusText(item),
-      this.escapeCSV(item.batchNumber || ''),
-      item.updatedAt ? this.formatDate(item.updatedAt) : this.formatDate(item.createdAt)
-    ]);
-
-    const csvContent = [headers, ...csvData]
-      .map(row => row.join(','))
-      .join('\n');
-
-    const today = new Date().toISOString().split('T')[0];
-    const filename = `pharmacy-inventory-${today}.csv`;
-
-    this.downloadCSV(csvContent, filename);
-  }
-
-  private escapeCSV(value: string): string {
-    if (!value) return '';
-    // Escape quotes and wrap in quotes if contains comma, quote, or newline
-    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-      return `"${value.replace(/"/g, '""')}"`;
-    }
-    return value;
-  }
-
-  private downloadCSV(content: string, filename: string): void {
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+    downloadCsv(
+      buildInventoryExportCsv(this.inventoryItems),
+      getInventoryExportFilename()
+    );
   }
 
   /**

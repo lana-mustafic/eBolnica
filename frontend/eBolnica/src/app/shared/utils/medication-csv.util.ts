@@ -1,4 +1,11 @@
 import { MedicationDto } from '../../models/medication.dto';
+import {
+  buildCsvContent,
+  downloadCsv,
+  escapeCsvValue,
+  formatIsoDateForCsv,
+  getDatedExportFilename
+} from './csv.util';
 
 /** CSV columns used for medication import (export adds Status). */
 export const MEDICATION_IMPORT_CSV_HEADERS = [
@@ -46,30 +53,8 @@ const MEDICATION_IMPORT_TEMPLATE_EXAMPLE_ROW = [
   'Yes (required: Yes or No)'
 ];
 
-export function escapeMedicationCsvValue(value: string): string {
-  if (!value) {
-    return '';
-  }
-
-  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-
-  return value;
-}
-
-export function formatMedicationDateForCsv(dateString: string | undefined): string {
-  if (!dateString) {
-    return '';
-  }
-
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
-
-  return date.toISOString().split('T')[0];
-}
+/** @deprecated Use escapeCsvValue from csv.util */
+export const escapeMedicationCsvValue = escapeCsvValue;
 
 export function getMedicationStockStatusLabel(medication: MedicationDto): string {
   if (!medication.isActive) {
@@ -98,48 +83,37 @@ export function getMedicationStockStatusLabel(medication: MedicationDto): string
 
 export function buildMedicationExportCsv(medications: MedicationDto[]): string {
   const rows = medications.map(medication => [
-    escapeMedicationCsvValue(medication.name),
-    escapeMedicationCsvValue(medication.genericName || ''),
-    escapeMedicationCsvValue(medication.category || ''),
-    escapeMedicationCsvValue(medication.manufacturer || ''),
-    escapeMedicationCsvValue(medication.description || ''),
+    escapeCsvValue(medication.name),
+    escapeCsvValue(medication.genericName || ''),
+    escapeCsvValue(medication.category || ''),
+    escapeCsvValue(medication.manufacturer || ''),
+    escapeCsvValue(medication.description || ''),
     medication.price.toString(),
     medication.stockQuantity.toString(),
     medication.minimumStockLevel.toString(),
-    medication.expiryDate ? formatMedicationDateForCsv(medication.expiryDate) : '',
-    escapeMedicationCsvValue(medication.batchNumber || ''),
-    escapeMedicationCsvValue(medication.dosageForm || ''),
-    escapeMedicationCsvValue(medication.strength || ''),
+    medication.expiryDate ? formatIsoDateForCsv(medication.expiryDate) : '',
+    escapeCsvValue(medication.batchNumber || ''),
+    escapeCsvValue(medication.dosageForm || ''),
+    escapeCsvValue(medication.strength || ''),
     medication.requiresPrescription ? 'Yes' : 'No',
     medication.isActive ? 'Yes' : 'No',
-    escapeMedicationCsvValue(getMedicationStockStatusLabel(medication))
+    escapeCsvValue(getMedicationStockStatusLabel(medication))
   ]);
 
-  return [MEDICATION_EXPORT_CSV_HEADERS.join(','), ...rows.map(row => row.join(','))].join('\n');
+  return buildCsvContent(MEDICATION_EXPORT_CSV_HEADERS, rows);
 }
 
 export function buildMedicationImportTemplateCsv(): string {
-  const exampleRow = MEDICATION_IMPORT_TEMPLATE_EXAMPLE_ROW.map(value => escapeMedicationCsvValue(value));
-  return [MEDICATION_IMPORT_CSV_HEADERS.join(','), exampleRow.join(',')].join('\n');
+  const exampleRow = MEDICATION_IMPORT_TEMPLATE_EXAMPLE_ROW.map(value => escapeCsvValue(value));
+  return buildCsvContent(MEDICATION_IMPORT_CSV_HEADERS, [exampleRow]);
 }
 
 export function getMedicationExportFilename(date: Date = new Date()): string {
-  const day = date.toISOString().split('T')[0];
-  return `pharmacy-medications-${day}.csv`;
+  return getDatedExportFilename('pharmacy-medications', date);
 }
 
-export function downloadMedicationCsv(content: string, filename: string): void {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.style.display = 'none';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(url);
-}
+/** @deprecated Use downloadCsv from csv.util */
+export const downloadMedicationCsv = downloadCsv;
 
 export function isMedicationCsvFile(file: File): boolean {
   const name = file.name.toLowerCase();
