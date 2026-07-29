@@ -166,7 +166,6 @@ export class MedicationsComponent implements OnInit, OnDestroy {
    */
   private buildFiltersFromUI(): Partial<PharmacyFilters> {
     return {
-      pageNumber: this.currentPage,
       pageSize: this.pageSize,
       searchTerm: this.searchTerm?.trim() || undefined,
       category: this.selectedCategory || undefined,
@@ -219,7 +218,6 @@ export class MedicationsComponent implements OnInit, OnDestroy {
       isActive: filters.isActive,
       minPrice: filters.minPrice,
       maxPrice: filters.maxPrice,
-      pageNumber: filters.pageNumber ?? 1,
       pageSize: filters.pageSize ?? 10,
       sortBy: filters.sortBy,
       sortOrder: filters.sortOrder
@@ -324,7 +322,6 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     this.selectedRequiresPrescription = '';
     this.selectedActiveStatus = '';
     this.priceFilterError = null;
-    this.currentPage = 1;
     this.pageSize = 10;
     this.resetSortingToDefault();
 
@@ -371,7 +368,6 @@ export class MedicationsComponent implements OnInit, OnDestroy {
    */
   resetToDefaultSort(): void {
     this.resetSortingToDefault();
-    this.currentPage = 1;
     this.pushFiltersFromUI();
   }
 
@@ -655,7 +651,6 @@ export class MedicationsComponent implements OnInit, OnDestroy {
 
     // Debounce sort requests (200ms) to avoid rapid API calls
     this.sortDebounceTimer = setTimeout(() => {
-      this.currentPage = 1;
       this.pushFiltersFromUI();
     }, 200);
   }

@@ -11,6 +11,8 @@ import { ActiveFilter, PharmacyFilters } from '../../../models/pharmacy-filters.
   providedIn: 'root'
 })
 export class PharmacyFilterService {
+  private static readonly PAGINATION_KEYS = new Set<keyof PharmacyFilters>(['pageNumber', 'pageSize']);
+
   private filters$ = new BehaviorSubject<PharmacyFilters>({
     pageNumber: 1,
     pageSize: 10
@@ -40,23 +42,28 @@ export class PharmacyFilterService {
    */
   updateFilters(updates: Partial<PharmacyFilters>): void {
     const current = this.filters$.value;
-    
-    // Check if any filter (except pagination) is changing
-    const hasFilterChange = Object.keys(updates).some(key => 
-      key !== 'pageNumber' && key !== 'pageSize' && 
-      updates[key as keyof PharmacyFilters] !== current[key as keyof PharmacyFilters]
-    );
 
-    // Reset page to 1 if filters changed (not just pagination)
+    const hasNonPaginationChange = Object.keys(updates).some(key => {
+      const filterKey = key as keyof PharmacyFilters;
+      if (PharmacyFilterService.PAGINATION_KEYS.has(filterKey)) {
+        return false;
+      }
+      return updates[filterKey] !== current[filterKey];
+    });
+
+    const sanitizedUpdates = { ...updates };
+    if (hasNonPaginationChange) {
+      delete sanitizedUpdates.pageNumber;
+    }
+
     const merged: PharmacyFilters = {
       ...current,
-      ...updates,
-      ...(hasFilterChange ? { pageNumber: 1 } : {})
+      ...sanitizedUpdates,
+      ...(hasNonPaginationChange ? { pageNumber: 1 } : {})
     };
 
-    // Remove null/undefined/empty string values
     this.cleanFilters(merged);
-    
+
     this.filters$.next(merged);
   }
 

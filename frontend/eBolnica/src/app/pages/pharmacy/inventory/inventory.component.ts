@@ -182,7 +182,6 @@ export class InventoryComponent implements OnInit, OnDestroy {
     const expiryFilters = this.mapExpiryFilterToApi(this.selectedExpiryFilter);
 
     return {
-      pageNumber: this.currentPage,
       pageSize: this.pageSize,
       searchTerm: this.searchTerm?.trim() || undefined,
       category: this.selectedCategory || undefined,
@@ -371,7 +370,6 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.selectedStockFilter = 'all';
     this.selectedExpiryFilter = 'all';
     this.selectedCategory = '';
-    this.currentPage = 1;
     this.pageSize = 50;
     this.resetSortingToDefault();
 
@@ -418,7 +416,6 @@ export class InventoryComponent implements OnInit, OnDestroy {
    */
   resetToDefaultSort(): void {
     this.resetSortingToDefault();
-    this.currentPage = 1;
     this.pushFiltersFromUI();
   }
 
@@ -498,8 +495,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   // Pagination methods
   goToPage(page: number): void {
     if (page >= 1 && page <= this.totalPages) {
-      this.currentPage = page;
-      this.pushFiltersFromUI();
+      this.filterService.updateFilters({ pageNumber: page });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
@@ -517,9 +513,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   changePageSize(size: number): void {
-    this.pageSize = size;
-    this.currentPage = 1;
-    this.pushFiltersFromUI();
+    this.filterService.updateFilters({ pageSize: size, pageNumber: 1 });
   }
 
   getPageNumbers(): (number | string)[] {
@@ -593,7 +587,6 @@ export class InventoryComponent implements OnInit, OnDestroy {
     }
 
     this.sortDebounceTimer = setTimeout(() => {
-      this.currentPage = 1;
       this.pushFiltersFromUI();
     }, 200);
   }
