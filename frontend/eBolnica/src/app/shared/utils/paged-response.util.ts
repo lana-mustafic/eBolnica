@@ -1,4 +1,6 @@
+import { MedicationDto } from '../../models/medication.dto';
 import { PagedResponse } from '../../models/paged-response.dto';
+import { InventoryResponse } from '../../models/inventory-response.dto';
 
 type RawPagedResponse<T> = Partial<PagedResponse<T>> & Record<string, unknown>;
 
@@ -31,6 +33,23 @@ export function normalizePagedResponse<T>(
     totalPages,
     hasNext: typeof hasNext === 'boolean' ? hasNext : currentPage < totalPages,
     hasPrevious: typeof hasPrevious === 'boolean' ? hasPrevious : currentPage > 1
+  };
+}
+
+/**
+ * Normalizes inventory API payloads to the frontend InventoryResponse shape.
+ * Supports camelCase and PascalCase pagination and alert fields.
+ */
+export function normalizeInventoryResponse(
+  raw: RawPagedResponse<MedicationDto> | null | undefined,
+  defaultPageSize = 10
+): InventoryResponse {
+  const paged = normalizePagedResponse<MedicationDto>(raw, defaultPageSize);
+
+  return {
+    ...paged,
+    lowStockAlerts: (raw?.lowStockAlerts ?? raw?.['LowStockAlerts'] ?? []) as MedicationDto[],
+    expiryAlerts: (raw?.expiryAlerts ?? raw?.['ExpiryAlerts'] ?? []) as MedicationDto[]
   };
 }
 

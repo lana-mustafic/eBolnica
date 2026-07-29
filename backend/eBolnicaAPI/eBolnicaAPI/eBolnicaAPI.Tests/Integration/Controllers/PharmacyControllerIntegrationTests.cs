@@ -536,10 +536,39 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var json = await response.Content.ReadFromJsonAsync<InventoryResponse>();
+            Assert.NotNull(json);
+            Assert.NotNull(json.Items);
+            Assert.True(json.TotalCount > 0);
+            Assert.NotNull(json.LowStockAlerts);
+            Assert.NotNull(json.ExpiryAlerts);
+        }
+
+        [Fact]
+        public async Task GetInventory_ResponseShape_MatchesFrontendContract()
+        {
+            var url = "/api/pharmacy/inventory?pageNumber=1&pageSize=5";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var content = await response.Content.ReadAsStringAsync();
-            Assert.Contains("items", content, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("lowStockAlerts", content, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("expiryAlerts", content, StringComparison.OrdinalIgnoreCase);
+            using var document = System.Text.Json.JsonDocument.Parse(content);
+            var root = document.RootElement;
+
+            Assert.True(root.TryGetProperty("items", out _));
+            Assert.True(root.TryGetProperty("totalCount", out var totalCount));
+            Assert.True(root.TryGetProperty("totalPages", out _));
+            Assert.True(root.TryGetProperty("currentPage", out var currentPage));
+            Assert.True(root.TryGetProperty("pageSize", out var pageSize));
+            Assert.True(root.TryGetProperty("hasNext", out _));
+            Assert.True(root.TryGetProperty("hasPrevious", out _));
+            Assert.True(root.TryGetProperty("lowStockAlerts", out _));
+            Assert.True(root.TryGetProperty("expiryAlerts", out _));
+
+            Assert.Equal(1, currentPage.GetInt32());
+            Assert.Equal(5, pageSize.GetInt32());
+            Assert.True(totalCount.GetInt32() > 0);
         }
 
         [Fact]
@@ -739,18 +768,6 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
         }
 
         #endregion
-
-        private sealed class InventoryResponse
-        {
-            [JsonPropertyName("items")]
-            public List<MedicationDto> Items { get; set; } = new();
-
-            [JsonPropertyName("currentPage")]
-            public int CurrentPage { get; set; }
-
-            [JsonPropertyName("pageSize")]
-            public int PageSize { get; set; }
-        }
 
         #region Helper Methods
 

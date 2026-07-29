@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { Observable, throwError, of, timer, forkJoin } from 'rxjs';
 import { catchError, tap, retry, retryWhen, delayWhen, take, concatMap, map } from 'rxjs/operators';
-import { normalizePagedResponse } from '../../utils/paged-response.util';
+import { normalizePagedResponse, normalizeInventoryResponse } from '../../utils/paged-response.util';
 import { normalizePaginationParams } from '../../utils/pagination-params.util';
 import { MedicationDto } from '../../../models/medication.dto';
 import { MedicationImageDto } from '../../../models/medication-image.dto';
@@ -11,6 +11,7 @@ import { PharmacistDataDto } from '../../../models/pharmacist-data.dto';
 import { PrescriptionDto } from '../../../models/prescription.dto';
 import { PrescriptionCreateDto } from '../../../models/prescription-create.dto';
 import { PrescriptionDispenseDto } from '../../../models/prescription-dispense.dto';
+import { InventoryResponse } from '../../../models/inventory-response.dto';
 import { PagedResponse } from '../../../models/paged-response.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { PHARMACY_MEDICATION_QUERY_PARAMS as MED_Q } from '../../../constants/pharmacy-query-params.constants';
@@ -230,7 +231,7 @@ export class PharmacyService {
    * @param filters Optional filter parameters object
    * @returns Observable of paginated inventory response with alerts
    */
-  getInventory(filters?: InventoryFilterParams): Observable<PagedResponse<MedicationDto> & { LowStockAlerts: MedicationDto[]; ExpiryAlerts: MedicationDto[] }> {
+  getInventory(filters?: InventoryFilterParams): Observable<InventoryResponse> {
     const { pageNumber, pageSize } = normalizePaginationParams(filters?.page, filters?.pageSize);
 
     let params = new HttpParams()
@@ -249,7 +250,10 @@ export class PharmacyService {
       }
     }
     
-    return this.http.get<any>(this.apiUrl + '/inventory', { params });
+    return this.http.get<any>(this.apiUrl + '/inventory', { params }).pipe(
+      map(response => normalizeInventoryResponse(response, pageSize)),
+      catchError(this.handleError.bind(this))
+    );
   }
 
   getPharmacistData(): Observable<PharmacistDataDto> {
@@ -309,26 +313,19 @@ export class PharmacyService {
    * Get inventory using unified PharmacyFilters
    * Includes error handling and logging
    */
-  getInventoryWithFilters(filters: PharmacyFilters): Observable<PagedResponse<MedicationDto> & { LowStockAlerts: MedicationDto[]; ExpiryAlerts: MedicationDto[] }> {
+  getInventoryWithFilters(filters: PharmacyFilters): Observable<InventoryResponse> {
     const params = this.buildInventoryQueryParams(filters);
     
     console.log('[PharmacyService] Loading inventory with filters:', filters);
     
     return this.http.get<any>(`${this.apiUrl}/inventory`, { params }).pipe(
-      map(response => {
-        const paged = normalizePagedResponse<MedicationDto>(response, filters.pageSize || 10);
-        return {
-          ...paged,
-          LowStockAlerts: response?.LowStockAlerts ?? response?.lowStockAlerts ?? [],
-          ExpiryAlerts: response?.ExpiryAlerts ?? response?.expiryAlerts ?? []
-        };
-      }),
+      map(response => normalizeInventoryResponse(response, filters.pageSize || 10)),
       tap(response => {
         console.log('[PharmacyService] Inventory loaded:', {
           count: response.items?.length || 0,
           total: response.totalCount,
-          lowStockAlerts: response.LowStockAlerts?.length || 0,
-          expiryAlerts: response.ExpiryAlerts?.length || 0
+          lowStockAlerts: response.lowStockAlerts?.length || 0,
+          expiryAlerts: response.expiryAlerts?.length || 0
         });
       }),
       catchError(this.handleError.bind(this))

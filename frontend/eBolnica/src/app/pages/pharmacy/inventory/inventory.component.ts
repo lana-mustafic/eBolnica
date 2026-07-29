@@ -10,6 +10,7 @@ import { ActiveFiltersComponent } from '../../../shared/components/active-filter
 import { SortStatusComponent } from '../../../shared/components/sort-status/sort-status.component';
 import { MedicationDto } from '../../../models/medication.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
+import { InventoryResponse } from '../../../models/inventory-response.dto';
 import { PagedResponse } from '../../../models/paged-response.dto';
 import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, catchError, of } from 'rxjs';
 import { TABLE_DEFAULT_SORTS } from '../../../constants/sort.constants';
@@ -107,24 +108,24 @@ export class InventoryComponent implements OnInit, OnDestroy {
             this.handleApiError(error);
             return of({
               items: [],
-              LowStockAlerts: [],
-              ExpiryAlerts: [],
+              lowStockAlerts: [],
+              expiryAlerts: [],
               totalCount: 0,
               totalPages: 0,
               currentPage: 1,
               pageSize: filters.pageSize || 50,
               hasNext: false,
               hasPrevious: false
-            } as any);
+            } satisfies InventoryResponse);
           })
         );
       }),
       takeUntil(this.destroy$)
     ).subscribe({
-      next: (response: any) => {
+      next: (response: InventoryResponse) => {
         this.inventoryItems = response.items || [];
-        this.lowStockAlerts = response.LowStockAlerts || [];
-        this.expiryAlerts = response.ExpiryAlerts || [];
+        this.lowStockAlerts = response.lowStockAlerts || [];
+        this.expiryAlerts = response.expiryAlerts || [];
         this.applyPaginationFromResponse(response);
         this.extractCategories();
         this.calculateSummaryStats();
