@@ -61,5 +61,10 @@ namespace eBolnicaAPI.Models.Entities
         /// All images associated with this medication (supports gallery and multiple uploads).
         /// </summary>
         public ICollection<MedicationImage> Images { get; set; } = new List<MedicationImage>();
+
+        /// <summary>
+        /// Historical stock level snapshots for trend analytics.
+        /// </summary>
+        public ICollection<MedicationStockHistory> StockHistory { get; set; } = new List<MedicationStockHistory>();
     }
 }

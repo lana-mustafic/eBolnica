@@ -28,13 +28,22 @@
   </div>
 
   <!-- Loading State -->
-  <div *ngIf="isLoading" class="chart-state loading-state" role="status" aria-live="polite">
+  <div
+    *ngIf="isLoading"
+    class="chart-state loading-state"
+    role="status"
+    aria-live="polite"
+    [style.minHeight.px]="responsiveHeight">
     <div class="spinner" aria-hidden="true"></div>
     <p class="state-message">Loading revenue data...</p>
   </div>
 
   <!-- Error State -->
-  <div *ngIf="errorMessage && !isLoading" class="chart-state error-state" role="alert">
+  <div
+    *ngIf="errorMessage && !isLoading"
+    class="chart-state error-state"
+    role="alert"
+    [style.minHeight.px]="responsiveHeight">
     <div class="error-icon" aria-hidden="true">
       <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"></circle>
@@ -54,7 +63,11 @@
   </div>
 
   <!-- Empty State -->
-  <div *ngIf="!hasData && !isLoading && !errorMessage" class="chart-state empty-state" role="status">
+  <div
+    *ngIf="showEmptyState"
+    class="chart-state empty-state"
+    role="status"
+    [style.minHeight.px]="responsiveHeight">
     <div class="empty-icon" aria-hidden="true">
       <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="18" y1="20" x2="18" y2="10"></line>
@@ -63,6 +76,7 @@
       </svg>
     </div>
     <p class="state-message">No revenue data available for the selected period.</p>
+    <p class="state-submessage">Try a different date range or refresh once dispensing records exist.</p>
     <button class="btn-retry" (click)="refresh()" aria-label="Refresh data">
       Refresh
     </button>

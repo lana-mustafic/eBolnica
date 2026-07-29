@@ -32,21 +32,23 @@ export interface MedicationCategoryData {
 }
 
 /**
- * Stock trend data point for line chart
+ * Stock level snapshot data point (one per medication).
  */
 export interface StockTrendData {
-  /** Date string in ISO format or display format */
+  /** Snapshot timestamp (ISO string). */
   date: string;
   /** Medication ID */
   medicationId: number;
   /** Medication name */
   medicationName: string;
-  /** Current stock level */
+  /** Stock level as % of estimated capacity */
   stockLevel: number;
   /** Minimum stock level threshold */
   minimumStockLevel?: number;
-  /** Category of the medication */
-  category?: string;
+  /** Current quantity in units (snapshot). */
+  quantity?: number;
+  /** Stock status label from API (e.g. Normal, Low). */
+  status?: string;
 }
 
 /**
@@ -73,6 +75,46 @@ export type AnalyticsPeriod =
   | 'custom';
 
 /**
+ * Summary statistics from dashboard-stats metadata
+ */
+export interface DashboardStatisticsSummary {
+  totalRevenue?: number;
+  totalMedications?: number;
+  totalCategories?: number;
+  totalPrescriptions?: number;
+  pendingPrescriptions?: number;
+  lowStockAlerts?: number;
+  expiringSoon?: number;
+  expiredMedications?: number;
+  /** Sum of price × stock quantity for active medications. */
+  inventoryValue?: number;
+}
+
+/**
+ * Raw API response from GET /api/pharmacy/analytics/dashboard-stats
+ */
+export interface DashboardStatsApiResponse {
+  monthlyRevenue?: {
+    data?: unknown[];
+    totalRevenue?: number;
+  };
+  topCategories?: {
+    data?: unknown[];
+    totalCategories?: number;
+    totalMedications?: number;
+  };
+  stockTrends?: {
+    data?: unknown[];
+    medications?: unknown[];
+    timeline?: string[];
+  };
+  metadata?: {
+    generatedAt?: string;
+    summary?: DashboardStatisticsSummary;
+  };
+}
+
+/**
  * Complete dashboard statistics response
  */
 export interface DashboardStats {
@@ -83,10 +125,7 @@ export interface DashboardStats {
   /** Stock trends for line chart */
   stockTrends: StockTrendData[];
   /** Additional summary statistics */
-  summary?: {
-    totalRevenue?: number;
-    totalMedications?: number;
-    totalCategories?: number;
+  summary?: DashboardStatisticsSummary & {
     averageStockLevel?: number;
   };
 }

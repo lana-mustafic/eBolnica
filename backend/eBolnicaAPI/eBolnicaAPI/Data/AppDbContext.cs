@@ -185,6 +185,25 @@ namespace eBolnicaAPI.Data
                 .HasIndex(mi => new { mi.MedicationId, mi.IsPrimary })
                 .HasDatabaseName("IX_MedicationImages_MedicationId_IsPrimary");
 
+            modelBuilder.Entity<MedicationStockHistory>()
+                .HasOne(h => h.Medication)
+                .WithMany(m => m.StockHistory)
+                .HasForeignKey(h => h.MedicationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<MedicationStockHistory>()
+                .HasIndex(h => new { h.MedicationId, h.RecordedAt })
+                .HasDatabaseName("IX_MedicationStockHistory_MedicationId_RecordedAt");
+
+            modelBuilder.Entity<MedicationStockHistory>()
+                .HasIndex(h => h.RecordedAt)
+                .HasDatabaseName("IX_MedicationStockHistory_RecordedAt");
+
+            modelBuilder.Entity<MedicationStockHistory>()
+                .Property(h => h.Source)
+                .HasMaxLength(64)
+                .IsRequired();
+
             modelBuilder.Entity<Pharmacist>()
                 .HasIndex(p => p.LicenseNumber)
                 .IsUnique();
@@ -683,6 +702,7 @@ namespace eBolnicaAPI.Data
     public DbSet<Pharmacist> Pharmacists { get; set; }
     public DbSet<Medication> Medications { get; set; }
     public DbSet<MedicationImage> MedicationImages { get; set; }
+    public DbSet<MedicationStockHistory> MedicationStockHistories { get; set; }
     public DbSet<Prescription> Prescriptions { get; set; }
     public DbSet<PrescriptionItem> PrescriptionItems { get; set; }
     }

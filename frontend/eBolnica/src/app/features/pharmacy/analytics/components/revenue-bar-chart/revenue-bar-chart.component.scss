@@ -107,6 +107,13 @@
   padding: 3rem 2rem;
   min-height: 300px;
   text-align: center;
+
+  .state-submessage {
+    color: #718096;
+    font-size: 0.875rem;
+    margin: 0 0 1rem;
+    max-width: 420px;
+  }
 }
 
 .loading-state {

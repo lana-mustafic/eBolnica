@@ -40,13 +40,22 @@
   </div>
 
   <!-- Loading State -->
-  <div *ngIf="isLoading" class="chart-state loading-state" role="status" aria-live="polite">
+  <div
+    *ngIf="isLoading"
+    class="chart-state loading-state"
+    role="status"
+    aria-live="polite"
+    [style.minHeight.px]="responsiveHeight">
     <div class="spinner" aria-hidden="true"></div>
     <p class="state-message">Loading category data...</p>
   </div>
 
   <!-- Error State -->
-  <div *ngIf="errorMessage && !isLoading" class="chart-state error-state" role="alert">
+  <div
+    *ngIf="errorMessage && !isLoading"
+    class="chart-state error-state"
+    role="alert"
+    [style.minHeight.px]="responsiveHeight">
     <div class="error-icon" aria-hidden="true">
       <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"></circle>
@@ -66,7 +75,11 @@
   </div>
 
   <!-- Insufficient Data State -->
-  <div *ngIf="hasInsufficientData && !isLoading && !errorMessage" class="chart-state insufficient-state" role="status">
+  <div
+    *ngIf="showInsufficientState"
+    class="chart-state insufficient-state"
+    role="status"
+    [style.minHeight.px]="responsiveHeight">
     <div class="insufficient-icon" aria-hidden="true">
       <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"></circle>
@@ -84,7 +97,11 @@
   </div>
 
   <!-- Empty State -->
-  <div *ngIf="!hasData && !hasInsufficientData && !isLoading && !errorMessage" class="chart-state empty-state" role="status">
+  <div
+    *ngIf="showEmptyState"
+    class="chart-state empty-state"
+    role="status"
+    [style.minHeight.px]="responsiveHeight">
     <div class="empty-icon" aria-hidden="true">
       <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"></circle>
@@ -93,6 +110,7 @@
       </svg>
     </div>
     <p class="state-message">No category data available.</p>
+    <p class="state-submessage">Categories appear after medications are dispensed or added to inventory.</p>
     <button class="btn-retry" (click)="refresh()" aria-label="Refresh data">
       Refresh
     </button>

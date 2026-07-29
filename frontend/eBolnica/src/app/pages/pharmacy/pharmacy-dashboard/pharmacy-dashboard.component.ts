@@ -1,16 +1,31 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ViewChild } from '@angular/core';
 import { AuthService } from '../../../shared/services/auth.service';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
 import { FormsModule } from "@angular/forms";
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { forkJoin, finalize } from 'rxjs';
-import { MedicationDto } from '../../../models/medication.dto';
+import { forkJoin, finalize, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { PrescriptionDto } from '../../../models/prescription.dto';
 import { RevenueBarChartComponent } from '../../../features/pharmacy/analytics/components/revenue-bar-chart/revenue-bar-chart.component';
 import { CategoriesPieChartComponent } from '../../../features/pharmacy/analytics/components/categories-pie-chart/categories-pie-chart.component';
 import { StockTrendsLineChartComponent } from '../../../features/pharmacy/analytics/components/stock-trends-line-chart/stock-trends-line-chart.component';
 
+type AnalyticsSource = 'summary' | 'revenue' | 'categories' | 'stock';
+
+const ANALYTICS_SOURCE_LABELS: Record<AnalyticsSource, string> = {
+  summary: 'summary metrics',
+  revenue: 'monthly revenue',
+  categories: 'top categories',
+  stock: 'stock levels'
+};
+
+/**
+ * Pharmacy dashboard overview.
+ *
+ * Metrics audit (hardcoded/mock sources, pagination risks, chart fallbacks):
+ * @see ./PHARMACY_DASHBOARD_METRICS_AUDIT.md
+ */
 @Component({
   selector: 'app-pharmacy-dashboard',
   imports: [
@@ -30,22 +45,40 @@ export class PharmacyDashboardComponent implements OnInit {
   private pharmacyService = inject(PharmacyService);
   private router = inject(Router);
 
-  // Data
-  medications: MedicationDto[] = [];
-  prescriptions: PrescriptionDto[] = [];
-  
-  // Metrics
+  @ViewChild(RevenueBarChartComponent) revenueChart?: RevenueBarChartComponent;
+  @ViewChild(CategoriesPieChartComponent) categoriesChart?: CategoriesPieChartComponent;
+  @ViewChild(StockTrendsLineChartComponent) stockChart?: StockTrendsLineChartComponent;
+
+  // Metrics (from GET /api/pharmacy/analytics/dashboard-stats)
   totalMedications: number = 0;
   pendingPrescriptions: number = 0;
   lowStockAlerts: number = 0;
   expiringSoon: number = 0;
-  
-  // Recent prescriptions (pending)
+  expiredMedications: number = 0;
+  inventoryValue: number = 0;
+
   recentPrescriptions: PrescriptionDto[] = [];
-  
-  // Loading and error states
+
   isLoading: boolean = true;
+  /** Fatal error (e.g. prescriptions list); hides the dashboard body. */
   errorMessage: string | null = null;
+  private analyticsFailures = new Set<AnalyticsSource>();
+
+  get hasAnalyticsErrors(): boolean {
+    return this.analyticsFailures.size > 0;
+  }
+
+  get analyticsErrorMessage(): string | null {
+    if (!this.hasAnalyticsErrors) {
+      return null;
+    }
+
+    const labels = Array.from(this.analyticsFailures)
+      .map(source => ANALYTICS_SOURCE_LABELS[source])
+      .join(', ');
+
+    return `Analytics data could not be loaded (${labels}). Charts may be incomplete until you retry.`;
+  }
 
   ngOnInit(): void {
     this.loadDashboardData();
@@ -56,20 +89,26 @@ export class PharmacyDashboardComponent implements OnInit {
     this.errorMessage = null;
 
     forkJoin({
-      medications: this.pharmacyService.getAllMedications({
-        isActive: true,
+      summary: this.pharmacyService.getDashboardSummaryMetrics().pipe(
+        catchError(error => {
+          this.registerAnalyticsFailure('summary', error);
+          return of(null);
+        })
+      ),
+      prescriptions: this.pharmacyService.getPrescriptions({
+        status: 'Pending',
         page: 1,
-        pageSize: 1000
-      }),
-      prescriptions: this.pharmacyService.getPrescriptions()
+        pageSize: 5
+      })
     }).pipe(
       finalize(() => this.isLoading = false)
     ).subscribe({
-      next: (data) => {
-        this.medications = data.medications.items || [];
-        this.prescriptions = data.prescriptions.items || [];
-        this.calculateMetrics();
-        this.recentPrescriptions = this.getRecentPrescriptions();
+      next: ({ summary, prescriptions }) => {
+        if (summary) {
+          this.applySummaryMetrics(summary);
+          this.clearAnalyticsFailure('summary');
+        }
+        this.recentPrescriptions = prescriptions.items ?? [];
       },
       error: (error) => {
         this.errorMessage = 'Failed to load dashboard data. Please try again later.';
@@ -78,39 +117,55 @@ export class PharmacyDashboardComponent implements OnInit {
     });
   }
 
-  calculateMetrics(): void {
-    // Total active medications
-    this.totalMedications = this.medications.filter(m => m.isActive).length;
-
-    // Pending prescriptions
-    this.pendingPrescriptions = this.prescriptions.filter(p => p.status === 'Pending').length;
-
-    // Low stock alerts
-    this.lowStockAlerts = this.medications.filter(m => 
-      m.isActive && m.stockQuantity < m.minimumStockLevel
-    ).length;
-
-    // Expiring soon (within next 30 days)
-    const today = new Date();
-    const in30Days = new Date();
-    in30Days.setDate(today.getDate() + 30);
-
-    this.expiringSoon = this.medications.filter(m => {
-      if (!m.expiryDate || !m.isActive) return false;
-      const expiry = new Date(m.expiryDate);
-      return expiry >= today && expiry <= in30Days;
-    }).length;
+  onAnalyticsError(source: AnalyticsSource, error: Error): void {
+    this.registerAnalyticsFailure(source, error);
   }
 
-  getRecentPrescriptions(): PrescriptionDto[] {
-    return this.prescriptions
-      .filter(p => p.status === 'Pending')
-      .sort((a, b) => {
-        const dateA = new Date(a.prescribedDate).getTime();
-        const dateB = new Date(b.prescribedDate).getTime();
-        return dateB - dateA; // Most recent first
-      })
-      .slice(0, 5); // Get top 5 most recent
+  onAnalyticsLoaded(source: AnalyticsSource): void {
+    this.clearAnalyticsFailure(source);
+  }
+
+  retryAnalytics(): void {
+    this.pharmacyService.clearAnalyticsCache();
+    this.loadSummaryMetrics();
+    this.revenueChart?.refresh();
+    this.categoriesChart?.refresh();
+    this.stockChart?.refresh();
+  }
+
+  private loadSummaryMetrics(): void {
+    this.pharmacyService.getDashboardSummaryMetrics(false).subscribe({
+      next: (summary) => {
+        this.applySummaryMetrics(summary);
+        this.clearAnalyticsFailure('summary');
+      },
+      error: (error) => this.registerAnalyticsFailure('summary', error)
+    });
+  }
+
+  private applySummaryMetrics(summary: {
+    totalMedications?: number;
+    pendingPrescriptions?: number;
+    lowStockAlerts?: number;
+    expiringSoon?: number;
+    expiredMedications?: number;
+    inventoryValue?: number;
+  }): void {
+    this.totalMedications = summary.totalMedications ?? 0;
+    this.pendingPrescriptions = summary.pendingPrescriptions ?? 0;
+    this.lowStockAlerts = summary.lowStockAlerts ?? 0;
+    this.expiringSoon = summary.expiringSoon ?? 0;
+    this.expiredMedications = summary.expiredMedications ?? 0;
+    this.inventoryValue = summary.inventoryValue ?? 0;
+  }
+
+  private registerAnalyticsFailure(source: AnalyticsSource, error: unknown): void {
+    this.analyticsFailures.add(source);
+    console.error(`[PharmacyDashboard] Analytics error (${source}):`, error);
+  }
+
+  private clearAnalyticsFailure(source: AnalyticsSource): void {
+    this.analyticsFailures.delete(source);
   }
 
   navigateToPrescription(prescriptionId: number): void {

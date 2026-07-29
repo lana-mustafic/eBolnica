@@ -9,30 +9,11 @@ import { StockTrendData } from '../../../../../models/analytics.dto';
 import { Subscription } from 'rxjs';
 
 /**
- * Stock Trends Line Chart Component
- * 
- * A reusable line chart component for displaying medication stock level trends over time.
- * Supports multiple medication comparison, threshold lines, and time-series visualization.
- * 
- * Features:
- * - Time-series line chart with date-based X-axis
- * - Multiple medication comparison (1-5 medications)
- * - Threshold lines at critical stock levels
- * - Anomaly detection and highlighting
- * - Date range selection
- * - Interactive tooltips with percentage change
- * - Responsive design with mobile optimization
- * - Accessible with ARIA labels and keyboard navigation
- * 
- * @example
- * ```html
- * <app-stock-trends-line-chart 
- *   [title]="'Medication Stock Trends'"
- *   [medicationIds]="[101, 102, 103]"
- *   [days]="30"
- *   [showThresholds]="true">
- * </app-stock-trends-line-chart>
- * ```
+ * Current stock levels bar chart component.
+ *
+ * Displays one bar per selected medication representing current stock as a
+ * percentage of estimated capacity. The API returns a point-in-time snapshot
+ * (no inventory history timeline).
  */
 @Component({
   selector: 'app-stock-trends-line-chart',
@@ -53,7 +34,11 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
 
   // Input properties
   /** Chart title displayed above the chart */
-  @Input() title: string = 'Medication Stock Trends';
+  @Input() title: string = 'Current Stock Levels by Medication';
+
+  /** Explains what the chart measures (shown under the title) */
+  @Input() description: string =
+    'Current stock level for each medication as a percentage of estimated capacity (minimum stock × 3).';
   
   /** Chart container height in pixels */
   @Input() height: number = 400;
@@ -102,7 +87,7 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
   @Output() medicationsChanged = new EventEmitter<number[]>();
 
   // Component state
-  isLoading: boolean = false;
+  isLoading: boolean = true;
   errorMessage: string | null = null;
   hasData: boolean = false;
   
@@ -112,15 +97,15 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
   availableMedications: { id: number; name: string }[] = [];
   selectedMedicationIds: number[] = [];
   
-  // Chart configuration
-  chartType: 'line' = 'line';
-  
-  chartData: ChartData<'line'> = {
+  // Chart configuration (bar chart — one bar per medication snapshot)
+  chartType: 'bar' = 'bar';
+
+  chartData: ChartData<'bar'> = {
     labels: [],
     datasets: []
   };
 
-  chartOptions: ChartConfiguration<'line'>['options'] = {
+  chartOptions: ChartConfiguration<'bar'>['options'] = {
     responsive: true,
     maintainAspectRatio: false,
     interaction: {
@@ -129,24 +114,7 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
     },
     plugins: {
       legend: {
-        display: true,
-        position: 'top',
-        labels: {
-          usePointStyle: true,
-          padding: 15,
-          font: {
-            size: 12,
-            family: "'Inter', 'Segoe UI', sans-serif"
-          }
-        },
-        onClick: (e, legendItem, legend) => {
-          const index = legendItem.datasetIndex;
-          if (index !== undefined) {
-            const meta = legend.chart.getDatasetMeta(index);
-            meta.hidden = !meta.hidden;
-            legend.chart.update();
-          }
-        }
+        display: false
       },
       tooltip: {
         enabled: true,
@@ -162,29 +130,20 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
           family: "'Inter', 'Segoe UI', sans-serif"
         },
         callbacks: {
-          title: (context) => {
-            const index = context[0].dataIndex;
-            const date = this.chartData.labels?.[index] as string;
-            return this.formatDateLabel(date);
-          },
           label: (context) => {
-            const datasetLabel = context.dataset.label || '';
             const value = context.parsed.y;
-            const index = context.dataIndex;
-            
-            // Calculate percentage change
-            const change = this.calculatePercentageChange(context.datasetIndex, index);
-            const changeText = change !== null 
-              ? (change >= 0 ? '+' : '') + change.toFixed(1) + '%'
-              : '';
-            
-            if (value === null || value === undefined) {
-              return [`${datasetLabel}: 0`, changeText ? `Change: ${changeText}` : ''].filter(Boolean);
+            const medicationId = this.selectedMedicationIds[context.dataIndex];
+            const point = medicationId ? this.groupedData.get(medicationId)?.[0] : undefined;
+            const lines = [`Stock level: ${value ?? 0}%`];
+
+            if (point?.quantity != null) {
+              lines.push(`Quantity: ${point.quantity}`);
             }
-            return [
-              `${datasetLabel}: ${value.toLocaleString()}`,
-              changeText ? `Change: ${changeText}` : ''
-            ].filter(Boolean);
+            if (point?.status) {
+              lines.push(`Status: ${point.status}`);
+            }
+
+            return lines;
           }
         }
       },
@@ -194,10 +153,8 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
     },
     scales: {
       x: {
-        type: 'category',
         grid: {
-          display: true,
-          color: 'rgba(0, 0, 0, 0.05)'
+          display: false
         },
         ticks: {
           font: {
@@ -206,11 +163,7 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
           },
           color: '#718096',
           maxRotation: 45,
-          minRotation: 0,
-          callback: (value, index) => {
-            const label = this.chartData.labels?.[index] as string;
-            return this.formatDateLabel(label);
-          }
+          minRotation: 0
         }
       },
       y: {
@@ -226,23 +179,18 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
             family: "'Inter', 'Segoe UI', sans-serif"
           },
           color: '#718096',
-          callback: (value) => {
-            return value + '%';
-          }
+          callback: (value) => `${value}%`
         }
       }
     },
     onClick: (event, activeElements) => {
       if (activeElements.length > 0) {
-        const element = activeElements[0];
-        const datasetIndex = element.datasetIndex;
-        const index = element.index;
-        
-        const medicationId = this.selectedMedicationIds[datasetIndex];
+        const index = activeElements[0].index;
+        const medicationId = this.selectedMedicationIds[index];
         const medicationData = this.groupedData.get(medicationId);
-        
-        if (medicationData && medicationData[index]) {
-          this.pointClicked.emit(medicationData[index]);
+
+        if (medicationData?.[0]) {
+          this.pointClicked.emit(medicationData[0]);
         }
       }
     },
@@ -261,15 +209,6 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
     '#f59e0b', // Amber
     '#ef4444', // Red
     '#8b5cf6'  // Purple
-  ];
-
-  // Line styles for differentiation
-  private readonly lineStyles: ('solid' | 'dashed' | 'dotted')[] = [
-    'solid',
-    'dashed',
-    'dotted',
-    'solid',
-    'dashed'
   ];
 
   ngOnInit(): void {
@@ -362,7 +301,7 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
       },
       error: (error) => {
         console.error('[StockTrendsLineChart] Error loading stock trends:', error);
-        this.errorMessage = error.message || 'Failed to load stock trend data. Please try again.';
+        this.errorMessage = error.message || 'Failed to load stock level data. Please try again.';
         this.isLoading = false;
         this.hasData = false;
         this.errorOccurred.emit(error);
@@ -531,159 +470,69 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
   }
 
   /**
-   * Update chart data and configuration
+   * Update chart data and configuration (current-stock snapshot bars)
    */
   private updateChart(): void {
     if (this.selectedMedicationIds.length === 0 || this.groupedData.size === 0) {
       return;
     }
 
-    // Get all unique dates across selected medications
-    const allDates = new Set<string>();
-    this.selectedMedicationIds.forEach(id => {
-      const medicationData = this.groupedData.get(id);
-      if (medicationData) {
-        medicationData.forEach(item => allDates.add(item.date));
-      }
-    });
-    
-    let sortedDates = Array.from(allDates).sort((a, b) => 
-      new Date(a).getTime() - new Date(b).getTime()
-    );
-
-    // Sample dates for mobile devices
+    const labels: string[] = [];
+    const values: number[] = [];
+    const backgroundColors: string[] = [];
+    const borderColors: string[] = [];
     const isMobile = this.currentBreakpoint === 'mobile';
-    if (isMobile) {
-      const maxPoints = this.responsiveService.getOptimalDataPoints(sortedDates.length);
-      sortedDates = this.sampleDataPoints(sortedDates, maxPoints);
-    }
 
-    // Create datasets for each selected medication
-    const datasets = this.selectedMedicationIds.map((medicationId, index) => {
-      const medicationData = this.groupedData.get(medicationId) || [];
-      const medicationName = medicationData[0]?.medicationName || `Medication ${medicationId}`;
-      
-      // Map data points to dates
-      const dataPoints = sortedDates.map(date => {
-        const dataPoint = medicationData.find(d => d.date === date);
-        return dataPoint ? dataPoint.stockLevel : null;
-      });
+    this.selectedMedicationIds.forEach((medicationId, index) => {
+      const medicationData = this.groupedData.get(medicationId);
+      const point = medicationData?.[0];
+      if (!point) {
+        return;
+      }
 
+      labels.push(point.medicationName);
+      values.push(point.stockLevel);
       const color = this.colorPalette[index % this.colorPalette.length];
-      const lineStyle = this.lineStyles[index % this.lineStyles.length];
-      
-      const borderDash = lineStyle === 'dashed' ? [10, 5] : 
-                        lineStyle === 'dotted' ? [2, 2] : [];
-
-      const isMobile = this.currentBreakpoint === 'mobile';
-      const isTablet = this.currentBreakpoint === 'tablet';
-
-      return {
-        label: medicationName,
-        data: dataPoints,
-        borderColor: color,
-        backgroundColor: this.showFill ? color + '20' : 'transparent',
-        borderWidth: isMobile ? 1.5 : (isTablet ? 1.75 : 2),
-        borderDash,
-        pointRadius: isMobile ? 3 : 4,
-        pointHoverRadius: isMobile ? 5 : 6,
-        pointBackgroundColor: color,
-        pointBorderColor: '#fff',
-        pointBorderWidth: isMobile ? 1.5 : 2,
-        fill: this.showFill,
-        tension: this.lineTension,
-        spanGaps: false
-      };
+      backgroundColors.push(color + 'CC');
+      borderColors.push(color);
     });
 
-    // Add threshold lines if enabled
-    if (this.showThresholds) {
-      const thresholdLines = this.createThresholdLines(sortedDates.length);
-      datasets.push(...thresholdLines);
+    if (labels.length === 0) {
+      return;
     }
 
     this.chartData = {
-      labels: sortedDates,
-      datasets
+      labels,
+      datasets: [{
+        label: 'Stock level (% of capacity)',
+        data: values,
+        backgroundColor: backgroundColors,
+        borderColor: borderColors,
+        borderWidth: isMobile ? 1.5 : 2,
+        borderRadius: isMobile ? 4 : 6,
+        maxBarThickness: isMobile ? 48 : 64
+      }]
     };
 
-    // Update chart options after data update
     this.updateChartOptions();
-    
-    // Trigger chart update
+
     setTimeout(() => {
       this.chart?.update();
     }, 0);
   }
 
-  /**
-   * Create threshold lines for critical stock levels
-   */
-  private createThresholdLines(dataLength: number): any[] {
-    const thresholds = [
-      { value: this.lowThreshold, label: 'Low Stock', color: '#ef4444', style: 'dashed' },
-      { value: this.criticalThreshold, label: 'Critical', color: '#f59e0b', style: 'dashed' },
-      { value: this.idealThreshold, label: 'Ideal', color: '#10b981', style: 'dashed' }
-    ];
-
-    return thresholds.map(threshold => ({
-      label: threshold.label,
-      data: new Array(dataLength).fill(threshold.value),
-      borderColor: threshold.color,
-      backgroundColor: 'transparent',
-      borderWidth: 1.5,
-      borderDash: [5, 5],
-      pointRadius: 0,
-      pointHoverRadius: 0,
-      fill: false,
-      tension: 0,
-      order: 100, // Draw behind main lines
-      tooltip: {
-        enabled: false
-      }
-    }));
-  }
-
-  /**
-   * Calculate percentage change from previous point
-   */
-  private calculatePercentageChange(datasetIndex: number, pointIndex: number): number | null {
-    if (pointIndex === 0) return null;
-    
-    const dataset = this.chartData.datasets[datasetIndex];
-    const currentValue = dataset.data[pointIndex] as number;
-    const previousValue = dataset.data[pointIndex - 1] as number;
-    
-    if (currentValue === null || previousValue === null) return null;
-    if (previousValue === 0) return currentValue > 0 ? 100 : -100;
-    
-    return ((currentValue - previousValue) / previousValue) * 100;
-  }
-
-  /**
-   * Format date label for display
-   */
-  private formatDateLabel(dateString: string): string {
-    if (!dateString) return '';
-    
-    const isMobile = this.currentBreakpoint === 'mobile';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays}d`;
-    
-    // Simplified format for mobile
-    if (isMobile) {
-      return `${date.getMonth() + 1}/${date.getDate()}`;
+  get snapshotLabel(): string {
+    const firstPoint = this.stockTrendData[0];
+    if (!firstPoint?.date) {
+      return 'Current';
     }
-    
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
+
+    return new Date(firstPoint.date).toLocaleString('en-US', {
+      month: 'short',
       day: 'numeric',
-      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   }
 
@@ -756,5 +605,26 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
   getMedicationName(medicationId: number): string {
     const medication = this.availableMedications.find(m => m.id === medicationId);
     return medication?.name || `Medication ${medicationId}`;
+  }
+
+  get showChart(): boolean {
+    return this.hasData
+      && this.selectedMedicationIds.length > 0
+      && !this.isLoading
+      && !this.errorMessage;
+  }
+
+  get showEmptyState(): boolean {
+    return !this.isLoading && !this.errorMessage && !this.showChart;
+  }
+
+  get emptyStateMessage(): string {
+    if (this.availableMedications.length === 0) {
+      return 'No medications available to display stock levels.';
+    }
+    if (this.selectedMedicationIds.length === 0) {
+      return 'Select at least one medication to view stock levels.';
+    }
+    return 'No stock level data available for the selected medications.';
   }
 }

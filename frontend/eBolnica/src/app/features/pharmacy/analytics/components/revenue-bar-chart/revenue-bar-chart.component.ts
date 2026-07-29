@@ -80,9 +80,13 @@ export class RevenueBarChartComponent implements OnInit, OnChanges, OnDestroy {
   @Output() barClicked = new EventEmitter<{ month: string; revenue: number }>();
 
   // Component state
-  isLoading: boolean = false;
+  isLoading: boolean = true;
   errorMessage: string | null = null;
   hasData: boolean = false;
+
+  get showEmptyState(): boolean {
+    return !this.isLoading && !this.errorMessage && !this.hasData;
+  }
   
   // Chart data
   monthlyRevenue: MonthlyRevenueData[] = [];

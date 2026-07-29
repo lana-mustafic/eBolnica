@@ -58,13 +58,19 @@ namespace eBolnicaAPI.Models.DTOs
     }
 
     /// <summary>
-    /// Stock trends data with timeline and medication summaries
+    /// Stock levels data for analytics charts.
+    /// When no inventory history exists, contains a current snapshot only.
     /// </summary>
     public class StockTrendsData
     {
         public List<StockTrendItem> Data { get; set; } = new();
         public List<MedicationSummary> Medications { get; set; } = new();
-        public List<string> Timeline { get; set; } = new(); // Dates for X-axis
+        /// <summary>Reserved for historical timelines; empty for current-stock snapshots.</summary>
+        public List<string> Timeline { get; set; } = new();
+        /// <summary>e.g. "current-stock-snapshot" or "inventory-history" when history is available.</summary>
+        public string MetricType { get; set; } = "current-stock-snapshot";
+        /// <summary>UTC timestamp when the snapshot was generated.</summary>
+        public DateTime SnapshotAt { get; set; } = DateTime.UtcNow;
     }
 
     /// <summary>
@@ -112,14 +118,25 @@ namespace eBolnicaAPI.Models.DTOs
     }
 
     /// <summary>
-    /// Summary statistics
+    /// Summary statistics for dashboard metric cards (authoritative DB counts).
     /// </summary>
     public class StatisticsSummary
     {
         public int TotalPrescriptions { get; set; }
+        /// <summary>Count of active medications in inventory.</summary>
         public int TotalMedications { get; set; }
         public int TotalCategories { get; set; }
         public decimal TotalRevenue { get; set; }
+        /// <summary>Prescriptions awaiting dispense.</summary>
+        public int PendingPrescriptions { get; set; }
+        /// <summary>Active medications below minimum stock level.</summary>
+        public int LowStockAlerts { get; set; }
+        /// <summary>Active medications expiring within the next 30 days.</summary>
+        public int ExpiringSoon { get; set; }
+        /// <summary>Active medications past expiry date.</summary>
+        public int ExpiredMedications { get; set; }
+        /// <summary>Total inventory value (sum of Price * StockQuantity for active medications).</summary>
+        public decimal InventoryValue { get; set; }
     }
 
     /// <summary>
