@@ -71,19 +71,15 @@ describe('StockTrendsLineChartComponent', () => {
     expect(component.emptyStateMessage).toContain('Select at least one medication');
   });
 
-  it('should render chart when data and selections exist', () => {
+  it('should render chart when snapshot data and selections exist', () => {
     pharmacyService.getStockTrends.and.returnValue(of([
       {
-        date: '2026-01-01',
+        date: '2026-01-15T10:00:00Z',
         medicationId: 1,
         medicationName: 'Paracetamol',
-        stockLevel: 55
-      },
-      {
-        date: '2026-01-02',
-        medicationId: 1,
-        medicationName: 'Paracetamol',
-        stockLevel: 55
+        stockLevel: 55,
+        quantity: 100,
+        status: 'Normal'
       }
     ]));
     fixture.detectChanges();

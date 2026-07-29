@@ -78,8 +78,8 @@
       <span class="summary-value">Current stock (% capacity)</span>
     </div>
     <div class="summary-item">
-      <span class="summary-label">Period:</span>
-      <span class="summary-value">Last {{ days }} days (flat snapshot)</span>
+      <span class="summary-label">Snapshot:</span>
+      <span class="summary-value">{{ snapshotLabel }}</span>
     </div>
     <div class="summary-item" *ngIf="showThresholds">
       <span class="summary-label">Thresholds:</span>
@@ -147,13 +147,13 @@
     class="chart-wrapper"
     [style.height.px]="responsiveHeight"
     role="img"
-    [attr.aria-label]="'Line chart showing current stock levels for ' + selectedMedicationIds.length + ' medications'">
+    [attr.aria-label]="'Bar chart showing current stock levels for ' + selectedMedicationIds.length + ' medications'">
     <canvas 
       baseChart
       [data]="chartData"
       [type]="chartType"
       [options]="chartOptions"
-      [attr.aria-label]="'Current stock levels line chart'">
+      [attr.aria-label]="'Current stock levels bar chart'">
     </canvas>
   </div>
 

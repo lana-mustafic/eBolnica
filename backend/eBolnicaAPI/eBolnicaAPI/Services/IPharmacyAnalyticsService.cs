@@ -31,12 +31,14 @@ namespace eBolnicaAPI.Services
         Task<CategoriesData> GetTopCategoriesAsync(int topCount = 8);
 
         /// <summary>
-        /// Gets stock trends for specified medications over time
+        /// Gets current stock levels by medication (snapshot).
+        /// There is no inventory history table yet; days/interval are accepted for API
+        /// compatibility but do not produce a synthetic timeline.
         /// </summary>
-        /// <param name="medicationIds">Array of medication IDs to track (null for all)</param>
-        /// <param name="days">Number of days to look back</param>
-        /// <param name="interval">Data aggregation interval (daily, weekly, monthly)</param>
-        /// <returns>Stock trends data with timeline</returns>
+        /// <param name="medicationIds">Array of medication IDs to track (null for default top items)</param>
+        /// <param name="days">Ignored until inventory history is available</param>
+        /// <param name="interval">Ignored until inventory history is available</param>
+        /// <returns>One data point per medication representing current stock levels</returns>
         Task<StockTrendsData> GetStockTrendsAsync(int[]? medicationIds = null, int days = 30, string interval = "daily");
     }
 }

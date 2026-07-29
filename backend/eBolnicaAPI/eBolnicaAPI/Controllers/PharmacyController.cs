@@ -1742,15 +1742,17 @@ namespace eBolnicaAPI.Controllers
         }
 
         /// <summary>
-        /// Get stock trends data for line chart
+        /// Get current stock levels by medication (snapshot).
         /// </summary>
         /// <remarks>
-        /// Returns stock level trends for medications over time.
+        /// Returns one data point per medication representing current stock as a percentage of
+        /// estimated capacity. There is no inventory history table yet, so this is not a time series.
+        /// The days and interval query parameters are accepted for compatibility but ignored.
         /// </remarks>
-        /// <param name="medicationIds">Comma-separated medication IDs to track (optional)</param>
-        /// <param name="days">Number of days to look back (default: 30)</param>
-        /// <param name="interval">Data aggregation interval: "daily", "weekly", or "monthly" (default: "daily")</param>
-        /// <returns>Stock trends data array</returns>
+        /// <param name="medicationIds">Comma-separated medication IDs to include (optional)</param>
+        /// <param name="days">Ignored until inventory history is available</param>
+        /// <param name="interval">Ignored until inventory history is available</param>
+        /// <returns>Current stock level data points</returns>
         [HttpGet("analytics/stock-trends")]
         [Authorize(Roles = "Pharmacist,Admin")]
         [ProducesResponseType(typeof(List<StockTrendItem>), StatusCodes.Status200OK)]

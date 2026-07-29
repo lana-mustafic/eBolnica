@@ -479,16 +479,15 @@ namespace eBolnicaAPI.Services
         }
 
         /// <summary>
-        /// Gets stock trends for medications with optimized business logic
-        /// Uses UpdatedAt timestamps to estimate historical stock levels
+        /// Gets current stock levels by medication (snapshot).
+        /// No inventory history table exists; returns one honest data point per medication.
         /// </summary>
         public async Task<StockTrendsData> GetStockTrendsAsync(int[]? medicationIds = null, int days = 30, string interval = "daily")
         {
             var stopwatch = Stopwatch.StartNew();
-            
+
             try
             {
-                // Validate parameters
                 if (days < 1 || days > 365)
                 {
                     throw new ArgumentException("Days must be between 1 and 365", nameof(days));
@@ -500,26 +499,28 @@ namespace eBolnicaAPI.Services
                     throw new ArgumentException($"Interval must be one of: {string.Join(", ", validIntervals)}", nameof(interval));
                 }
 
-                // Generate cache key
-                var cacheKey = $"stock_trends_{string.Join(",", medicationIds ?? Array.Empty<int>())}_{days}_{interval}";
-                
+                if (days != 30 || !string.Equals(interval, "daily", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogDebug(
+                        "Stock trends days/interval parameters are ignored until inventory history is available. Days: {Days}, Interval: {Interval}",
+                        days,
+                        interval);
+                }
+
+                var cacheKey = $"current_stock_snapshot_{string.Join(",", medicationIds ?? Array.Empty<int>())}";
+
                 if (_cache.TryGetValue(cacheKey, out StockTrendsData? cachedData))
                 {
-                    _logger.LogInformation("Returning cached stock trends data");
+                    _logger.LogInformation("Returning cached current stock snapshot");
                     return cachedData!;
                 }
 
-                var endDate = DateTime.UtcNow.Date;
-                var startDate = endDate.AddDays(-days);
-
-                // Get medications to track
                 IQueryable<Medication> medicationQuery = _context.Medications
                     .AsNoTracking()
                     .Where(m => m.IsActive);
 
                 if (medicationIds != null && medicationIds.Length > 0)
                 {
-                    // Validate medication IDs exist
                     var validIds = await _context.Medications
                         .Where(m => medicationIds.Contains(m.Id) && m.IsActive)
                         .Select(m => m.Id)
@@ -535,166 +536,93 @@ namespace eBolnicaAPI.Services
                 }
                 else
                 {
-                    // Default: Get top 5 medications by current stock quantity (most relevant)
                     medicationQuery = medicationQuery
                         .OrderByDescending(m => m.StockQuantity)
                         .Take(5);
                 }
 
-                var medications = await medicationQuery
-                    .Select(m => new MedicationSummary
-                    {
-                        Id = m.Id,
-                        Name = m.Name,
-                        CurrentStock = m.StockQuantity,
-                        TrendDirection = 0 // Will calculate later
-                    })
-                    .ToListAsync();
-
-                if (medications.Count == 0)
-                {
-                    return new StockTrendsData
-                    {
-                        Data = new List<StockTrendItem>(),
-                        Medications = new List<MedicationSummary>(),
-                        Timeline = new List<string>()
-                    };
-                }
-
-                // Assign colors to medications
-                for (int i = 0; i < medications.Count; i++)
-                {
-                    medications[i].Color = ChartColors[i % ChartColors.Length];
-                }
-
-                // Get current stock data for all medications at once (optimized)
-                var medicationEntities = await _context.Medications
-                    .AsNoTracking()
-                    .Where(m => medications.Select(med => med.Id).Contains(m.Id))
+                var medicationEntities = await medicationQuery
                     .Select(m => new
                     {
                         m.Id,
                         m.Name,
                         m.StockQuantity,
-                        m.MinimumStockLevel,
-                        m.UpdatedAt
+                        m.MinimumStockLevel
                     })
                     .ToListAsync();
 
-                // Generate timeline and stock data points
-                var timeline = new List<string>();
-                var trendData = new List<StockTrendItem>();
-                var currentDate = startDate;
-
-                // Calculate max stock for each medication (using MinimumStockLevel * 3 as max capacity)
-                var medicationMaxStock = medicationEntities.ToDictionary(
-                    m => m.Id,
-                    m => Math.Max(m.MinimumStockLevel * 3, m.StockQuantity) // Ensure max is at least current stock
-                );
-
-                while (currentDate <= endDate)
+                if (medicationEntities.Count == 0)
                 {
-                    string dateLabel;
-                    DateTime nextDate;
-
-                    switch (interval.ToLower())
+                    return new StockTrendsData
                     {
-                        case "weekly":
-                            dateLabel = currentDate.ToString("MMM dd", CultureInfo.InvariantCulture);
-                            nextDate = currentDate.AddDays(7);
-                            break;
-                        case "monthly":
-                            dateLabel = currentDate.ToString("MMM yyyy", CultureInfo.InvariantCulture);
-                            nextDate = currentDate.AddMonths(1);
-                            break;
-                        default: // daily
-                            dateLabel = currentDate.ToString("MMM dd", CultureInfo.InvariantCulture);
-                            nextDate = currentDate.AddDays(1);
-                            break;
-                    }
-
-                    timeline.Add(dateLabel);
-
-                    // For each medication, calculate stock level
-                    // Since we don't have historical data, we'll use current stock
-                    // In a production system, you'd query InventoryHistory table
-                    foreach (var medication in medications)
-                    {
-                        var medicationEntity = medicationEntities.FirstOrDefault(m => m.Id == medication.Id);
-                        if (medicationEntity != null)
-                        {
-                            var maxStock = medicationMaxStock[medication.Id];
-                            var stockLevel = maxStock > 0
-                                ? (decimal)medicationEntity.StockQuantity / maxStock * 100
-                                : 0;
-
-                            // Determine status based on thresholds
-                            string status = DetermineStockStatus(stockLevel);
-
-                            trendData.Add(new StockTrendItem
-                            {
-                                Date = currentDate,
-                                MedicationId = medication.Id,
-                                MedicationName = medicationEntity.Name,
-                                StockLevel = Math.Round(stockLevel, 2),
-                                Quantity = medicationEntity.StockQuantity,
-                                Status = status
-                            });
-                        }
-                    }
-
-                    currentDate = nextDate;
+                        Data = new List<StockTrendItem>(),
+                        Medications = new List<MedicationSummary>(),
+                        Timeline = new List<string>(),
+                        MetricType = "current-stock-snapshot",
+                        SnapshotAt = DateTime.UtcNow
+                    };
                 }
 
-                // Calculate trend direction for each medication (based on stock level change)
-                foreach (var medication in medications)
-                {
-                    var medicationTrends = trendData
-                        .Where(t => t.MedicationId == medication.Id)
-                        .OrderBy(t => t.Date)
-                        .ToList();
+                var snapshotAt = DateTime.UtcNow;
+                var trendData = new List<StockTrendItem>(medicationEntities.Count);
+                var medications = new List<MedicationSummary>(medicationEntities.Count);
 
-                    if (medicationTrends.Count >= 2)
+                for (var i = 0; i < medicationEntities.Count; i++)
+                {
+                    var entity = medicationEntities[i];
+                    var capacity = Math.Max(entity.MinimumStockLevel * 3, entity.StockQuantity);
+                    var stockLevel = capacity > 0
+                        ? Math.Round((decimal)entity.StockQuantity / capacity * 100, 2)
+                        : 0m;
+
+                    trendData.Add(new StockTrendItem
                     {
-                        var firstStock = medicationTrends.First().StockLevel;
-                        var lastStock = medicationTrends.Last().StockLevel;
-                        
-                        if (firstStock > 0)
-                        {
-                            medication.TrendDirection = Math.Round((lastStock - firstStock) / firstStock, 4);
-                        }
-                        else if (lastStock > 0)
-                        {
-                            medication.TrendDirection = 1; // 100% increase from zero
-                        }
-                    }
+                        Date = snapshotAt,
+                        MedicationId = entity.Id,
+                        MedicationName = entity.Name,
+                        StockLevel = stockLevel,
+                        Quantity = entity.StockQuantity,
+                        Status = DetermineStockStatus(stockLevel)
+                    });
+
+                    medications.Add(new MedicationSummary
+                    {
+                        Id = entity.Id,
+                        Name = entity.Name,
+                        Color = ChartColors[i % ChartColors.Length],
+                        CurrentStock = entity.StockQuantity,
+                        TrendDirection = 0
+                    });
                 }
 
                 var result = new StockTrendsData
                 {
                     Data = trendData,
                     Medications = medications,
-                    Timeline = timeline.Distinct().ToList()
+                    Timeline = new List<string>(),
+                    MetricType = "current-stock-snapshot",
+                    SnapshotAt = snapshotAt
                 };
 
                 stopwatch.Stop();
-                _logger.LogInformation("Stock trends calculated in {ElapsedMs}ms. Medications: {MedicationCount}, Days: {Days}, Interval: {Interval}",
-                    stopwatch.ElapsedMilliseconds, medications.Count, days, interval);
+                _logger.LogInformation(
+                    "Current stock snapshot calculated in {ElapsedMs}ms. Medications: {MedicationCount}",
+                    stopwatch.ElapsedMilliseconds,
+                    medications.Count);
 
-                // Cache the result
                 _cache.Set(cacheKey, result, TimeSpan.FromMinutes(CacheExpirationMinutes));
 
                 return result;
             }
             catch (ArgumentException)
             {
-                throw; // Re-throw validation errors
+                throw;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error calculating stock trends. MedicationIds: {MedicationIds}, Days: {Days}, Interval: {Interval}",
-                    string.Join(",", medicationIds ?? Array.Empty<int>()), days, interval);
-                throw new InvalidOperationException("An error occurred while calculating stock trends. Please try again later.", ex);
+                _logger.LogError(ex, "Error calculating current stock snapshot. MedicationIds: {MedicationIds}",
+                    string.Join(",", medicationIds ?? Array.Empty<int>()));
+                throw new InvalidOperationException("An error occurred while calculating stock levels. Please try again later.", ex);
             }
         }
 

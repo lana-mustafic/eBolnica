@@ -32,21 +32,23 @@ export interface MedicationCategoryData {
 }
 
 /**
- * Stock trend data point for line chart
+ * Stock level snapshot data point (one per medication).
  */
 export interface StockTrendData {
-  /** Date string in ISO format or display format */
+  /** Snapshot timestamp (ISO string). */
   date: string;
   /** Medication ID */
   medicationId: number;
   /** Medication name */
   medicationName: string;
-  /** Current stock level */
+  /** Stock level as % of estimated capacity */
   stockLevel: number;
   /** Minimum stock level threshold */
   minimumStockLevel?: number;
-  /** Category of the medication */
-  category?: string;
+  /** Current quantity in units (snapshot). */
+  quantity?: number;
+  /** Stock status label from API (e.g. Normal, Low). */
+  status?: string;
 }
 
 /**

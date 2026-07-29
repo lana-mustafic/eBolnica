@@ -5,6 +5,7 @@ using eBolnicaAPI.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Linq;
 using System;
 using System.Threading.Tasks;
 using Xunit;
@@ -28,6 +29,19 @@ namespace eBolnicaAPI.Tests.Unit.Services
                 NullLogger<PharmacyAnalyticsService>.Instance);
 
             SeedDashboardMetricsData();
+        }
+
+        [Fact]
+        public async Task GetStockTrendsAsync_ReturnsCurrentSnapshotWithoutSyntheticTimeline()
+        {
+            var result = await _service.GetStockTrendsAsync(null, 30, "daily");
+
+            Assert.Equal("current-stock-snapshot", result.MetricType);
+            Assert.Equal(4, result.Data.Count);
+            Assert.Equal(4, result.Data.Select(item => item.MedicationId).Distinct().Count());
+            Assert.Empty(result.Timeline);
+            Assert.All(result.Data, item => Assert.Equal(item.Date, result.SnapshotAt));
+            Assert.All(result.Medications, summary => Assert.Equal(0m, summary.TrendDirection));
         }
 
         [Fact]

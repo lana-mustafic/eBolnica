@@ -1056,11 +1056,10 @@ export class PharmacyService {
   }
 
   /**
-   * Get stock trends data for line chart
-   * @param medicationIds Optional array of medication IDs to filter (if empty, returns all)
-   * @param days Optional number of days to look back (default: 30)
+   * Get current stock level snapshots for the stock chart.
+   * @param medicationIds Optional medication IDs (defaults to top 5 by quantity on API)
+   * @param days Accepted for API compatibility; ignored until inventory history exists
    * @param useCache Whether to use cached data if available (default: true)
-   * @returns Observable of stock trend data array
    */
   getStockTrends(
     medicationIds?: number[],

@@ -58,13 +58,19 @@ namespace eBolnicaAPI.Models.DTOs
     }
 
     /// <summary>
-    /// Stock trends data with timeline and medication summaries
+    /// Stock levels data for analytics charts.
+    /// When no inventory history exists, contains a current snapshot only.
     /// </summary>
     public class StockTrendsData
     {
         public List<StockTrendItem> Data { get; set; } = new();
         public List<MedicationSummary> Medications { get; set; } = new();
-        public List<string> Timeline { get; set; } = new(); // Dates for X-axis
+        /// <summary>Reserved for historical timelines; empty for current-stock snapshots.</summary>
+        public List<string> Timeline { get; set; } = new();
+        /// <summary>e.g. "current-stock-snapshot" or "inventory-history" when history is available.</summary>
+        public string MetricType { get; set; } = "current-stock-snapshot";
+        /// <summary>UTC timestamp when the snapshot was generated.</summary>
+        public DateTime SnapshotAt { get; set; } = DateTime.UtcNow;
     }
 
     /// <summary>
