@@ -66,7 +66,9 @@
           id="name"
           formControlName="name"
           placeholder="e.g., Paracetamol"
-          [attr.aria-busy]="isNameControlPending()">
+          [class.field-invalid]="isNameFieldInvalid()"
+          [attr.aria-busy]="isNameControlPending()"
+          [attr.aria-invalid]="isNameFieldInvalid()">
         <mat-spinner
           *ngIf="isNameControlPending()"
           matSuffix
@@ -74,7 +76,7 @@
           aria-label="Validating medication name">
         </mat-spinner>
         <mat-hint *ngIf="isNameControlPending()">Validating...</mat-hint>
-        <mat-error *ngIf="getFieldError('name')">{{ getFieldError('name') }}</mat-error>
+        <mat-error *ngIf="getNameFieldError() as nameError">{{ nameError }}</mat-error>
       </mat-form-field>
 
       <button
@@ -91,7 +93,7 @@
           <mat-option value="">Select a category</mat-option>
           <mat-option *ngFor="let cat of categories" [value]="cat">{{ cat }}</mat-option>
         </mat-select>
-        <mat-error *ngIf="getFieldError('category')">{{ getFieldError('category') }}</mat-error>
+        <mat-error *ngIf="getFieldError('category') as categoryError">{{ categoryError }}</mat-error>
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="full-width">

@@ -6,11 +6,13 @@ import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.serv
 import { MedicationDto } from '../../../models/medication.dto';
 import { MedicationCreateDto } from '../../../models/medication-create.dto';
 import {
-  medicationNameAsyncValidator,
-  MEDICATION_NAME_CHECK_UNAVAILABLE_ERROR,
-  MEDICATION_NAME_EXISTS_ERROR,
-  MEDICATION_NAME_VALIDATOR_MESSAGES
+  medicationNameAsyncValidator
 } from '../../../shared/validators/medication-name-async.validator';
+import {
+  getMedicationFieldErrorMessage,
+  isMedicationFieldInvalidForDisplay,
+  isMedicationNameCheckUnavailable
+} from '../../../shared/utils/medication-field-error.util';
 import { finalize } from 'rxjs';
 
 @Component({
@@ -244,37 +246,17 @@ export class MedicationFormComponent implements OnInit {
   }
 
   getFieldError(fieldName: string): string {
-    const field = this.medicationForm.get(fieldName);
-    if (!field || !field.errors) {
-      return '';
-    }
+    return getMedicationFieldErrorMessage(
+      this.medicationForm.get(fieldName),
+      this.getFieldLabel(fieldName)
+    ) ?? '';
+  }
 
-    if (field.errors[MEDICATION_NAME_EXISTS_ERROR]) {
-      return MEDICATION_NAME_VALIDATOR_MESSAGES[MEDICATION_NAME_EXISTS_ERROR];
-    }
-
-    if (field.errors[MEDICATION_NAME_CHECK_UNAVAILABLE_ERROR]) {
-      return MEDICATION_NAME_VALIDATOR_MESSAGES[MEDICATION_NAME_CHECK_UNAVAILABLE_ERROR];
-    }
-
-    if (!field.touched) {
-      return '';
-    }
-
-    if (field.errors['required']) {
-      return `${this.getFieldLabel(fieldName)} is required.`;
-    }
-    if (field.errors['minlength']) {
-      return `${this.getFieldLabel(fieldName)} must be at least ${field.errors['minlength'].requiredLength} characters.`;
-    }
-    if (field.errors['min']) {
-      return `${this.getFieldLabel(fieldName)} must be at least ${field.errors['min'].min}.`;
-    }
-    if (field.errors['pastDate']) {
-      return 'Expiry date must be in the future.';
-    }
-
-    return '';
+  getNameFieldError(): string {
+    return getMedicationFieldErrorMessage(
+      this.medicationForm.get('name'),
+      this.getFieldLabel('name')
+    ) ?? '';
   }
 
   retryNameValidation(): void {
@@ -284,8 +266,7 @@ export class MedicationFormComponent implements OnInit {
   }
 
   isNameCheckUnavailable(): boolean {
-    const nameControl = this.medicationForm.get('name');
-    return nameControl?.hasError(MEDICATION_NAME_CHECK_UNAVAILABLE_ERROR) ?? false;
+    return isMedicationNameCheckUnavailable(this.medicationForm.get('name'));
   }
 
   isNameControlPending(): boolean {
@@ -293,10 +274,7 @@ export class MedicationFormComponent implements OnInit {
   }
 
   isNameFieldInvalid(): boolean {
-    const nameControl = this.medicationForm.get('name');
-    return (nameControl?.invalid && nameControl.touched) ||
-      (nameControl?.hasError(MEDICATION_NAME_EXISTS_ERROR) ?? false) ||
-      (nameControl?.hasError(MEDICATION_NAME_CHECK_UNAVAILABLE_ERROR) ?? false);
+    return isMedicationFieldInvalidForDisplay(this.medicationForm.get('name'));
   }
 
   getFieldLabel(fieldName: string): string {

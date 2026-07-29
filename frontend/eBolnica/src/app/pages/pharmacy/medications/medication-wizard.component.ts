@@ -11,11 +11,13 @@ import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.serv
 import { ConfirmDialogService } from '../../../shared/services/confirm-dialog.service';
 import { MedicationCreateDto } from '../../../models/medication-create.dto';
 import {
-  medicationNameAsyncValidator,
-  MEDICATION_NAME_CHECK_UNAVAILABLE_ERROR,
-  MEDICATION_NAME_EXISTS_ERROR,
-  MEDICATION_NAME_VALIDATOR_MESSAGES
+  medicationNameAsyncValidator
 } from '../../../shared/validators/medication-name-async.validator';
+import {
+  getMedicationFieldErrorMessage,
+  isMedicationFieldInvalidForDisplay,
+  isMedicationNameCheckUnavailable
+} from '../../../shared/utils/medication-field-error.util';
 import { finalize } from 'rxjs';
 
 @Component({
@@ -290,40 +292,21 @@ export class MedicationWizardComponent {
   }
 
   getFieldError(fieldName: string): string | null {
-    const field = this.wizardForm.get(fieldName);
-    if (!field || !field.errors) {
-      return null;
-    }
+    return getMedicationFieldErrorMessage(
+      this.wizardForm.get(fieldName),
+      this.getFieldLabel(fieldName)
+    );
+  }
 
-    if (field.errors[MEDICATION_NAME_EXISTS_ERROR]) {
-      return MEDICATION_NAME_VALIDATOR_MESSAGES[MEDICATION_NAME_EXISTS_ERROR];
-    }
+  getNameFieldError(): string | null {
+    return getMedicationFieldErrorMessage(
+      this.wizardForm.get('name'),
+      this.getFieldLabel('name')
+    );
+  }
 
-    if (field.errors[MEDICATION_NAME_CHECK_UNAVAILABLE_ERROR]) {
-      return MEDICATION_NAME_VALIDATOR_MESSAGES[MEDICATION_NAME_CHECK_UNAVAILABLE_ERROR];
-    }
-
-    if (!field.touched) {
-      return null;
-    }
-
-    if (field.errors['required']) {
-      return `${this.getFieldLabel(fieldName)} is required`;
-    }
-    if (field.errors['minlength']) {
-      return `${this.getFieldLabel(fieldName)} must be at least ${field.errors['minlength'].requiredLength} characters`;
-    }
-    if (field.errors['maxlength']) {
-      return `${this.getFieldLabel(fieldName)} must not exceed ${field.errors['maxlength'].requiredLength} characters`;
-    }
-    if (field.errors['min']) {
-      return `${this.getFieldLabel(fieldName)} must be at least ${field.errors['min'].min}`;
-    }
-    if (field.errors['pastDate']) {
-      return 'Expiry date must be in the future';
-    }
-
-    return null;
+  isNameFieldInvalid(): boolean {
+    return isMedicationFieldInvalidForDisplay(this.wizardForm.get('name'));
   }
 
   retryNameValidation(): void {
@@ -333,8 +316,7 @@ export class MedicationWizardComponent {
   }
 
   isNameCheckUnavailable(): boolean {
-    const nameControl = this.wizardForm.get('name');
-    return nameControl?.hasError(MEDICATION_NAME_CHECK_UNAVAILABLE_ERROR) ?? false;
+    return isMedicationNameCheckUnavailable(this.wizardForm.get('name'));
   }
 
   isNameControlPending(): boolean {

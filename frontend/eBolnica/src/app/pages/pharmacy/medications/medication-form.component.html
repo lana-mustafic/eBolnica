@@ -44,8 +44,8 @@
                 Validating...
               </span>
             </div>
-            <div class="error-message" *ngIf="getFieldError('name')">
-              {{ getFieldError('name') }}
+            <div class="error-message" *ngIf="getNameFieldError() as nameError">
+              {{ nameError }}
             </div>
             <button
               *ngIf="isNameCheckUnavailable()"
