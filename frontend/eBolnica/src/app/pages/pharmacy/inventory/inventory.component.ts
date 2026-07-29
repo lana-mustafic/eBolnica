@@ -219,7 +219,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
       case 'low':
         return { stockStatus: 'low stock', minStock: undefined, maxStock: undefined };
       case 'critical':
-        return { stockStatus: undefined, minStock: 1, maxStock: 4 };
+        return { stockStatus: 'critical stock', minStock: undefined, maxStock: undefined };
       case 'out-of-stock':
         return { stockStatus: 'out of stock', minStock: undefined, maxStock: undefined };
       default:
@@ -228,13 +228,11 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   private mapApiStockFilterToUi(filters: PharmacyFilters): string {
-    if (filters.minStock === 1 && filters.maxStock === 4) {
-      return 'critical';
-    }
-
     switch (filters.stockStatus?.toLowerCase()) {
       case 'low stock':
         return 'low';
+      case 'critical stock':
+        return 'critical';
       case 'out of stock':
         return 'out-of-stock';
       case 'normal stock':

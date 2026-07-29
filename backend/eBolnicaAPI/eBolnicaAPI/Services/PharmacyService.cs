@@ -39,7 +39,7 @@ namespace eBolnicaAPI.Services
         /// </summary>
         public IQueryable<Medication> GetFilteredInventory(IQueryable<Medication> baseQuery, IQueryCollection queryParams)
         {
-            return GetFilteredMedications(baseQuery, BindFromQueryCollection(queryParams), defaultToActiveOnly: true);
+            return GetFilteredInventory(baseQuery, BindFromQueryCollection(queryParams));
         }
 
         /// <summary>
@@ -107,8 +107,7 @@ namespace eBolnicaAPI.Services
                         : query.OrderByDescending(m => m.ExpiryDate ?? DateTime.MinValue);
                 
                 default:
-                    // Default to CreatedAt desc if invalid sortBy
-                    return isDescending ? query.OrderByDescending(m => m.CreatedAt) : query.OrderBy(m => m.CreatedAt);
+                    return query.OrderByDescending(m => m.CreatedAt);
             }
         }
 
@@ -127,7 +126,9 @@ namespace eBolnicaAPI.Services
             for (int i = 0; i < sortColumns.Length; i++)
             {
                 var column = sortColumns[i].Trim();
-                var order = i < sortOrders.Length ? sortOrders[i].Trim().ToLower() : "asc";
+                var order = i < sortOrders.Length && !string.IsNullOrEmpty(sortOrders[i])
+                    ? sortOrders[i].Trim().ToLower()
+                    : "asc";
 
                 // Check if order is embedded in column (name:asc format)
                 if (column.Contains(':'))
@@ -256,7 +257,9 @@ namespace eBolnicaAPI.Services
             for (int i = 0; i < sortColumns.Length; i++)
             {
                 var column = sortColumns[i].Trim();
-                var order = i < sortOrders.Length ? sortOrders[i].Trim().ToLower() : "asc";
+                var order = i < sortOrders.Length && !string.IsNullOrEmpty(sortOrders[i])
+                    ? sortOrders[i].Trim().ToLower()
+                    : "asc";
 
                 // Check if order is embedded in column
                 if (column.Contains(':'))
@@ -326,6 +329,15 @@ namespace eBolnicaAPI.Services
             PharmacyQueryParameters queryParams,
             bool defaultToActiveOnly = false)
         {
+            return BuildFilteredMedicationsQuery(baseQuery, queryParams, defaultToActiveOnly, applyExpiryFilters: true);
+        }
+
+        private IQueryable<Medication> BuildFilteredMedicationsQuery(
+            IQueryable<Medication> baseQuery,
+            PharmacyQueryParameters queryParams,
+            bool defaultToActiveOnly,
+            bool applyExpiryFilters)
+        {
             var query = baseQuery;
 
             // String filters: Category
@@ -353,7 +365,7 @@ namespace eBolnicaAPI.Services
                 switch (status)
                 {
                     case "low stock":
-                        query = query.Where(m => m.StockQuantity < m.MinimumStockLevel && m.StockQuantity > 0);
+                        query = query.Where(m => m.StockQuantity >= 5 && m.StockQuantity < m.MinimumStockLevel);
                         break;
                     case "out of stock":
                         query = query.Where(m => m.StockQuantity == 0);
@@ -361,6 +373,9 @@ namespace eBolnicaAPI.Services
                     case "normal stock":
                     case "in stock":
                         query = query.Where(m => m.StockQuantity >= m.MinimumStockLevel);
+                        break;
+                    case "critical stock":
+                        query = query.Where(m => m.StockQuantity > 0 && m.StockQuantity < 5);
                         break;
                 }
             }
@@ -423,14 +438,9 @@ namespace eBolnicaAPI.Services
                 query = query.Where(m => m.CreatedAt <= queryParams.CreatedBefore.Value);
             }
 
-            // Date filters: Expiry date range
-            if (queryParams.ExpiryAfter.HasValue)
+            if (applyExpiryFilters)
             {
-                query = query.Where(m => m.ExpiryDate.HasValue && m.ExpiryDate.Value >= queryParams.ExpiryAfter.Value);
-            }
-            if (queryParams.ExpiryBefore.HasValue)
-            {
-                query = query.Where(m => m.ExpiryDate.HasValue && m.ExpiryDate.Value <= queryParams.ExpiryBefore.Value);
+                query = ApplyMedicationExpiryFilters(query, queryParams.ExpiryAfter, queryParams.ExpiryBefore);
             }
 
             return query;
@@ -497,11 +507,60 @@ namespace eBolnicaAPI.Services
         }
 
         /// <summary>
-        /// Builds a filtered query for inventory (medications) based on PharmacyQueryParameters DTO
+        /// Builds a filtered query for inventory (medications) based on PharmacyQueryParameters DTO.
+        /// Applies inventory-specific expiry rules (e.g. missing expiry counts as "good").
         /// </summary>
         public IQueryable<Medication> GetFilteredInventory(IQueryable<Medication> baseQuery, PharmacyQueryParameters queryParams)
         {
-            return GetFilteredMedications(baseQuery, queryParams, defaultToActiveOnly: true);
+            var query = BuildFilteredMedicationsQuery(baseQuery, queryParams, defaultToActiveOnly: true, applyExpiryFilters: false);
+            return ApplyInventoryExpiryFilters(query, queryParams.ExpiryAfter, queryParams.ExpiryBefore);
+        }
+
+        private static IQueryable<Medication> ApplyMedicationExpiryFilters(
+            IQueryable<Medication> query,
+            DateTime? expiryAfter,
+            DateTime? expiryBefore)
+        {
+            if (expiryAfter.HasValue)
+            {
+                var afterDate = expiryAfter.Value.Date;
+                query = query.Where(m => m.ExpiryDate.HasValue && m.ExpiryDate.Value.Date >= afterDate);
+            }
+
+            if (expiryBefore.HasValue)
+            {
+                var beforeDate = expiryBefore.Value.Date;
+                query = query.Where(m => m.ExpiryDate.HasValue && m.ExpiryDate.Value.Date <= beforeDate);
+            }
+
+            return query;
+        }
+
+        private static IQueryable<Medication> ApplyInventoryExpiryFilters(
+            IQueryable<Medication> query,
+            DateTime? expiryAfter,
+            DateTime? expiryBefore)
+        {
+            if (expiryAfter.HasValue)
+            {
+                var afterDate = expiryAfter.Value.Date;
+                if (!expiryBefore.HasValue)
+                {
+                    query = query.Where(m => !m.ExpiryDate.HasValue || m.ExpiryDate.Value.Date >= afterDate);
+                }
+                else
+                {
+                    query = query.Where(m => m.ExpiryDate.HasValue && m.ExpiryDate.Value.Date >= afterDate);
+                }
+            }
+
+            if (expiryBefore.HasValue)
+            {
+                var beforeDate = expiryBefore.Value.Date;
+                query = query.Where(m => m.ExpiryDate.HasValue && m.ExpiryDate.Value.Date <= beforeDate);
+            }
+
+            return query;
         }
 
         #endregion

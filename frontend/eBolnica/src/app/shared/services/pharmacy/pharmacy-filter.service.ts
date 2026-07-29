@@ -314,6 +314,7 @@ export class PharmacyFilterService {
   private formatStockStatusLabel(value: string): string {
     const labels: Record<string, string> = {
       'low stock': 'Low Stock',
+      'critical stock': 'Critical Stock',
       'out of stock': 'Out of Stock',
       'normal stock': 'Normal Stock'
     };

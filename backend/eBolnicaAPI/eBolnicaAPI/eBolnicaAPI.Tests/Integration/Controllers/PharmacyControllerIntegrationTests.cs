@@ -246,7 +246,7 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
             Assert.NotEmpty(result.Items);
             Assert.All(result.Items, m =>
             {
-                Assert.True(m.StockQuantity > 0);
+                Assert.True(m.StockQuantity >= 5);
                 Assert.True(m.StockQuantity < m.MinimumStockLevel);
             });
             Assert.Contains(result.Items, m => m.Name == "Ibuprofen");
@@ -306,7 +306,7 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<MedicationDto>>();
             Assert.NotNull(result);
-            Assert.Equal(2, result.Items.Count);
+            Assert.Equal(3, result.Items.Count);
             Assert.All(result.Items, m =>
             {
                 Assert.Equal("painkiller", m.Category?.ToLower());
@@ -325,7 +325,7 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
             var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<MedicationDto>>();
             Assert.NotNull(result);
             Assert.Single(result.Items);
-            Assert.Equal(3, result.TotalCount);
+            Assert.Equal(4, result.TotalCount);
             Assert.Equal("Aspirin", result.Items[0].Name);
         }
 
@@ -627,6 +627,117 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
             Assert.Equal(1, json.PageSize);
         }
 
+        [Fact]
+        public async Task GetInventory_StockStatusLowStock_ReturnsLowStockActiveItems()
+        {
+            var url = "/api/pharmacy/inventory?stockStatus=low%20stock&pageSize=100";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var json = await response.Content.ReadFromJsonAsync<InventoryResponse>();
+            Assert.NotNull(json);
+            Assert.Single(json.Items);
+            Assert.Equal("Ibuprofen", json.Items[0].Name);
+            Assert.All(json.Items, m =>
+            {
+                Assert.True(m.IsActive);
+                Assert.True(m.StockQuantity >= 5);
+                Assert.True(m.StockQuantity < m.MinimumStockLevel);
+            });
+        }
+
+        [Fact]
+        public async Task GetInventory_StockStatusCriticalStock_ReturnsCriticalStockActiveItems()
+        {
+            var url = "/api/pharmacy/inventory?stockStatus=critical%20stock&pageSize=100";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var json = await response.Content.ReadFromJsonAsync<InventoryResponse>();
+            Assert.NotNull(json);
+            Assert.Single(json.Items);
+            Assert.Equal("Critical Stock Med", json.Items[0].Name);
+            Assert.InRange(json.Items[0].StockQuantity, 1, 4);
+        }
+
+        [Fact]
+        public async Task GetInventory_StockStatusOutOfStock_ReturnsEmptyStockActiveItems()
+        {
+            var url = "/api/pharmacy/inventory?stockStatus=out%20of%20stock&pageSize=100";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var json = await response.Content.ReadFromJsonAsync<InventoryResponse>();
+            Assert.NotNull(json);
+            Assert.Single(json.Items);
+            Assert.Equal("EmptyStock Med", json.Items[0].Name);
+            Assert.Equal(0, json.Items[0].StockQuantity);
+        }
+
+        [Fact]
+        public async Task GetInventory_ExpiryGood_IncludesMissingExpiryAndFarFutureDates()
+        {
+            var today = DateTime.Now.Date;
+            var url = $"/api/pharmacy/inventory?expiryAfter={today.AddDays(90):yyyy-MM-dd}&pageSize=100";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var json = await response.Content.ReadFromJsonAsync<InventoryResponse>();
+            Assert.NotNull(json);
+            Assert.Contains(json.Items, m => m.Name == "Penicillin");
+            Assert.Contains(json.Items, m => m.Name == "Expiry Good Med");
+            Assert.DoesNotContain(json.Items, m => m.Name == "Expiry Warning Med");
+        }
+
+        [Fact]
+        public async Task GetInventory_ExpiryWarning_ReturnsWarningBucketItems()
+        {
+            var today = DateTime.Now.Date;
+            var url = $"/api/pharmacy/inventory?expiryAfter={today.AddDays(30):yyyy-MM-dd}&expiryBefore={today.AddDays(89):yyyy-MM-dd}&pageSize=100";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var json = await response.Content.ReadFromJsonAsync<InventoryResponse>();
+            Assert.NotNull(json);
+            Assert.Single(json.Items);
+            Assert.Equal("Expiry Warning Med", json.Items[0].Name);
+        }
+
+        [Fact]
+        public async Task GetInventory_ExpiryCritical_ReturnsCriticalBucketItems()
+        {
+            var today = DateTime.Now.Date;
+            var url = $"/api/pharmacy/inventory?expiryAfter={today:yyyy-MM-dd}&expiryBefore={today.AddDays(29):yyyy-MM-dd}&pageSize=100";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var json = await response.Content.ReadFromJsonAsync<InventoryResponse>();
+            Assert.NotNull(json);
+            Assert.Single(json.Items);
+            Assert.Equal("Expiry Critical Med", json.Items[0].Name);
+        }
+
+        [Fact]
+        public async Task GetInventory_ExpiryExpired_ReturnsExpiredItems()
+        {
+            var today = DateTime.Now.Date;
+            var url = $"/api/pharmacy/inventory?expiryBefore={today.AddDays(-1):yyyy-MM-dd}&pageSize=100";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var json = await response.Content.ReadFromJsonAsync<InventoryResponse>();
+            Assert.NotNull(json);
+            Assert.Single(json.Items);
+            Assert.Equal("Expiry Expired Med", json.Items[0].Name);
+        }
+
         #endregion
 
         private sealed class InventoryResponse
@@ -648,6 +759,7 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
             if (_context.Medications.Any())
                 return;
 
+            var today = DateTime.Now.Date;
             var medications = new List<Medication>
             {
                 new Medication
@@ -715,6 +827,65 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
                     IsActive = true,
                     RequiresPrescription = false,
                     CreatedAt = DateTime.Now.AddDays(-2)
+                },
+                new Medication
+                {
+                    Name = "Critical Stock Med",
+                    Category = "painkiller",
+                    Price = 7.00m,
+                    StockQuantity = 3,
+                    MinimumStockLevel = 20,
+                    IsActive = true,
+                    RequiresPrescription = false,
+                    CreatedAt = DateTime.Now.AddDays(-2)
+                },
+                new Medication
+                {
+                    Name = "Expiry Good Med",
+                    Category = "antibiotics",
+                    Price = 11.00m,
+                    StockQuantity = 40,
+                    MinimumStockLevel = 10,
+                    ExpiryDate = today.AddDays(120),
+                    IsActive = true,
+                    RequiresPrescription = true,
+                    CreatedAt = DateTime.Now.AddDays(-4)
+                },
+                new Medication
+                {
+                    Name = "Expiry Warning Med",
+                    Category = "antibiotics",
+                    Price = 10.00m,
+                    StockQuantity = 35,
+                    MinimumStockLevel = 10,
+                    ExpiryDate = today.AddDays(60),
+                    IsActive = true,
+                    RequiresPrescription = true,
+                    CreatedAt = DateTime.Now.AddDays(-4)
+                },
+                new Medication
+                {
+                    Name = "Expiry Critical Med",
+                    Category = "antibiotics",
+                    Price = 9.50m,
+                    StockQuantity = 30,
+                    MinimumStockLevel = 10,
+                    ExpiryDate = today.AddDays(15),
+                    IsActive = true,
+                    RequiresPrescription = true,
+                    CreatedAt = DateTime.Now.AddDays(-4)
+                },
+                new Medication
+                {
+                    Name = "Expiry Expired Med",
+                    Category = "antibiotics",
+                    Price = 8.00m,
+                    StockQuantity = 25,
+                    MinimumStockLevel = 10,
+                    ExpiryDate = today.AddDays(-10),
+                    IsActive = true,
+                    RequiresPrescription = true,
+                    CreatedAt = DateTime.Now.AddDays(-4)
                 }
             };
 

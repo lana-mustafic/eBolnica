@@ -79,7 +79,7 @@ namespace eBolnicaAPI.Models.DTOs
         public bool? RequiresPrescription { get; set; }
 
         /// <summary>
-        /// Filter by stock status: "low stock", "out of stock", "normal stock"
+        /// Filter by stock status: "low stock", "out of stock", "normal stock", "critical stock"
         /// </summary>
         public string? StockStatus { get; set; }
 
@@ -244,7 +244,7 @@ namespace eBolnicaAPI.Models.DTOs
             // Validate stock status values
             if (!string.IsNullOrEmpty(StockStatus))
             {
-                var validStockStatuses = new[] { "low stock", "out of stock", "normal stock", "in stock" };
+                var validStockStatuses = new[] { "low stock", "out of stock", "normal stock", "in stock", "critical stock" };
                 if (!validStockStatuses.Contains(StockStatus.ToLower()))
                 {
                     results.Add(new ValidationResult(
