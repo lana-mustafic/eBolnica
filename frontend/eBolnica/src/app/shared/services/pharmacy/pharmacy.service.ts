@@ -1304,11 +1304,15 @@ export class PharmacyService {
   private mapMedicationImportSummary(raw: MedicationImportSummary): MedicationImportSummary {
     const source = raw as unknown as Record<string, unknown>;
     const errorsRaw = (source['errors'] ?? source['Errors']) as Array<Record<string, unknown>> | undefined;
+    const idsRaw = (source['importedMedicationIds'] ?? source['ImportedMedicationIds']) as number[] | undefined;
 
     return {
       successCount: this.readNumber(source, 'successCount') ?? 0,
       failureCount: this.readNumber(source, 'failureCount') ?? 0,
       totalRows: this.readNumber(source, 'totalRows') ?? 0,
+      committed: Boolean(source['committed'] ?? source['Committed'] ?? false),
+      importedMedicationIds: idsRaw ?? [],
+      batchError: (source['batchError'] ?? source['BatchError']) as string | undefined,
       errors: (errorsRaw ?? []).map(error => ({
         rowNumber: this.readNumber(error, 'rowNumber') ?? 0,
         reason: String(error['reason'] ?? error['Reason'] ?? ''),

@@ -8,8 +8,14 @@ export interface MedicationImportSummary {
   failureCount: number;
   /** Total data rows processed (excluding header). */
   totalRows: number;
+  /** Whether the validated batch was committed to the database. */
+  committed: boolean;
+  /** Database ids of medications created in this import batch. */
+  importedMedicationIds: number[];
   /** Per-row validation or business rule failures. */
   errors: MedicationImportRowError[];
+  /** Present when validation passed but the batch transaction failed. */
+  batchError?: string;
 }
 
 /**

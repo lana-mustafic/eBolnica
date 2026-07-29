@@ -354,10 +354,12 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
             var response = await _client.PostAsync("/api/pharmacy/medications/import/csv", content);
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            var summary = await response.Content.ReadFromJsonAsync<MedicationImportSummaryDto>();
+            var summary = await response.Content.ReadFromJsonAsync<MedicationImportResultDto>();
             Assert.NotNull(summary);
             Assert.Equal(1, summary.SuccessCount);
             Assert.Equal(0, summary.FailureCount);
+            Assert.True(summary.Committed);
+            Assert.Single(summary.ImportedMedicationIds);
             Assert.True(_context.Medications.Any(m => m.Name == "Imported From Api"));
         }
 
@@ -374,10 +376,11 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
             var response = await _client.PostAsync("/api/pharmacy/medications/import/csv", content);
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            var summary = await response.Content.ReadFromJsonAsync<MedicationImportSummaryDto>();
+            var summary = await response.Content.ReadFromJsonAsync<MedicationImportResultDto>();
             Assert.NotNull(summary);
             Assert.Equal(0, summary.SuccessCount);
             Assert.Equal(1, summary.FailureCount);
+            Assert.True(summary.Committed);
             Assert.Contains(summary.Errors, e => e.Field == "Name");
         }
 

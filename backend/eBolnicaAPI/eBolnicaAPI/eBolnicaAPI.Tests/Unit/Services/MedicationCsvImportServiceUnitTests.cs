@@ -50,12 +50,14 @@ namespace eBolnicaAPI.Tests.Unit.Services
                 Import Med,,Vitamins,,,12.50,25,5,{expiry},,,,No,Yes
                 """;
 
-            var (fileError, summary) = await _service.ImportAsync(CreateFormFile(csv));
+            var (fileError, result) = await _service.ImportAsync(CreateFormFile(csv));
 
             Assert.Null(fileError);
-            Assert.NotNull(summary);
-            Assert.Equal(1, summary!.SuccessCount);
-            Assert.Equal(0, summary.FailureCount);
+            Assert.NotNull(result);
+            Assert.Equal(1, result!.SuccessCount);
+            Assert.Equal(0, result.FailureCount);
+            Assert.True(result.Committed);
+            Assert.Single(result.ImportedMedicationIds);
             Assert.Contains(_context.Medications, m => m.Name == "Import Med");
         }
 
@@ -68,12 +70,14 @@ namespace eBolnicaAPI.Tests.Unit.Services
                 Existing Med,,Vitamins,,,12.50,25,5,{expiry},,,,No,Yes
                 """;
 
-            var (_, summary) = await _service.ImportAsync(CreateFormFile(csv));
+            var (_, result) = await _service.ImportAsync(CreateFormFile(csv));
 
-            Assert.NotNull(summary);
-            Assert.Equal(0, summary!.SuccessCount);
-            Assert.Equal(1, summary.FailureCount);
-            Assert.Contains(summary.Errors, e => e.Field == "Name" && e.Reason.Contains("already exists"));
+            Assert.NotNull(result);
+            Assert.Equal(0, result!.SuccessCount);
+            Assert.Equal(1, result.FailureCount);
+            Assert.True(result.Committed);
+            Assert.Empty(result.ImportedMedicationIds);
+            Assert.Contains(result.Errors, e => e.Field == "Name" && e.Reason.Contains("already exists"));
         }
 
         [Fact]
@@ -81,20 +85,20 @@ namespace eBolnicaAPI.Tests.Unit.Services
         {
             var csv = "Wrong,Headers\nfoo,bar";
 
-            var (fileError, summary) = await _service.ImportAsync(CreateFormFile(csv));
+            var (fileError, result) = await _service.ImportAsync(CreateFormFile(csv));
 
             Assert.NotNull(fileError);
-            Assert.Null(summary);
+            Assert.Null(result);
             Assert.Contains("Missing required column", fileError);
         }
 
         [Fact]
         public async Task ImportAsync_MalformedCsv_ReturnsFileError()
         {
-            var (fileError, summary) = await _service.ImportAsync(CreateFormFile("Name\n\"unclosed"));
+            var (fileError, result) = await _service.ImportAsync(CreateFormFile("Name\n\"unclosed"));
 
             Assert.NotNull(fileError);
-            Assert.Null(summary);
+            Assert.Null(result);
             Assert.Contains("Malformed CSV", fileError);
         }
 
@@ -108,12 +112,35 @@ namespace eBolnicaAPI.Tests.Unit.Services
                 Bad,,Vitamins,,,not-a-price,25,5,{expiry},,,,No,Yes
                 """;
 
-            var (_, summary) = await _service.ImportAsync(CreateFormFile(csv));
+            var (_, result) = await _service.ImportAsync(CreateFormFile(csv));
 
-            Assert.NotNull(summary);
-            Assert.Equal(1, summary!.SuccessCount);
-            Assert.Equal(1, summary.FailureCount);
+            Assert.NotNull(result);
+            Assert.Equal(1, result!.SuccessCount);
+            Assert.Equal(1, result.FailureCount);
+            Assert.True(result.Committed);
+            Assert.Single(result.ImportedMedicationIds);
             Assert.Contains(_context.Medications, m => m.Name == "Good Med");
+        }
+
+        [Fact]
+        public async Task ImportAsync_MultipleValidRows_CommitsSingleBatch()
+        {
+            var expiry = DateTime.UtcNow.AddYears(1).ToString("yyyy-MM-dd");
+            var csv = $"""
+                Name,Generic Name,Category,Manufacturer,Description,Price,Stock Quantity,Minimum Stock Level,Expiry Date,Batch Number,Dosage Form,Strength,Requires Prescription,Active
+                Batch Med A,,Vitamins,,,12.50,25,5,{expiry},,,,No,Yes
+                Batch Med B,,Vitamins,,,13.50,30,6,{expiry},,,,No,Yes
+                """;
+
+            var (_, result) = await _service.ImportAsync(CreateFormFile(csv));
+
+            Assert.NotNull(result);
+            Assert.Equal(2, result!.SuccessCount);
+            Assert.Equal(0, result.FailureCount);
+            Assert.True(result.Committed);
+            Assert.Equal(2, result.ImportedMedicationIds.Count);
+            Assert.Contains(_context.Medications, m => m.Name == "Batch Med A");
+            Assert.Contains(_context.Medications, m => m.Name == "Batch Med B");
         }
 
         public void Dispose()

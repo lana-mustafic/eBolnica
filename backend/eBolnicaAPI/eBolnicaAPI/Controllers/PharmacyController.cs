@@ -283,17 +283,17 @@ namespace eBolnicaAPI.Controllers
         [HttpPost("medications/import/csv")]
         [Authorize(Roles = "Pharmacist")]
         [Consumes("multipart/form-data")]
-        [ProducesResponseType(typeof(MedicationImportSummaryDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(MedicationImportResultDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> ImportMedicationsCsv([FromForm] IFormFile file, CancellationToken cancellationToken)
         {
-            var (fileError, summary) = await _medicationCsvImportService.ImportAsync(file, cancellationToken);
+            var (fileError, result) = await _medicationCsvImportService.ImportAsync(file, cancellationToken);
             if (fileError != null)
             {
                 return BadRequest(new { error = fileError });
             }
 
-            return Ok(summary);
+            return Ok(result);
         }
 
         [HttpGet("medications/{id}")]

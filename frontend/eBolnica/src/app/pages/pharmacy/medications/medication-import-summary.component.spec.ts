@@ -10,6 +10,8 @@ describe('MedicationImportSummaryComponent', () => {
     successCount: 2,
     failureCount: 1,
     totalRows: 3,
+    committed: true,
+    importedMedicationIds: [101, 102],
     errors: [
       { rowNumber: 4, field: 'Price', value: '-5', reason: 'Price must be greater than 0.' }
     ]

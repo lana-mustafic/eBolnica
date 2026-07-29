@@ -30,7 +30,7 @@ namespace eBolnicaAPI.Services.Pharmacy
 
         public int MaxImportRows { get; } = 10_000;
 
-        public async Task<(string? FileError, MedicationImportSummaryDto? Summary)> ImportAsync(
+        public async Task<(string? FileError, MedicationImportResultDto? Result)> ImportAsync(
             IFormFile? file,
             CancellationToken cancellationToken = default)
         {
@@ -84,16 +84,34 @@ namespace eBolnicaAPI.Services.Pharmacy
                 return ($"Import is limited to {MaxImportRows} data rows. Split the file and try again.", null);
             }
 
-            var summary = new MedicationImportSummaryDto
+            var result = new MedicationImportResultDto
             {
-                TotalRows = dataRows.Count
+                TotalRows = dataRows.Count,
+                Committed = true
             };
 
             if (dataRows.Count == 0)
             {
-                return (null, summary);
+                return (null, result);
             }
 
+            var batch = await BuildValidatedBatchAsync(
+                dataRows,
+                headerMapResult.ColumnIndexes!,
+                result,
+                cancellationToken);
+
+            await CommitBatchAsync(batch, result, cancellationToken);
+
+            return (null, result);
+        }
+
+        private async Task<List<Medication>> BuildValidatedBatchAsync(
+            IReadOnlyList<CsvDataRow> dataRows,
+            Dictionary<string, int> columnIndexes,
+            MedicationImportResultDto result,
+            CancellationToken cancellationToken)
+        {
             var existingNames = await _context.Medications
                 .AsNoTracking()
                 .Select(m => m.Name.ToLower())
@@ -108,41 +126,85 @@ namespace eBolnicaAPI.Services.Pharmacy
                 if (!MedicationCsvRowValidator.TryValidateRow(
                         row.RowNumber,
                         row.Cells,
-                        headerMapResult.ColumnIndexes!,
+                        columnIndexes,
                         out var dto,
                         out var rowErrors))
                 {
-                    summary.Errors.AddRange(rowErrors);
-                    summary.FailureCount++;
+                    result.Errors.AddRange(rowErrors);
+                    result.FailureCount++;
                     continue;
                 }
 
                 if (reservedNames.Contains(dto!.Name))
                 {
-                    summary.Errors.Add(new MedicationImportRowErrorDto
+                    result.Errors.Add(new MedicationImportRowErrorDto
                     {
                         RowNumber = row.RowNumber,
                         Field = "Name",
                         Value = dto.Name,
                         Reason = "A medication with this name already exists."
                     });
-                    summary.FailureCount++;
+                    result.FailureCount++;
                     continue;
                 }
 
                 reservedNames.Add(dto.Name);
                 medicationsToInsert.Add(ToEntity(dto));
-                summary.SuccessCount++;
             }
 
-            if (medicationsToInsert.Count > 0)
+            return medicationsToInsert;
+        }
+
+        private async Task CommitBatchAsync(
+            List<Medication> medications,
+            MedicationImportResultDto result,
+            CancellationToken cancellationToken)
+        {
+            if (medications.Count == 0)
             {
-                _context.Medications.AddRange(medicationsToInsert);
-                await _context.SaveChangesAsync(cancellationToken);
-                _analyticsService.InvalidateAnalyticsCache();
+                result.Committed = true;
+                result.SuccessCount = 0;
+                return;
             }
 
-            return (null, summary);
+            try
+            {
+                if (_context.Database.IsRelational())
+                {
+                    await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+                    await PersistBatchAsync(medications, cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
+                }
+                else
+                {
+                    await PersistBatchAsync(medications, cancellationToken);
+                }
+
+                ApplySuccessfulBatch(result, medications);
+            }
+            catch (Exception)
+            {
+                _context.ChangeTracker.Clear();
+
+                result.Committed = false;
+                result.SuccessCount = 0;
+                result.ImportedMedicationIds.Clear();
+                result.BatchError = "Batch import failed. No medications were saved.";
+            }
+        }
+
+        private async Task PersistBatchAsync(List<Medication> medications, CancellationToken cancellationToken)
+        {
+            _context.Medications.AddRange(medications);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        private void ApplySuccessfulBatch(MedicationImportResultDto result, List<Medication> medications)
+        {
+            result.Committed = true;
+            result.SuccessCount = medications.Count;
+            result.ImportedMedicationIds = medications.Select(m => m.Id).ToList();
+            _analyticsService.InvalidateAnalyticsCache();
         }
 
         internal static string? ValidateFile(IFormFile? file, int maxFileSizeBytes)

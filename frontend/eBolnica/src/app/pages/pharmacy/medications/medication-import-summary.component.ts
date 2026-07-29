@@ -16,12 +16,19 @@ export class MedicationImportSummaryComponent {
     return this.summary.failureCount > 0 && this.summary.errors.length > 0;
   }
 
+  get hasBatchError(): boolean {
+    return !this.summary.committed && !!this.summary.batchError;
+  }
+
   get allSucceeded(): boolean {
-    return this.summary.failureCount === 0 && this.summary.successCount > 0;
+    return this.summary.committed
+      && this.summary.failureCount === 0
+      && this.summary.successCount > 0;
   }
 
   get allFailed(): boolean {
-    return this.summary.successCount === 0 && this.summary.failureCount > 0;
+    return this.summary.successCount === 0
+      && (this.summary.failureCount > 0 || this.hasBatchError);
   }
 
   trackByRowNumber(_: number, error: { rowNumber: number }): number {
