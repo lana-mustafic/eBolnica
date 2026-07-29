@@ -317,13 +317,15 @@ export class PharmacyService {
     const params = this.buildInventoryQueryParams(filters);
     
     console.log('[PharmacyService] Loading inventory with filters:', filters);
-    
+
     return this.http.get<any>(`${this.apiUrl}/inventory`, { params }).pipe(
       map(response => normalizeInventoryResponse(response, filters.pageSize || 10)),
       tap(response => {
         console.log('[PharmacyService] Inventory loaded:', {
           count: response.items?.length || 0,
           total: response.totalCount,
+          sortBy: filters.sortBy,
+          sortOrder: filters.sortOrder,
           lowStockAlerts: response.lowStockAlerts?.length || 0,
           expiryAlerts: response.expiryAlerts?.length || 0
         });
@@ -464,12 +466,11 @@ export class PharmacyService {
       params = params.set('expiryBefore', filters.expiryBefore);
     }
 
-    // Sorting
     if (filters.sortBy) {
-      params = params.set('sortBy', filters.sortBy);
+      params = params.set(MED_Q.sortBy, filters.sortBy);
     }
     if (filters.sortOrder) {
-      params = params.set('sortOrder', filters.sortOrder);
+      params = params.set(MED_Q.sortOrder, filters.sortOrder);
     }
 
     return params;

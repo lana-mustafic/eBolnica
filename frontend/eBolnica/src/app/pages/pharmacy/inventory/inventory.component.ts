@@ -208,13 +208,23 @@ export class InventoryComponent implements OnInit, OnDestroy {
       expiryStatus: expiryFilters.expiryStatus,
       expiryAfter: expiryFilters.expiryAfter,
       expiryBefore: expiryFilters.expiryBefore,
-      sortBy: this.sortColumn || undefined,
-      sortOrder: this.sortOrder || undefined
+      ...this.buildSortFiltersFromUI()
+    };
+  }
+
+  private buildSortFiltersFromUI(): Pick<PharmacyFilters, 'sortBy' | 'sortOrder'> {
+    return {
+      sortBy: this.sortColumn || TABLE_DEFAULT_SORTS.INVENTORY.column,
+      sortOrder: this.sortOrder || TABLE_DEFAULT_SORTS.INVENTORY.order
     };
   }
 
   private pushFiltersFromUI(): void {
     this.filterService.updateFilters(this.buildFiltersFromUI());
+  }
+
+  private pushSortToFilterService(): void {
+    this.filterService.updateSort(this.sortColumn, this.sortOrder);
   }
 
   private mapStockFilterToApi(stockFilter: string): Pick<PharmacyFilters, 'stockStatus' | 'minStock' | 'maxStock'> {
@@ -594,7 +604,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
     }
 
     this.sortDebounceTimer = setTimeout(() => {
-      this.pushFiltersFromUI();
+      this.pushSortToFilterService();
     }, 200);
   }
 
