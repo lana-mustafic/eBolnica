@@ -228,10 +228,6 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.filterService.updateFilters(this.buildFiltersFromUI());
   }
 
-  private pushSortToFilterService(): void {
-    this.filterService.updateSort(this.sortColumn, this.sortOrder);
-  }
-
   private mapStockFilterToApi(stockFilter: string): Pick<PharmacyFilters, 'stockStatus' | 'minStock' | 'maxStock'> {
     switch (stockFilter) {
       case 'adequate':
@@ -609,7 +605,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
     }
 
     this.sortDebounceTimer = setTimeout(() => {
-      this.pushSortToFilterService();
+      this.pushFiltersFromUI();
     }, 200);
   }
 
@@ -639,7 +635,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   private revertSortState(): void {
     this.sortColumn = this.previousSortColumn || TABLE_DEFAULT_SORTS.INVENTORY.column;
     this.sortOrder = this.previousSortOrder || TABLE_DEFAULT_SORTS.INVENTORY.order;
-    this.pushSortToFilterService();
+    this.pushFiltersFromUI();
   }
 
   isSortColumnActive(column: string): boolean {

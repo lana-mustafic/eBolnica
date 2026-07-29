@@ -113,4 +113,91 @@ describe('PharmacyService inventory sort mapping', () => {
     expect(req.request.params.has(MED_Q.sortOrder)).toBeFalse();
     req.flush(emptyInventoryResponse);
   });
+
+  it('sends sort, filters, and paging together in one inventory query', () => {
+    service.getInventoryWithFilters({
+      pageNumber: 2,
+      pageSize: 25,
+      searchTerm: 'amox',
+      category: 'antibiotics',
+      stockStatus: 'low stock',
+      expiryStatus: 'warning',
+      sortBy: 'stock',
+      sortOrder: 'desc'
+    }).subscribe();
+
+    const req = httpMock.expectOne(
+      request => request.url.endsWith('/api/pharmacy/inventory')
+    );
+
+    expect(req.request.params.get(MED_Q.pageNumber)).toBe('2');
+    expect(req.request.params.get(MED_Q.pageSize)).toBe('25');
+    expect(req.request.params.get(MED_Q.searchTerm)).toBe('amox');
+    expect(req.request.params.get('category')).toBe('antibiotics');
+    expect(req.request.params.get('stockStatus')).toBe('low stock');
+    expect(req.request.params.get('expiryStatus')).toBe('warning');
+    expect(req.request.params.get(MED_Q.sortBy)).toBe('stockQuantity');
+    expect(req.request.params.get(MED_Q.sortOrder)).toBe('desc');
+    req.flush(emptyInventoryResponse);
+  });
+
+  it('sends medications sort, filters, and paging together in one query', () => {
+    service.getMedicationsWithFilters({
+      pageNumber: 3,
+      pageSize: 20,
+      searchTerm: 'aspirin',
+      category: 'painkiller',
+      stockStatus: 'normal stock',
+      sortBy: 'price',
+      sortOrder: 'asc'
+    }).subscribe();
+
+    const req = httpMock.expectOne(
+      request => request.url.endsWith('/api/pharmacy/medications')
+    );
+
+    expect(req.request.params.get(MED_Q.pageNumber)).toBe('3');
+    expect(req.request.params.get(MED_Q.pageSize)).toBe('20');
+    expect(req.request.params.get(MED_Q.searchTerm)).toBe('aspirin');
+    expect(req.request.params.get(MED_Q.category)).toBe('painkiller');
+    expect(req.request.params.get(MED_Q.stockStatus)).toBe('normal stock');
+    expect(req.request.params.get(MED_Q.sortBy)).toBe('price');
+    expect(req.request.params.get(MED_Q.sortOrder)).toBe('asc');
+    req.flush({
+      items: [],
+      totalCount: 0,
+      currentPage: 3,
+      pageSize: 20,
+      totalPages: 0
+    });
+  });
+
+  it('sends prescriptions sort, filters, and paging together in one query', () => {
+    service.getPrescriptionsWithFilters({
+      pageNumber: 2,
+      pageSize: 15,
+      searchTerm: 'john',
+      prescriptionStatus: 'Pending',
+      sortBy: 'prescribedDate',
+      sortOrder: 'desc'
+    }).subscribe();
+
+    const req = httpMock.expectOne(
+      request => request.url.endsWith('/api/pharmacy/prescriptions')
+    );
+
+    expect(req.request.params.get('pageNumber')).toBe('2');
+    expect(req.request.params.get('pageSize')).toBe('15');
+    expect(req.request.params.get(MED_Q.searchTerm)).toBe('john');
+    expect(req.request.params.get('status')).toBe('Pending');
+    expect(req.request.params.get('sortBy')).toBe('prescribedDate');
+    expect(req.request.params.get('sortOrder')).toBe('desc');
+    req.flush({
+      items: [],
+      totalCount: 0,
+      currentPage: 2,
+      pageSize: 15,
+      totalPages: 0
+    });
+  });
 });

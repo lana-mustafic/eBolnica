@@ -54,4 +54,55 @@ describe('PharmacyFilterService inventory sort', () => {
 
     expect(service.getSortParams()).toEqual({});
   });
+
+  it('keeps sort, filters, and paging in one filter state for a single API query', () => {
+    service.updateFilters({
+      pageNumber: 2,
+      pageSize: 25,
+      category: 'antibiotics',
+      stockStatus: 'low stock',
+      searchTerm: 'amox',
+      sortBy: 'expiryDate',
+      sortOrder: 'desc'
+    });
+
+    expect(service.getFilters()).toEqual(
+      jasmine.objectContaining({
+        pageNumber: 2,
+        pageSize: 25,
+        category: 'antibiotics',
+        stockStatus: 'low stock',
+        searchTerm: 'amox',
+        sortBy: 'expiryDate',
+        sortOrder: 'desc'
+      })
+    );
+  });
+
+  it('resets page to 1 when sort changes but keeps filters for the next query', () => {
+    service.updateFilters({
+      pageNumber: 3,
+      pageSize: 25,
+      category: 'painkiller',
+      searchTerm: 'ibu',
+      sortBy: 'name',
+      sortOrder: 'asc'
+    });
+
+    service.updateFilters({
+      sortBy: 'expiryDate',
+      sortOrder: 'desc'
+    });
+
+    expect(service.getFilters()).toEqual(
+      jasmine.objectContaining({
+        pageNumber: 1,
+        pageSize: 25,
+        category: 'painkiller',
+        searchTerm: 'ibu',
+        sortBy: 'expiryDate',
+        sortOrder: 'desc'
+      })
+    );
+  });
 });

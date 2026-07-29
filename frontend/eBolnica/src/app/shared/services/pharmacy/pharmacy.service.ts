@@ -425,7 +425,8 @@ export class PharmacyService {
   }
 
   /**
-   * Build query parameters for inventory from PharmacyFilters
+   * Build query parameters for inventory from PharmacyFilters.
+   * Sends pagination, filters, and sort together in one request.
    */
   private buildInventoryQueryParams(filters: PharmacyFilters): HttpParams {
     const { pageNumber, pageSize } = normalizePaginationParams(
