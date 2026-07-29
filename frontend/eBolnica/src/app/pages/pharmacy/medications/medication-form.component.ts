@@ -148,6 +148,9 @@ export class MedicationFormComponent implements OnInit {
           dosageForm: medication.dosageForm || '',
           strength: medication.strength || ''
         });
+
+        // Re-run async name check with excludeId so unchanged name is not flagged as duplicate
+        this.medicationForm.get('name')?.updateValueAndValidity();
       },
       error: (error) => {
         this.errorMessage = 'Failed to load medication. Please try again.';

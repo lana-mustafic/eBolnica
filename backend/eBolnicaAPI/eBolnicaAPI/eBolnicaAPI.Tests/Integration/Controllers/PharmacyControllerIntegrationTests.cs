@@ -456,6 +456,88 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
             Assert.Equal("Aspirin", result.Items[0].Name);
         }
 
+        #endregion
+
+        #region CheckMedicationNameAvailability Integration Tests
+
+        [Fact]
+        public async Task CheckMedicationNameAvailability_ExistingName_ReturnsNotAvailable()
+        {
+            var response = await _client.GetAsync("/api/pharmacy/medications/check-name?name=Penicillin");
+
+            response.EnsureSuccessStatusCode();
+            var result = await response.Content.ReadFromJsonAsync<MedicationNameAvailabilityDto>();
+
+            Assert.NotNull(result);
+            Assert.False(result.IsAvailable);
+        }
+
+        [Fact]
+        public async Task CheckMedicationNameAvailability_UniqueName_ReturnsAvailable()
+        {
+            var response = await _client.GetAsync("/api/pharmacy/medications/check-name?name=Brand%20New%20Med");
+
+            response.EnsureSuccessStatusCode();
+            var result = await response.Content.ReadFromJsonAsync<MedicationNameAvailabilityDto>();
+
+            Assert.NotNull(result);
+            Assert.True(result.IsAvailable);
+        }
+
+        [Fact]
+        public async Task CheckMedicationNameAvailability_CaseInsensitiveMatch_ReturnsNotAvailable()
+        {
+            var response = await _client.GetAsync("/api/pharmacy/medications/check-name?name=penicillin");
+
+            response.EnsureSuccessStatusCode();
+            var result = await response.Content.ReadFromJsonAsync<MedicationNameAvailabilityDto>();
+
+            Assert.NotNull(result);
+            Assert.False(result.IsAvailable);
+        }
+
+        [Fact]
+        public async Task CheckMedicationNameAvailability_WithExcludeId_ExcludesCurrentRecord()
+        {
+            var penicillin = await _context.Medications.FirstAsync(m => m.Name == "Penicillin");
+
+            var response = await _client.GetAsync(
+                $"/api/pharmacy/medications/check-name?name=Penicillin&excludeId={penicillin.Id}");
+
+            response.EnsureSuccessStatusCode();
+            var result = await response.Content.ReadFromJsonAsync<MedicationNameAvailabilityDto>();
+
+            Assert.NotNull(result);
+            Assert.True(result.IsAvailable);
+        }
+
+        [Fact]
+        public async Task CheckMedicationNameAvailability_WithExcludeId_StillDetectsOtherDuplicate()
+        {
+            var amoxicillin = await _context.Medications.FirstAsync(m => m.Name == "Amoxicillin");
+
+            var response = await _client.GetAsync(
+                $"/api/pharmacy/medications/check-name?name=Penicillin&excludeId={amoxicillin.Id}");
+
+            response.EnsureSuccessStatusCode();
+            var result = await response.Content.ReadFromJsonAsync<MedicationNameAvailabilityDto>();
+
+            Assert.NotNull(result);
+            Assert.False(result.IsAvailable);
+        }
+
+        [Fact]
+        public async Task CheckMedicationNameAvailability_EmptyName_ReturnsBadRequest()
+        {
+            var response = await _client.GetAsync("/api/pharmacy/medications/check-name?name=");
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        #endregion
+
+        #region GetMedications Validation Integration Tests
+
         [Fact]
         public async Task GetMedications_MinPriceGreaterThanMaxPrice_ReturnsBadRequest()
         {

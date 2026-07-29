@@ -296,6 +296,39 @@ namespace eBolnicaAPI.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Check whether a medication name is available (case-insensitive).
+        /// </summary>
+        /// <param name="name">Medication name to check</param>
+        /// <param name="excludeId">Optional medication ID to exclude (edit mode — current record)</param>
+        [HttpGet("medications/check-name")]
+        [Authorize(Roles = "Pharmacist")]
+        [ProducesResponseType(typeof(MedicationNameAvailabilityDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> CheckMedicationNameAvailability(
+            [FromQuery] string name,
+            [FromQuery] int? excludeId = null)
+        {
+            var trimmedName = name?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrEmpty(trimmedName))
+            {
+                return BadRequest(new { error = "Name is required." });
+            }
+
+            var normalizedName = trimmedName.ToLowerInvariant();
+
+            var nameTaken = await _context.Medications
+                .AsNoTracking()
+                .Where(m => excludeId == null || m.Id != excludeId.Value)
+                .AnyAsync(m => m.Name.ToLower() == normalizedName);
+
+            return Ok(new MedicationNameAvailabilityDto
+            {
+                IsAvailable = !nameTaken
+            });
+        }
+
         [HttpGet("medications/{id}")]
         [Authorize(Roles = "Pharmacist")]
         public async Task<IActionResult> GetMedication(int id)
