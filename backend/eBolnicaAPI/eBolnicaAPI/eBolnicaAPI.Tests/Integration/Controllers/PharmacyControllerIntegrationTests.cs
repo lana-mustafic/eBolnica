@@ -342,6 +342,64 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
         }
 
         [Fact]
+        public async Task ImportMedicationsCsv_ValidFile_ImportsRows()
+        {
+            var expiry = DateTime.UtcNow.AddYears(1).ToString("yyyy-MM-dd");
+            var csv = $"""
+                Name,Generic Name,Category,Manufacturer,Description,Price,Stock Quantity,Minimum Stock Level,Expiry Date,Batch Number,Dosage Form,Strength,Requires Prescription,Active
+                Imported From Api,,Vitamins,,,11.00,30,10,{expiry},,,,No,Yes
+                """;
+
+            using var content = CreateCsvUploadContent(csv);
+            var response = await _client.PostAsync("/api/pharmacy/medications/import/csv", content);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var summary = await response.Content.ReadFromJsonAsync<MedicationImportSummaryDto>();
+            Assert.NotNull(summary);
+            Assert.Equal(1, summary.SuccessCount);
+            Assert.Equal(0, summary.FailureCount);
+            Assert.True(_context.Medications.Any(m => m.Name == "Imported From Api"));
+        }
+
+        [Fact]
+        public async Task ImportMedicationsCsv_DuplicateName_ReturnsRowFailure()
+        {
+            var expiry = DateTime.UtcNow.AddYears(1).ToString("yyyy-MM-dd");
+            var csv = $"""
+                Name,Generic Name,Category,Manufacturer,Description,Price,Stock Quantity,Minimum Stock Level,Expiry Date,Batch Number,Dosage Form,Strength,Requires Prescription,Active
+                Aspirin,,Vitamins,,,11.00,30,10,{expiry},,,,No,Yes
+                """;
+
+            using var content = CreateCsvUploadContent(csv);
+            var response = await _client.PostAsync("/api/pharmacy/medications/import/csv", content);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var summary = await response.Content.ReadFromJsonAsync<MedicationImportSummaryDto>();
+            Assert.NotNull(summary);
+            Assert.Equal(0, summary.SuccessCount);
+            Assert.Equal(1, summary.FailureCount);
+            Assert.Contains(summary.Errors, e => e.Field == "Name");
+        }
+
+        [Fact]
+        public async Task ImportMedicationsCsv_MissingHeaders_ReturnsBadRequest()
+        {
+            using var content = CreateCsvUploadContent("Wrong,Headers\na,b");
+            var response = await _client.PostAsync("/api/pharmacy/medications/import/csv", content);
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task ImportMedicationsCsv_NoFile_ReturnsBadRequest()
+        {
+            using var content = new MultipartFormDataContent();
+            var response = await _client.PostAsync("/api/pharmacy/medications/import/csv", content);
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
         public async Task GetMedications_PriceRangeAndCategory_ReturnsMatchingSubset()
         {
             var url = "/api/pharmacy/medications?category=painkiller&minPrice=7&maxPrice=9&pageSize=100";
@@ -895,6 +953,17 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
         #endregion
 
         #region Helper Methods
+
+        private static MultipartFormDataContent CreateCsvUploadContent(string csv, string fileName = "medications.csv")
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+            var fileContent = new ByteArrayContent(bytes);
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/csv");
+
+            var form = new MultipartFormDataContent();
+            form.Add(fileContent, "file", fileName);
+            return form;
+        }
 
         private void SeedTestData()
         {

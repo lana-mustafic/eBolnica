@@ -29,6 +29,7 @@ namespace eBolnicaAPI.Controllers
         private readonly IPharmacyAnalyticsService _analyticsService;
         private readonly IMedicationImageService _medicationImageService;
         private readonly IMedicationCsvExportService _medicationCsvExportService;
+        private readonly IMedicationCsvImportService _medicationCsvImportService;
         private readonly ILogger<PharmacyController> _logger;
         private readonly IMemoryCache _cache;
         private readonly IConfiguration _configuration;
@@ -41,6 +42,7 @@ namespace eBolnicaAPI.Controllers
             IPharmacyAnalyticsService analyticsService,
             IMedicationImageService medicationImageService,
             IMedicationCsvExportService medicationCsvExportService,
+            IMedicationCsvImportService medicationCsvImportService,
             ILogger<PharmacyController> logger,
             IMemoryCache cache,
             IConfiguration configuration)
@@ -52,6 +54,7 @@ namespace eBolnicaAPI.Controllers
             _analyticsService = analyticsService;
             _medicationImageService = medicationImageService;
             _medicationCsvExportService = medicationCsvExportService;
+            _medicationCsvImportService = medicationCsvImportService;
             _logger = logger;
             _cache = cache;
             _configuration = configuration;
@@ -268,6 +271,29 @@ namespace eBolnicaAPI.Controllers
             var fileName = _medicationCsvExportService.GetImportTemplateFileName();
 
             return ReturnCsvFile(Encoding.UTF8.GetBytes(csvContent), fileName);
+        }
+
+        /// <summary>
+        /// Import medications from an uploaded CSV file (multipart/form-data field: file).
+        /// </summary>
+        /// <remarks>
+        /// Returns row-level success/failure counts. File-level problems (missing file, malformed CSV,
+        /// invalid headers) return 400.
+        /// </remarks>
+        [HttpPost("medications/import/csv")]
+        [Authorize(Roles = "Pharmacist")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType(typeof(MedicationImportSummaryDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ImportMedicationsCsv([FromForm] IFormFile file, CancellationToken cancellationToken)
+        {
+            var (fileError, summary) = await _medicationCsvImportService.ImportAsync(file, cancellationToken);
+            if (fileError != null)
+            {
+                return BadRequest(new { error = fileError });
+            }
+
+            return Ok(summary);
         }
 
         [HttpGet("medications/{id}")]

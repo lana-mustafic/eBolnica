@@ -169,6 +169,7 @@ builder.Services.Configure<FormOptions>(options =>
 });
 builder.Services.AddScoped<IPharmacyService, PharmacyService>();
 builder.Services.AddScoped<IMedicationCsvExportService, MedicationCsvExportService>();
+builder.Services.AddScoped<IMedicationCsvImportService, MedicationCsvImportService>();
 builder.Services.AddScoped<IPharmacyAnalyticsService, PharmacyAnalyticsService>();
 builder.Services.Configure<eBolnicaAPI.Models.Settings.MedicationImageUploadSettings>(
     builder.Configuration.GetSection(eBolnicaAPI.Models.Settings.MedicationImageUploadSettings.SectionName));

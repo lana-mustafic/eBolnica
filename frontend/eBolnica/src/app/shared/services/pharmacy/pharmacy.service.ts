@@ -215,7 +215,7 @@ export class PharmacyService {
     formData.append('file', file, file.name);
 
     return this.http.post<MedicationImportSummary>(
-      `${this.apiUrl}/medications/import`,
+      `${this.apiUrl}/medications/import/csv`,
       formData
     ).pipe(
       map(response => this.mapMedicationImportSummary(response)),
