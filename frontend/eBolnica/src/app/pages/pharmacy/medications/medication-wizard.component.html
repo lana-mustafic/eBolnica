@@ -56,51 +56,26 @@
         <p>Enter the basic details about the medication</p>
       </div>
 
-      <div class="form-group">
-        <label for="name">
-          Medication Name <span class="required">*</span>
-        </label>
-        <input
-          type="text"
-          id="name"
-          formControlName="name"
-          class="form-control"
-          [class.error]="getFieldError('name')"
-          placeholder="e.g., Paracetamol">
-        <div class="error-text" *ngIf="getFieldError('name')">
-          {{ getFieldError('name') }}
-        </div>
-      </div>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Medication Name</mat-label>
+        <input matInput id="name" formControlName="name" placeholder="e.g., Paracetamol">
+        <mat-error *ngIf="getFieldError('name')">{{ getFieldError('name') }}</mat-error>
+      </mat-form-field>
 
-      <div class="form-group">
-        <label for="category">
-          Category <span class="required">*</span>
-        </label>
-        <select
-          id="category"
-          formControlName="category"
-          class="form-control"
-          [class.error]="getFieldError('category')">
-          <option value="">Select a category</option>
-          <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
-        </select>
-        <div class="error-text" *ngIf="getFieldError('category')">
-          {{ getFieldError('category') }}
-        </div>
-      </div>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Category</mat-label>
+        <mat-select id="category" formControlName="category">
+          <mat-option value="">Select a category</mat-option>
+          <mat-option *ngFor="let cat of categories" [value]="cat">{{ cat }}</mat-option>
+        </mat-select>
+        <mat-error *ngIf="getFieldError('category')">{{ getFieldError('category') }}</mat-error>
+      </mat-form-field>
 
-      <div class="form-group">
-        <label for="description">Description</label>
-        <textarea
-          id="description"
-          formControlName="description"
-          class="form-control"
-          rows="4"
-          placeholder="Enter medication description (optional)"></textarea>
-        <div class="error-text" *ngIf="getFieldError('description')">
-          {{ getFieldError('description') }}
-        </div>
-      </div>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Description</mat-label>
+        <textarea matInput id="description" formControlName="description" rows="4" placeholder="Enter medication description (optional)"></textarea>
+        <mat-error *ngIf="getFieldError('description')">{{ getFieldError('description') }}</mat-error>
+      </mat-form-field>
     </div>
 
     <!-- Step 2: Details & Stock -->
@@ -111,86 +86,40 @@
       </div>
 
       <div class="form-row">
-        <div class="form-group">
-          <label for="price">
-            Price <span class="required">*</span>
-          </label>
-          <div class="input-group">
-            <span class="input-prefix">$</span>
-            <input
-              type="number"
-              id="price"
-              formControlName="price"
-              class="form-control"
-              [class.error]="getFieldError('price')"
-              placeholder="0.00"
-              step="0.01"
-              min="0.01">
-          </div>
-          <div class="error-text" *ngIf="getFieldError('price')">
-            {{ getFieldError('price') }}
-          </div>
-        </div>
+        <mat-form-field appearance="outline">
+          <mat-label>Price</mat-label>
+          <span matTextPrefix>$&nbsp;</span>
+          <input matInput type="number" id="price" formControlName="price" placeholder="0.00" step="0.01" min="0.01">
+          <mat-error *ngIf="getFieldError('price')">{{ getFieldError('price') }}</mat-error>
+        </mat-form-field>
 
-        <div class="form-group">
-          <label for="stockQuantity">
-            Stock Quantity <span class="required">*</span>
-          </label>
-          <input
-            type="number"
-            id="stockQuantity"
-            formControlName="stockQuantity"
-            class="form-control"
-            [class.error]="getFieldError('stockQuantity')"
-            placeholder="0"
-            min="0">
-          <div class="error-text" *ngIf="getFieldError('stockQuantity')">
-            {{ getFieldError('stockQuantity') }}
-          </div>
-        </div>
+        <mat-form-field appearance="outline">
+          <mat-label>Stock Quantity</mat-label>
+          <input matInput type="number" id="stockQuantity" formControlName="stockQuantity" placeholder="0" min="0">
+          <mat-error *ngIf="getFieldError('stockQuantity')">{{ getFieldError('stockQuantity') }}</mat-error>
+        </mat-form-field>
       </div>
 
-      <div class="form-group">
-        <label for="minimumStockLevel">
-          Minimum Stock Level <span class="required">*</span>
-        </label>
-        <input
-          type="number"
-          id="minimumStockLevel"
-          formControlName="minimumStockLevel"
-          class="form-control"
-          [class.error]="getFieldError('minimumStockLevel')"
-          placeholder="10"
-          min="0">
-        <div class="error-text" *ngIf="getFieldError('minimumStockLevel')">
-          {{ getFieldError('minimumStockLevel') }}
-        </div>
-      </div>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Minimum Stock Level</mat-label>
+        <input matInput type="number" id="minimumStockLevel" formControlName="minimumStockLevel" placeholder="10" min="0">
+        <mat-error *ngIf="getFieldError('minimumStockLevel')">{{ getFieldError('minimumStockLevel') }}</mat-error>
+      </mat-form-field>
 
       <div class="form-row">
-        <div class="form-group">
-          <label for="dosageForm">Dosage Form</label>
-          <select
-            id="dosageForm"
-            formControlName="dosageForm"
-            class="form-control">
-            <option value="">Select dosage form</option>
-            <option *ngFor="let form of dosageForms" [value]="form">{{ form }}</option>
-          </select>
-        </div>
+        <mat-form-field appearance="outline">
+          <mat-label>Dosage Form</mat-label>
+          <mat-select id="dosageForm" formControlName="dosageForm">
+            <mat-option value="">Select dosage form</mat-option>
+            <mat-option *ngFor="let form of dosageForms" [value]="form">{{ form }}</mat-option>
+          </mat-select>
+        </mat-form-field>
 
-        <div class="form-group">
-          <label for="strength">Strength</label>
-          <input
-            type="text"
-            id="strength"
-            formControlName="strength"
-            class="form-control"
-            placeholder="e.g., 500mg">
-          <div class="error-text" *ngIf="getFieldError('strength')">
-            {{ getFieldError('strength') }}
-          </div>
-        </div>
+        <mat-form-field appearance="outline">
+          <mat-label>Strength</mat-label>
+          <input matInput type="text" id="strength" formControlName="strength" placeholder="e.g., 500mg">
+          <mat-error *ngIf="getFieldError('strength')">{{ getFieldError('strength') }}</mat-error>
+        </mat-form-field>
       </div>
     </div>
 
@@ -202,84 +131,36 @@
       </div>
 
       <div class="form-row">
-        <div class="form-group">
-          <label for="expiryDate">
-            Expiry Date <span class="required">*</span>
-          </label>
-          <input
-            type="date"
-            id="expiryDate"
-            formControlName="expiryDate"
-            class="form-control"
-            [class.error]="getFieldError('expiryDate')">
-          <div class="error-text" *ngIf="getFieldError('expiryDate')">
-            {{ getFieldError('expiryDate') }}
-          </div>
-        </div>
+        <mat-form-field appearance="outline">
+          <mat-label>Expiry Date</mat-label>
+          <input matInput type="date" id="expiryDate" formControlName="expiryDate">
+          <mat-error *ngIf="getFieldError('expiryDate')">{{ getFieldError('expiryDate') }}</mat-error>
+        </mat-form-field>
 
-        <div class="form-group">
-          <label for="batchNumber">Batch Number</label>
-          <input
-            type="text"
-            id="batchNumber"
-            formControlName="batchNumber"
-            class="form-control"
-            placeholder="e.g., BATCH-001">
-          <div class="error-text" *ngIf="getFieldError('batchNumber')">
-            {{ getFieldError('batchNumber') }}
-          </div>
-        </div>
+        <mat-form-field appearance="outline">
+          <mat-label>Batch Number</mat-label>
+          <input matInput type="text" id="batchNumber" formControlName="batchNumber" placeholder="e.g., BATCH-001">
+          <mat-error *ngIf="getFieldError('batchNumber')">{{ getFieldError('batchNumber') }}</mat-error>
+        </mat-form-field>
       </div>
 
       <div class="form-row">
-        <div class="form-group">
-          <label for="genericName">Generic Name</label>
-          <input
-            type="text"
-            id="genericName"
-            formControlName="genericName"
-            class="form-control"
-            placeholder="e.g., Acetaminophen">
-          <div class="error-text" *ngIf="getFieldError('genericName')">
-            {{ getFieldError('genericName') }}
-          </div>
-        </div>
+        <mat-form-field appearance="outline">
+          <mat-label>Generic Name</mat-label>
+          <input matInput type="text" id="genericName" formControlName="genericName" placeholder="e.g., Acetaminophen">
+          <mat-error *ngIf="getFieldError('genericName')">{{ getFieldError('genericName') }}</mat-error>
+        </mat-form-field>
 
-        <div class="form-group">
-          <label for="manufacturer">Manufacturer</label>
-          <input
-            type="text"
-            id="manufacturer"
-            formControlName="manufacturer"
-            class="form-control"
-            placeholder="e.g., PharmaCorp">
-          <div class="error-text" *ngIf="getFieldError('manufacturer')">
-            {{ getFieldError('manufacturer') }}
-          </div>
-        </div>
+        <mat-form-field appearance="outline">
+          <mat-label>Manufacturer</mat-label>
+          <input matInput type="text" id="manufacturer" formControlName="manufacturer" placeholder="e.g., PharmaCorp">
+          <mat-error *ngIf="getFieldError('manufacturer')">{{ getFieldError('manufacturer') }}</mat-error>
+        </mat-form-field>
       </div>
 
-      <div class="form-row">
-        <div class="form-group checkbox-group">
-          <label class="checkbox-label">
-            <input
-              type="checkbox"
-              formControlName="requiresPrescription"
-              class="checkbox-input">
-            <span>Requires Prescription</span>
-          </label>
-        </div>
-
-        <div class="form-group checkbox-group">
-          <label class="checkbox-label">
-            <input
-              type="checkbox"
-              formControlName="isActive"
-              class="checkbox-input"
-              [checked]="true">
-            <span>Active (available for use)</span>
-          </label>
-        </div>
+      <div class="form-row checkbox-row">
+        <mat-checkbox formControlName="requiresPrescription">Requires Prescription</mat-checkbox>
+        <mat-checkbox formControlName="isActive">Active (available for use)</mat-checkbox>
       </div>
     </div>
 

@@ -5,7 +5,7 @@ import { MedicationImageDto } from '../../../models/medication-image.dto';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
 import { AuthService } from '../../../shared/services/auth.service';
 import { NotificationService } from '../../../shared/services/notification.service';
-import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/confirm-modal.component';
+import { ConfirmDialogService } from '../../../shared/services/confirm-dialog.service';
 import { MedicationImageLightboxComponent } from './medication-image-lightbox.component';
 
 const IMAGE_DELETE_ROLES = ['Pharmacist', 'Admin'] as const;
@@ -13,7 +13,7 @@ const IMAGE_DELETE_ROLES = ['Pharmacist', 'Admin'] as const;
 @Component({
   selector: 'app-medication-image-gallery',
   standalone: true,
-  imports: [CommonModule, ConfirmModalComponent, MedicationImageLightboxComponent],
+  imports: [CommonModule, MedicationImageLightboxComponent],
   templateUrl: './medication-image-gallery.component.html',
   styleUrl: './medication-image-gallery.component.css'
 })
@@ -21,6 +21,7 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
   private pharmacyService = inject(PharmacyService);
   private authService = inject(AuthService);
   private notificationService = inject(NotificationService);
+  private confirmDialog = inject(ConfirmDialogService);
 
   @Input({ required: true }) medicationId!: number;
   @Input() images: MedicationImageDto[] = [];
@@ -34,10 +35,8 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
   isDeleting = false;
   errorMessage: string | null = null;
   successMessage: string | null = null;
-  showDeleteConfirm = false;
   lightboxOpen = false;
   canDeleteImages = false;
-  imagePendingDelete: MedicationImageDto | null = null;
   deletingImageId: number | null = null;
 
   private successTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -69,19 +68,6 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
   get selectedImageUrl(): string | null {
     const image = this.selectedImage;
     return image ? this.pharmacyService.resolveMedicationImageUrl(image.imageUrl) : null;
-  }
-
-  get deleteConfirmMessage(): string {
-    if (!this.imagePendingDelete) {
-      return 'Are you sure you want to delete this image? This action cannot be undone.';
-    }
-
-    const label = this.getImageLabel(this.imagePendingDelete);
-    const primaryNote = this.imagePendingDelete.isPrimary
-      ? ' This is the primary image — another image will be promoted automatically.'
-      : '';
-
-    return `Are you sure you want to delete "${label}"? This action cannot be undone.${primaryNote}`;
   }
 
   selectImage(index: number): void {
@@ -167,21 +153,28 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
     const target = image ?? this.selectedImage;
     if (!target) return;
 
-    this.imagePendingDelete = target;
-    this.showDeleteConfirm = true;
+    const label = this.getImageLabel(target);
+    const primaryNote = target.isPrimary
+      ? ' This is the primary image — another image will be promoted automatically.'
+      : '';
+    const message = `Are you sure you want to delete "${label}"? This action cannot be undone.${primaryNote}`;
+
+    this.confirmDialog.confirm({
+      title: 'Delete image',
+      message,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      confirmColor: 'warn'
+    }).subscribe(confirmed => {
+      if (confirmed) {
+        this.executeDelete(target);
+      }
+    });
   }
 
-  cancelDelete(): void {
-    this.showDeleteConfirm = false;
-    this.imagePendingDelete = null;
-  }
+  private executeDelete(image: MedicationImageDto): void {
+    if (!this.canDeleteImages) return;
 
-  deleteConfirmed(): void {
-    const image = this.imagePendingDelete;
-    if (!image || !this.canDeleteImages) return;
-
-    this.showDeleteConfirm = false;
-    this.imagePendingDelete = null;
     this.isDeleting = true;
     this.deletingImageId = image.id;
     this.clearMessages();

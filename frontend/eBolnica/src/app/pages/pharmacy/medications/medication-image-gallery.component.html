@@ -151,10 +151,3 @@
   (indexChange)="onLightboxIndexChange($event)"
   (deleteRequested)="confirmDelete()">
 </app-medication-image-lightbox>
-
-<app-confirm-modal
-  [show]="showDeleteConfirm"
-  [message]="deleteConfirmMessage"
-  (confirmed)="deleteConfirmed()"
-  (cancelled)="cancelDelete()">
-</app-confirm-modal>

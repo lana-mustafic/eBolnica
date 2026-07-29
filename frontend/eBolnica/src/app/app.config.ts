@@ -1,5 +1,6 @@
 import { ApplicationConfig, provideZoneChangeDetection, APP_INITIALIZER } from '@angular/core';
 import { provideRouter } from '@angular/router';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { routes } from './app.routes';
 import { provideHttpClient, withInterceptors, HttpClient } from '@angular/common/http';
 import { authInterceptor} from './shared/services/auth-interceptor.service';
@@ -24,7 +25,8 @@ function initializeI18n(i18nService: I18nService, http: HttpClient) {
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideZoneChangeDetection({ eventCoalescing: true }), 
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideAnimationsAsync(),
     provideRouter(routes), 
     provideHttpClient(
       withInterceptors([authInterceptor])
