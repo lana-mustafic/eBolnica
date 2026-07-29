@@ -106,7 +106,7 @@ namespace eBolnicaAPI.Controllers
 
             ApplyLegacyMedicationQueryAliases(parameters, search, page);
 
-            var filterValidationError = ValidateFilterParameters(parameters);
+            var filterValidationError = ValidateFilterParameters(parameters, PharmacyListEndpoint.Medications);
             if (filterValidationError != null)
             {
                 return filterValidationError;
@@ -536,7 +536,7 @@ namespace eBolnicaAPI.Controllers
         {
             var stopwatch = Stopwatch.StartNew();
 
-            var filterValidationError = ValidateFilterParameters(parameters);
+            var filterValidationError = ValidateFilterParameters(parameters, PharmacyListEndpoint.Prescriptions);
             if (filterValidationError != null)
             {
                 return filterValidationError;
@@ -1079,7 +1079,7 @@ namespace eBolnicaAPI.Controllers
         {
             var stopwatch = Stopwatch.StartNew();
 
-            var filterValidationError = ValidateFilterParameters(parameters);
+            var filterValidationError = ValidateFilterParameters(parameters, PharmacyListEndpoint.Inventory);
             if (filterValidationError != null)
             {
                 return filterValidationError;
@@ -1339,6 +1339,12 @@ namespace eBolnicaAPI.Controllers
                 // 2. Convert request to PharmacyQueryParameters for filtering
                 var queryParams = ConvertPdfRequestToQueryParameters(request);
 
+                var sortValidationError = ValidateSortParameters(queryParams, PharmacyListEndpoint.Inventory);
+                if (sortValidationError != null)
+                {
+                    return sortValidationError;
+                }
+
                 // 3. Get filtered data using existing service methods
                 var baseQuery = _context.Medications.AsQueryable();
                 var filteredQuery = _pharmacyService.GetFilteredInventory(baseQuery, queryParams);
@@ -1452,6 +1458,12 @@ namespace eBolnicaAPI.Controllers
 
                 // 2. Convert request to PharmacyQueryParameters for filtering
                 var queryParams = ConvertPdfRequestToQueryParameters(request);
+
+                var sortValidationError = ValidateSortParameters(queryParams, PharmacyListEndpoint.Prescriptions);
+                if (sortValidationError != null)
+                {
+                    return sortValidationError;
+                }
 
                 // 3. Get filtered data using existing service methods
                 var baseQuery = _context.Prescriptions
@@ -1918,9 +1930,11 @@ namespace eBolnicaAPI.Controllers
             parameters.PageSize = Math.Clamp(parameters.PageSize, 1, 100);
         }
 
-        private IActionResult? ValidateFilterParameters(PharmacyQueryParameters parameters)
+        private IActionResult? ValidateFilterParameters(
+            PharmacyQueryParameters parameters,
+            PharmacyListEndpoint endpoint)
         {
-            var validationResults = PharmacyQueryParameterValidator.Validate(parameters);
+            var validationResults = PharmacyQueryParameterValidator.Validate(parameters, endpoint);
             if (validationResults.Count == 0)
             {
                 return null;
@@ -1938,6 +1952,26 @@ namespace eBolnicaAPI.Controllers
                         memberName,
                         result.ErrorMessage ?? "Invalid filter parameter.");
                 }
+            }
+
+            return ValidationProblem(ModelState);
+        }
+
+        private IActionResult? ValidateSortParameters(
+            PharmacyQueryParameters parameters,
+            PharmacyListEndpoint endpoint)
+        {
+            var validationResults = PharmacySortValidator.Validate(parameters, endpoint);
+            if (validationResults.Count == 0)
+            {
+                return null;
+            }
+
+            foreach (var result in validationResults)
+            {
+                ModelState.AddModelError(
+                    nameof(PharmacyQueryParameters.SortBy),
+                    result.ErrorMessage ?? "Invalid sort column.");
             }
 
             return ValidationProblem(ModelState);

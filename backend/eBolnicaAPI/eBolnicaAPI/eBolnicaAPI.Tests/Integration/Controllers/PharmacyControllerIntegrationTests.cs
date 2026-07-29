@@ -356,6 +356,16 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
         }
 
         [Fact]
+        public async Task GetMedications_InvalidSortColumn_ReturnsBadRequest()
+        {
+            var url = "/api/pharmacy/medications?sortBy=invalidColumn&sortOrder=asc";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
         public async Task GetMedications_NegativeMinPrice_ReturnsBadRequest()
         {
             // Arrange
@@ -480,6 +490,16 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
             var dates = result.Items.Select(p => p.CreatedAt).ToList();
             var sortedDates = dates.OrderByDescending(d => d).ToList();
             Assert.Equal(sortedDates, dates);
+        }
+
+        [Fact]
+        public async Task GetPrescriptions_InvalidSortColumn_ReturnsBadRequest()
+        {
+            var url = "/api/pharmacy/prescriptions?sortBy=patientName&sortOrder=asc";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
         [Fact]
@@ -646,6 +666,16 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
         public async Task GetInventory_MinStockGreaterThanMaxStock_ReturnsBadRequest()
         {
             var url = "/api/pharmacy/inventory?minStock=100&maxStock=10";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetInventory_InvalidSortColumn_ReturnsBadRequest()
+        {
+            var url = "/api/pharmacy/inventory?sortBy=supplier&sortOrder=asc";
 
             var response = await _client.GetAsync(url);
 
