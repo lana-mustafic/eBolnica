@@ -1,7 +1,9 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { Observable, throwError, of, timer, forkJoin } from 'rxjs';
-import { catchError, tap, retry, retryWhen, delayWhen, take, concatMap } from 'rxjs/operators';
+import { catchError, tap, retry, retryWhen, delayWhen, take, concatMap, map } from 'rxjs/operators';
+import { normalizePagedResponse, normalizeInventoryResponse } from '../../utils/paged-response.util';
+import { normalizePaginationParams } from '../../utils/pagination-params.util';
 import { MedicationDto } from '../../../models/medication.dto';
 import { MedicationImageDto } from '../../../models/medication-image.dto';
 import { MedicationCreateDto } from '../../../models/medication-create.dto';
@@ -9,6 +11,7 @@ import { PharmacistDataDto } from '../../../models/pharmacist-data.dto';
 import { PrescriptionDto } from '../../../models/prescription.dto';
 import { PrescriptionCreateDto } from '../../../models/prescription-create.dto';
 import { PrescriptionDispenseDto } from '../../../models/prescription-dispense.dto';
+import { InventoryResponse } from '../../../models/inventory-response.dto';
 import { PagedResponse } from '../../../models/paged-response.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { PHARMACY_MEDICATION_QUERY_PARAMS as MED_Q } from '../../../constants/pharmacy-query-params.constants';
@@ -104,13 +107,10 @@ export class PharmacyService {
    */
   getAllMedications(filters?: MedicationFilterParams): Observable<PagedResponse<MedicationDto>> {
     // Set defaults
-    const page = filters?.page || 1;
-    const pageSize = Math.max(5, Math.min(100, filters?.pageSize || 10)); // Clamp between 5-100
+    const { pageNumber, pageSize } = normalizePaginationParams(filters?.page, filters?.pageSize);
     
-    // Build query parameters
-    // Backend accepts both 'page' (backward compatibility) and 'pageNumber'
     let params = new HttpParams()
-      .set('pageNumber', page.toString())
+      .set('pageNumber', pageNumber.toString())
       .set('pageSize', pageSize.toString());
     
     // Category filter
@@ -192,11 +192,10 @@ export class PharmacyService {
    * @returns Observable of paginated prescription response
    */
   getPrescriptions(filters?: PrescriptionFilterParams): Observable<PagedResponse<PrescriptionDto>> {
-    const page = filters?.page || 1;
-    const pageSize = Math.max(5, Math.min(100, filters?.pageSize || 10));
-    
+    const { pageNumber, pageSize } = normalizePaginationParams(filters?.page, filters?.pageSize);
+
     let params = new HttpParams()
-      .set('pageNumber', page.toString())
+      .set('pageNumber', pageNumber.toString())
       .set('pageSize', pageSize.toString());
     
     if (filters?.status) {
@@ -232,12 +231,11 @@ export class PharmacyService {
    * @param filters Optional filter parameters object
    * @returns Observable of paginated inventory response with alerts
    */
-  getInventory(filters?: InventoryFilterParams): Observable<PagedResponse<MedicationDto> & { LowStockAlerts: MedicationDto[]; ExpiryAlerts: MedicationDto[] }> {
-    const page = filters?.page || 1;
-    const pageSize = Math.max(5, Math.min(100, filters?.pageSize || 10));
-    
+  getInventory(filters?: InventoryFilterParams): Observable<InventoryResponse> {
+    const { pageNumber, pageSize } = normalizePaginationParams(filters?.page, filters?.pageSize);
+
     let params = new HttpParams()
-      .set('pageNumber', page.toString())
+      .set('pageNumber', pageNumber.toString())
       .set('pageSize', pageSize.toString());
     
     if (filters?.category) {
@@ -252,7 +250,10 @@ export class PharmacyService {
       }
     }
     
-    return this.http.get<any>(this.apiUrl + '/inventory', { params });
+    return this.http.get<any>(this.apiUrl + '/inventory', { params }).pipe(
+      map(response => normalizeInventoryResponse(response, pageSize)),
+      catchError(this.handleError.bind(this))
+    );
   }
 
   getPharmacistData(): Observable<PharmacistDataDto> {
@@ -274,6 +275,7 @@ export class PharmacyService {
     console.log('[PharmacyService] Query params:', params.toString());
     
     return this.http.get<PagedResponse<MedicationDto>>(`${this.apiUrl}/medications`, { params }).pipe(
+      map(response => normalizePagedResponse<MedicationDto>(response, filters.pageSize || 10)),
       tap(response => {
         console.log('[PharmacyService] Medications loaded:', {
           count: response.items?.length || 0,
@@ -295,6 +297,7 @@ export class PharmacyService {
     console.log('[PharmacyService] Loading prescriptions with filters:', filters);
     
     return this.http.get<PagedResponse<PrescriptionDto>>(`${this.apiUrl}/prescriptions`, { params }).pipe(
+      map(response => normalizePagedResponse<PrescriptionDto>(response, filters.pageSize || 10)),
       tap(response => {
         console.log('[PharmacyService] Prescriptions loaded:', {
           count: response.items?.length || 0,
@@ -310,18 +313,19 @@ export class PharmacyService {
    * Get inventory using unified PharmacyFilters
    * Includes error handling and logging
    */
-  getInventoryWithFilters(filters: PharmacyFilters): Observable<PagedResponse<MedicationDto> & { LowStockAlerts: MedicationDto[]; ExpiryAlerts: MedicationDto[] }> {
+  getInventoryWithFilters(filters: PharmacyFilters): Observable<InventoryResponse> {
     const params = this.buildInventoryQueryParams(filters);
     
     console.log('[PharmacyService] Loading inventory with filters:', filters);
     
     return this.http.get<any>(`${this.apiUrl}/inventory`, { params }).pipe(
+      map(response => normalizeInventoryResponse(response, filters.pageSize || 10)),
       tap(response => {
         console.log('[PharmacyService] Inventory loaded:', {
           count: response.items?.length || 0,
           total: response.totalCount,
-          lowStockAlerts: response.LowStockAlerts?.length || 0,
-          expiryAlerts: response.ExpiryAlerts?.length || 0
+          lowStockAlerts: response.lowStockAlerts?.length || 0,
+          expiryAlerts: response.expiryAlerts?.length || 0
         });
       }),
       catchError(this.handleError.bind(this))
@@ -332,9 +336,14 @@ export class PharmacyService {
    * Build query parameters for medications from PharmacyFilters
    */
   private buildMedicationQueryParams(filters: PharmacyFilters): HttpParams {
+    const { pageNumber, pageSize } = normalizePaginationParams(
+      filters.pageNumber,
+      filters.pageSize
+    );
+
     let params = new HttpParams()
-      .set(MED_Q.pageNumber, (filters.pageNumber || 1).toString())
-      .set(MED_Q.pageSize, Math.max(5, Math.min(100, filters.pageSize || 10)).toString());
+      .set(MED_Q.pageNumber, pageNumber.toString())
+      .set(MED_Q.pageSize, pageSize.toString());
 
     if (filters.searchTerm?.trim()) {
       params = params.set(MED_Q.searchTerm, filters.searchTerm.trim());
@@ -381,9 +390,14 @@ export class PharmacyService {
    * Build query parameters for prescriptions from PharmacyFilters
    */
   private buildPrescriptionQueryParams(filters: PharmacyFilters): HttpParams {
+    const { pageNumber, pageSize } = normalizePaginationParams(
+      filters.pageNumber,
+      filters.pageSize
+    );
+
     let params = new HttpParams()
-      .set('pageNumber', (filters.pageNumber || 1).toString())
-      .set('pageSize', Math.max(5, Math.min(100, filters.pageSize || 10)).toString());
+      .set('pageNumber', pageNumber.toString())
+      .set('pageSize', pageSize.toString());
 
     // Search (with URL encoding)
     if (filters.searchTerm?.trim()) {
@@ -411,9 +425,14 @@ export class PharmacyService {
    * Build query parameters for inventory from PharmacyFilters
    */
   private buildInventoryQueryParams(filters: PharmacyFilters): HttpParams {
+    const { pageNumber, pageSize } = normalizePaginationParams(
+      filters.pageNumber,
+      filters.pageSize
+    );
+
     let params = new HttpParams()
-      .set('pageNumber', (filters.pageNumber || 1).toString())
-      .set('pageSize', Math.max(5, Math.min(100, filters.pageSize || 10)).toString());
+      .set('pageNumber', pageNumber.toString())
+      .set('pageSize', pageSize.toString());
 
     // Search (with URL encoding)
     if (filters.searchTerm?.trim()) {
@@ -429,6 +448,20 @@ export class PharmacyService {
     // Stock status
     if (filters.stockStatus) {
       params = params.set('stockStatus', filters.stockStatus);
+    }
+
+    if (filters.minStock !== undefined && filters.minStock !== null) {
+      params = params.set('minStock', filters.minStock.toString());
+    }
+    if (filters.maxStock !== undefined && filters.maxStock !== null) {
+      params = params.set('maxStock', filters.maxStock.toString());
+    }
+
+    if (filters.expiryAfter) {
+      params = params.set('expiryAfter', filters.expiryAfter);
+    }
+    if (filters.expiryBefore) {
+      params = params.set('expiryBefore', filters.expiryBefore);
     }
 
     // Sorting

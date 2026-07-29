@@ -10,9 +10,11 @@ import { ActiveFiltersComponent } from '../../../shared/components/active-filter
 import { SortStatusComponent } from '../../../shared/components/sort-status/sort-status.component';
 import { MedicationDto } from '../../../models/medication.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
+import { InventoryResponse } from '../../../models/inventory-response.dto';
 import { PagedResponse } from '../../../models/paged-response.dto';
 import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, catchError, of } from 'rxjs';
 import { TABLE_DEFAULT_SORTS } from '../../../constants/sort.constants';
+import { getPageRangeEnd, getPageRangeStart } from '../../../shared/utils/paged-response.util';
 
 type StockStatus = 'adequate' | 'low' | 'critical' | 'out-of-stock';
 type ExpiryStatus = 'good' | 'warning' | 'critical' | 'expired';
@@ -30,11 +32,11 @@ export class InventoryComponent implements OnInit, OnDestroy {
   private notificationService = inject(NotificationService);
 
   inventoryItems: MedicationDto[] = [];
-  sortedInventoryItems: MedicationDto[] = []; // Client-side sorted items
   lowStockAlerts: MedicationDto[] = [];
   expiryAlerts: MedicationDto[] = [];
   isLoading: boolean = false;
   isSearching: boolean = false; // Separate flag for search loading
+  isSorting: boolean = false;
   isGeneratingPdf: boolean = false; // PDF generation state
   pdfProgress: number = 0; // PDF generation progress (0-100)
   showPdfProgress: boolean = false; // Show progress indicator
@@ -60,9 +62,12 @@ export class InventoryComponent implements OnInit, OnDestroy {
   // Available categories
   categories: string[] = [];
 
-  // Sort state
-  sortColumn: string = 'createdAt'; // Default sort column
-  sortOrder: 'asc' | 'desc' = 'desc'; // Default sort order
+  // Sort state (server-side)
+  sortColumn: string = TABLE_DEFAULT_SORTS.INVENTORY.column;
+  sortOrder: 'asc' | 'desc' = TABLE_DEFAULT_SORTS.INVENTORY.order;
+  private previousSortColumn: string = TABLE_DEFAULT_SORTS.INVENTORY.column;
+  private previousSortOrder: 'asc' | 'desc' = TABLE_DEFAULT_SORTS.INVENTORY.order;
+  private sortDebounceTimer?: ReturnType<typeof setTimeout>;
 
   // Summary statistics
   totalItems: number = 0;
@@ -78,72 +83,58 @@ export class InventoryComponent implements OnInit, OnDestroy {
   clearSuccessMessage: string | null = null;
 
   ngOnInit(): void {
-    // Initialize filters from service
-    const currentFilters = this.filterService.getFilters();
-    this.syncUIFromFilters(currentFilters);
+    this.syncUIFromFilters(this.filterService.getFilters());
 
-    // Load initial data
-    this.loadInventory();
-
-    // Setup debounced search that combines with dropdown filters
     this.searchSubject.pipe(
       debounceTime(300),
       distinctUntilChanged(),
       takeUntil(this.destroy$)
     ).subscribe(searchTerm => {
       this.searchTerm = searchTerm;
-      this.updateFilters({ searchTerm: searchTerm || undefined });
+      this.pushFiltersFromUI();
     });
 
-    // Subscribe to filter changes from service
     this.filterService.getFilters$().pipe(
-      debounceTime(150),
       switchMap(filters => {
         this.isSearching = true;
-        this.errorMessage = null; // Clear previous errors
+        this.errorMessage = null;
         this.syncUIFromFilters(filters);
         return this.pharmacyService.getInventoryWithFilters(filters).pipe(
-          finalize(() => this.isSearching = false),
+          finalize(() => {
+            this.isSearching = false;
+            this.isSorting = false;
+          }),
           catchError((error) => {
             this.handleApiError(error);
             return of({
               items: [],
-              LowStockAlerts: [],
-              ExpiryAlerts: [],
+              lowStockAlerts: [],
+              expiryAlerts: [],
               totalCount: 0,
               totalPages: 0,
               currentPage: 1,
               pageSize: filters.pageSize || 50,
               hasNext: false,
               hasPrevious: false
-            } as any);
+            } satisfies InventoryResponse);
           })
         );
       }),
       takeUntil(this.destroy$)
     ).subscribe({
-      next: (response: any) => {
+      next: (response: InventoryResponse) => {
         this.inventoryItems = response.items || [];
-        this.lowStockAlerts = response.LowStockAlerts || [];
-        this.expiryAlerts = response.ExpiryAlerts || [];
-        this.totalCount = response.totalCount || 0;
-        this.totalPages = response.totalPages || 0;
-        this.currentPage = response.currentPage || 1;
-        this.pageSize = response.pageSize || 50;
+        this.lowStockAlerts = response.lowStockAlerts || [];
+        this.expiryAlerts = response.expiryAlerts || [];
+        this.applyPaginationFromResponse(response);
         this.extractCategories();
         this.calculateSummaryStats();
         this.updateActiveFilters();
         this.errorMessage = null;
-        
-        // Apply client-side sorting after data loads
-        this.applyClientSideSort();
       }
     });
-    
-    // Initialize sortedInventoryItems if data is already loaded
-    if (this.inventoryItems.length > 0) {
-      this.applyClientSideSort();
-    }
+
+    this.pushFiltersFromUI();
   }
 
   ngOnDestroy(): void {
@@ -170,46 +161,144 @@ export class InventoryComponent implements OnInit, OnDestroy {
   private syncUIFromFilters(filters: PharmacyFilters): void {
     this.searchTerm = filters.searchTerm || '';
     this.selectedCategory = filters.category || '';
-    this.currentPage = filters.pageNumber || 1;
-    this.pageSize = filters.pageSize || 50;
-    // Note: For client-side sorting, we preserve sort state but don't update via filters
-    // Sort state is maintained in component and applied locally
+    this.selectedStockFilter = this.mapApiStockFilterToUi(filters);
+    this.selectedExpiryFilter = filters.expiryStatus || 'all';
+    if (filters.sortBy) {
+      this.sortColumn = filters.sortBy;
+    }
+    if (filters.sortOrder) {
+      this.sortOrder = filters.sortOrder as 'asc' | 'desc';
+    }
+  }
+
+  private applyPaginationFromResponse(response: PagedResponse<MedicationDto>): void {
+    this.totalCount = response.totalCount;
+    this.totalPages = response.totalPages;
+    this.currentPage = response.currentPage;
+    this.pageSize = response.pageSize;
+    this.filterService.syncPaginationFromResponse(response.currentPage, response.pageSize);
+  }
+
+  get paginationRangeStart(): number {
+    return getPageRangeStart(this.currentPage, this.pageSize, this.totalCount);
+  }
+
+  get paginationRangeEnd(): number {
+    return getPageRangeEnd(this.currentPage, this.pageSize, this.totalCount);
   }
 
   /**
-   * Build PharmacyFilters from current UI state
-   * Note: Sort parameters are NOT included for client-side sorting
+   * Build PharmacyFilters from current UI state (server-side paging, filtering, sorting)
    */
   private buildFiltersFromUI(): Partial<PharmacyFilters> {
-    const filters: Partial<PharmacyFilters> = {
-      pageNumber: this.currentPage,
-      pageSize: this.pageSize
+    const stockFilters = this.mapStockFilterToApi(this.selectedStockFilter);
+    const expiryFilters = this.mapExpiryFilterToApi(this.selectedExpiryFilter);
+
+    return {
+      pageSize: this.pageSize,
+      searchTerm: this.searchTerm?.trim() || undefined,
+      category: this.selectedCategory || undefined,
+      stockStatus: stockFilters.stockStatus,
+      minStock: stockFilters.minStock,
+      maxStock: stockFilters.maxStock,
+      expiryStatus: expiryFilters.expiryStatus,
+      expiryAfter: expiryFilters.expiryAfter,
+      expiryBefore: expiryFilters.expiryBefore,
+      sortBy: this.sortColumn || undefined,
+      sortOrder: this.sortOrder || undefined
     };
-
-    if (this.searchTerm?.trim()) {
-      filters.searchTerm = this.searchTerm.trim();
-    }
-
-    if (this.selectedCategory) {
-      filters.category = this.selectedCategory;
-    }
-
-    // Sort parameters removed - using client-side sorting only
-    // This prevents unnecessary API calls when sorting
-
-    return filters;
   }
 
-  /**
-   * Update filters in service (triggers API call)
-   */
-  private updateFilters(updates: Partial<PharmacyFilters>): void {
-    this.filterService.updateFilters(updates);
+  private pushFiltersFromUI(): void {
+    this.filterService.updateFilters(this.buildFiltersFromUI());
+  }
+
+  private mapStockFilterToApi(stockFilter: string): Pick<PharmacyFilters, 'stockStatus' | 'minStock' | 'maxStock'> {
+    switch (stockFilter) {
+      case 'adequate':
+        return { stockStatus: 'normal stock', minStock: undefined, maxStock: undefined };
+      case 'low':
+        return { stockStatus: 'low stock', minStock: undefined, maxStock: undefined };
+      case 'critical':
+        return { stockStatus: 'critical stock', minStock: undefined, maxStock: undefined };
+      case 'out-of-stock':
+        return { stockStatus: 'out of stock', minStock: undefined, maxStock: undefined };
+      default:
+        return { stockStatus: undefined, minStock: undefined, maxStock: undefined };
+    }
+  }
+
+  private mapApiStockFilterToUi(filters: PharmacyFilters): string {
+    switch (filters.stockStatus?.toLowerCase()) {
+      case 'low stock':
+        return 'low';
+      case 'critical stock':
+        return 'critical';
+      case 'out of stock':
+        return 'out-of-stock';
+      case 'normal stock':
+      case 'in stock':
+        return 'adequate';
+      default:
+        return 'all';
+    }
+  }
+
+  private mapExpiryFilterToApi(expiryFilter: string): Pick<PharmacyFilters, 'expiryStatus' | 'expiryAfter' | 'expiryBefore'> {
+    if (!expiryFilter || expiryFilter === 'all') {
+      return { expiryStatus: undefined, expiryAfter: undefined, expiryBefore: undefined };
+    }
+
+    const today = this.startOfDay(new Date());
+
+    switch (expiryFilter) {
+      case 'good':
+        return {
+          expiryStatus: expiryFilter,
+          expiryAfter: this.formatDateParam(this.addDays(today, 90)),
+          expiryBefore: undefined
+        };
+      case 'warning':
+        return {
+          expiryStatus: expiryFilter,
+          expiryAfter: this.formatDateParam(this.addDays(today, 30)),
+          expiryBefore: this.formatDateParam(this.addDays(today, 89))
+        };
+      case 'critical':
+        return {
+          expiryStatus: expiryFilter,
+          expiryAfter: this.formatDateParam(today),
+          expiryBefore: this.formatDateParam(this.addDays(today, 29))
+        };
+      case 'expired':
+        return {
+          expiryStatus: expiryFilter,
+          expiryAfter: undefined,
+          expiryBefore: this.formatDateParam(this.addDays(today, -1))
+        };
+      default:
+        return { expiryStatus: undefined, expiryAfter: undefined, expiryBefore: undefined };
+    }
+  }
+
+  private startOfDay(date: Date): Date {
+    const normalized = new Date(date);
+    normalized.setHours(0, 0, 0, 0);
+    return normalized;
+  }
+
+  private addDays(date: Date, days: number): Date {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+  }
+
+  private formatDateParam(date: Date): string {
+    return date.toISOString().split('T')[0];
   }
 
   loadInventory(): void {
-    const filters = this.buildFiltersFromUI();
-    this.updateFilters(filters);
+    this.pushFiltersFromUI();
   }
 
   extractCategories(): void {
@@ -223,23 +312,17 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   calculateSummaryStats(): void {
-    // Use total count from backend for accurate statistics
-    this.totalItems = this.totalCount || this.inventoryItems.length;
-    
-    // Calculate stats from current page items (approximate)
-    // Note: For accurate stats, backend should provide these counts
-    this.lowStockCount = this.lowStockAlerts.length || this.inventoryItems.filter(item => 
+    this.totalItems = this.totalCount;
+    this.lowStockCount = this.lowStockAlerts.filter(item =>
       this.calculateStockStatus(item.stockQuantity, item.minimumStockLevel) === 'low'
     ).length;
-    this.criticalStockCount = this.inventoryItems.filter(item => 
+    this.criticalStockCount = this.lowStockAlerts.filter(item =>
       this.calculateStockStatus(item.stockQuantity, item.minimumStockLevel) === 'critical'
     ).length;
-    this.outOfStockCount = this.inventoryItems.filter(item => 
+    this.outOfStockCount = this.lowStockAlerts.filter(item =>
       item.stockQuantity === 0
     ).length;
-    this.expiringSoonCount = this.expiryAlerts.length || this.inventoryItems.filter(item => 
-      item.expiryDate && this.calculateExpiryStatus(item.expiryDate) === 'critical'
-    ).length;
+    this.expiringSoonCount = this.expiryAlerts.length;
   }
 
   calculateStockStatus(stock: number, minimum: number): StockStatus {
@@ -283,42 +366,29 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
   onCategoryChange(category: string): void {
     this.selectedCategory = category;
-    this.updateFilters({ category: category || undefined });
+    this.pushFiltersFromUI();
   }
 
   onFilterChange(): void {
-    // Legacy method - now handled by individual change handlers
-    this.loadInventory();
+    this.pushFiltersFromUI();
   }
 
   /**
    * Clear all filters and reset to default state
    */
   clearFilters(): void {
-    // Clear service state
-    this.filterService.clearAllFilters();
-
-    // Clear template-bound properties
     this.searchTerm = '';
     this.selectedStockFilter = 'all';
     this.selectedExpiryFilter = 'all';
     this.selectedCategory = '';
-
-    // Reset pagination to defaults
-    this.currentPage = 1;
-    this.pageSize = 50; // Inventory uses larger page size
-
-    // Reset sort to defaults (newest first)
+    this.pageSize = 50;
     this.resetSortingToDefault();
 
-    // Update active filters display
-    this.updateActiveFilters();
+    this.filterService.clearAllFilters();
+    this.pushFiltersFromUI();
 
-    // Show success feedback
+    this.updateActiveFilters();
     this.showClearSuccessMessage();
-    
-    // Apply default sort after clearing filters
-    this.applyClientSideSort();
   }
 
   /**
@@ -353,11 +423,11 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Reset to default sort and apply locally
+   * Reset to default sort and reload from server
    */
   resetToDefaultSort(): void {
     this.resetSortingToDefault();
-    this.applyClientSideSort();
+    this.pushFiltersFromUI();
   }
 
   /**
@@ -392,17 +462,36 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   removeFilter(filterKey: string): void {
-    this.filterService.clearFilter(filterKey as keyof PharmacyFilters);
-    
     switch (filterKey) {
       case 'searchTerm':
         this.searchTerm = '';
+        this.filterService.clearFilter('searchTerm');
         break;
       case 'category':
         this.selectedCategory = '';
+        this.filterService.clearFilter('category');
+        break;
+      case 'stockStatus':
+        this.selectedStockFilter = 'all';
+        this.filterService.updateFilters({
+          stockStatus: undefined,
+          minStock: undefined,
+          maxStock: undefined
+        });
+        break;
+      case 'expiryStatus':
+        this.selectedExpiryFilter = 'all';
+        this.filterService.updateFilters({
+          expiryStatus: undefined,
+          expiryAfter: undefined,
+          expiryBefore: undefined
+        });
+        break;
+      default:
+        this.filterService.clearFilter(filterKey as keyof PharmacyFilters);
         break;
     }
-    
+
     this.updateActiveFilters();
   }
 
@@ -417,7 +506,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   // Pagination methods
   goToPage(page: number): void {
     if (page >= 1 && page <= this.totalPages) {
-      this.updateFilters({ pageNumber: page });
+      this.filterService.updateFilters({ pageNumber: page });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
@@ -435,231 +524,125 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   changePageSize(size: number): void {
-    this.updateFilters({ pageSize: size, pageNumber: 1 });
+    this.filterService.updateFilters({ pageSize: size, pageNumber: 1 });
+  }
+
+  getPageNumbers(): (number | string)[] {
+    const pages: (number | string)[] = [];
+    const maxVisiblePages = 7;
+
+    if (this.totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= this.totalPages; i++) {
+        pages.push(i);
+      }
+    } else if (this.currentPage <= 4) {
+      for (let i = 1; i <= 5; i++) {
+        pages.push(i);
+      }
+      pages.push('...');
+      pages.push(this.totalPages);
+    } else if (this.currentPage >= this.totalPages - 3) {
+      pages.push(1);
+      pages.push('...');
+      for (let i = this.totalPages - 4; i <= this.totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      pages.push('...');
+      for (let i = this.currentPage - 1; i <= this.currentPage + 1; i++) {
+        pages.push(i);
+      }
+      pages.push('...');
+      pages.push(this.totalPages);
+    }
+
+    return pages;
+  }
+
+  onPageNumberClick(pageNum: number | string): void {
+    if (typeof pageNum === 'number') {
+      this.goToPage(pageNum);
+    }
+  }
+
+  isEllipsis(pageNum: number | string): boolean {
+    return pageNum === '...';
+  }
+
+  trackByPageNum(_: number, pageNum: number | string): number | string {
+    return pageNum;
   }
 
   /**
-   * Handle column header sort click - CLIENT-SIDE SORTING ONLY
-   * For inventory, sorting happens locally without API calls
+   * Handle column header sort click — server-side sorting via API
    */
   onSort(column: string): void {
-    // Map frontend column names to actual property names
-    const columnMapping: { [key: string]: string } = {
-      'medicationName': 'name',
-      'name': 'name',
-      'batchNumber': 'batchNumber',
-      'quantity': 'stockQuantity',
-      'stockQuantity': 'stockQuantity',
-      'stock': 'stockQuantity',
-      'expiryDate': 'expiryDate',
-      'expiry': 'expiryDate',
-      'supplier': 'manufacturer',
-      'manufacturer': 'manufacturer',
-      'stockStatus': 'stockStatus'
-    };
+    const backendColumn = this.mapSortColumnToBackend(column);
 
-    const propertyName = columnMapping[column] || column;
+    this.previousSortColumn = this.sortColumn;
+    this.previousSortOrder = this.sortOrder;
 
-    if (this.sortColumn === propertyName) {
-      // Toggle order if same column
+    if (this.sortColumn === backendColumn) {
       this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
     } else {
-      // New column, default to ascending
-      this.sortColumn = propertyName;
+      this.sortColumn = backendColumn;
       this.sortOrder = 'asc';
     }
 
-    // Apply client-side sorting immediately
-    this.applyClientSideSort();
-  }
+    this.isSorting = true;
+    this.errorMessage = null;
 
-  /**
-   * Apply client-side sorting to inventory items
-   */
-  private applyClientSideSort(): void {
-    if (!this.inventoryItems || this.inventoryItems.length === 0) {
-      this.sortedInventoryItems = [];
-      return;
+    if (this.sortDebounceTimer) {
+      clearTimeout(this.sortDebounceTimer);
     }
 
-    if (!this.sortColumn) {
-      this.sortedInventoryItems = [...this.inventoryItems];
-      return;
-    }
-
-    try {
-      // Create a copy to avoid mutating the original array
-      this.sortedInventoryItems = [...this.inventoryItems].sort((a, b) => {
-        const aValue = this.getSortValue(a, this.sortColumn);
-        const bValue = this.getSortValue(b, this.sortColumn);
-
-        // Handle null/undefined values - place them at the end
-        if (aValue === null || aValue === undefined) return 1;
-        if (bValue === null || bValue === undefined) return -1;
-
-        // Handle different data types
-        if (typeof aValue === 'string' && typeof bValue === 'string') {
-          return this.sortStrings(aValue, bValue, this.sortOrder);
-        } else if (typeof aValue === 'number' && typeof bValue === 'number') {
-          return this.sortNumbers(aValue, bValue, this.sortOrder);
-        } else if (aValue instanceof Date && bValue instanceof Date) {
-          return this.sortDates(aValue, bValue, this.sortOrder);
-        } else if (typeof aValue === 'string' || typeof bValue === 'string') {
-          // Mixed types - convert to string
-          return this.sortStrings(String(aValue), String(bValue), this.sortOrder);
-        }
-
-        // Default comparison
-        const comparison = aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
-        return this.sortOrder === 'asc' ? comparison : -comparison;
-      });
-    } catch (error) {
-      console.error('Error sorting inventory:', error);
-      // Fallback to unsorted if error occurs
-      this.sortedInventoryItems = [...this.inventoryItems];
-    }
+    this.sortDebounceTimer = setTimeout(() => {
+      this.pushFiltersFromUI();
+    }, 200);
   }
 
-  /**
-   * Get sort value for an item based on column name
-   * Handles special inventory columns
-   */
-  private getSortValue(item: MedicationDto, column: string): any {
-    switch (column) {
-      case 'stockStatus':
-        // Custom sort order: InStock (1) → LowStock (2) → OutOfStock (3)
-        const stockStatus = this.calculateStockStatus(item.stockQuantity, item.minimumStockLevel);
-        const statusOrder: { [key: string]: number } = {
-          'adequate': 1,
-          'low': 2,
-          'critical': 3,
-          'out-of-stock': 4
-        };
-        return statusOrder[stockStatus] || 5;
-
-      case 'batchNumber':
-        // Extract numbers for natural sorting: BATCH-001 → 1
-        const match = item.batchNumber?.match(/\d+/);
-        return match ? parseInt(match[0], 10) : 0;
-
-      case 'expiryDate':
-        return item.expiryDate ? new Date(item.expiryDate) : null;
-
-      case 'name':
-      case 'medicationName':
-        return item.name?.toLowerCase() || '';
-
-      case 'manufacturer':
-      case 'supplier':
-        return item.manufacturer?.toLowerCase() || '';
-
-      case 'category':
-        return item.category?.toLowerCase() || '';
-
-      case 'stockQuantity':
-      case 'quantity':
-        return item.stockQuantity || 0;
-
-      case 'price':
-        return item.price || 0;
-
-      case 'createdAt':
-        return item.createdAt ? new Date(item.createdAt) : null;
-
-      case 'updatedAt':
-        return item.updatedAt ? new Date(item.updatedAt) : null;
-
-      default:
-        // Try to access property directly
-        return (item as any)[column];
-    }
-  }
-
-  /**
-   * Sort strings (case-insensitive)
-   */
-  private sortStrings(a: string, b: string, order: 'asc' | 'desc'): number {
-    const aLower = (a || '').toString().toLowerCase();
-    const bLower = (b || '').toString().toLowerCase();
-
-    if (aLower < bLower) return order === 'asc' ? -1 : 1;
-    if (aLower > bLower) return order === 'asc' ? 1 : -1;
-    return 0;
-  }
-
-  /**
-   * Sort numbers
-   */
-  private sortNumbers(a: number, b: number, order: 'asc' | 'desc'): number {
-    const aNum = a || 0;
-    const bNum = b || 0;
-    return order === 'asc' ? aNum - bNum : bNum - aNum;
-  }
-
-  /**
-   * Sort dates
-   */
-  private sortDates(a: Date, b: Date, order: 'asc' | 'desc'): number {
-    const aDate = a ? new Date(a).getTime() : 0;
-    const bDate = b ? new Date(b).getTime() : 0;
-    return order === 'asc' ? aDate - bDate : bDate - aDate;
-  }
-
-  /**
-   * Get sort icon class for a column
-   */
   getSortIconClass(column: string, direction: 'asc' | 'desc'): string {
-    const columnMapping: { [key: string]: string } = {
-      'medicationName': 'name',
-      'name': 'name',
-      'batchNumber': 'batchNumber',
-      'quantity': 'stockQuantity',
-      'stockQuantity': 'stockQuantity',
-      'stock': 'stockQuantity',
-      'expiryDate': 'expiryDate',
-      'expiry': 'expiryDate',
-      'supplier': 'manufacturer',
-      'manufacturer': 'manufacturer',
-      'stockStatus': 'stockStatus'
-    };
-
-    const propertyName = columnMapping[column] || column;
-    if (this.sortColumn !== propertyName) return '';
+    const backendColumn = this.mapSortColumnToBackend(column);
+    if (this.sortColumn !== backendColumn) {
+      return '';
+    }
     return this.sortOrder === direction ? 'active' : '';
   }
 
-  /**
-   * Get aria-sort attribute value
-   */
   getAriaSort(column: string): string {
-    const columnMapping: { [key: string]: string } = {
-      'medicationName': 'name',
-      'name': 'name',
-      'batchNumber': 'batchNumber',
-      'quantity': 'stockQuantity',
-      'stockQuantity': 'stockQuantity',
-      'stock': 'stockQuantity',
-      'expiryDate': 'expiryDate',
-      'expiry': 'expiryDate',
-      'supplier': 'manufacturer',
-      'manufacturer': 'manufacturer',
-      'stockStatus': 'stockStatus'
-    };
-
-    const propertyName = columnMapping[column] || column;
-    if (this.sortColumn !== propertyName) return 'none';
+    const backendColumn = this.mapSortColumnToBackend(column);
+    if (this.sortColumn !== backendColumn) {
+      return 'none';
+    }
     return this.sortOrder === 'asc' ? 'ascending' : 'descending';
   }
 
-  /**
-   * Handle keyboard events for sort headers
-   */
   onSortKeydown(event: KeyboardEvent, column: string): void {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       this.onSort(column);
     }
   }
+
+  private mapSortColumnToBackend(column: string): string {
+    const columnMapping: Record<string, string> = {
+      medicationName: 'name',
+      name: 'name',
+      quantity: 'stockQuantity',
+      stockQuantity: 'stockQuantity',
+      stock: 'stockQuantity',
+      expiryDate: 'expiryDate',
+      expiry: 'expiryDate',
+      stockStatus: 'stockQuantity',
+      createdAt: 'createdAt',
+      updatedAt: 'updatedAt'
+    };
+
+    return columnMapping[column] || column;
+  }
+
+  Math = Math;
 
   getStockStatusClass(item: MedicationDto): string {
     const status = this.calculateStockStatus(item.stockQuantity, item.minimumStockLevel);
@@ -831,11 +814,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
     // Build current filters from component state
     const filters: PharmacyFilters = {
+      ...this.buildFiltersFromUI(),
       pageNumber: 1,
-      pageSize: this.pageSize,
-      searchTerm: this.searchTerm || undefined,
-      category: this.selectedCategory || undefined,
-      stockStatus: this.selectedStockFilter !== 'all' ? this.selectedStockFilter : undefined,
       sortBy: this.sortColumn,
       sortOrder: this.sortOrder
     };

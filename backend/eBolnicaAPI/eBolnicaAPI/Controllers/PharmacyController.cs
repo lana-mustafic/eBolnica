@@ -1071,7 +1071,7 @@ namespace eBolnicaAPI.Controllers
         /// <response code="403">Forbidden - Pharmacist role required</response>
         [HttpGet("inventory")]
         [Authorize(Roles = "Pharmacist")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(InventoryResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -1098,18 +1098,13 @@ namespace eBolnicaAPI.Controllers
             // Edge case: Handle empty results
             if (totalCount == 0)
             {
-                return Ok(new
-                {
-                    items = new List<MedicationDto>(),
-                    totalCount = 0,
-                    totalPages = 0,
-                    hasNext = false,
-                    hasPrevious = false,
-                    currentPage = pageNumber,
-                    pageSize = pageSize,
-                    LowStockAlerts = new List<MedicationDto>(),
-                    ExpiryAlerts = new List<MedicationDto>()
-                });
+                return Ok(new InventoryResponse(
+                    new List<MedicationDto>(),
+                    totalCount: 0,
+                    pageNumber: pageNumber,
+                    pageSize: pageSize,
+                    lowStockAlerts: new List<MedicationDto>(),
+                    expiryAlerts: new List<MedicationDto>()));
             }
 
             // Edge case: Handle pageNumber out of range - adjust to last valid page
@@ -1211,20 +1206,22 @@ namespace eBolnicaAPI.Controllers
                 pageSize
             );
 
-            // Return response with pagination metadata and alerts
-            // Note: Alerts are calculated from ALL matching items, not just current page
-            return Ok(new
-            {
-                items = paginatedResponse.Items,
-                totalCount = paginatedResponse.TotalCount,
-                totalPages = paginatedResponse.TotalPages,
-                hasNext = paginatedResponse.HasNext,
-                hasPrevious = paginatedResponse.HasPrevious,
-                currentPage = paginatedResponse.CurrentPage,
-                pageSize = paginatedResponse.PageSize,
-                LowStockAlerts = allDtoList.Where(m => m.IsLowStock).ToList(),
-                ExpiryAlerts = allDtoList.Where(m => m.ExpiryDate.HasValue && m.ExpiryDate.Value <= DateTime.Now.AddDays(30) && m.ExpiryDate.Value > DateTime.Now).ToList()
-            });
+            var lowStockAlerts = allDtoList.Where(m => m.IsLowStock).ToList();
+            var expiryAlerts = allDtoList
+                .Where(m => m.ExpiryDate.HasValue
+                    && m.ExpiryDate.Value <= DateTime.Now.AddDays(30)
+                    && m.ExpiryDate.Value > DateTime.Now)
+                .ToList();
+
+            var response = new InventoryResponse(
+                paginatedResponse.Items,
+                paginatedResponse.TotalCount,
+                paginatedResponse.CurrentPage,
+                paginatedResponse.PageSize,
+                lowStockAlerts,
+                expiryAlerts);
+
+            return Ok(response);
         }
 
         [HttpGet("pharmacist-data")]

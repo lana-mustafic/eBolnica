@@ -106,6 +106,7 @@
   <app-filter-summary
     [filters]="filterService.getFilters()"
     [totalCount]="totalCount"
+    [totalPages]="totalPages"
     [currentPage]="currentPage"
     [pageSize]="pageSize"
     [isLoading]="isLoading || isSearching"
@@ -302,7 +303,7 @@
     <div class="pagination-container" *ngIf="!isLoading && totalCount > 0" role="navigation" aria-label="Medications pagination">
       <!-- Results Summary -->
       <div class="pagination-info" aria-live="polite">
-        Showing {{ (currentPage - 1) * pageSize + 1 }} - {{ Math.min(currentPage * pageSize, totalCount) }} of {{ totalCount }} medication{{ totalCount !== 1 ? 's' : '' }}
+        Showing {{ paginationRangeStart }} - {{ paginationRangeEnd }} of {{ totalCount }} medication{{ totalCount !== 1 ? 's' : '' }}
       </div>
       
       <!-- Pagination Controls -->
@@ -312,7 +313,7 @@
           <label for="page-size-select" class="page-size-label">Items per page:</label>
           <select 
             id="page-size-select"
-            [(ngModel)]="pageSize" 
+            [ngModel]="pageSize"
             (ngModelChange)="changePageSize($event)" 
             class="page-size-select"
             aria-label="Items per page">

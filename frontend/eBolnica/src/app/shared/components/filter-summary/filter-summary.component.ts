@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
+import { getPageRangeEnd, getPageRangeStart } from '../../../shared/utils/paged-response.util';
 
 /**
  * Reusable component for displaying filter state summary
@@ -22,6 +23,8 @@ export class FilterSummaryComponent {
   @Input() activeFilterCount: number = 0;
   @Input() totalUnfilteredCount?: number; // Optional: total count without filters
 
+  @Input() totalPages: number = 0;
+
   @Output() clearAll = new EventEmitter<void>();
 
   get hasActiveFilters(): boolean {
@@ -29,13 +32,23 @@ export class FilterSummaryComponent {
   }
 
   get startIndex(): number {
-    if (this.totalCount === 0) return 0;
-    return ((this.currentPage - 1) * this.pageSize) + 1;
+    return getPageRangeStart(this.currentPage, this.pageSize, this.totalCount);
   }
 
   get endIndex(): number {
-    if (this.totalCount === 0) return 0;
-    return Math.min(this.currentPage * this.pageSize, this.totalCount);
+    return getPageRangeEnd(this.currentPage, this.pageSize, this.totalCount);
+  }
+
+  get pageCountLabel(): string {
+    if (this.totalCount === 0) {
+      return '';
+    }
+
+    if (this.totalPages <= 1) {
+      return '';
+    }
+
+    return `(page ${this.currentPage} of ${this.totalPages})`;
   }
 
   getResultText(): string {
@@ -51,7 +64,7 @@ export class FilterSummaryComponent {
       return 'Showing 1 result';
     }
 
-    const baseText = `Showing ${this.startIndex}-${this.endIndex} of ${this.totalCount} result${this.totalCount !== 1 ? 's' : ''}`;
+    const baseText = `Showing ${this.startIndex}-${this.endIndex} of ${this.totalCount} result${this.totalCount !== 1 ? 's' : ''}${this.pageCountLabel ? ` ${this.pageCountLabel}` : ''}`;
     
     if (this.hasActiveFilters && this.totalUnfilteredCount && this.totalUnfilteredCount > this.totalCount) {
       return `${baseText} (filtered from ${this.totalUnfilteredCount} total)`;

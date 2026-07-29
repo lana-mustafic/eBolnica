@@ -11,8 +11,9 @@ import { SortStatusComponent } from '../../../shared/components/sort-status/sort
 import { PrescriptionDto } from '../../../models/prescription.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { PagedResponse } from '../../../models/paged-response.dto';
-import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, catchError, of, Subscription } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, catchError, of } from 'rxjs';
 import { TABLE_DEFAULT_SORTS } from '../../../constants/sort.constants';
+import { getPageRangeEnd, getPageRangeStart } from '../../../shared/utils/paged-response.util';
 
 @Component({
   selector: 'app-prescriptions',
@@ -65,7 +66,6 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   private previousSortColumn: string = TABLE_DEFAULT_SORTS.PRESCRIPTIONS.column; // For error recovery
   private previousSortOrder: 'asc' | 'desc' = TABLE_DEFAULT_SORTS.PRESCRIPTIONS.order; // For error recovery
   private sortDebounceTimer: any; // Timer for debouncing sort requests
-  private sortRequest$: Subscription | null = null; // For cancelling pending requests
 
   // Active filters for display
   activeFilters = this.filterService.getActiveFilters();
@@ -74,38 +74,30 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   clearSuccessMessage: string | null = null;
 
   ngOnInit(): void {
-    // Initialize filters from service
-    const currentFilters = this.filterService.getFilters();
-    this.syncUIFromFilters(currentFilters);
+    this.syncUIFromFilters(this.filterService.getFilters());
 
-    // Load initial data
-    this.loadPrescriptions();
-
-    // Setup debounced search that combines with dropdown filters
     this.searchSubject.pipe(
       debounceTime(300),
       distinctUntilChanged(),
       takeUntil(this.destroy$)
     ).subscribe(searchTerm => {
       this.searchTerm = searchTerm;
-      this.updateFilters({ searchTerm: searchTerm || undefined });
+      this.pushFiltersFromUI();
     });
 
-    // Subscribe to filter changes from service
     this.filterService.getFilters$().pipe(
-      debounceTime(150),
       switchMap(filters => {
-        // Only set isSearching if not sorting (to avoid conflicts)
         if (!this.isSorting) {
           this.isSearching = true;
         }
-        this.errorMessage = null; // Clear previous errors
+        this.errorMessage = null;
         this.syncUIFromFilters(filters);
         return this.pharmacyService.getPrescriptionsWithFilters(filters).pipe(
           finalize(() => {
             if (!this.isSorting) {
               this.isSearching = false;
             }
+            this.isSorting = false;
           }),
           catchError((error) => {
             this.handleApiError(error);
@@ -125,16 +117,14 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (response) => {
         this.prescriptions = response.items || [];
-        this.totalCount = response.totalCount || 0;
-        this.totalPages = response.totalPages || 0;
-        this.currentPage = response.currentPage || 1;
-        this.pageSize = response.pageSize || 10;
+        this.applyPaginationFromResponse(response);
         this.updateFilterCounts();
         this.updateActiveFilters();
         this.errorMessage = null;
-        this.isSorting = false; // Clear sorting flag after successful load
       }
     });
+
+    this.pushFiltersFromUI();
   }
 
   ngOnDestroy(): void {
@@ -155,11 +145,6 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
       clearTimeout(this.sortDebounceTimer);
     }
 
-    // Unsubscribe from sort request
-    if (this.sortRequest$) {
-      this.sortRequest$.unsubscribe();
-    }
-
     this.destroy$.next();
     this.destroy$.complete();
     this.searchSubject.complete();
@@ -171,8 +156,6 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   private syncUIFromFilters(filters: PharmacyFilters): void {
     this.searchTerm = filters.searchTerm || '';
     this.selectedStatus = filters.prescriptionStatus || 'Pending';
-    this.currentPage = filters.pageNumber || 1;
-    this.pageSize = filters.pageSize || 10;
     if (filters.sortBy) {
       this.sortBy = filters.sortBy;
       this.sortColumn = filters.sortBy;
@@ -180,12 +163,27 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
     if (filters.sortOrder) this.sortOrder = filters.sortOrder as 'asc' | 'desc';
   }
 
+  private applyPaginationFromResponse(response: PagedResponse<PrescriptionDto>): void {
+    this.totalCount = response.totalCount;
+    this.totalPages = response.totalPages;
+    this.currentPage = response.currentPage;
+    this.pageSize = response.pageSize;
+    this.filterService.syncPaginationFromResponse(response.currentPage, response.pageSize);
+  }
+
+  get paginationRangeStart(): number {
+    return getPageRangeStart(this.currentPage, this.pageSize, this.totalCount);
+  }
+
+  get paginationRangeEnd(): number {
+    return getPageRangeEnd(this.currentPage, this.pageSize, this.totalCount);
+  }
+
   /**
-   * Build PharmacyFilters from current UI state
+   * Build PharmacyFilters from current UI state (excludes pageNumber — owned by filter service)
    */
   private buildFiltersFromUI(): Partial<PharmacyFilters> {
     const filters: Partial<PharmacyFilters> = {
-      pageNumber: this.currentPage,
       pageSize: this.pageSize
     };
 
@@ -195,16 +193,22 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
 
     if (this.selectedStatus && this.selectedStatus !== 'All') {
       filters.prescriptionStatus = this.selectedStatus;
+    } else {
+      filters.prescriptionStatus = undefined;
     }
 
-    if (this.sortBy) {
-      filters.sortBy = this.sortBy;
+    if (this.sortColumn) {
+      filters.sortBy = this.sortColumn;
     }
     if (this.sortOrder) {
       filters.sortOrder = this.sortOrder;
     }
 
     return filters;
+  }
+
+  private pushFiltersFromUI(): void {
+    this.filterService.updateFilters(this.buildFiltersFromUI());
   }
 
   /**
@@ -215,8 +219,7 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   }
 
   loadPrescriptions(): void {
-    const filters = this.buildFiltersFromUI();
-    this.updateFilters(filters);
+    this.pushFiltersFromUI();
   }
 
   updateFilterCounts(): void {
@@ -237,7 +240,7 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   onStatusFilterChange(status: string): void {
     this.selectedStatus = status;
     if (status === 'All') {
-      this.filterService.clearFilter('prescriptionStatus');
+      this.filterService.updateFilters({ prescriptionStatus: undefined });
     } else {
       this.updateFilters({ prescriptionStatus: status });
     }
@@ -255,8 +258,8 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
       this.sortBy = sortBy;
       this.sortOrder = 'desc';
     }
-    this.sortColumn = this.sortBy; // Sync with header sort
-    this.updateFilters({ sortBy: this.sortBy, sortOrder: this.sortOrder });
+    this.sortColumn = this.sortBy;
+    this.pushFiltersFromUI();
   }
 
   /**
@@ -286,89 +289,26 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
     this.previousSortOrder = this.sortOrder;
 
     if (this.sortColumn === backendColumn) {
-      // Toggle order if same column
       this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
     } else {
-      // New column, default to ascending
       this.sortColumn = backendColumn;
       this.sortOrder = 'asc';
     }
+    this.sortBy = this.sortColumn;
 
-    // Set sorting flag
     this.isSorting = true;
     this.errorMessage = null;
 
-    // Cancel any pending sort requests
-    if (this.sortRequest$) {
-      this.sortRequest$.unsubscribe();
-      this.sortRequest$ = null;
-    }
-
-    // Clear any existing debounce timer
     if (this.sortDebounceTimer) {
       clearTimeout(this.sortDebounceTimer);
     }
 
     // Debounce sort requests (200ms) to avoid rapid API calls
     this.sortDebounceTimer = setTimeout(() => {
-      this.loadPrescriptionsWithSort();
+      this.isSorting = true;
+      this.errorMessage = null;
+      this.pushFiltersFromUI();
     }, 200);
-  }
-
-  /**
-   * Load prescriptions with sort parameters (server-side)
-   * Includes request cancellation and error handling
-   */
-  private loadPrescriptionsWithSort(): void {
-    // Cancel previous request if still pending
-    if (this.sortRequest$) {
-      this.sortRequest$.unsubscribe();
-      this.sortRequest$ = null;
-    }
-
-    this.isLoading = true;
-    this.isSorting = true;
-
-    const partialFilters = this.buildFiltersFromUI();
-    // Build complete filters object with required properties
-    const filters: PharmacyFilters = {
-      pageNumber: 1, // Reset to first page on sort
-      pageSize: partialFilters.pageSize || this.pageSize || 10,
-      ...partialFilters,
-      sortBy: this.sortColumn,
-      sortOrder: this.sortOrder
-    };
-
-    this.sortRequest$ = this.pharmacyService.getPrescriptionsWithFilters(filters).pipe(
-      finalize(() => {
-        this.isLoading = false;
-        this.isSorting = false;
-        this.sortRequest$ = null;
-      }),
-      catchError((error) => {
-        this.handleSortError(error);
-        return of({
-          items: [],
-          totalCount: 0,
-          totalPages: 0,
-          currentPage: 1,
-          pageSize: filters.pageSize || 10,
-          hasNext: false,
-          hasPrevious: false
-        } as PagedResponse<PrescriptionDto>);
-      })
-    ).subscribe({
-      next: (response) => {
-        this.prescriptions = response.items || [];
-        this.totalCount = response.totalCount || 0;
-        this.totalPages = response.totalPages || 0;
-        this.currentPage = response.currentPage || 1;
-        this.pageSize = response.pageSize || 10;
-        this.updateFilterCounts();
-        this.updateActiveFilters();
-        this.errorMessage = null;
-      }
-    });
   }
 
   /**
@@ -429,12 +369,7 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
    */
   resetToDefaultSort(): void {
     this.resetSortingToDefault();
-    // Update filters to trigger reload
-    this.updateFilters({
-      sortBy: this.sortColumn,
-      sortOrder: this.sortOrder,
-      pageNumber: 1
-    });
+    this.pushFiltersFromUI();
   }
 
   /**
@@ -503,24 +438,15 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
    * Clear all filters and reset to default state
    */
   clearFilters(): void {
-    // Clear service state
-    this.filterService.clearAllFilters();
-
-    // Clear template-bound properties
     this.searchTerm = '';
     this.selectedStatus = 'All';
-
-    // Reset pagination to defaults
-    this.currentPage = 1;
     this.pageSize = 10;
-
-    // Reset sorting to defaults (newest first)
     this.resetSortingToDefault();
 
-    // Update active filters display
-    this.updateActiveFilters();
+    this.filterService.clearAllFilters();
+    this.pushFiltersFromUI();
 
-    // Show success feedback
+    this.updateActiveFilters();
     this.showClearSuccessMessage();
   }
 
@@ -601,6 +527,55 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   changePageSize(size: number): void {
     this.updateFilters({ pageSize: size, pageNumber: 1 });
   }
+
+  getPageNumbers(): (number | string)[] {
+    const pages: (number | string)[] = [];
+    const maxVisiblePages = 7;
+
+    if (this.totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= this.totalPages; i++) {
+        pages.push(i);
+      }
+    } else if (this.currentPage <= 4) {
+      for (let i = 1; i <= 5; i++) {
+        pages.push(i);
+      }
+      pages.push('...');
+      pages.push(this.totalPages);
+    } else if (this.currentPage >= this.totalPages - 3) {
+      pages.push(1);
+      pages.push('...');
+      for (let i = this.totalPages - 4; i <= this.totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      pages.push('...');
+      for (let i = this.currentPage - 1; i <= this.currentPage + 1; i++) {
+        pages.push(i);
+      }
+      pages.push('...');
+      pages.push(this.totalPages);
+    }
+
+    return pages;
+  }
+
+  onPageNumberClick(pageNum: number | string): void {
+    if (typeof pageNum === 'number') {
+      this.goToPage(pageNum);
+    }
+  }
+
+  isEllipsis(pageNum: number | string): boolean {
+    return pageNum === '...';
+  }
+
+  trackByPageNum(_: number, pageNum: number | string): number | string {
+    return pageNum;
+  }
+
+  Math = Math;
 
   getStatusClass(status: string): string {
     switch (status) {

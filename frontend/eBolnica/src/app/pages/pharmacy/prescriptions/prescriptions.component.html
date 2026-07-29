@@ -160,6 +160,7 @@
   <app-filter-summary
     [filters]="filterService.getFilters()"
     [totalCount]="totalCount"
+    [totalPages]="totalPages"
     [currentPage]="currentPage"
     [pageSize]="pageSize"
     [isLoading]="isLoading || isSearching"
@@ -302,5 +303,77 @@
         </tr>
       </tbody>
     </table>
+
+    <div class="pagination-container" *ngIf="!isLoading && totalCount > 0" role="navigation" aria-label="Prescriptions pagination">
+      <div class="pagination-info" aria-live="polite">
+        Showing {{ paginationRangeStart }} - {{ paginationRangeEnd }} of {{ totalCount }} prescription{{ totalCount !== 1 ? 's' : '' }}
+      </div>
+
+      <div class="pagination-controls">
+        <div class="page-size-wrapper">
+          <label for="prescriptions-page-size-select" class="page-size-label">Items per page:</label>
+          <select
+            id="prescriptions-page-size-select"
+            [ngModel]="pageSize"
+            (ngModelChange)="changePageSize($event)"
+            class="page-size-select"
+            aria-label="Items per page">
+            <option [value]="5">5</option>
+            <option [value]="10">10</option>
+            <option [value]="20">20</option>
+            <option [value]="50">50</option>
+          </select>
+        </div>
+
+        <div class="pagination-buttons">
+          <button
+            type="button"
+            class="btn btn-nav"
+            (click)="previousPage()"
+            [disabled]="currentPage === 1"
+            [attr.aria-label]="'Go to previous page'"
+            [attr.aria-disabled]="currentPage === 1">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+            <span class="btn-text">Previous</span>
+          </button>
+
+          <nav class="page-numbers" aria-label="Page navigation">
+            <button
+              *ngFor="let pageNum of getPageNumbers(); trackBy: trackByPageNum"
+              type="button"
+              class="btn page-btn"
+              [class.btn-active]="pageNum === currentPage"
+              [class.btn-outline]="pageNum !== currentPage && !isEllipsis(pageNum)"
+              [class.ellipsis]="isEllipsis(pageNum)"
+              [disabled]="isEllipsis(pageNum) || pageNum === currentPage"
+              [attr.aria-label]="isEllipsis(pageNum) ? 'More pages' : 'Go to page ' + pageNum"
+              [attr.aria-current]="pageNum === currentPage ? 'page' : null"
+              [attr.aria-disabled]="pageNum === currentPage"
+              (click)="onPageNumberClick(pageNum)">
+              {{ pageNum }}
+            </button>
+          </nav>
+
+          <button
+            type="button"
+            class="btn btn-nav"
+            (click)="nextPage()"
+            [disabled]="currentPage >= totalPages || totalPages === 0"
+            [attr.aria-label]="'Go to next page'"
+            [attr.aria-disabled]="currentPage >= totalPages || totalPages === 0">
+            <span class="btn-text">Next</span>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+        </div>
+
+        <div class="page-info" aria-live="polite">
+          Page <span class="page-current">{{ currentPage }}</span> of <span class="page-total">{{ totalPages }}</span>
+        </div>
+      </div>
+    </div>
   </div>
 </div>

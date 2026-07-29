@@ -274,7 +274,7 @@ namespace eBolnicaAPI.Tests.Unit.Services
         public async Task GetFilteredMedications_StockStatusInStock_ReturnsCorrectResults()
         {
             // Arrange
-            var queryParams = CreateQueryCollection(new Dictionary<string, string> { { "stockStatus", "InStock" } });
+            var queryParams = CreateQueryCollection(new Dictionary<string, string> { { "stockStatus", "in stock" } });
             var baseQuery = _context.Medications.AsQueryable();
 
             // Act
@@ -283,6 +283,137 @@ namespace eBolnicaAPI.Tests.Unit.Services
 
             // Assert
             Assert.All(results, m => Assert.True(m.StockQuantity >= m.MinimumStockLevel));
+        }
+
+        #endregion
+
+        #region GetFilteredInventory Tests
+
+        [Fact]
+        public async Task GetFilteredInventory_DefaultsToActiveMedicationsOnly()
+        {
+            var baseQuery = _context.Medications.AsQueryable();
+
+            var filteredQuery = _pharmacyService.GetFilteredInventory(baseQuery, new PharmacyQueryParameters());
+            var results = await filteredQuery.ToListAsync();
+
+            Assert.NotEmpty(results);
+            Assert.All(results, m => Assert.True(m.IsActive));
+        }
+
+        [Fact]
+        public async Task GetFilteredInventory_StockStatusLowStock_ReturnsLowStockItems()
+        {
+            var baseQuery = _context.Medications.AsQueryable();
+
+            var filteredQuery = _pharmacyService.GetFilteredInventory(
+                baseQuery,
+                new PharmacyQueryParameters { StockStatus = "low stock" });
+            var results = await filteredQuery.ToListAsync();
+
+            Assert.Single(results);
+            Assert.Equal("Ibuprofen", results[0].Name);
+            Assert.True(results[0].StockQuantity >= 5);
+            Assert.True(results[0].StockQuantity < results[0].MinimumStockLevel);
+        }
+
+        [Fact]
+        public async Task GetFilteredInventory_StockStatusCriticalStock_ReturnsCriticalStockItems()
+        {
+            var baseQuery = _context.Medications.AsQueryable();
+
+            var filteredQuery = _pharmacyService.GetFilteredInventory(
+                baseQuery,
+                new PharmacyQueryParameters { StockStatus = "critical stock" });
+            var results = await filteredQuery.ToListAsync();
+
+            Assert.Single(results);
+            Assert.Equal("Critical Stock Med", results[0].Name);
+            Assert.InRange(results[0].StockQuantity, 1, 4);
+        }
+
+        [Fact]
+        public async Task GetFilteredInventory_StockStatusOutOfStock_ReturnsEmptyStockItems()
+        {
+            var baseQuery = _context.Medications.AsQueryable();
+
+            var filteredQuery = _pharmacyService.GetFilteredInventory(
+                baseQuery,
+                new PharmacyQueryParameters { StockStatus = "out of stock" });
+            var results = await filteredQuery.ToListAsync();
+
+            Assert.Single(results);
+            Assert.Equal("Empty Stock Med", results[0].Name);
+            Assert.Equal(0, results[0].StockQuantity);
+        }
+
+        [Fact]
+        public async Task GetFilteredInventory_ExpiryGood_IncludesMissingExpiryAndFarFutureDates()
+        {
+            var today = DateTime.Now.Date;
+            var baseQuery = _context.Medications.AsQueryable();
+
+            var filteredQuery = _pharmacyService.GetFilteredInventory(
+                baseQuery,
+                new PharmacyQueryParameters { ExpiryAfter = today.AddDays(90) });
+            var results = await filteredQuery.ToListAsync();
+
+            Assert.Contains(results, m => m.Name == "Penicillin" && !m.ExpiryDate.HasValue);
+            Assert.Contains(results, m => m.Name == "Expiry Good Med");
+            Assert.DoesNotContain(results, m => m.Name == "Expiry Warning Med");
+        }
+
+        [Fact]
+        public async Task GetFilteredInventory_ExpiryWarning_ReturnsWarningBucketItems()
+        {
+            var today = DateTime.Now.Date;
+            var baseQuery = _context.Medications.AsQueryable();
+
+            var filteredQuery = _pharmacyService.GetFilteredInventory(
+                baseQuery,
+                new PharmacyQueryParameters
+                {
+                    ExpiryAfter = today.AddDays(30),
+                    ExpiryBefore = today.AddDays(89)
+                });
+            var results = await filteredQuery.ToListAsync();
+
+            Assert.Single(results);
+            Assert.Equal("Expiry Warning Med", results[0].Name);
+        }
+
+        [Fact]
+        public async Task GetFilteredInventory_ExpiryCritical_ReturnsCriticalBucketItems()
+        {
+            var today = DateTime.Now.Date;
+            var baseQuery = _context.Medications.AsQueryable();
+
+            var filteredQuery = _pharmacyService.GetFilteredInventory(
+                baseQuery,
+                new PharmacyQueryParameters
+                {
+                    ExpiryAfter = today,
+                    ExpiryBefore = today.AddDays(29)
+                });
+            var results = await filteredQuery.ToListAsync();
+
+            Assert.Single(results);
+            Assert.Equal("Expiry Critical Med", results[0].Name);
+        }
+
+        [Fact]
+        public async Task GetFilteredInventory_ExpiryExpired_ReturnsExpiredItems()
+        {
+            var today = DateTime.Now.Date;
+            var baseQuery = _context.Medications.AsQueryable();
+
+            var filteredQuery = _pharmacyService.GetFilteredInventory(
+                baseQuery,
+                new PharmacyQueryParameters { ExpiryBefore = today.AddDays(-1) });
+            var results = await filteredQuery.ToListAsync();
+
+            Assert.Single(results);
+            Assert.Equal("Expiry Expired Med", results[0].Name);
         }
 
         #endregion
@@ -466,6 +597,7 @@ namespace eBolnicaAPI.Tests.Unit.Services
 
         private List<Medication> SeedTestMedications()
         {
+            var today = DateTime.Now.Date;
             var medications = new List<Medication>
             {
                 new Medication
@@ -511,6 +643,76 @@ namespace eBolnicaAPI.Tests.Unit.Services
                     IsActive = true,
                     RequiresPrescription = false,
                     CreatedAt = DateTime.Now.AddDays(-1)
+                },
+                new Medication
+                {
+                    Name = "Critical Stock Med",
+                    Category = "painkiller",
+                    Price = 7.00m,
+                    StockQuantity = 3,
+                    MinimumStockLevel = 20,
+                    IsActive = true,
+                    RequiresPrescription = false,
+                    CreatedAt = DateTime.Now.AddDays(-2)
+                },
+                new Medication
+                {
+                    Name = "Empty Stock Med",
+                    Category = "painkiller",
+                    Price = 9.00m,
+                    StockQuantity = 0,
+                    MinimumStockLevel = 10,
+                    IsActive = true,
+                    RequiresPrescription = false,
+                    CreatedAt = DateTime.Now.AddDays(-2)
+                },
+                new Medication
+                {
+                    Name = "Expiry Good Med",
+                    Category = "antibiotics",
+                    Price = 11.00m,
+                    StockQuantity = 40,
+                    MinimumStockLevel = 10,
+                    ExpiryDate = today.AddDays(120),
+                    IsActive = true,
+                    RequiresPrescription = true,
+                    CreatedAt = DateTime.Now.AddDays(-4)
+                },
+                new Medication
+                {
+                    Name = "Expiry Warning Med",
+                    Category = "antibiotics",
+                    Price = 10.00m,
+                    StockQuantity = 35,
+                    MinimumStockLevel = 10,
+                    ExpiryDate = today.AddDays(60),
+                    IsActive = true,
+                    RequiresPrescription = true,
+                    CreatedAt = DateTime.Now.AddDays(-4)
+                },
+                new Medication
+                {
+                    Name = "Expiry Critical Med",
+                    Category = "antibiotics",
+                    Price = 9.50m,
+                    StockQuantity = 30,
+                    MinimumStockLevel = 10,
+                    ExpiryDate = today.AddDays(15),
+                    IsActive = true,
+                    RequiresPrescription = true,
+                    CreatedAt = DateTime.Now.AddDays(-4)
+                },
+                new Medication
+                {
+                    Name = "Expiry Expired Med",
+                    Category = "antibiotics",
+                    Price = 8.00m,
+                    StockQuantity = 25,
+                    MinimumStockLevel = 10,
+                    ExpiryDate = today.AddDays(-10),
+                    IsActive = true,
+                    RequiresPrescription = true,
+                    CreatedAt = DateTime.Now.AddDays(-4)
                 }
             };
 

@@ -13,6 +13,7 @@ import { ActiveFilter, PharmacyFilters } from '../../../models/pharmacy-filters.
 import { PagedResponse } from '../../../models/paged-response.dto';
 import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, catchError, of } from 'rxjs';
 import { TABLE_DEFAULT_SORTS } from '../../../constants/sort.constants';
+import { getPageRangeEnd, getPageRangeStart } from '../../../shared/utils/paged-response.util';
 
 /** Debounce delay for medication search input before combining with other filters */
 const MEDICATION_SEARCH_DEBOUNCE_MS = 300;
@@ -117,10 +118,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (response) => {
         this.medications = response.items || [];
-        this.totalCount = response.totalCount || 0;
-        this.totalPages = response.totalPages || 0;
-        this.currentPage = response.currentPage || 1;
-        this.pageSize = response.pageSize || 10;
+        this.applyPaginationFromResponse(response);
         this.extractCategories();
         this.updateActiveFilters();
         this.errorMessage = null;
@@ -154,10 +152,24 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     this.selectedActiveStatus = filters.isActive !== undefined
       ? (filters.isActive ? 'Active' : 'Inactive')
       : '';
-    this.currentPage = filters.pageNumber || 1;
-    this.pageSize = filters.pageSize || 10;
     if (filters.sortBy) this.sortColumn = filters.sortBy;
     if (filters.sortOrder) this.sortOrder = filters.sortOrder as 'asc' | 'desc';
+  }
+
+  private applyPaginationFromResponse(response: PagedResponse<MedicationDto>): void {
+    this.totalCount = response.totalCount;
+    this.totalPages = response.totalPages;
+    this.currentPage = response.currentPage;
+    this.pageSize = response.pageSize;
+    this.filterService.syncPaginationFromResponse(response.currentPage, response.pageSize);
+  }
+
+  get paginationRangeStart(): number {
+    return getPageRangeStart(this.currentPage, this.pageSize, this.totalCount);
+  }
+
+  get paginationRangeEnd(): number {
+    return getPageRangeEnd(this.currentPage, this.pageSize, this.totalCount);
   }
 
   /**
@@ -166,7 +178,6 @@ export class MedicationsComponent implements OnInit, OnDestroy {
    */
   private buildFiltersFromUI(): Partial<PharmacyFilters> {
     return {
-      pageNumber: this.currentPage,
       pageSize: this.pageSize,
       searchTerm: this.searchTerm?.trim() || undefined,
       category: this.selectedCategory || undefined,
@@ -219,7 +230,6 @@ export class MedicationsComponent implements OnInit, OnDestroy {
       isActive: filters.isActive,
       minPrice: filters.minPrice,
       maxPrice: filters.maxPrice,
-      pageNumber: filters.pageNumber ?? 1,
       pageSize: filters.pageSize ?? 10,
       sortBy: filters.sortBy,
       sortOrder: filters.sortOrder
@@ -324,7 +334,6 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     this.selectedRequiresPrescription = '';
     this.selectedActiveStatus = '';
     this.priceFilterError = null;
-    this.currentPage = 1;
     this.pageSize = 10;
     this.resetSortingToDefault();
 
@@ -371,7 +380,6 @@ export class MedicationsComponent implements OnInit, OnDestroy {
    */
   resetToDefaultSort(): void {
     this.resetSortingToDefault();
-    this.currentPage = 1;
     this.pushFiltersFromUI();
   }
 
@@ -655,7 +663,6 @@ export class MedicationsComponent implements OnInit, OnDestroy {
 
     // Debounce sort requests (200ms) to avoid rapid API calls
     this.sortDebounceTimer = setTimeout(() => {
-      this.currentPage = 1;
       this.pushFiltersFromUI();
     }, 200);
   }
