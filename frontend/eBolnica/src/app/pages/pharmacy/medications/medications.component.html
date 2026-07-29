@@ -30,6 +30,19 @@
         </svg>
         Download CSV Template
       </button>
+      <button
+        type="button"
+        class="btn btn-import"
+        (click)="toggleImportPanel()"
+        [attr.aria-expanded]="showImportPanel"
+        title="Import medications from a CSV file">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        Import CSV
+      </button>
       <a routerLink="/pharmacy/medications/wizard" class="btn btn-primary">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -39,6 +52,97 @@
       </a>
     </div>
   </div>
+
+  <!-- CSV Import Panel -->
+  <section
+    *ngIf="showImportPanel"
+    class="csv-import-panel"
+    aria-labelledby="csv-import-title">
+    <div class="csv-import-header">
+      <div class="csv-import-heading">
+        <h3 id="csv-import-title">Import medications from CSV</h3>
+        <p class="csv-import-description">
+          Select a CSV file matching the import template. Only <code>.csv</code> files up to {{ maxImportFileSizeLabel }} are accepted.
+        </p>
+      </div>
+      <button
+        type="button"
+        class="btn btn-icon csv-import-close"
+        (click)="closeImportPanel()"
+        aria-label="Close import panel">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div
+      class="csv-dropzone"
+      [class.drag-over]="isImportDragOver"
+      [class.has-file]="!!selectedImportFile"
+      (click)="triggerImportFilePicker()"
+      (keydown.enter)="triggerImportFilePicker()"
+      (keydown.space)="triggerImportFilePicker(); $event.preventDefault()"
+      (dragover)="onImportDragOver($event)"
+      (dragleave)="onImportDragLeave($event)"
+      (drop)="onImportDrop($event)"
+      tabindex="0"
+      role="button"
+      aria-label="Choose CSV file or drag and drop here">
+      <input
+        #csvFileInput
+        type="file"
+        accept=".csv,text/csv"
+        class="csv-file-input"
+        (change)="onImportFileSelected($event)"
+        aria-hidden="true"
+        tabindex="-1">
+
+      <div class="csv-dropzone-icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+      </div>
+
+      <p class="csv-dropzone-title">Drag and drop your CSV file here</p>
+      <p class="csv-dropzone-subtitle">or click to browse</p>
+      <button type="button" class="btn btn-secondary csv-browse-btn" (click)="triggerImportFilePicker(); $event.stopPropagation()">
+        Choose file
+      </button>
+    </div>
+
+    <div *ngIf="selectedImportFile" class="csv-selected-file">
+      <div class="csv-selected-file-info">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+        </svg>
+        <div>
+          <span class="csv-selected-file-name">{{ selectedImportFile.name }}</span>
+          <span class="csv-selected-file-size">{{ formatImportFileSize(selectedImportFile.size) }}</span>
+        </div>
+      </div>
+      <button type="button" class="btn btn-secondary" (click)="clearImportFile()">
+        Remove file
+      </button>
+    </div>
+
+    <div *ngIf="importFileError" class="message error csv-import-error" role="alert">
+      {{ importFileError }}
+    </div>
+
+    <div class="csv-import-footer">
+      <button type="button" class="btn btn-secondary" (click)="downloadCsvTemplate()">
+        Download template
+      </button>
+      <span class="csv-import-footer-hint" *ngIf="selectedImportFile">
+        File ready — import will run in the next step.
+      </span>
+    </div>
+  </section>
 
   <!-- Messages -->
   <div class="message success" *ngIf="successMessage">

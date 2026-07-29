@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, HostListener, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -36,6 +36,8 @@ const MEDICATION_IMPORT_CSV_HEADERS = [
   'Active'
 ] as const;
 
+const MAX_MEDICATION_IMPORT_FILE_BYTES = 5 * 1024 * 1024;
+
 @Component({
   selector: 'app-medications',
   standalone: true,
@@ -44,6 +46,8 @@ const MEDICATION_IMPORT_CSV_HEADERS = [
   styleUrl: './medications.component.css'
 })
 export class MedicationsComponent implements OnInit, OnDestroy {
+  @ViewChild('csvFileInput') csvFileInput?: ElementRef<HTMLInputElement>;
+
   protected pharmacyService = inject(PharmacyService);
   protected filterService = inject(PharmacyFilterService);
 
@@ -93,6 +97,13 @@ export class MedicationsComponent implements OnInit, OnDestroy {
 
   // Success message for clear operation
   clearSuccessMessage: string | null = null;
+
+  // CSV import panel
+  showImportPanel: boolean = false;
+  selectedImportFile: File | null = null;
+  importFileError: string | null = null;
+  isImportDragOver: boolean = false;
+  readonly maxImportFileSizeLabel = '5 MB';
 
   ngOnInit(): void {
     this.syncUIFromFilters(this.filterService.getFilters());
@@ -862,6 +873,109 @@ export class MedicationsComponent implements OnInit, OnDestroy {
 
     const csvContent = [MEDICATION_IMPORT_CSV_HEADERS.join(','), exampleRow.join(',')].join('\n');
     this.downloadCSV(csvContent, 'medication-import-template.csv');
+  }
+
+  toggleImportPanel(): void {
+    this.showImportPanel = !this.showImportPanel;
+
+    if (!this.showImportPanel) {
+      this.clearImportFile();
+      this.importFileError = null;
+    }
+  }
+
+  closeImportPanel(): void {
+    this.showImportPanel = false;
+    this.clearImportFile();
+    this.importFileError = null;
+  }
+
+  triggerImportFilePicker(): void {
+    this.csvFileInput?.nativeElement.click();
+  }
+
+  onImportFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+
+    if (file) {
+      this.setImportFile(file);
+    }
+
+    input.value = '';
+  }
+
+  onImportDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isImportDragOver = true;
+  }
+
+  onImportDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isImportDragOver = false;
+  }
+
+  onImportDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isImportDragOver = false;
+
+    const file = event.dataTransfer?.files?.[0];
+    if (file) {
+      this.setImportFile(file);
+    }
+  }
+
+  clearImportFile(): void {
+    this.selectedImportFile = null;
+    this.importFileError = null;
+
+    if (this.csvFileInput?.nativeElement) {
+      this.csvFileInput.nativeElement.value = '';
+    }
+  }
+
+  formatImportFileSize(bytes: number): string {
+    if (bytes < 1024) {
+      return `${bytes} B`;
+    }
+
+    if (bytes < 1024 * 1024) {
+      return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  private setImportFile(file: File): void {
+    this.importFileError = null;
+
+    if (!this.isCsvFile(file)) {
+      this.selectedImportFile = null;
+      this.importFileError = 'Please select a valid .csv file.';
+      return;
+    }
+
+    if (file.size > MAX_MEDICATION_IMPORT_FILE_BYTES) {
+      this.selectedImportFile = null;
+      this.importFileError = `File is too large. Maximum size is ${this.maxImportFileSizeLabel}.`;
+      return;
+    }
+
+    if (file.size === 0) {
+      this.selectedImportFile = null;
+      this.importFileError = 'The selected file is empty.';
+      return;
+    }
+
+    this.selectedImportFile = file;
+  }
+
+  private isCsvFile(file: File): boolean {
+    const name = file.name.toLowerCase();
+    return name.endsWith('.csv') || file.type === 'text/csv' || file.type === 'application/vnd.ms-excel';
   }
 
   private formatDateForCsv(dateString: string): string {
