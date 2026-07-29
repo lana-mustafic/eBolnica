@@ -431,6 +431,20 @@ export class PharmacyService {
       params = params.set('stockStatus', filters.stockStatus);
     }
 
+    if (filters.minStock !== undefined && filters.minStock !== null) {
+      params = params.set('minStock', filters.minStock.toString());
+    }
+    if (filters.maxStock !== undefined && filters.maxStock !== null) {
+      params = params.set('maxStock', filters.maxStock.toString());
+    }
+
+    if (filters.expiryAfter) {
+      params = params.set('expiryAfter', filters.expiryAfter);
+    }
+    if (filters.expiryBefore) {
+      params = params.set('expiryBefore', filters.expiryBefore);
+    }
+
     // Sorting
     if (filters.sortBy) {
       params = params.set('sortBy', filters.sortBy);

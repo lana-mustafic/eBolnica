@@ -77,6 +77,11 @@ export class PharmacyFilterService {
       minPrice: undefined,
       maxPrice: undefined,
       stockStatus: undefined,
+      minStock: undefined,
+      maxStock: undefined,
+      expiryStatus: undefined,
+      expiryAfter: undefined,
+      expiryBefore: undefined,
       prescriptionStatus: undefined,
       urgency: undefined,
       supplier: undefined,
@@ -121,6 +126,8 @@ export class PharmacyFilterService {
     if (filters.category) count++;
     if (filters.status) count++;
     if (filters.stockStatus) count++;
+    else if (filters.minStock !== undefined || filters.maxStock !== undefined) count++;
+    if (filters.expiryStatus) count++;
     if (filters.requiresPrescription !== undefined) count++;
     if (filters.isActive !== undefined) count++;
     if (filters.minPrice !== undefined) count++;
@@ -183,6 +190,22 @@ export class PharmacyFilterService {
         key: 'stockStatus',
         label: 'Stock Status',
         value: this.formatStockStatusLabel(filters.stockStatus),
+        type: 'dropdown'
+      });
+    } else if (filters.minStock !== undefined || filters.maxStock !== undefined) {
+      active.push({
+        key: 'stockStatus',
+        label: 'Stock Status',
+        value: 'Critical Stock',
+        type: 'dropdown'
+      });
+    }
+
+    if (filters.expiryStatus) {
+      active.push({
+        key: 'expiryStatus',
+        label: 'Expiry Status',
+        value: this.formatExpiryStatusLabel(filters.expiryStatus),
         type: 'dropdown'
       });
     }
@@ -251,6 +274,17 @@ export class PharmacyFilterService {
     }
 
     return active;
+  }
+
+  private formatExpiryStatusLabel(value: string): string {
+    const labels: Record<string, string> = {
+      good: 'Good (>90 days)',
+      warning: 'Warning (30-90 days)',
+      critical: 'Expiring Soon (<30 days)',
+      expired: 'Expired'
+    };
+
+    return labels[value] ?? value;
   }
 
   private formatStockStatusLabel(value: string): string {

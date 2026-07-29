@@ -14,6 +14,13 @@ export interface PharmacyFilters {
   minPrice?: number;
   maxPrice?: number;
   stockStatus?: string;
+  minStock?: number;
+  maxStock?: number;
+
+  // Inventory expiry filters (expiryStatus is UI value; expiryAfter/expiryBefore are API params)
+  expiryStatus?: string;
+  expiryAfter?: string;
+  expiryBefore?: string;
 
   // Prescription filters
   prescriptionStatus?: string;

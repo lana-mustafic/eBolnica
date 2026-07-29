@@ -170,6 +170,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
   private syncUIFromFilters(filters: PharmacyFilters): void {
     this.searchTerm = filters.searchTerm || '';
     this.selectedCategory = filters.category || '';
+    this.selectedStockFilter = this.mapApiStockFilterToUi(filters);
+    this.selectedExpiryFilter = filters.expiryStatus || 'all';
     this.currentPage = filters.pageNumber || 1;
     this.pageSize = filters.pageSize || 50;
     // Note: For client-side sorting, we preserve sort state but don't update via filters
@@ -181,23 +183,107 @@ export class InventoryComponent implements OnInit, OnDestroy {
    * Note: Sort parameters are NOT included for client-side sorting
    */
   private buildFiltersFromUI(): Partial<PharmacyFilters> {
-    const filters: Partial<PharmacyFilters> = {
+    const stockFilters = this.mapStockFilterToApi(this.selectedStockFilter);
+    const expiryFilters = this.mapExpiryFilterToApi(this.selectedExpiryFilter);
+
+    return {
       pageNumber: this.currentPage,
-      pageSize: this.pageSize
+      pageSize: this.pageSize,
+      searchTerm: this.searchTerm?.trim() || undefined,
+      category: this.selectedCategory || undefined,
+      stockStatus: stockFilters.stockStatus,
+      minStock: stockFilters.minStock,
+      maxStock: stockFilters.maxStock,
+      expiryStatus: expiryFilters.expiryStatus,
+      expiryAfter: expiryFilters.expiryAfter,
+      expiryBefore: expiryFilters.expiryBefore
     };
+  }
 
-    if (this.searchTerm?.trim()) {
-      filters.searchTerm = this.searchTerm.trim();
+  private mapStockFilterToApi(stockFilter: string): Pick<PharmacyFilters, 'stockStatus' | 'minStock' | 'maxStock'> {
+    switch (stockFilter) {
+      case 'adequate':
+        return { stockStatus: 'normal stock', minStock: undefined, maxStock: undefined };
+      case 'low':
+        return { stockStatus: 'low stock', minStock: undefined, maxStock: undefined };
+      case 'critical':
+        return { stockStatus: undefined, minStock: 1, maxStock: 4 };
+      case 'out-of-stock':
+        return { stockStatus: 'out of stock', minStock: undefined, maxStock: undefined };
+      default:
+        return { stockStatus: undefined, minStock: undefined, maxStock: undefined };
+    }
+  }
+
+  private mapApiStockFilterToUi(filters: PharmacyFilters): string {
+    if (filters.minStock === 1 && filters.maxStock === 4) {
+      return 'critical';
     }
 
-    if (this.selectedCategory) {
-      filters.category = this.selectedCategory;
+    switch (filters.stockStatus?.toLowerCase()) {
+      case 'low stock':
+        return 'low';
+      case 'out of stock':
+        return 'out-of-stock';
+      case 'normal stock':
+      case 'in stock':
+        return 'adequate';
+      default:
+        return 'all';
+    }
+  }
+
+  private mapExpiryFilterToApi(expiryFilter: string): Pick<PharmacyFilters, 'expiryStatus' | 'expiryAfter' | 'expiryBefore'> {
+    if (!expiryFilter || expiryFilter === 'all') {
+      return { expiryStatus: undefined, expiryAfter: undefined, expiryBefore: undefined };
     }
 
-    // Sort parameters removed - using client-side sorting only
-    // This prevents unnecessary API calls when sorting
+    const today = this.startOfDay(new Date());
 
-    return filters;
+    switch (expiryFilter) {
+      case 'good':
+        return {
+          expiryStatus: expiryFilter,
+          expiryAfter: this.formatDateParam(this.addDays(today, 90)),
+          expiryBefore: undefined
+        };
+      case 'warning':
+        return {
+          expiryStatus: expiryFilter,
+          expiryAfter: this.formatDateParam(this.addDays(today, 30)),
+          expiryBefore: this.formatDateParam(this.addDays(today, 89))
+        };
+      case 'critical':
+        return {
+          expiryStatus: expiryFilter,
+          expiryAfter: this.formatDateParam(today),
+          expiryBefore: this.formatDateParam(this.addDays(today, 29))
+        };
+      case 'expired':
+        return {
+          expiryStatus: expiryFilter,
+          expiryAfter: undefined,
+          expiryBefore: this.formatDateParam(this.addDays(today, -1))
+        };
+      default:
+        return { expiryStatus: undefined, expiryAfter: undefined, expiryBefore: undefined };
+    }
+  }
+
+  private startOfDay(date: Date): Date {
+    const normalized = new Date(date);
+    normalized.setHours(0, 0, 0, 0);
+    return normalized;
+  }
+
+  private addDays(date: Date, days: number): Date {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+  }
+
+  private formatDateParam(date: Date): string {
+    return date.toISOString().split('T')[0];
   }
 
   /**
@@ -392,17 +478,36 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   removeFilter(filterKey: string): void {
-    this.filterService.clearFilter(filterKey as keyof PharmacyFilters);
-    
     switch (filterKey) {
       case 'searchTerm':
         this.searchTerm = '';
+        this.filterService.clearFilter('searchTerm');
         break;
       case 'category':
         this.selectedCategory = '';
+        this.filterService.clearFilter('category');
+        break;
+      case 'stockStatus':
+        this.selectedStockFilter = 'all';
+        this.filterService.updateFilters({
+          stockStatus: undefined,
+          minStock: undefined,
+          maxStock: undefined
+        });
+        break;
+      case 'expiryStatus':
+        this.selectedExpiryFilter = 'all';
+        this.filterService.updateFilters({
+          expiryStatus: undefined,
+          expiryAfter: undefined,
+          expiryBefore: undefined
+        });
+        break;
+      default:
+        this.filterService.clearFilter(filterKey as keyof PharmacyFilters);
         break;
     }
-    
+
     this.updateActiveFilters();
   }
 
@@ -831,11 +936,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
     // Build current filters from component state
     const filters: PharmacyFilters = {
+      ...this.buildFiltersFromUI(),
       pageNumber: 1,
-      pageSize: this.pageSize,
-      searchTerm: this.searchTerm || undefined,
-      category: this.selectedCategory || undefined,
-      stockStatus: this.selectedStockFilter !== 'all' ? this.selectedStockFilter : undefined,
       sortBy: this.sortColumn,
       sortOrder: this.sortOrder
     };
