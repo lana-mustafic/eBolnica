@@ -418,6 +418,157 @@ namespace eBolnicaAPI.Tests.Unit.Services
 
         #endregion
 
+        #region Inventory Sort Combination Tests
+
+        [Fact]
+        public async Task InventorySort_ExpiryDateDesc_SortsFilteredActiveItems()
+        {
+            var query = _pharmacyService.GetFilteredInventory(
+                _context.Medications.AsQueryable(),
+                new PharmacyQueryParameters());
+
+            var results = await _pharmacyService
+                .ApplySorting(query, "expiryDate", "desc")
+                .ToListAsync();
+
+            var expiryDates = results
+                .Select(m => m.ExpiryDate ?? DateTime.MinValue)
+                .ToList();
+            var expected = expiryDates.OrderByDescending(d => d).ToList();
+
+            Assert.Equal(expected, expiryDates);
+        }
+
+        [Fact]
+        public async Task InventorySort_StockQuantityAsc_SortsFilteredActiveItems()
+        {
+            var query = _pharmacyService.GetFilteredInventory(
+                _context.Medications.AsQueryable(),
+                new PharmacyQueryParameters());
+
+            var results = await _pharmacyService
+                .ApplySorting(query, "stockQuantity", "asc")
+                .ToListAsync();
+
+            var stockLevels = results.Select(m => m.StockQuantity).ToList();
+            var expected = stockLevels.OrderBy(q => q).ToList();
+
+            Assert.Equal(expected, stockLevels);
+            Assert.Equal("Empty Stock Med", results[0].Name);
+        }
+
+        [Fact]
+        public async Task InventorySort_StockAlias_SortsSameAsStockQuantity()
+        {
+            var baseQuery = _pharmacyService.GetFilteredInventory(
+                _context.Medications.AsQueryable(),
+                new PharmacyQueryParameters());
+
+            var byStockQuantity = await _pharmacyService
+                .ApplySorting(baseQuery, "stockQuantity", "asc")
+                .Select(m => m.Name)
+                .ToListAsync();
+
+            var byStockAlias = await _pharmacyService
+                .ApplySorting(baseQuery, "stock", "asc")
+                .Select(m => m.Name)
+                .ToListAsync();
+
+            Assert.Equal(byStockQuantity, byStockAlias);
+        }
+
+        [Fact]
+        public async Task InventorySort_CategoryFilterAndNameAsc_ReturnsFilteredAndSortedResults()
+        {
+            var query = _pharmacyService.GetFilteredInventory(
+                _context.Medications.AsQueryable(),
+                new PharmacyQueryParameters { Category = "antibiotics" });
+
+            var results = await _pharmacyService
+                .ApplySorting(query, "name", "asc")
+                .ToListAsync();
+
+            Assert.NotEmpty(results);
+            Assert.All(results, m => Assert.Equal("antibiotics", m.Category?.ToLower()));
+
+            var names = results.Select(m => m.Name).ToList();
+            Assert.Equal(names.OrderBy(n => n).ToList(), names);
+        }
+
+        [Fact]
+        public async Task InventorySort_LowStockFilterAndExpiryDateDesc_CombinesFilterAndSort()
+        {
+            var query = _pharmacyService.GetFilteredInventory(
+                _context.Medications.AsQueryable(),
+                new PharmacyQueryParameters { StockStatus = "low stock" });
+
+            var results = await _pharmacyService
+                .ApplySorting(query, "expiryDate", "desc")
+                .ToListAsync();
+
+            Assert.Single(results);
+            Assert.Equal("Ibuprofen", results[0].Name);
+            Assert.True(results[0].StockQuantity < results[0].MinimumStockLevel);
+        }
+
+        [Fact]
+        public async Task InventorySort_MultiColumnCategoryThenName_SortsWithinCategories()
+        {
+            var query = _pharmacyService.GetFilteredInventory(
+                _context.Medications.AsQueryable(),
+                new PharmacyQueryParameters());
+
+            var results = await _pharmacyService
+                .ApplySorting(query, "category,name", "asc,asc")
+                .ToListAsync();
+
+            foreach (var group in results.GroupBy(m => m.Category))
+            {
+                var names = group.Select(m => m.Name).ToList();
+                Assert.Equal(names.OrderBy(n => n).ToList(), names);
+            }
+        }
+
+        [Fact]
+        public async Task InventorySort_PaginationMaintainsGlobalSortOrder()
+        {
+            const int pageSize = 3;
+            var baseQuery = _pharmacyService.GetFilteredInventory(
+                _context.Medications.AsQueryable(),
+                new PharmacyQueryParameters());
+            var sortedQuery = _pharmacyService.ApplySorting(baseQuery, "name", "asc");
+
+            var allSortedNames = await sortedQuery.Select(m => m.Name).ToListAsync();
+            var pageOne = await sortedQuery.Skip(0).Take(pageSize).Select(m => m.Name).ToListAsync();
+            var pageTwo = await sortedQuery.Skip(pageSize).Take(pageSize).Select(m => m.Name).ToListAsync();
+
+            Assert.Equal(allSortedNames.Take(pageSize), pageOne);
+            Assert.Equal(allSortedNames.Skip(pageSize).Take(pageSize), pageTwo);
+            Assert.Empty(pageOne.Intersect(pageTwo));
+        }
+
+        [Fact]
+        public async Task InventorySort_ExpiryAfterFilterAndCreatedAtDesc_CombinesDateFilterAndSort()
+        {
+            var today = DateTime.Now.Date;
+            var query = _pharmacyService.GetFilteredInventory(
+                _context.Medications.AsQueryable(),
+                new PharmacyQueryParameters { ExpiryAfter = today.AddDays(90) });
+
+            var results = await _pharmacyService
+                .ApplySorting(query, "createdAt", "desc")
+                .ToListAsync();
+
+            Assert.NotEmpty(results);
+            Assert.All(results, m =>
+                Assert.True(!m.ExpiryDate.HasValue || m.ExpiryDate.Value.Date >= today.AddDays(90)));
+
+            var createdDates = results.Select(m => m.CreatedAt).ToList();
+            Assert.Equal(createdDates.OrderByDescending(d => d).ToList(), createdDates);
+        }
+
+        #endregion
+
         #region Sort Builder Tests
 
         [Fact]
