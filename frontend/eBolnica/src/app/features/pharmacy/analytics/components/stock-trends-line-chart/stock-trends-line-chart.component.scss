@@ -421,11 +421,13 @@
 .chart-wrapper {
   position: relative;
   width: 100%;
+  min-width: 0;
   min-height: 300px;
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 
   canvas {
     max-width: 100%;
@@ -481,8 +483,46 @@
   }
 }
 
-// Responsive Design
-@media (max-width: 768px) {
+// Responsive Design — tablet (matches ResponsiveChartService ≤1024px)
+@media (max-width: 1024px) {
+  .stock-trends-chart-container {
+    padding: 1.25rem;
+  }
+
+  .chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .selector-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .selector-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .chart-summary {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .summary-item {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .legend-items {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 767px) {
   .stock-trends-chart-container {
     padding: 1rem;
     border-radius: 8px;
