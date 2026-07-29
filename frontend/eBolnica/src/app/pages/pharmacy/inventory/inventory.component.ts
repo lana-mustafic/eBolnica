@@ -12,7 +12,7 @@ import { MedicationDto } from '../../../models/medication.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { InventoryResponse } from '../../../models/inventory-response.dto';
 import { PagedResponse } from '../../../models/paged-response.dto';
-import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, catchError, of } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, catchError, of, EMPTY } from 'rxjs';
 import {
   INVENTORY_SORT_DISPLAY_NAMES,
   mapInventorySortColumn,
@@ -69,8 +69,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
   // Sort state (server-side)
   sortColumn: string = TABLE_DEFAULT_SORTS.INVENTORY.column;
   sortOrder: 'asc' | 'desc' = TABLE_DEFAULT_SORTS.INVENTORY.order;
-  private previousSortColumn: string = TABLE_DEFAULT_SORTS.INVENTORY.column;
-  private previousSortOrder: 'asc' | 'desc' = TABLE_DEFAULT_SORTS.INVENTORY.order;
+  private previousSortColumn: string = TABLE_DEFAULT_SORTS.INVENTORY.column; // For error recovery
+  private previousSortOrder: 'asc' | 'desc' = TABLE_DEFAULT_SORTS.INVENTORY.order; // For error recovery
   private sortDebounceTimer?: ReturnType<typeof setTimeout>;
 
   // Summary statistics
@@ -109,6 +109,11 @@ export class InventoryComponent implements OnInit, OnDestroy {
             this.isSorting = false;
           }),
           catchError((error) => {
+            if (this.isSorting) {
+              this.handleSortError(error);
+              return EMPTY;
+            }
+
             this.handleApiError(error);
             return of({
               items: [],
@@ -606,6 +611,35 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.sortDebounceTimer = setTimeout(() => {
       this.pushSortToFilterService();
     }, 200);
+  }
+
+  /**
+   * Handle sort-specific errors
+   */
+  private handleSortError(error: any): void {
+    console.error('Sort failed:', error);
+
+    this.revertSortState();
+
+    if (error?.status === 400) {
+      this.errorMessage = 'Invalid sort column. Please try a different column.';
+      console.warn('Invalid sort parameters:', error.error);
+    } else if (error?.status === 0) {
+      this.errorMessage = 'Network error. Unable to sort inventory. Please check your connection.';
+    } else {
+      this.errorMessage = 'Unable to sort inventory. Please try again.';
+    }
+
+    this.isSorting = false;
+  }
+
+  /**
+   * Revert sort state to previous values or default
+   */
+  private revertSortState(): void {
+    this.sortColumn = this.previousSortColumn || TABLE_DEFAULT_SORTS.INVENTORY.column;
+    this.sortOrder = this.previousSortOrder || TABLE_DEFAULT_SORTS.INVENTORY.order;
+    this.pushSortToFilterService();
   }
 
   isSortColumnActive(column: string): boolean {
