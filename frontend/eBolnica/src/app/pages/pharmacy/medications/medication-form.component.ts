@@ -5,6 +5,12 @@ import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
 import { MedicationDto } from '../../../models/medication.dto';
 import { MedicationCreateDto } from '../../../models/medication-create.dto';
+import {
+  medicationNameAsyncValidator,
+  MEDICATION_NAME_CHECK_UNAVAILABLE_ERROR,
+  MEDICATION_NAME_EXISTS_ERROR,
+  MEDICATION_NAME_VALIDATOR_MESSAGES
+} from '../../../shared/validators/medication-name-async.validator';
 import { finalize } from 'rxjs';
 
 @Component({
@@ -59,7 +65,16 @@ export class MedicationFormComponent implements OnInit {
 
   constructor() {
     this.medicationForm = this.formBuilder.group({
-      name: ['', [Validators.required, Validators.minLength(3)]],
+      name: [
+        '',
+        [Validators.required, Validators.minLength(3)],
+        [
+          medicationNameAsyncValidator(
+            (name, excludeId) => this.pharmacyService.checkMedicationNameAvailability(name, excludeId),
+            { excludeId: () => this.medicationId ?? undefined }
+          )
+        ]
+      ],
       genericName: [''],
       description: [''],
       manufacturer: [''],
@@ -230,21 +245,58 @@ export class MedicationFormComponent implements OnInit {
 
   getFieldError(fieldName: string): string {
     const field = this.medicationForm.get(fieldName);
-    if (field && field.invalid && field.touched) {
-      if (field.errors?.['required']) {
-        return `${this.getFieldLabel(fieldName)} is required.`;
-      }
-      if (field.errors?.['minlength']) {
-        return `${this.getFieldLabel(fieldName)} must be at least ${field.errors['minlength'].requiredLength} characters.`;
-      }
-      if (field.errors?.['min']) {
-        return `${this.getFieldLabel(fieldName)} must be at least ${field.errors['min'].min}.`;
-      }
-      if (field.errors?.['pastDate']) {
-        return 'Expiry date must be in the future.';
-      }
+    if (!field || !field.errors) {
+      return '';
     }
+
+    if (field.errors[MEDICATION_NAME_EXISTS_ERROR]) {
+      return MEDICATION_NAME_VALIDATOR_MESSAGES[MEDICATION_NAME_EXISTS_ERROR];
+    }
+
+    if (field.errors[MEDICATION_NAME_CHECK_UNAVAILABLE_ERROR]) {
+      return MEDICATION_NAME_VALIDATOR_MESSAGES[MEDICATION_NAME_CHECK_UNAVAILABLE_ERROR];
+    }
+
+    if (!field.touched) {
+      return '';
+    }
+
+    if (field.errors['required']) {
+      return `${this.getFieldLabel(fieldName)} is required.`;
+    }
+    if (field.errors['minlength']) {
+      return `${this.getFieldLabel(fieldName)} must be at least ${field.errors['minlength'].requiredLength} characters.`;
+    }
+    if (field.errors['min']) {
+      return `${this.getFieldLabel(fieldName)} must be at least ${field.errors['min'].min}.`;
+    }
+    if (field.errors['pastDate']) {
+      return 'Expiry date must be in the future.';
+    }
+
     return '';
+  }
+
+  retryNameValidation(): void {
+    const nameControl = this.medicationForm.get('name');
+    nameControl?.markAsTouched();
+    nameControl?.updateValueAndValidity();
+  }
+
+  isNameCheckUnavailable(): boolean {
+    const nameControl = this.medicationForm.get('name');
+    return nameControl?.hasError(MEDICATION_NAME_CHECK_UNAVAILABLE_ERROR) ?? false;
+  }
+
+  isNameControlPending(): boolean {
+    return this.medicationForm.get('name')?.pending ?? false;
+  }
+
+  isNameFieldInvalid(): boolean {
+    const nameControl = this.medicationForm.get('name');
+    return (nameControl?.invalid && nameControl.touched) ||
+      (nameControl?.hasError(MEDICATION_NAME_EXISTS_ERROR) ?? false) ||
+      (nameControl?.hasError(MEDICATION_NAME_CHECK_UNAVAILABLE_ERROR) ?? false);
   }
 
   getFieldLabel(fieldName: string): string {

@@ -31,11 +31,19 @@
               type="text" 
               id="name"
               formControlName="name"
-              [class.error]="medicationForm.get('name')?.invalid && medicationForm.get('name')?.touched"
+              [class.error]="isNameFieldInvalid()"
               placeholder="Enter medication name">
+            <div class="field-hint" *ngIf="isNameControlPending()">Checking name availability...</div>
             <div class="error-message" *ngIf="getFieldError('name')">
               {{ getFieldError('name') }}
             </div>
+            <button
+              *ngIf="isNameCheckUnavailable()"
+              type="button"
+              class="btn-retry-name-check"
+              (click)="retryNameValidation()">
+              Retry name check
+            </button>
           </div>
 
           <div class="form-group">
@@ -212,7 +220,7 @@
         <button type="button" class="btn btn-secondary" (click)="onCancel()" [disabled]="isLoading">
           Cancel
         </button>
-        <button type="submit" class="btn btn-primary" [disabled]="isLoading || !medicationForm.valid">
+        <button type="submit" class="btn btn-primary" [disabled]="isLoading || !medicationForm.valid || medicationForm.pending">
           <span *ngIf="!isLoading">{{ isEditMode ? 'Update' : 'Create' }} Medication</span>
           <span *ngIf="isLoading">Processing...</span>
         </button>
