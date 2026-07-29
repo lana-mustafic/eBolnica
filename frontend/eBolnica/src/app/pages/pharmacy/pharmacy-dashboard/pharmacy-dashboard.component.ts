@@ -11,6 +11,12 @@ import { RevenueBarChartComponent } from '../../../features/pharmacy/analytics/c
 import { CategoriesPieChartComponent } from '../../../features/pharmacy/analytics/components/categories-pie-chart/categories-pie-chart.component';
 import { StockTrendsLineChartComponent } from '../../../features/pharmacy/analytics/components/stock-trends-line-chart/stock-trends-line-chart.component';
 
+/**
+ * Pharmacy dashboard overview.
+ *
+ * Metrics audit (hardcoded/mock sources, pagination risks, chart fallbacks):
+ * @see ./PHARMACY_DASHBOARD_METRICS_AUDIT.md
+ */
 @Component({
   selector: 'app-pharmacy-dashboard',
   imports: [
