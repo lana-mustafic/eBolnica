@@ -18,6 +18,24 @@ import { getPageRangeEnd, getPageRangeStart } from '../../../shared/utils/paged-
 /** Debounce delay for medication search input before combining with other filters */
 const MEDICATION_SEARCH_DEBOUNCE_MS = 300;
 
+/** CSV columns used for medication import (and export, except Status on export-only). */
+const MEDICATION_IMPORT_CSV_HEADERS = [
+  'Name',
+  'Generic Name',
+  'Category',
+  'Manufacturer',
+  'Description',
+  'Price',
+  'Stock Quantity',
+  'Minimum Stock Level',
+  'Expiry Date',
+  'Batch Number',
+  'Dosage Form',
+  'Strength',
+  'Requires Prescription',
+  'Active'
+] as const;
+
 @Component({
   selector: 'app-medications',
   standalone: true,
@@ -791,20 +809,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     }
 
     const headers = [
-      'Name',
-      'Generic Name',
-      'Category',
-      'Manufacturer',
-      'Description',
-      'Price',
-      'Stock Quantity',
-      'Minimum Stock Level',
-      'Expiry Date',
-      'Batch Number',
-      'Dosage Form',
-      'Strength',
-      'Requires Prescription',
-      'Active',
+      ...MEDICATION_IMPORT_CSV_HEADERS,
       'Status'
     ];
 
@@ -832,6 +837,31 @@ export class MedicationsComponent implements OnInit, OnDestroy {
 
     const today = new Date().toISOString().split('T')[0];
     this.downloadCSV(csvContent, `pharmacy-medications-${today}.csv`);
+  }
+
+  /**
+   * Download import template with required headers and one example row (validation hints in cells).
+   */
+  downloadCsvTemplate(): void {
+    const exampleRow = [
+      'Paracetamol (required, 3-100 characters)',
+      'Acetaminophen (optional)',
+      'Painkillers (required)',
+      'PharmaCorp (optional)',
+      'Pain reliever (optional, max 500 characters)',
+      '9.99 (required, > 0)',
+      '100 (required, integer >= 0)',
+      '20 (required, integer >= 0)',
+      '2026-12-31 (required, YYYY-MM-DD, must be future date)',
+      'BATCH-001 (optional)',
+      'Tablet (optional)',
+      '500mg (optional)',
+      'No (required: Yes or No)',
+      'Yes (required: Yes or No)'
+    ].map(value => this.escapeCSV(value));
+
+    const csvContent = [MEDICATION_IMPORT_CSV_HEADERS.join(','), exampleRow.join(',')].join('\n');
+    this.downloadCSV(csvContent, 'medication-import-template.csv');
   }
 
   private formatDateForCsv(dateString: string): string {

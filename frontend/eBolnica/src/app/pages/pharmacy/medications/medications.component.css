@@ -42,6 +42,24 @@
   box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
 }
 
+.btn-template {
+  background: white;
+  color: #2d3748;
+  border: 1px solid #cbd5e0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.btn-template svg {
+  width: 18px;
+  height: 18px;
+}
+
+.btn-template:hover:not(:disabled) {
+  background: #f7fafc;
+  border-color: #a0aec0;
+  transform: translateY(-2px);
+}
+
 .message {
   padding: 1rem;
   border-radius: 8px;
