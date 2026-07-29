@@ -38,7 +38,8 @@ namespace eBolnicaAPI.Tests.Unit.Services
             _context.SaveChanges();
 
             var analytics = new Mock<IPharmacyAnalyticsService>();
-            _service = new MedicationCsvImportService(_context, analytics.Object);
+            var duplicateChecker = new MedicationImportDuplicateChecker(_context);
+            _service = new MedicationCsvImportService(_context, analytics.Object, duplicateChecker);
         }
 
         [Fact]
@@ -77,7 +78,44 @@ namespace eBolnicaAPI.Tests.Unit.Services
             Assert.Equal(1, result.FailureCount);
             Assert.True(result.Committed);
             Assert.Empty(result.ImportedMedicationIds);
-            Assert.Contains(result.Errors, e => e.Field == "Name" && e.Reason.Contains("already exists"));
+            Assert.Contains(result.Errors, e =>
+                e.Field == "Name" && e.Reason.Contains("already exists"));
+        }
+
+        [Fact]
+        public async Task ImportAsync_DuplicateNameCaseInsensitive_ReturnsRowError()
+        {
+            var expiry = DateTime.UtcNow.AddYears(1).ToString("yyyy-MM-dd");
+            var csv = $"""
+                Name,Generic Name,Category,Manufacturer,Description,Price,Stock Quantity,Minimum Stock Level,Expiry Date,Batch Number,Dosage Form,Strength,Requires Prescription,Active
+                existing med,,Vitamins,,,12.50,25,5,{expiry},,,,No,Yes
+                """;
+
+            var (_, result) = await _service.ImportAsync(CreateFormFile(csv));
+
+            Assert.NotNull(result);
+            Assert.Equal(0, result!.SuccessCount);
+            Assert.Equal(1, result.FailureCount);
+            Assert.Contains(result.Errors, e => e.Field == "Name");
+        }
+
+        [Fact]
+        public async Task ImportAsync_DuplicateNameWithinFile_RejectsSecondRow()
+        {
+            var expiry = DateTime.UtcNow.AddYears(1).ToString("yyyy-MM-dd");
+            var csv = $"""
+                Name,Generic Name,Category,Manufacturer,Description,Price,Stock Quantity,Minimum Stock Level,Expiry Date,Batch Number,Dosage Form,Strength,Requires Prescription,Active
+                Unique Batch Med,,Vitamins,,,12.50,25,5,{expiry},,,,No,Yes
+                unique batch med,,Vitamins,,,13.50,30,6,{expiry},,,,No,Yes
+                """;
+
+            var (_, result) = await _service.ImportAsync(CreateFormFile(csv));
+
+            Assert.NotNull(result);
+            Assert.Equal(1, result!.SuccessCount);
+            Assert.Equal(1, result.FailureCount);
+            Assert.Contains(result.Errors, e =>
+                e.Field == "Name" && e.Reason.Contains("Duplicate name in this import file"));
         }
 
         [Fact]

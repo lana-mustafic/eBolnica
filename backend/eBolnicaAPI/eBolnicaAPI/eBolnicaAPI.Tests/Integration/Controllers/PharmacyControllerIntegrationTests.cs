@@ -385,6 +385,27 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
         }
 
         [Fact]
+        public async Task ImportMedicationsCsv_DuplicateNameWithinFile_ImportsFirstRowOnly()
+        {
+            var expiry = DateTime.UtcNow.AddYears(1).ToString("yyyy-MM-dd");
+            var csv = $"""
+                Name,Generic Name,Category,Manufacturer,Description,Price,Stock Quantity,Minimum Stock Level,Expiry Date,Batch Number,Dosage Form,Strength,Requires Prescription,Active
+                Brand New Med,,Vitamins,,,11.00,30,10,{expiry},,,,No,Yes
+                brand new med,,Vitamins,,,12.00,31,11,{expiry},,,,No,Yes
+                """;
+
+            using var content = CreateCsvUploadContent(csv);
+            var response = await _client.PostAsync("/api/pharmacy/medications/import/csv", content);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var summary = await response.Content.ReadFromJsonAsync<MedicationImportResultDto>();
+            Assert.NotNull(summary);
+            Assert.Equal(1, summary.SuccessCount);
+            Assert.Equal(1, summary.FailureCount);
+            Assert.Contains(summary.Errors, e => e.Reason.Contains("Duplicate name in this import file"));
+        }
+
+        [Fact]
         public async Task ImportMedicationsCsv_MissingHeaders_ReturnsBadRequest()
         {
             using var content = CreateCsvUploadContent("Wrong,Headers\na,b");

@@ -19,11 +19,16 @@ namespace eBolnicaAPI.Services.Pharmacy
 
         private readonly AppDbContext _context;
         private readonly IPharmacyAnalyticsService _analyticsService;
+        private readonly IMedicationImportDuplicateChecker _duplicateChecker;
 
-        public MedicationCsvImportService(AppDbContext context, IPharmacyAnalyticsService analyticsService)
+        public MedicationCsvImportService(
+            AppDbContext context,
+            IPharmacyAnalyticsService analyticsService,
+            IMedicationImportDuplicateChecker duplicateChecker)
         {
             _context = context;
             _analyticsService = analyticsService;
+            _duplicateChecker = duplicateChecker;
         }
 
         public int MaxFileSizeBytes { get; } = 5 * 1024 * 1024;
@@ -112,11 +117,8 @@ namespace eBolnicaAPI.Services.Pharmacy
             MedicationImportResultDto result,
             CancellationToken cancellationToken)
         {
-            var existingNames = await _context.Medications
-                .AsNoTracking()
-                .Select(m => m.Name.ToLower())
-                .ToListAsync(cancellationToken);
-            var reservedNames = new HashSet<string>(existingNames, StringComparer.OrdinalIgnoreCase);
+            var existingNames = await _duplicateChecker.LoadExistingNormalizedNamesAsync(cancellationToken);
+            var importNames = new HashSet<string>(StringComparer.Ordinal);
             var medicationsToInsert = new List<Medication>();
 
             foreach (var row in dataRows)
@@ -135,20 +137,19 @@ namespace eBolnicaAPI.Services.Pharmacy
                     continue;
                 }
 
-                if (reservedNames.Contains(dto!.Name))
+                var duplicateError = _duplicateChecker.TryRegisterName(
+                    dto!.Name,
+                    row.RowNumber,
+                    existingNames,
+                    importNames);
+
+                if (duplicateError != null)
                 {
-                    result.Errors.Add(new MedicationImportRowErrorDto
-                    {
-                        RowNumber = row.RowNumber,
-                        Field = "Name",
-                        Value = dto.Name,
-                        Reason = "A medication with this name already exists."
-                    });
+                    result.Errors.Add(duplicateError);
                     result.FailureCount++;
                     continue;
                 }
 
-                reservedNames.Add(dto.Name);
                 medicationsToInsert.Add(ToEntity(dto));
             }
 
@@ -169,6 +170,20 @@ namespace eBolnicaAPI.Services.Pharmacy
 
             try
             {
+                var conflictingNames = await _duplicateChecker.FindConflictingNamesAsync(
+                    medications.Select(m => m.Name),
+                    cancellationToken);
+
+                if (conflictingNames.Count > 0)
+                {
+                    result.Committed = false;
+                    result.SuccessCount = 0;
+                    result.ImportedMedicationIds.Clear();
+                    result.BatchError =
+                        "Batch import aborted because one or more medication names already exist.";
+                    return;
+                }
+
                 if (_context.Database.IsRelational())
                 {
                     await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
