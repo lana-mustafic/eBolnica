@@ -30,6 +30,7 @@ namespace eBolnicaAPI.Controllers
         private readonly IMedicationImageService _medicationImageService;
         private readonly IMedicationCsvExportService _medicationCsvExportService;
         private readonly IMedicationCsvImportService _medicationCsvImportService;
+        private readonly IMedicationImportDuplicateChecker _medicationDuplicateChecker;
         private readonly ILogger<PharmacyController> _logger;
         private readonly IMemoryCache _cache;
         private readonly IConfiguration _configuration;
@@ -43,6 +44,7 @@ namespace eBolnicaAPI.Controllers
             IMedicationImageService medicationImageService,
             IMedicationCsvExportService medicationCsvExportService,
             IMedicationCsvImportService medicationCsvImportService,
+            IMedicationImportDuplicateChecker medicationDuplicateChecker,
             ILogger<PharmacyController> logger,
             IMemoryCache cache,
             IConfiguration configuration)
@@ -55,6 +57,7 @@ namespace eBolnicaAPI.Controllers
             _medicationImageService = medicationImageService;
             _medicationCsvExportService = medicationCsvExportService;
             _medicationCsvImportService = medicationCsvImportService;
+            _medicationDuplicateChecker = medicationDuplicateChecker;
             _logger = logger;
             _cache = cache;
             _configuration = configuration;
@@ -309,24 +312,19 @@ namespace eBolnicaAPI.Controllers
             [FromQuery] string name,
             [FromQuery] int? excludeId = null)
         {
-            var trimmedName = name?.Trim() ?? string.Empty;
-
-            if (string.IsNullOrEmpty(trimmedName))
+            try
             {
-                return BadRequest(new { error = "Name is required." });
+                var isAvailable = await _medicationDuplicateChecker.IsNameAvailableAsync(name, excludeId);
+
+                return Ok(new MedicationNameAvailabilityDto
+                {
+                    IsAvailable = isAvailable
+                });
             }
-
-            var normalizedName = trimmedName.ToLowerInvariant();
-
-            var nameTaken = await _context.Medications
-                .AsNoTracking()
-                .Where(m => excludeId == null || m.Id != excludeId.Value)
-                .AnyAsync(m => m.Name.ToLower() == normalizedName);
-
-            return Ok(new MedicationNameAvailabilityDto
+            catch (ArgumentException ex)
             {
-                IsAvailable = !nameTaken
-            });
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
         [HttpGet("medications/{id}")]

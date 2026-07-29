@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace eBolnicaAPI.Services.Pharmacy
 {
     /// <summary>
-    /// Case-insensitive medication name duplicate detection for CSV import.
+    /// Case-insensitive medication name duplicate detection.
     /// </summary>
     public interface IMedicationImportDuplicateChecker
     {
@@ -19,6 +19,16 @@ namespace eBolnicaAPI.Services.Pharmacy
 
         Task<IReadOnlyList<string>> FindConflictingNamesAsync(
             IEnumerable<string> names,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Returns true when no other medication has the same trimmed, case-insensitive name.
+        /// </summary>
+        /// <param name="name">Medication name to check</param>
+        /// <param name="excludeMedicationId">Optional medication ID to exclude (edit mode)</param>
+        Task<bool> IsNameAvailableAsync(
+            string name,
+            int? excludeMedicationId = null,
             CancellationToken cancellationToken = default);
     }
 
@@ -92,6 +102,28 @@ namespace eBolnicaAPI.Services.Pharmacy
             return normalizedBatch
                 .Where(existingNames.Contains)
                 .ToList();
+        }
+
+        public async Task<bool> IsNameAvailableAsync(
+            string name,
+            int? excludeMedicationId = null,
+            CancellationToken cancellationToken = default)
+        {
+            var trimmedName = name?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrEmpty(trimmedName))
+            {
+                throw new ArgumentException("Name is required.", nameof(name));
+            }
+
+            var normalizedName = NormalizeName(trimmedName);
+
+            var nameTaken = await _context.Medications
+                .AsNoTracking()
+                .Where(m => excludeMedicationId == null || m.Id != excludeMedicationId.Value)
+                .AnyAsync(m => m.Name.ToLower() == normalizedName, cancellationToken);
+
+            return !nameTaken;
         }
 
         private static MedicationImportRowErrorDto CreateRowError(int rowNumber, string name, string reason) =>
