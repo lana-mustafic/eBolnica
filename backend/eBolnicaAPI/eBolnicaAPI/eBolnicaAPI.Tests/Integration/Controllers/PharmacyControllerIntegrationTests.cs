@@ -603,6 +603,25 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
         }
 
         [Fact]
+        public async Task GetInventory_FilterReducesResultSet()
+        {
+            var unfilteredResponse = await _client.GetAsync("/api/pharmacy/inventory?pageSize=100");
+            var filteredResponse = await _client.GetAsync("/api/pharmacy/inventory?category=painkiller&pageSize=100");
+
+            Assert.Equal(HttpStatusCode.OK, unfilteredResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, filteredResponse.StatusCode);
+
+            var unfiltered = await unfilteredResponse.Content.ReadFromJsonAsync<InventoryResponse>();
+            var filtered = await filteredResponse.Content.ReadFromJsonAsync<InventoryResponse>();
+
+            Assert.NotNull(unfiltered);
+            Assert.NotNull(filtered);
+            Assert.True(unfiltered.TotalCount > filtered.TotalCount);
+            Assert.True(filtered.TotalCount > 0);
+            Assert.All(filtered.Items, m => Assert.Equal("painkiller", m.Category?.ToLower()));
+        }
+
+        [Fact]
         public async Task GetInventory_WithCategoryAndMinStock_ReturnsFilteredActiveResults()
         {
             var url = "/api/pharmacy/inventory?category=painkiller&minStock=10&pageSize=100";
