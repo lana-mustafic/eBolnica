@@ -400,6 +400,19 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
             Assert.Equal(100, result.PageSize); // Should clamp to max 100
         }
 
+        [Fact]
+        public async Task GetMedications_PageSizeBelowMin_ClampsToMin()
+        {
+            var url = "/api/pharmacy/medications?pageNumber=1&pageSize=0";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<MedicationDto>>();
+            Assert.NotNull(result);
+            Assert.Equal(1, result.PageSize);
+        }
+
         #endregion
 
         #region GetPrescriptions Integration Tests
@@ -469,6 +482,45 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
             Assert.Equal(sortedDates, dates);
         }
 
+        [Fact]
+        public async Task GetPrescriptions_InvalidPageNumber_ReturnsFirstPage()
+        {
+            var url = "/api/pharmacy/prescriptions?pageNumber=0&pageSize=10";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<PrescriptionDto>>();
+            Assert.NotNull(result);
+            Assert.Equal(1, result.CurrentPage);
+        }
+
+        [Fact]
+        public async Task GetPrescriptions_PageSizeExceedsMax_ClampsToMax()
+        {
+            var url = "/api/pharmacy/prescriptions?pageNumber=1&pageSize=200";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<PrescriptionDto>>();
+            Assert.NotNull(result);
+            Assert.Equal(100, result.PageSize);
+        }
+
+        [Fact]
+        public async Task GetPrescriptions_PageSizeBelowMin_ClampsToMin()
+        {
+            var url = "/api/pharmacy/prescriptions?pageNumber=1&pageSize=0";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<PrescriptionDto>>();
+            Assert.NotNull(result);
+            Assert.Equal(1, result.PageSize);
+        }
+
         #endregion
 
         #region GetInventory Integration Tests
@@ -536,12 +588,57 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
             Assert.Contains("items", content);
         }
 
+        [Fact]
+        public async Task GetInventory_InvalidPageNumber_ReturnsFirstPage()
+        {
+            var url = "/api/pharmacy/inventory?pageNumber=-1&pageSize=10";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var json = await response.Content.ReadFromJsonAsync<InventoryResponse>();
+            Assert.NotNull(json);
+            Assert.Equal(1, json.CurrentPage);
+        }
+
+        [Fact]
+        public async Task GetInventory_PageSizeExceedsMax_ClampsToMax()
+        {
+            var url = "/api/pharmacy/inventory?pageNumber=1&pageSize=250";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var json = await response.Content.ReadFromJsonAsync<InventoryResponse>();
+            Assert.NotNull(json);
+            Assert.Equal(100, json.PageSize);
+        }
+
+        [Fact]
+        public async Task GetInventory_PageSizeBelowMin_ClampsToMin()
+        {
+            var url = "/api/pharmacy/inventory?pageNumber=1&pageSize=0";
+
+            var response = await _client.GetAsync(url);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var json = await response.Content.ReadFromJsonAsync<InventoryResponse>();
+            Assert.NotNull(json);
+            Assert.Equal(1, json.PageSize);
+        }
+
         #endregion
 
         private sealed class InventoryResponse
         {
             [JsonPropertyName("items")]
             public List<MedicationDto> Items { get; set; } = new();
+
+            [JsonPropertyName("currentPage")]
+            public int CurrentPage { get; set; }
+
+            [JsonPropertyName("pageSize")]
+            public int PageSize { get; set; }
         }
 
         #region Helper Methods

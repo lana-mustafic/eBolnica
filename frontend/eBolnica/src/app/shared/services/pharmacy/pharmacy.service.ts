@@ -3,6 +3,7 @@ import { HttpClient, HttpParams, HttpErrorResponse, HttpResponse } from '@angula
 import { Observable, throwError, of, timer, forkJoin } from 'rxjs';
 import { catchError, tap, retry, retryWhen, delayWhen, take, concatMap, map } from 'rxjs/operators';
 import { normalizePagedResponse } from '../../utils/paged-response.util';
+import { normalizePaginationParams } from '../../utils/pagination-params.util';
 import { MedicationDto } from '../../../models/medication.dto';
 import { MedicationImageDto } from '../../../models/medication-image.dto';
 import { MedicationCreateDto } from '../../../models/medication-create.dto';
@@ -105,13 +106,10 @@ export class PharmacyService {
    */
   getAllMedications(filters?: MedicationFilterParams): Observable<PagedResponse<MedicationDto>> {
     // Set defaults
-    const page = filters?.page || 1;
-    const pageSize = Math.max(5, Math.min(100, filters?.pageSize || 10)); // Clamp between 5-100
+    const { pageNumber, pageSize } = normalizePaginationParams(filters?.page, filters?.pageSize);
     
-    // Build query parameters
-    // Backend accepts both 'page' (backward compatibility) and 'pageNumber'
     let params = new HttpParams()
-      .set('pageNumber', page.toString())
+      .set('pageNumber', pageNumber.toString())
       .set('pageSize', pageSize.toString());
     
     // Category filter
@@ -193,11 +191,10 @@ export class PharmacyService {
    * @returns Observable of paginated prescription response
    */
   getPrescriptions(filters?: PrescriptionFilterParams): Observable<PagedResponse<PrescriptionDto>> {
-    const page = filters?.page || 1;
-    const pageSize = Math.max(5, Math.min(100, filters?.pageSize || 10));
-    
+    const { pageNumber, pageSize } = normalizePaginationParams(filters?.page, filters?.pageSize);
+
     let params = new HttpParams()
-      .set('pageNumber', page.toString())
+      .set('pageNumber', pageNumber.toString())
       .set('pageSize', pageSize.toString());
     
     if (filters?.status) {
@@ -234,11 +231,10 @@ export class PharmacyService {
    * @returns Observable of paginated inventory response with alerts
    */
   getInventory(filters?: InventoryFilterParams): Observable<PagedResponse<MedicationDto> & { LowStockAlerts: MedicationDto[]; ExpiryAlerts: MedicationDto[] }> {
-    const page = filters?.page || 1;
-    const pageSize = Math.max(5, Math.min(100, filters?.pageSize || 10));
-    
+    const { pageNumber, pageSize } = normalizePaginationParams(filters?.page, filters?.pageSize);
+
     let params = new HttpParams()
-      .set('pageNumber', page.toString())
+      .set('pageNumber', pageNumber.toString())
       .set('pageSize', pageSize.toString());
     
     if (filters?.category) {
@@ -343,9 +339,14 @@ export class PharmacyService {
    * Build query parameters for medications from PharmacyFilters
    */
   private buildMedicationQueryParams(filters: PharmacyFilters): HttpParams {
+    const { pageNumber, pageSize } = normalizePaginationParams(
+      filters.pageNumber,
+      filters.pageSize
+    );
+
     let params = new HttpParams()
-      .set(MED_Q.pageNumber, (filters.pageNumber || 1).toString())
-      .set(MED_Q.pageSize, Math.max(5, Math.min(100, filters.pageSize || 10)).toString());
+      .set(MED_Q.pageNumber, pageNumber.toString())
+      .set(MED_Q.pageSize, pageSize.toString());
 
     if (filters.searchTerm?.trim()) {
       params = params.set(MED_Q.searchTerm, filters.searchTerm.trim());
@@ -392,9 +393,14 @@ export class PharmacyService {
    * Build query parameters for prescriptions from PharmacyFilters
    */
   private buildPrescriptionQueryParams(filters: PharmacyFilters): HttpParams {
+    const { pageNumber, pageSize } = normalizePaginationParams(
+      filters.pageNumber,
+      filters.pageSize
+    );
+
     let params = new HttpParams()
-      .set('pageNumber', (filters.pageNumber || 1).toString())
-      .set('pageSize', Math.max(5, Math.min(100, filters.pageSize || 10)).toString());
+      .set('pageNumber', pageNumber.toString())
+      .set('pageSize', pageSize.toString());
 
     // Search (with URL encoding)
     if (filters.searchTerm?.trim()) {
@@ -422,9 +428,14 @@ export class PharmacyService {
    * Build query parameters for inventory from PharmacyFilters
    */
   private buildInventoryQueryParams(filters: PharmacyFilters): HttpParams {
+    const { pageNumber, pageSize } = normalizePaginationParams(
+      filters.pageNumber,
+      filters.pageSize
+    );
+
     let params = new HttpParams()
-      .set('pageNumber', (filters.pageNumber || 1).toString())
-      .set('pageSize', Math.max(5, Math.min(100, filters.pageSize || 10)).toString());
+      .set('pageNumber', pageNumber.toString())
+      .set('pageSize', pageSize.toString());
 
     // Search (with URL encoding)
     if (filters.searchTerm?.trim()) {
