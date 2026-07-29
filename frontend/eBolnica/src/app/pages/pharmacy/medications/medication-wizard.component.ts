@@ -9,6 +9,12 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
 import { ConfirmDialogService } from '../../../shared/services/confirm-dialog.service';
 import { MedicationCreateDto } from '../../../models/medication-create.dto';
+import {
+  medicationNameAsyncValidator,
+  MEDICATION_NAME_CHECK_UNAVAILABLE_ERROR,
+  MEDICATION_NAME_EXISTS_ERROR,
+  MEDICATION_NAME_VALIDATOR_MESSAGES
+} from '../../../shared/validators/medication-name-async.validator';
 import { finalize } from 'rxjs';
 
 @Component({
@@ -72,7 +78,15 @@ export class MedicationWizardComponent {
   constructor() {
     this.wizardForm = this.formBuilder.group({
       // Step 1: Basic Information
-      name: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
+      name: [
+        '',
+        [Validators.required, Validators.minLength(3), Validators.maxLength(100)],
+        [
+          medicationNameAsyncValidator(
+            (name, excludeId) => this.pharmacyService.checkMedicationNameAvailability(name, excludeId)
+          )
+        ]
+      ],
       category: ['', Validators.required],
       description: ['', Validators.maxLength(500)],
 
@@ -114,7 +128,7 @@ export class MedicationWizardComponent {
   isStepValid(step: number): boolean {
     switch (step) {
       case 1:
-        return this.wizardForm.get('name')?.valid === true &&
+        return this.isNameControlReady() &&
                this.wizardForm.get('category')?.valid === true;
       case 2:
         return this.wizardForm.get('price')?.valid === true &&
@@ -275,24 +289,59 @@ export class MedicationWizardComponent {
 
   getFieldError(fieldName: string): string | null {
     const field = this.wizardForm.get(fieldName);
-    if (field && field.invalid && field.touched) {
-      if (field.errors?.['required']) {
-        return `${this.getFieldLabel(fieldName)} is required`;
-      }
-      if (field.errors?.['minlength']) {
-        return `${this.getFieldLabel(fieldName)} must be at least ${field.errors['minlength'].requiredLength} characters`;
-      }
-      if (field.errors?.['maxlength']) {
-        return `${this.getFieldLabel(fieldName)} must not exceed ${field.errors['maxlength'].requiredLength} characters`;
-      }
-      if (field.errors?.['min']) {
-        return `${this.getFieldLabel(fieldName)} must be at least ${field.errors['min'].min}`;
-      }
-      if (field.errors?.['pastDate']) {
-        return 'Expiry date must be in the future';
-      }
+    if (!field || !field.errors) {
+      return null;
     }
+
+    if (field.errors[MEDICATION_NAME_EXISTS_ERROR]) {
+      return MEDICATION_NAME_VALIDATOR_MESSAGES[MEDICATION_NAME_EXISTS_ERROR];
+    }
+
+    if (field.errors[MEDICATION_NAME_CHECK_UNAVAILABLE_ERROR]) {
+      return MEDICATION_NAME_VALIDATOR_MESSAGES[MEDICATION_NAME_CHECK_UNAVAILABLE_ERROR];
+    }
+
+    if (!field.touched) {
+      return null;
+    }
+
+    if (field.errors['required']) {
+      return `${this.getFieldLabel(fieldName)} is required`;
+    }
+    if (field.errors['minlength']) {
+      return `${this.getFieldLabel(fieldName)} must be at least ${field.errors['minlength'].requiredLength} characters`;
+    }
+    if (field.errors['maxlength']) {
+      return `${this.getFieldLabel(fieldName)} must not exceed ${field.errors['maxlength'].requiredLength} characters`;
+    }
+    if (field.errors['min']) {
+      return `${this.getFieldLabel(fieldName)} must be at least ${field.errors['min'].min}`;
+    }
+    if (field.errors['pastDate']) {
+      return 'Expiry date must be in the future';
+    }
+
     return null;
+  }
+
+  retryNameValidation(): void {
+    const nameControl = this.wizardForm.get('name');
+    nameControl?.markAsTouched();
+    nameControl?.updateValueAndValidity();
+  }
+
+  isNameCheckUnavailable(): boolean {
+    const nameControl = this.wizardForm.get('name');
+    return nameControl?.hasError(MEDICATION_NAME_CHECK_UNAVAILABLE_ERROR) ?? false;
+  }
+
+  isNameControlPending(): boolean {
+    return this.wizardForm.get('name')?.pending ?? false;
+  }
+
+  private isNameControlReady(): boolean {
+    const nameControl = this.wizardForm.get('name');
+    return nameControl?.valid === true && !nameControl.pending;
   }
 
   getFieldLabel(fieldName: string): string {

@@ -60,7 +60,16 @@
         <mat-label>Medication Name</mat-label>
         <input matInput id="name" formControlName="name" placeholder="e.g., Paracetamol">
         <mat-error *ngIf="getFieldError('name')">{{ getFieldError('name') }}</mat-error>
+        <mat-hint *ngIf="isNameControlPending()">Checking name availability...</mat-hint>
       </mat-form-field>
+
+      <button
+        *ngIf="isNameCheckUnavailable()"
+        type="button"
+        class="btn-retry-name-check"
+        (click)="retryNameValidation()">
+        Retry name check
+      </button>
 
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Category</mat-label>
@@ -191,7 +200,7 @@
           type="button"
           class="btn btn-primary"
           (click)="nextStep()"
-          [disabled]="isLoading">
+          [disabled]="isLoading || !isStepValid(currentStep) || isNameControlPending()">
           Next
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="9 18 15 12 9 6"></polyline>
@@ -202,7 +211,7 @@
           *ngIf="currentStep === totalSteps"
           type="submit"
           class="btn btn-primary"
-          [disabled]="isLoading || wizardForm.invalid">
+          [disabled]="isLoading || wizardForm.invalid || wizardForm.pending">
           <span *ngIf="!isLoading">Submit</span>
           <span *ngIf="isLoading">Submitting...</span>
           <svg *ngIf="!isLoading" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
