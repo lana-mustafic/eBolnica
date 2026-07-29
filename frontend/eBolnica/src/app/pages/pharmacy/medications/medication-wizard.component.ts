@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
 import { ConfirmDialogService } from '../../../shared/services/confirm-dialog.service';
 import { MedicationCreateDto } from '../../../models/medication-create.dto';
@@ -27,7 +28,8 @@ import { finalize } from 'rxjs';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatCheckboxModule
+    MatCheckboxModule,
+    MatProgressSpinnerModule
   ],
   templateUrl: './medication-wizard.component.html',
   styleUrl: './medication-wizard.component.css'

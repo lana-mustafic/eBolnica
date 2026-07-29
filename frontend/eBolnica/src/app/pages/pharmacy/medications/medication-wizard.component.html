@@ -56,11 +56,25 @@
         <p>Enter the basic details about the medication</p>
       </div>
 
-      <mat-form-field appearance="outline" class="full-width">
+      <mat-form-field
+        appearance="outline"
+        class="full-width"
+        [class.name-field-pending]="isNameControlPending()">
         <mat-label>Medication Name</mat-label>
-        <input matInput id="name" formControlName="name" placeholder="e.g., Paracetamol">
+        <input
+          matInput
+          id="name"
+          formControlName="name"
+          placeholder="e.g., Paracetamol"
+          [attr.aria-busy]="isNameControlPending()">
+        <mat-spinner
+          *ngIf="isNameControlPending()"
+          matSuffix
+          diameter="20"
+          aria-label="Validating medication name">
+        </mat-spinner>
+        <mat-hint *ngIf="isNameControlPending()">Validating...</mat-hint>
         <mat-error *ngIf="getFieldError('name')">{{ getFieldError('name') }}</mat-error>
-        <mat-hint *ngIf="isNameControlPending()">Checking name availability...</mat-hint>
       </mat-form-field>
 
       <button

@@ -320,6 +320,11 @@ textarea.form-control {
   margin-bottom: 0.25rem;
 }
 
+.wizard-form mat-form-field.name-field-pending mat-hint {
+  color: #667eea;
+  font-weight: 500;
+}
+
 .form-row mat-form-field {
   width: 100%;
 }

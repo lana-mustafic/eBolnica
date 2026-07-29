@@ -194,6 +194,37 @@
   margin-top: 0.25rem;
 }
 
+.name-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.name-field-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #718096;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.name-field-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: name-field-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes name-field-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .btn-retry-name-check {
   display: inline-flex;
   align-items: center;
