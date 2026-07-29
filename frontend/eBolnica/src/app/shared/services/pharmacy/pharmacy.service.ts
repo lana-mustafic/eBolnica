@@ -157,15 +157,21 @@ export class PharmacyService {
   }
 
   createMedication(medication: MedicationCreateDto): Observable<MedicationDto> {
-    return this.http.post<MedicationDto>(this.apiUrl + '/medications', medication);
+    return this.http.post<MedicationDto>(this.apiUrl + '/medications', medication).pipe(
+      tap(() => this.clearAnalyticsCache())
+    );
   }
 
   updateMedication(id: number, medication: MedicationCreateDto): Observable<MedicationDto> {
-    return this.http.put<MedicationDto>(this.apiUrl + `/medications/${id}`, medication);
+    return this.http.put<MedicationDto>(this.apiUrl + `/medications/${id}`, medication).pipe(
+      tap(() => this.clearAnalyticsCache())
+    );
   }
 
   deleteMedication(id: number): Observable<any> {
-    return this.http.delete(this.apiUrl + `/medications/${id}`);
+    return this.http.delete(this.apiUrl + `/medications/${id}`).pipe(
+      tap(() => this.clearAnalyticsCache())
+    );
   }
 
   // Medication Images
@@ -225,7 +231,9 @@ export class PharmacyService {
   }
 
   dispensePrescription(id: number, data: PrescriptionDispenseDto): Observable<PrescriptionDto> {
-    return this.http.post<PrescriptionDto>(this.apiUrl + `/prescriptions/${id}/dispense`, data);
+    return this.http.post<PrescriptionDto>(this.apiUrl + `/prescriptions/${id}/dispense`, data).pipe(
+      tap(() => this.clearAnalyticsCache())
+    );
   }
 
   // Inventory & Pharmacist Data
@@ -856,7 +864,7 @@ export class PharmacyService {
 
   private readonly analyticsApiUrl = `${this.apiUrl}/analytics`;
   private readonly cachePrefix = 'pharmacy_analytics_';
-  private readonly cacheExpiryMs = 60 * 60 * 1000; // 1 hour cache
+  private readonly cacheExpiryMs = 5 * 60 * 1000; // align with backend analytics TTL (5 minutes)
 
   /**
    * Get cache key for analytics data

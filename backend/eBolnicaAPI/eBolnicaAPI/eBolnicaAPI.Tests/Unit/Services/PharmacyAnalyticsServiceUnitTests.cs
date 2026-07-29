@@ -63,6 +63,20 @@ namespace eBolnicaAPI.Tests.Unit.Services
             Assert.Equal(1825m, summary.InventoryValue);
         }
 
+        [Fact]
+        public async Task InvalidateAnalyticsCache_ForcesFreshDataOnNextRequest()
+        {
+            var first = await _service.GetStockTrendsAsync(null, 30, "daily");
+            var cached = await _service.GetStockTrendsAsync(null, 30, "daily");
+
+            Assert.Same(first, cached);
+
+            _service.InvalidateAnalyticsCache();
+
+            var fresh = await _service.GetStockTrendsAsync(null, 30, "daily");
+            Assert.NotSame(first, fresh);
+        }
+
         private void SeedDashboardMetricsData()
         {
             var now = DateTime.Now;

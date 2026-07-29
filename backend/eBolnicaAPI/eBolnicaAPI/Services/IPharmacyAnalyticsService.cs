@@ -40,5 +40,10 @@ namespace eBolnicaAPI.Services
         /// <param name="interval">Ignored until inventory history is available</param>
         /// <returns>One data point per medication representing current stock levels</returns>
         Task<StockTrendsData> GetStockTrendsAsync(int[]? medicationIds = null, int days = 30, string interval = "daily");
+
+        /// <summary>
+        /// Clears all cached analytics results (e.g. after dispense or inventory changes).
+        /// </summary>
+        void InvalidateAnalyticsCache();
     }
 }

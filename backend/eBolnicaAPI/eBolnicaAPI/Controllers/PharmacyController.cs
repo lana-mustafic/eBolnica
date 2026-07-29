@@ -385,6 +385,7 @@ namespace eBolnicaAPI.Controllers
 
             _context.Medications.Add(medication);
             await _context.SaveChangesAsync();
+            _analyticsService.InvalidateAnalyticsCache();
 
             var resultDto = new MedicationDto
             {
@@ -449,6 +450,7 @@ namespace eBolnicaAPI.Controllers
             medication.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
+            _analyticsService.InvalidateAnalyticsCache();
 
             var resultDto = new MedicationDto
             {
@@ -490,6 +492,7 @@ namespace eBolnicaAPI.Controllers
             medication.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
+            _analyticsService.InvalidateAnalyticsCache();
 
             return NoContent();
         }
@@ -967,6 +970,7 @@ namespace eBolnicaAPI.Controllers
             prescription.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
+            _analyticsService.InvalidateAnalyticsCache();
 
             var result = await _context.Prescriptions
                 .Include(p => p.Patient)

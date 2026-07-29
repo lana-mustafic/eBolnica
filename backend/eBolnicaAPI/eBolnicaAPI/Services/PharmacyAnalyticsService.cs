@@ -4,6 +4,7 @@ using eBolnicaAPI.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
 using System.Diagnostics;
 using System.Globalization;
 
@@ -18,9 +19,11 @@ namespace eBolnicaAPI.Services
         private readonly IMemoryCache _cache;
         private readonly ILogger<PharmacyAnalyticsService> _logger;
         
-        // Cache configuration
-        private const int CacheExpirationMinutes = 5; // Cache results for 5 minutes
-        private const int LongCacheExpirationMinutes = 15; // Longer cache for stable data
+        // Cache configuration — all analytics endpoints share the same TTL and invalidation token.
+        private const int CacheExpirationMinutes = 5;
+
+        private readonly object _cacheInvalidationLock = new();
+        private CancellationTokenSource _cacheInvalidationCts = new();
         
         // Performance thresholds
         private const int MaxQueryTimeoutSeconds = 30;
@@ -126,8 +129,7 @@ namespace eBolnicaAPI.Services
                     InventoryValue = summaryCounts.InventoryValue
                 };
 
-                // Cache the response
-                _cache.Set(cacheKey, response, TimeSpan.FromMinutes(CacheExpirationMinutes));
+                _cache.Set(cacheKey, response, CreateCacheEntryOptions());
 
                 return response;
             }
@@ -276,8 +278,7 @@ namespace eBolnicaAPI.Services
                 _logger.LogInformation("Monthly revenue calculated in {ElapsedMs}ms. Period: {StartDate} to {EndDate}, Months: {MonthCount}",
                     stopwatch.ElapsedMilliseconds, start.ToString("yyyy-MM-dd"), end.ToString("yyyy-MM-dd"), allMonths.Count);
 
-                // Cache the result
-                _cache.Set(cacheKey, result, TimeSpan.FromMinutes(CacheExpirationMinutes));
+                _cache.Set(cacheKey, result, CreateCacheEntryOptions());
 
                 return result;
             }
@@ -399,8 +400,7 @@ namespace eBolnicaAPI.Services
                 _logger.LogInformation("Top categories calculated in {ElapsedMs}ms. TopCount: {TopCount}, Categories: {CategoryCount}",
                     stopwatch.ElapsedMilliseconds, topCount, totalCategories);
 
-                // Cache the result (longer cache for category data as it changes less frequently)
-                _cache.Set(cacheKey, result, TimeSpan.FromMinutes(LongCacheExpirationMinutes));
+                _cache.Set(cacheKey, result, CreateCacheEntryOptions());
 
                 return result;
             }
@@ -610,7 +610,7 @@ namespace eBolnicaAPI.Services
                     stopwatch.ElapsedMilliseconds,
                     medications.Count);
 
-                _cache.Set(cacheKey, result, TimeSpan.FromMinutes(CacheExpirationMinutes));
+                _cache.Set(cacheKey, result, CreateCacheEntryOptions());
 
                 return result;
             }
@@ -652,6 +652,32 @@ namespace eBolnicaAPI.Services
                 .SumAsync(m => m.Price * m.StockQuantity);
 
             return (activeMedications, pendingPrescriptions, lowStockAlerts, expiringSoon, expiredMedications, inventoryValue);
+        }
+
+        /// <inheritdoc />
+        public void InvalidateAnalyticsCache()
+        {
+            lock (_cacheInvalidationLock)
+            {
+                _cacheInvalidationCts.Cancel();
+                _cacheInvalidationCts.Dispose();
+                _cacheInvalidationCts = new CancellationTokenSource();
+            }
+
+            _logger.LogInformation("Pharmacy analytics cache invalidated");
+        }
+
+        private MemoryCacheEntryOptions CreateCacheEntryOptions()
+        {
+            CancellationToken invalidationToken;
+            lock (_cacheInvalidationLock)
+            {
+                invalidationToken = _cacheInvalidationCts.Token;
+            }
+
+            return new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(TimeSpan.FromMinutes(CacheExpirationMinutes))
+                .AddExpirationToken(new CancellationChangeToken(invalidationToken));
         }
 
         /// <summary>
