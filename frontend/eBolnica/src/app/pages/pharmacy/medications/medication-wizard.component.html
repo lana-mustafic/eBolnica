@@ -20,16 +20,23 @@
       <div class="progress-fill" [style.width.%]="getProgressPercentage()"></div>
     </div>
     <div class="progress-text">{{ currentStep }} of {{ totalSteps }} steps</div>
+    <div class="progress-step-title" aria-live="polite">{{ getStepTitle(currentStep) }}</div>
   </div>
 
   <!-- Step Indicators -->
-  <div class="step-indicators">
+  <div class="step-indicators" role="tablist" aria-label="Medication wizard steps">
     <div 
       *ngFor="let step of [1, 2, 3]" 
       class="step-indicator"
       [class.active]="currentStep === step"
       [class.completed]="isStepCompleted(step) && currentStep !== step"
-      (click)="goToStep(step)">
+      [attr.role]="'tab'"
+      [attr.aria-selected]="currentStep === step"
+      [attr.aria-label]="'Step ' + step + ': ' + getStepTitle(step)"
+      [attr.tabindex]="currentStep === step ? 0 : -1"
+      (click)="goToStep(step)"
+      (keydown.enter)="goToStep(step)"
+      (keydown.space)="$event.preventDefault(); goToStep(step)">
       <div class="step-number">
         <svg *ngIf="isStepCompleted(step) && currentStep !== step" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="20 6 9 17 4 12"></polyline>
