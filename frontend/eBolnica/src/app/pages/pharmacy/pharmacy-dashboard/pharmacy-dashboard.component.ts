@@ -54,6 +54,8 @@ export class PharmacyDashboardComponent implements OnInit {
   pendingPrescriptions: number = 0;
   lowStockAlerts: number = 0;
   expiringSoon: number = 0;
+  expiredMedications: number = 0;
+  inventoryValue: number = 0;
 
   recentPrescriptions: PrescriptionDto[] = [];
 
@@ -146,11 +148,15 @@ export class PharmacyDashboardComponent implements OnInit {
     pendingPrescriptions?: number;
     lowStockAlerts?: number;
     expiringSoon?: number;
+    expiredMedications?: number;
+    inventoryValue?: number;
   }): void {
     this.totalMedications = summary.totalMedications ?? 0;
     this.pendingPrescriptions = summary.pendingPrescriptions ?? 0;
     this.lowStockAlerts = summary.lowStockAlerts ?? 0;
     this.expiringSoon = summary.expiringSoon ?? 0;
+    this.expiredMedications = summary.expiredMedications ?? 0;
+    this.inventoryValue = summary.inventoryValue ?? 0;
   }
 
   private registerAnalyticsFailure(source: AnalyticsSource, error: unknown): void {

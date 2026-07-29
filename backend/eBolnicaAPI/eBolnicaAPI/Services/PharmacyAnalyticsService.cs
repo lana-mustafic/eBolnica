@@ -103,7 +103,7 @@ namespace eBolnicaAPI.Services
                     queryParams.MedicationIds,
                     queryParams.TrendDays ?? 30,
                     queryParams.TrendInterval ?? "daily");
-                var summaryCountsTask = GetDashboardSummaryCountsAsync();
+                var summaryCountsTask = GetDashboardSummaryMetricsAsync();
 
                 await Task.WhenAll(revenueTask, categoriesTask, trendsTask, summaryCountsTask);
 
@@ -122,7 +122,8 @@ namespace eBolnicaAPI.Services
                     PendingPrescriptions = summaryCounts.PendingPrescriptions,
                     LowStockAlerts = summaryCounts.LowStockAlerts,
                     ExpiringSoon = summaryCounts.ExpiringSoon,
-                    ExpiredMedications = summaryCounts.ExpiredMedications
+                    ExpiredMedications = summaryCounts.ExpiredMedications,
+                    InventoryValue = summaryCounts.InventoryValue
                 };
 
                 // Cache the response
@@ -698,10 +699,10 @@ namespace eBolnicaAPI.Services
         }
 
         /// <summary>
-        /// Authoritative counts for dashboard summary cards (inventory + prescriptions).
+        /// Authoritative metrics for dashboard summary cards (inventory + prescriptions).
         /// Uses the same expiry window as the inventory API (30 days, local time).
         /// </summary>
-        private async Task<(int ActiveMedications, int PendingPrescriptions, int LowStockAlerts, int ExpiringSoon, int ExpiredMedications)> GetDashboardSummaryCountsAsync()
+        private async Task<(int ActiveMedications, int PendingPrescriptions, int LowStockAlerts, int ExpiringSoon, int ExpiredMedications, decimal InventoryValue)> GetDashboardSummaryMetricsAsync()
         {
             var now = DateTime.Now;
             var in30Days = now.AddDays(30);
@@ -719,8 +720,10 @@ namespace eBolnicaAPI.Services
                     && m.ExpiryDate.Value <= in30Days);
             var expiredMedications = await activeMedicationsQuery
                 .CountAsync(m => m.ExpiryDate.HasValue && m.ExpiryDate.Value <= now);
+            var inventoryValue = await activeMedicationsQuery
+                .SumAsync(m => m.Price * m.StockQuantity);
 
-            return (activeMedications, pendingPrescriptions, lowStockAlerts, expiringSoon, expiredMedications);
+            return (activeMedications, pendingPrescriptions, lowStockAlerts, expiringSoon, expiredMedications, inventoryValue);
         }
 
         /// <summary>

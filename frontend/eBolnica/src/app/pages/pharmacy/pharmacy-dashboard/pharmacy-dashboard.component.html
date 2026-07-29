@@ -134,6 +134,35 @@
               <p class="metric-value">{{ expiringSoon }}</p>
             </div>
           </div>
+
+          <!-- Expired Medications Card -->
+          <div class="metric-card alert">
+            <div class="metric-icon danger">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+              </svg>
+            </div>
+            <div class="metric-content">
+              <h3 class="metric-label">Expired</h3>
+              <p class="metric-value">{{ expiredMedications }}</p>
+            </div>
+          </div>
+
+          <!-- Inventory Value Card -->
+          <div class="metric-card">
+            <div class="metric-icon primary">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </div>
+            <div class="metric-content">
+              <h3 class="metric-label">Inventory Value</h3>
+              <p class="metric-value">{{ inventoryValue | currency:'USD':'symbol':'1.0-0' }}</p>
+            </div>
+          </div>
         </div>
       </section>
 

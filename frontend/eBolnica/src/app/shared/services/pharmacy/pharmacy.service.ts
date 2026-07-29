@@ -1230,7 +1230,8 @@ export class PharmacyService {
       pendingPrescriptions: this.readNumber(raw, 'pendingPrescriptions'),
       lowStockAlerts: this.readNumber(raw, 'lowStockAlerts'),
       expiringSoon: this.readNumber(raw, 'expiringSoon'),
-      expiredMedications: this.readNumber(raw, 'expiredMedications')
+      expiredMedications: this.readNumber(raw, 'expiredMedications'),
+      inventoryValue: this.readNumber(raw, 'inventoryValue')
     };
   }
 

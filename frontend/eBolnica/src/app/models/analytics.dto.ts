@@ -84,6 +84,8 @@ export interface DashboardStatisticsSummary {
   lowStockAlerts?: number;
   expiringSoon?: number;
   expiredMedications?: number;
+  /** Sum of price × stock quantity for active medications. */
+  inventoryValue?: number;
 }
 
 /**

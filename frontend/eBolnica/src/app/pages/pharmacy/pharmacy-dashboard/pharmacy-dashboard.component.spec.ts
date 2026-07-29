@@ -23,7 +23,9 @@ describe('PharmacyDashboardComponent', () => {
       totalMedications: 42,
       pendingPrescriptions: 3,
       lowStockAlerts: 5,
-      expiringSoon: 2
+      expiringSoon: 2,
+      expiredMedications: 1,
+      inventoryValue: 12500
     }));
     pharmacyService.getPrescriptions.and.returnValue(of({
       items: [],
@@ -65,6 +67,8 @@ describe('PharmacyDashboardComponent', () => {
     expect(component.pendingPrescriptions).toBe(3);
     expect(component.lowStockAlerts).toBe(5);
     expect(component.expiringSoon).toBe(2);
+    expect(component.expiredMedications).toBe(1);
+    expect(component.inventoryValue).toBe(12500);
   });
 
   it('should show analytics banner when summary API fails but keep dashboard visible', () => {
