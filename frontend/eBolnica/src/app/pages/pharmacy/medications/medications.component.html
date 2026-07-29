@@ -329,7 +329,7 @@
 
   <!-- Medications Table -->
   <div *ngIf="!isLoading && medications.length > 0" class="table-container">
-    <table>
+    <table class="medications-table">
       <thead>
         <tr>
           <th scope="col" class="thumbnail-header">Image</th>
@@ -405,24 +405,24 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let medication of medications; trackBy: trackByMedicationId">
-          <td class="medication-thumbnail-cell">
+        <tr *ngFor="let medication of medications; trackBy: trackByMedicationId" class="medication-row">
+          <td class="medication-thumbnail-cell" data-label="Image">
             <app-medication-thumbnail
               [medicationId]="medication.id"
               [imageUrl]="medication.primaryImageUrl"
               [alt]="medication.name">
             </app-medication-thumbnail>
           </td>
-          <td class="medication-name">
+          <td class="medication-name" data-label="Name">
             <a [routerLink]="['/pharmacy/medications', medication.id]" class="medication-link">
               {{ medication.name }}
             </a>
           </td>
-          <td>{{ medication.genericName || '-' }}</td>
-          <td>{{ medication.manufacturer || '-' }}</td>
-          <td>{{ medication.category || '-' }}</td>
-          <td>{{ formatCurrency(medication.price) }}</td>
-          <td>
+          <td data-label="Generic Name">{{ medication.genericName || '-' }}</td>
+          <td data-label="Manufacturer">{{ medication.manufacturer || '-' }}</td>
+          <td data-label="Category">{{ medication.category || '-' }}</td>
+          <td data-label="Price">{{ formatCurrency(medication.price) }}</td>
+          <td data-label="Stock">
             <span [class]="medication.stockQuantity < medication.minimumStockLevel ? 'stock-low' : ''">
               {{ medication.stockQuantity }}
             </span>
@@ -430,8 +430,8 @@
               / min: {{ medication.minimumStockLevel }}
             </span>
           </td>
-          <td>{{ formatDate(medication.expiryDate) }}</td>
-          <td>
+          <td data-label="Expiry Date">{{ formatDate(medication.expiryDate) }}</td>
+          <td data-label="Status">
             <span [class]="'status-badge ' + getStockStatus(medication).class">
               {{ getStockStatus(medication).label }}
             </span>
@@ -439,7 +439,7 @@
               Rx
             </span>
           </td>
-          <td class="actions">
+          <td class="actions" data-label="Actions">
             <a [routerLink]="['/pharmacy/medications', medication.id]" class="btn btn-view">View</a>
             <a [routerLink]="['/pharmacy/medications', medication.id, 'edit']" class="btn btn-edit">Edit</a>
             <button class="btn btn-delete" (click)="deleteMedication(medication)" [disabled]="isLoading">Delete</button>

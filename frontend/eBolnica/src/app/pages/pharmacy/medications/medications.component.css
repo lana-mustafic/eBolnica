@@ -849,16 +849,111 @@ table tbody tr:hover {
     grid-template-columns: 1fr;
   }
 
+  /* Stacked card layout instead of horizontal scroll */
   .table-container {
-    overflow-x: scroll;
+    overflow-x: visible;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
   }
 
-  table {
-    min-width: 1064px;
+  .medications-table {
+    min-width: 0;
+    border-collapse: separate;
+    border-spacing: 0 1rem;
   }
 
-  .actions {
-    flex-direction: column;
+  .medications-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .medications-table tbody {
+    display: block;
+  }
+
+  .medications-table .medication-row {
+    display: block;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+  }
+
+  .medications-table .medication-row:hover {
+    background: #fff;
+  }
+
+  .medications-table td {
+    display: grid;
+    grid-template-columns: minmax(6.5rem, 38%) 1fr;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #edf2f7;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .medications-table td:last-child {
+    border-bottom: none;
+  }
+
+  .medications-table td::before {
+    content: attr(data-label);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #4a5568;
+  }
+
+  .medications-table td.medication-thumbnail-cell {
+    grid-template-columns: minmax(6.5rem, 38%) auto;
+    justify-content: start;
+  }
+
+  .medications-table td.medication-name {
+    font-size: 1rem;
+  }
+
+  .medications-table td.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: #f8fafc;
+  }
+
+  .medications-table td.actions::before {
+    flex: 0 0 100%;
+    margin-bottom: 0.125rem;
+  }
+
+  .medications-table td.actions .btn {
+    flex: 1 1 calc(50% - 0.25rem);
+    min-width: 0;
+    min-height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .medications-table td.actions .btn-delete {
+    flex-basis: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .medications-table td.actions .btn {
+    flex-basis: 100%;
   }
 }
 
