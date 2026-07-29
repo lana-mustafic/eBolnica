@@ -572,6 +572,37 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
         }
 
         [Fact]
+        public async Task GetInventory_PageOneAndPageTwo_ReturnDifferentItemSets()
+        {
+            const int pageSize = 3;
+            var sortQuery = "sortBy=name&sortOrder=asc";
+
+            var pageOneResponse = await _client.GetAsync(
+                $"/api/pharmacy/inventory?pageNumber=1&pageSize={pageSize}&{sortQuery}");
+            var pageTwoResponse = await _client.GetAsync(
+                $"/api/pharmacy/inventory?pageNumber=2&pageSize={pageSize}&{sortQuery}");
+
+            Assert.Equal(HttpStatusCode.OK, pageOneResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, pageTwoResponse.StatusCode);
+
+            var pageOne = await pageOneResponse.Content.ReadFromJsonAsync<InventoryResponse>();
+            var pageTwo = await pageTwoResponse.Content.ReadFromJsonAsync<InventoryResponse>();
+
+            Assert.NotNull(pageOne);
+            Assert.NotNull(pageTwo);
+            Assert.True(pageOne.TotalCount > pageSize);
+            Assert.Equal(pageOne.TotalCount, pageTwo.TotalCount);
+            Assert.Equal(1, pageOne.CurrentPage);
+            Assert.Equal(2, pageTwo.CurrentPage);
+            Assert.Equal(pageSize, pageOne.Items.Count);
+            Assert.Equal(pageSize, pageTwo.Items.Count);
+
+            var pageOneIds = pageOne.Items.Select(m => m.Id).ToHashSet();
+            var pageTwoIds = pageTwo.Items.Select(m => m.Id).ToHashSet();
+            Assert.Empty(pageOneIds.Intersect(pageTwoIds));
+        }
+
+        [Fact]
         public async Task GetInventory_WithCategoryAndMinStock_ReturnsFilteredActiveResults()
         {
             var url = "/api/pharmacy/inventory?category=painkiller&minStock=10&pageSize=100";
