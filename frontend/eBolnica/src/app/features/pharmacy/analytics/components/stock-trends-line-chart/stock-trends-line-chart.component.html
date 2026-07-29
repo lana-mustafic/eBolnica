@@ -1,7 +1,10 @@
 <div class="stock-trends-chart-container" [attr.aria-label]="title + ' chart'">
   <!-- Header -->
   <div class="chart-header">
-    <h3 class="chart-title" [attr.aria-label]="title">{{ title }}</h3>
+    <div class="chart-heading">
+      <h3 class="chart-title" [attr.aria-label]="title">{{ title }}</h3>
+      <p *ngIf="description" class="chart-description">{{ description }}</p>
+    </div>
     <div class="header-actions">
       <button 
         class="btn-refresh" 
@@ -63,7 +66,7 @@
       </button>
     </div>
     <div *ngIf="selectedMedicationIds.length === 0" class="no-selection-message">
-      <p>No medications selected. Select at least one medication to view trends.</p>
+      <p>No medications selected. Select at least one medication to view stock levels.</p>
     </div>
   </div>
 
@@ -74,8 +77,12 @@
       <span class="summary-value">{{ selectedMedicationIds.length }}</span>
     </div>
     <div class="summary-item">
-      <span class="summary-label">Time Period:</span>
-      <span class="summary-value">{{ days }} days</span>
+      <span class="summary-label">Metric:</span>
+      <span class="summary-value">Current stock (% capacity)</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-label">Period:</span>
+      <span class="summary-value">Last {{ days }} days (flat snapshot)</span>
     </div>
     <div class="summary-item" *ngIf="showThresholds">
       <span class="summary-label">Thresholds:</span>
@@ -86,7 +93,7 @@
   <!-- Loading State -->
   <div *ngIf="isLoading" class="chart-state loading-state" role="status" aria-live="polite">
     <div class="spinner" aria-hidden="true"></div>
-    <p class="state-message">Loading stock trend data...</p>
+    <p class="state-message">Loading stock level data...</p>
   </div>
 
   <!-- Error State -->
@@ -118,7 +125,7 @@
         <line x1="6" y1="20" x2="6" y2="14"></line>
       </svg>
     </div>
-    <p class="state-message">No stock trend data available for the selected medications.</p>
+    <p class="state-message">No stock level data available for the selected medications.</p>
     <button class="btn-retry" (click)="refresh()" aria-label="Refresh data">
       Refresh
     </button>
@@ -130,13 +137,13 @@
     class="chart-wrapper"
     [style.height.px]="responsiveHeight"
     role="img"
-    [attr.aria-label]="'Line chart showing stock trends for ' + selectedMedicationIds.length + ' medications over ' + days + ' days'">
+    [attr.aria-label]="'Line chart showing current stock levels for ' + selectedMedicationIds.length + ' medications'">
     <canvas 
       baseChart
       [data]="chartData"
       [type]="chartType"
       [options]="chartOptions"
-      [attr.aria-label]="'Stock trends line chart'">
+      [attr.aria-label]="'Current stock levels line chart'">
     </canvas>
   </div>
 

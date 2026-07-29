@@ -9,26 +9,15 @@ import { StockTrendData } from '../../../../../models/analytics.dto';
 import { Subscription } from 'rxjs';
 
 /**
- * Stock Trends Line Chart Component
- * 
- * A reusable line chart component for displaying medication stock level trends over time.
- * Supports multiple medication comparison, threshold lines, and time-series visualization.
- * 
- * Features:
- * - Time-series line chart with date-based X-axis
- * - Multiple medication comparison (1-5 medications)
- * - Threshold lines at critical stock levels
- * - Anomaly detection and highlighting
- * - Date range selection
- * - Interactive tooltips with percentage change
- * - Responsive design with mobile optimization
- * - Accessible with ARIA labels and keyboard navigation
- * 
+ * Current stock levels line chart component.
+ *
+ * Displays each selected medication's current stock as a percentage of estimated
+ * capacity. The API has no inventory history yet, so values are flat across the
+ * selected date window (not a historical trend).
+ *
  * @example
  * ```html
- * <app-stock-trends-line-chart 
- *   [title]="'Medication Stock Trends'"
- *   [medicationIds]="[101, 102, 103]"
+ * <app-stock-trends-line-chart
  *   [days]="30"
  *   [showThresholds]="true">
  * </app-stock-trends-line-chart>
@@ -53,7 +42,11 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
 
   // Input properties
   /** Chart title displayed above the chart */
-  @Input() title: string = 'Medication Stock Trends';
+  @Input() title: string = 'Current Stock Levels by Medication';
+
+  /** Explains what the chart measures (shown under the title) */
+  @Input() description: string =
+    'Current stock shown as % of estimated capacity. No inventory history is stored yet, so levels stay flat across the selected period—not a historical trend.';
   
   /** Chart container height in pixels */
   @Input() height: number = 400;
@@ -362,7 +355,7 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
       },
       error: (error) => {
         console.error('[StockTrendsLineChart] Error loading stock trends:', error);
-        this.errorMessage = error.message || 'Failed to load stock trend data. Please try again.';
+        this.errorMessage = error.message || 'Failed to load stock level data. Please try again.';
         this.isLoading = false;
         this.hasData = false;
         this.errorOccurred.emit(error);

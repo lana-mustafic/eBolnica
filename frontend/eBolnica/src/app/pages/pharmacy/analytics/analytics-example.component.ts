@@ -66,9 +66,10 @@ import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
           </canvas>
         </div>
 
-        <!-- Stock Trends Line Chart -->
+        <!-- Current stock levels -->
         <div class="chart-card">
-          <h3>Stock Trends</h3>
+          <h3>Current Stock Levels</h3>
+          <p class="chart-note">Current inventory as % of capacity (not historical trends).</p>
           <canvas baseChart
             [data]="stockTrendsChartData"
             [type]="stockTrendsChartType"
@@ -156,6 +157,12 @@ import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
     .chart-card h3 {
       margin-top: 0;
       color: #555;
+    }
+
+    .chart-note {
+      margin: 0 0 12px;
+      font-size: 0.875rem;
+      color: #718096;
     }
 
     .summary-stats {
