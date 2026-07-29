@@ -421,8 +421,8 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
           size: Math.round(11 * fontSizeMultiplier),
           family: "'Inter', 'Segoe UI', sans-serif"
         };
-        this.chartOptions.scales['x'].ticks.maxRotation = isMobile ? 45 : 0;
-        this.chartOptions.scales['x'].ticks.minRotation = isMobile ? 45 : 0;
+        this.chartOptions.scales['x'].ticks.maxRotation = (isMobile || isTablet) ? 45 : 0;
+        this.chartOptions.scales['x'].ticks.minRotation = (isMobile || isTablet) ? 45 : 0;
       }
     }
 
@@ -482,6 +482,7 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
     const backgroundColors: string[] = [];
     const borderColors: string[] = [];
     const isMobile = this.currentBreakpoint === 'mobile';
+    const isCompact = this.currentBreakpoint !== 'desktop';
 
     this.selectedMedicationIds.forEach((medicationId, index) => {
       const medicationData = this.groupedData.get(medicationId);
@@ -490,7 +491,7 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
         return;
       }
 
-      labels.push(point.medicationName);
+      labels.push(isCompact ? this.truncateLabel(point.medicationName, 14) : point.medicationName);
       values.push(point.stockLevel);
       const color = this.colorPalette[index % this.colorPalette.length];
       backgroundColors.push(color + 'CC');
@@ -510,7 +511,7 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
         borderColor: borderColors,
         borderWidth: isMobile ? 1.5 : 2,
         borderRadius: isMobile ? 4 : 6,
-        maxBarThickness: isMobile ? 48 : 64
+        maxBarThickness: isMobile ? 48 : (this.currentBreakpoint === 'tablet' ? 56 : 64)
       }]
     };
 
@@ -626,5 +627,13 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
       return 'Select at least one medication to view stock levels.';
     }
     return 'No stock level data available for the selected medications.';
+  }
+
+  private truncateLabel(text: string, maxLength: number): string {
+    if (text.length <= maxLength) {
+      return text;
+    }
+
+    return `${text.substring(0, maxLength - 1)}…`;
   }
 }

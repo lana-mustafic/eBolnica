@@ -333,7 +333,7 @@
 
 .charts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
   gap: 1.5rem;
   margin-top: 1rem;
 }
@@ -344,6 +344,7 @@
   padding: 0;
   box-shadow: none;
   transition: none;
+  min-width: 0;
 }
 
 .chart-card:hover {
@@ -358,14 +359,19 @@
 @media (max-width: 1024px) {
   .charts-grid {
     grid-template-columns: 1fr;
+    gap: 1.25rem;
   }
   
   .chart-card-full {
     grid-column: 1;
   }
+
+  .analytics-section {
+    margin-top: 1.5rem;
+  }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .charts-grid {
     gap: 1rem;
   }

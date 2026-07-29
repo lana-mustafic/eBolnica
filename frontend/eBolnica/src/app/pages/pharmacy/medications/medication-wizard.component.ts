@@ -2,14 +2,27 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
+import { ConfirmDialogService } from '../../../shared/services/confirm-dialog.service';
 import { MedicationCreateDto } from '../../../models/medication-create.dto';
 import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-medication-wizard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatCheckboxModule
+  ],
   templateUrl: './medication-wizard.component.html',
   styleUrl: './medication-wizard.component.css'
 })
@@ -17,6 +30,7 @@ export class MedicationWizardComponent {
   private formBuilder = inject(FormBuilder);
   private pharmacyService = inject(PharmacyService);
   private router = inject(Router);
+  private confirmDialog = inject(ConfirmDialogService);
 
   wizardForm: FormGroup;
   currentStep: number = 1;
@@ -241,9 +255,17 @@ export class MedicationWizardComponent {
   }
 
   cancel(): void {
-    if (confirm('Are you sure you want to cancel? All entered data will be lost.')) {
-      this.router.navigate(['/pharmacy/medications']);
-    }
+    this.confirmDialog.confirm({
+      title: 'Cancel wizard',
+      message: 'Are you sure you want to cancel? All entered data will be lost.',
+      confirmText: 'Leave',
+      cancelText: 'Stay',
+      confirmColor: 'warn'
+    }).subscribe(confirmed => {
+      if (confirmed) {
+        this.router.navigate(['/pharmacy/medications']);
+      }
+    });
   }
 
   // Helper methods

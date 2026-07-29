@@ -314,9 +314,9 @@ export class CategoriesPieChartComponent implements OnInit, OnChanges, OnDestroy
     const fontSizeMultiplier = this.responsiveService.getFontSizeMultiplier();
     const reduceAnimations = this.responsiveService.shouldReduceAnimations();
 
-    // Update legend position (bottom on mobile)
+    // Update legend position (bottom on mobile and tablet — stacked layout)
     if (this.chartOptions.plugins?.legend) {
-      this.chartOptions.plugins.legend.position = isMobile ? 'bottom' : 'right';
+      this.chartOptions.plugins.legend.position = (isMobile || isTablet) ? 'bottom' : 'right';
       if (this.chartOptions.plugins.legend.labels) {
         const font = typeof this.chartOptions.plugins.legend.labels.font === 'object' 
           ? this.chartOptions.plugins.legend.labels.font 

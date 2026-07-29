@@ -22,6 +22,27 @@
         class="lightbox-image" />
 
       @if (images.length > 1) {
+        <div class="lightbox-thumbnail-strip" role="tablist" aria-label="Image thumbnails">
+          @for (image of images; track image.id; let i = $index) {
+            <button
+              type="button"
+              class="lightbox-thumbnail"
+              [class.active]="i === currentIndex"
+              (click)="goTo(i)"
+              [attr.aria-selected]="i === currentIndex"
+              [attr.aria-label]="'Image ' + (i + 1) + (image.isPrimary ? ', primary' : '')">
+              <img
+                [src]="getThumbnailUrl(image)"
+                [alt]="'Thumbnail ' + (i + 1)"
+                loading="lazy"
+                width="56"
+                height="56" />
+            </button>
+          }
+        </div>
+      }
+
+      @if (images.length > 1) {
         <button type="button" class="lightbox-nav lightbox-next" (click)="next()" aria-label="Next image">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="9 18 15 12 9 6"></polyline>

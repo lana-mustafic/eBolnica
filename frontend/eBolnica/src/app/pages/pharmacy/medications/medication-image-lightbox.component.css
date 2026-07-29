@@ -7,10 +7,12 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  overflow: hidden;
 }
 
 .lightbox-container {
   position: relative;
+  width: 100%;
   max-width: 90vw;
   max-height: 90vh;
   display: flex;
@@ -19,8 +21,9 @@
 }
 
 .lightbox-image {
-  max-width: 90vw;
-  max-height: 80vh;
+  flex: 1 1 auto;
+  max-width: 100%;
+  max-height: min(60vh, calc(100vh - 14rem));
   object-fit: contain;
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -28,18 +31,25 @@
 
 .lightbox-close {
   position: absolute;
-  top: -2.5rem;
-  right: 0;
-  background: transparent;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  background: rgba(0, 0, 0, 0.5);
   border: none;
   color: white;
   cursor: pointer;
   padding: 0.5rem;
-  border-radius: 4px;
+  border-radius: 50%;
   transition: background 0.2s;
 }
 
-.lightbox-close:hover {
+.lightbox-close:hover,
+.lightbox-close:focus-visible {
   background: rgba(255, 255, 255, 0.1);
 }
 
@@ -52,6 +62,12 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
   background: rgba(255, 255, 255, 0.15);
   border: none;
   color: white;
@@ -61,7 +77,8 @@
   transition: background 0.2s;
 }
 
-.lightbox-nav:hover {
+.lightbox-nav:hover,
+.lightbox-nav:focus-visible {
   background: rgba(255, 255, 255, 0.3);
 }
 
@@ -71,18 +88,66 @@
 }
 
 .lightbox-prev {
-  left: -3.5rem;
+  left: 0.5rem;
 }
 
 .lightbox-next {
-  right: -3.5rem;
+  right: 0.5rem;
+}
+
+.lightbox-thumbnail-strip {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.75rem 0.5rem;
+  margin-top: 0.75rem;
+  scrollbar-width: thin;
+}
+
+.lightbox-thumbnail {
+  flex-shrink: 0;
+  scroll-snap-align: center;
+  width: 56px;
+  height: 56px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 2px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.lightbox-thumbnail:hover,
+.lightbox-thumbnail:focus-visible {
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.lightbox-thumbnail.active {
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.5);
+}
+
+.lightbox-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
 }
 
 .lightbox-footer {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-top: 1rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 0.75rem;
   color: white;
 }
 
@@ -102,10 +167,11 @@
 
 .lightbox-delete-btn {
   margin-left: auto;
+  min-height: 44px;
+  padding: 0.625rem 1rem;
   background: rgba(245, 101, 101, 0.9);
   color: white;
   border: none;
-  padding: 0.375rem 0.875rem;
   border-radius: 6px;
   font-size: 0.85rem;
   font-weight: 600;
@@ -113,7 +179,8 @@
   transition: background 0.2s;
 }
 
-.lightbox-delete-btn:hover:not(:disabled) {
+.lightbox-delete-btn:hover:not(:disabled),
+.lightbox-delete-btn:focus-visible:not(:disabled) {
   background: #e53e3e;
 }
 
@@ -123,18 +190,46 @@
 }
 
 @media (max-width: 768px) {
+  .lightbox-backdrop {
+    padding: 0.5rem;
+  }
+
+  .lightbox-container {
+    max-width: 100%;
+    max-height: 100%;
+    height: 100%;
+    justify-content: center;
+  }
+
+  .lightbox-image {
+    max-height: min(50vh, calc(100vh - 16rem));
+  }
+
   .lightbox-prev {
-    left: 0.5rem;
+    left: 0.25rem;
   }
 
   .lightbox-next {
-    right: 0.5rem;
+    right: 0.25rem;
   }
 
   .lightbox-close {
-    top: 0.5rem;
-    right: 0.5rem;
+    top: 0.25rem;
+    right: 0.25rem;
     background: rgba(0, 0, 0, 0.5);
-    border-radius: 50%;
+  }
+
+  .lightbox-thumbnail-strip {
+    padding: 0.5rem 0.25rem;
+  }
+
+  .lightbox-footer {
+    justify-content: center;
+  }
+
+  .lightbox-delete-btn {
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
   }
 }

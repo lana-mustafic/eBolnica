@@ -14,6 +14,7 @@ export class MedicationImageLightboxComponent {
   @Input() images: MedicationImageDto[] = [];
   @Input() currentIndex = 0;
   @Input() resolveUrl!: (url: string) => string;
+  @Input() resolveThumbnailUrl?: (image: MedicationImageDto) => string;
   @Input() canDelete = false;
   @Input() isDeleting = false;
 
@@ -63,5 +64,14 @@ export class MedicationImageLightboxComponent {
 
   goTo(index: number): void {
     this.indexChange.emit(index);
+  }
+
+  getThumbnailUrl(image: MedicationImageDto): string {
+    if (this.resolveThumbnailUrl) {
+      return this.resolveThumbnailUrl(image);
+    }
+
+    const url = image.thumbnailUrl ?? image.imageUrl;
+    return this.resolveUrl(url);
   }
 }

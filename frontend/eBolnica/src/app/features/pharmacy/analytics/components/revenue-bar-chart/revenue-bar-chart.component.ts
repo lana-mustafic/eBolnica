@@ -315,7 +315,7 @@ export class RevenueBarChartComponent implements OnInit, OnChanges, OnDestroy {
 
     // Update legend position
     if (this.chartOptions.plugins?.legend) {
-      this.chartOptions.plugins.legend.position = isMobile ? 'bottom' : 'top';
+      this.chartOptions.plugins.legend.position = (isMobile || isTablet) ? 'bottom' : 'top';
       if (this.chartOptions.plugins.legend.labels) {
         const font = typeof this.chartOptions.plugins.legend.labels.font === 'object'
           ? this.chartOptions.plugins.legend.labels.font
@@ -367,8 +367,8 @@ export class RevenueBarChartComponent implements OnInit, OnChanges, OnDestroy {
           size: Math.round(11 * fontSizeMultiplier),
           family: "'Inter', 'Segoe UI', sans-serif"
         };
-        this.chartOptions.scales['x'].ticks.maxRotation = isMobile ? 45 : 0;
-        this.chartOptions.scales['x'].ticks.minRotation = isMobile ? 45 : 0;
+        this.chartOptions.scales['x'].ticks.maxRotation = (isMobile || isTablet) ? 45 : 0;
+        this.chartOptions.scales['x'].ticks.minRotation = (isMobile || isTablet) ? 45 : 0;
       }
     }
 
@@ -416,11 +416,10 @@ export class RevenueBarChartComponent implements OnInit, OnChanges, OnDestroy {
       return;
     }
 
-    // Extract labels (months) - simplify on mobile
-    const isMobile = this.currentBreakpoint === 'mobile';
+    // Extract labels (months) - abbreviate on tablet and mobile
+    const isCompact = this.currentBreakpoint !== 'desktop';
     const labels = this.monthlyRevenue.map(item => {
-      if (isMobile) {
-        // Use abbreviated month on mobile
+      if (isCompact) {
         return item.monthAbbr || item.month.substring(0, 3);
       }
       return item.monthAbbr || item.month;
