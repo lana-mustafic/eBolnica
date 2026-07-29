@@ -16,29 +16,13 @@ import { PagedResponse } from '../../../models/paged-response.dto';
 import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, catchError, of } from 'rxjs';
 import { TABLE_DEFAULT_SORTS } from '../../../constants/sort.constants';
 import { getPageRangeEnd, getPageRangeStart } from '../../../shared/utils/paged-response.util';
+import {
+  MAX_MEDICATION_IMPORT_FILE_SIZE_LABEL,
+  validateMedicationImportFile
+} from '../../../shared/utils/medication-csv.util';
 
 /** Debounce delay for medication search input before combining with other filters */
 const MEDICATION_SEARCH_DEBOUNCE_MS = 300;
-
-/** CSV columns used for medication import (and export, except Status on export-only). */
-const MEDICATION_IMPORT_CSV_HEADERS = [
-  'Name',
-  'Generic Name',
-  'Category',
-  'Manufacturer',
-  'Description',
-  'Price',
-  'Stock Quantity',
-  'Minimum Stock Level',
-  'Expiry Date',
-  'Batch Number',
-  'Dosage Form',
-  'Strength',
-  'Requires Prescription',
-  'Active'
-] as const;
-
-const MAX_MEDICATION_IMPORT_FILE_BYTES = 5 * 1024 * 1024;
 
 @Component({
   selector: 'app-medications',
@@ -107,7 +91,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   isImportDragOver: boolean = false;
   isImporting: boolean = false;
   importSummary: MedicationImportSummary | null = null;
-  readonly maxImportFileSizeLabel = '5 MB';
+  readonly maxImportFileSizeLabel = MAX_MEDICATION_IMPORT_FILE_SIZE_LABEL;
 
   ngOnInit(): void {
     this.syncUIFromFilters(this.filterService.getFilters());
@@ -819,64 +803,12 @@ export class MedicationsComponent implements OnInit, OnDestroy {
    * Respects active filters and sort order; does not fetch all pages.
    */
   exportToCSV(): void {
-    if (this.medications.length === 0) {
-      return;
-    }
-
-    const headers = [
-      ...MEDICATION_IMPORT_CSV_HEADERS,
-      'Status'
-    ];
-
-    const csvData = this.medications.map(medication => [
-      this.escapeCSV(medication.name),
-      this.escapeCSV(medication.genericName || ''),
-      this.escapeCSV(medication.category || ''),
-      this.escapeCSV(medication.manufacturer || ''),
-      this.escapeCSV(medication.description || ''),
-      medication.price.toString(),
-      medication.stockQuantity.toString(),
-      medication.minimumStockLevel.toString(),
-      medication.expiryDate ? this.formatDateForCsv(medication.expiryDate) : '',
-      this.escapeCSV(medication.batchNumber || ''),
-      this.escapeCSV(medication.dosageForm || ''),
-      this.escapeCSV(medication.strength || ''),
-      medication.requiresPrescription ? 'Yes' : 'No',
-      medication.isActive ? 'Yes' : 'No',
-      this.escapeCSV(this.getStockStatus(medication).label)
-    ]);
-
-    const csvContent = [headers, ...csvData]
-      .map(row => row.join(','))
-      .join('\n');
-
-    const today = new Date().toISOString().split('T')[0];
-    this.downloadCSV(csvContent, `pharmacy-medications-${today}.csv`);
+    this.pharmacyService.exportCsv(this.medications);
   }
 
-  /**
-   * Download import template with required headers and one example row (validation hints in cells).
-   */
+  /** Download import template with required headers and example row. */
   downloadCsvTemplate(): void {
-    const exampleRow = [
-      'Paracetamol (required, 3-100 characters)',
-      'Acetaminophen (optional)',
-      'Painkillers (required)',
-      'PharmaCorp (optional)',
-      'Pain reliever (optional, max 500 characters)',
-      '9.99 (required, > 0)',
-      '100 (required, integer >= 0)',
-      '20 (required, integer >= 0)',
-      '2026-12-31 (required, YYYY-MM-DD, must be future date)',
-      'BATCH-001 (optional)',
-      'Tablet (optional)',
-      '500mg (optional)',
-      'No (required: Yes or No)',
-      'Yes (required: Yes or No)'
-    ].map(value => this.escapeCSV(value));
-
-    const csvContent = [MEDICATION_IMPORT_CSV_HEADERS.join(','), exampleRow.join(',')].join('\n');
-    this.downloadCSV(csvContent, 'medication-import-template.csv');
+    this.pharmacyService.downloadTemplate();
   }
 
   toggleImportPanel(): void {
@@ -953,7 +885,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     this.importFileError = null;
     this.importSummary = null;
 
-    this.pharmacyService.importMedicationsFromCsv(this.selectedImportFile).subscribe({
+    this.pharmacyService.importCsv(this.selectedImportFile).subscribe({
       next: (summary) => {
         this.isImporting = false;
         this.importSummary = summary;
@@ -1008,66 +940,14 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   }
 
   private setImportFile(file: File): void {
-    this.importFileError = null;
+    this.importFileError = validateMedicationImportFile(file);
 
-    if (!this.isCsvFile(file)) {
+    if (this.importFileError) {
       this.selectedImportFile = null;
-      this.importFileError = 'Please select a valid .csv file.';
-      return;
-    }
-
-    if (file.size > MAX_MEDICATION_IMPORT_FILE_BYTES) {
-      this.selectedImportFile = null;
-      this.importFileError = `File is too large. Maximum size is ${this.maxImportFileSizeLabel}.`;
-      return;
-    }
-
-    if (file.size === 0) {
-      this.selectedImportFile = null;
-      this.importFileError = 'The selected file is empty.';
       return;
     }
 
     this.selectedImportFile = file;
     this.importSummary = null;
-  }
-
-  private isCsvFile(file: File): boolean {
-    const name = file.name.toLowerCase();
-    return name.endsWith('.csv') || file.type === 'text/csv' || file.type === 'application/vnd.ms-excel';
-  }
-
-  private formatDateForCsv(dateString: string): string {
-    const date = new Date(dateString);
-    if (Number.isNaN(date.getTime())) {
-      return '';
-    }
-
-    return date.toISOString().split('T')[0];
-  }
-
-  private escapeCSV(value: string): string {
-    if (!value) {
-      return '';
-    }
-
-    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-      return `"${value.replace(/"/g, '""')}"`;
-    }
-
-    return value;
-  }
-
-  private downloadCSV(content: string, filename: string): void {
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
   }
 }

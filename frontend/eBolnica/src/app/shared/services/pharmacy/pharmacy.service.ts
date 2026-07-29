@@ -12,6 +12,13 @@ import { PrescriptionDto } from '../../../models/prescription.dto';
 import { PrescriptionCreateDto } from '../../../models/prescription-create.dto';
 import { PrescriptionDispenseDto } from '../../../models/prescription-dispense.dto';
 import { MedicationImportSummary } from '../../../models/medication-import.dto';
+import {
+  buildMedicationExportCsv,
+  buildMedicationImportTemplateCsv,
+  downloadMedicationCsv,
+  getMedicationExportFilename,
+  MEDICATION_IMPORT_TEMPLATE_FILENAME
+} from '../../utils/medication-csv.util';
 import { InventoryResponse } from '../../../models/inventory-response.dto';
 import { PagedResponse } from '../../../models/paged-response.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
@@ -176,10 +183,34 @@ export class PharmacyService {
   }
 
   /**
+   * Export medications to a CSV file download (current page data from caller).
+   */
+  exportCsv(medications: MedicationDto[]): void {
+    if (!medications.length) {
+      return;
+    }
+
+    downloadMedicationCsv(
+      buildMedicationExportCsv(medications),
+      getMedicationExportFilename()
+    );
+  }
+
+  /**
+   * Download the medication import CSV template (headers + example row).
+   */
+  downloadTemplate(): void {
+    downloadMedicationCsv(
+      buildMedicationImportTemplateCsv(),
+      MEDICATION_IMPORT_TEMPLATE_FILENAME
+    );
+  }
+
+  /**
    * Import medications from a CSV file.
    * Returns per-row success/failure summary (partial imports are supported).
    */
-  importMedicationsFromCsv(file: File): Observable<MedicationImportSummary> {
+  importCsv(file: File): Observable<MedicationImportSummary> {
     const formData = new FormData();
     formData.append('file', file, file.name);
 
