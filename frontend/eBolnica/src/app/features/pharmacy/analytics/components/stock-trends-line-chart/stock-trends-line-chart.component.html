@@ -65,13 +65,10 @@
         </span>
       </button>
     </div>
-    <div *ngIf="selectedMedicationIds.length === 0" class="no-selection-message">
-      <p>No medications selected. Select at least one medication to view stock levels.</p>
-    </div>
   </div>
 
   <!-- Summary Stats -->
-  <div *ngIf="hasData && selectedMedicationIds.length > 0 && !isLoading && !errorMessage" class="chart-summary">
+  <div *ngIf="showChart" class="chart-summary">
     <div class="summary-item">
       <span class="summary-label">Medications:</span>
       <span class="summary-value">{{ selectedMedicationIds.length }}</span>
@@ -91,13 +88,22 @@
   </div>
 
   <!-- Loading State -->
-  <div *ngIf="isLoading" class="chart-state loading-state" role="status" aria-live="polite">
+  <div
+    *ngIf="isLoading"
+    class="chart-state loading-state"
+    role="status"
+    aria-live="polite"
+    [style.minHeight.px]="responsiveHeight">
     <div class="spinner" aria-hidden="true"></div>
     <p class="state-message">Loading stock level data...</p>
   </div>
 
   <!-- Error State -->
-  <div *ngIf="errorMessage && !isLoading" class="chart-state error-state" role="alert">
+  <div
+    *ngIf="errorMessage && !isLoading"
+    class="chart-state error-state"
+    role="alert"
+    [style.minHeight.px]="responsiveHeight">
     <div class="error-icon" aria-hidden="true">
       <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"></circle>
@@ -117,7 +123,11 @@
   </div>
 
   <!-- Empty State -->
-  <div *ngIf="!hasData && !isLoading && !errorMessage && selectedMedicationIds.length > 0" class="chart-state empty-state" role="status">
+  <div
+    *ngIf="showEmptyState"
+    class="chart-state empty-state"
+    role="status"
+    [style.minHeight.px]="responsiveHeight">
     <div class="empty-icon" aria-hidden="true">
       <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="18" y1="20" x2="18" y2="10"></line>
@@ -125,7 +135,7 @@
         <line x1="6" y1="20" x2="6" y2="14"></line>
       </svg>
     </div>
-    <p class="state-message">No stock level data available for the selected medications.</p>
+    <p class="state-message">{{ emptyStateMessage }}</p>
     <button class="btn-retry" (click)="refresh()" aria-label="Refresh data">
       Refresh
     </button>
@@ -133,7 +143,7 @@
 
   <!-- Chart Container -->
   <div 
-    *ngIf="hasData && selectedMedicationIds.length > 0 && !isLoading && !errorMessage" 
+    *ngIf="showChart" 
     class="chart-wrapper"
     [style.height.px]="responsiveHeight"
     role="img"
@@ -148,7 +158,7 @@
   </div>
 
   <!-- Threshold Legend -->
-  <div *ngIf="showThresholds && hasData && selectedMedicationIds.length > 0" class="threshold-legend">
+  <div *ngIf="showThresholds && showChart" class="threshold-legend">
     <h4 class="legend-title">Stock Level Thresholds</h4>
     <div class="legend-items">
       <div class="legend-item">

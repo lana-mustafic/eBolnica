@@ -95,7 +95,7 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
   @Output() medicationsChanged = new EventEmitter<number[]>();
 
   // Component state
-  isLoading: boolean = false;
+  isLoading: boolean = true;
   errorMessage: string | null = null;
   hasData: boolean = false;
   
@@ -749,5 +749,26 @@ export class StockTrendsLineChartComponent implements OnInit, OnChanges, OnDestr
   getMedicationName(medicationId: number): string {
     const medication = this.availableMedications.find(m => m.id === medicationId);
     return medication?.name || `Medication ${medicationId}`;
+  }
+
+  get showChart(): boolean {
+    return this.hasData
+      && this.selectedMedicationIds.length > 0
+      && !this.isLoading
+      && !this.errorMessage;
+  }
+
+  get showEmptyState(): boolean {
+    return !this.isLoading && !this.errorMessage && !this.showChart;
+  }
+
+  get emptyStateMessage(): string {
+    if (this.availableMedications.length === 0) {
+      return 'No medications available to display stock levels.';
+    }
+    if (this.selectedMedicationIds.length === 0) {
+      return 'Select at least one medication to view stock levels.';
+    }
+    return 'No stock level data available for the selected medications.';
   }
 }

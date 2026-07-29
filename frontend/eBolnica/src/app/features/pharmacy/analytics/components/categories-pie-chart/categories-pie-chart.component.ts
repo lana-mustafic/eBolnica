@@ -80,10 +80,18 @@ export class CategoriesPieChartComponent implements OnInit, OnChanges, OnDestroy
   @Output() segmentClicked = new EventEmitter<MedicationCategoryData>();
 
   // Component state
-  isLoading: boolean = false;
+  isLoading: boolean = true;
   errorMessage: string | null = null;
   hasData: boolean = false;
   hasInsufficientData: boolean = false;
+
+  get showInsufficientState(): boolean {
+    return !this.isLoading && !this.errorMessage && this.hasInsufficientData;
+  }
+
+  get showEmptyState(): boolean {
+    return !this.isLoading && !this.errorMessage && !this.hasData && !this.hasInsufficientData;
+  }
   
   // Chart data
   categoryData: MedicationCategoryData[] = [];
