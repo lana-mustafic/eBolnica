@@ -1007,21 +1007,12 @@ export class PharmacyService {
       `${this.analyticsApiUrl}/monthly-revenue`,
       { params }
     ).pipe(
-      retry(3), // Simple retry (3 attempts)
+      retry(3),
       tap(data => {
-        // Cache successful response
         if (useCache && data && data.length > 0) {
           this.setCachedData(cacheKey, data);
         }
         console.log('[PharmacyService] Monthly revenue data loaded:', data.length, 'months');
-      }),
-      catchError(error => {
-        console.error('[PharmacyService] Error fetching monthly revenue:', error);
-        
-        // Return fallback empty data instead of throwing
-        const fallbackData: MonthlyRevenueData[] = this.getMockMonthlyRevenue();
-        console.warn('[PharmacyService] Using fallback monthly revenue data');
-        return of(fallbackData);
       })
     );
   }
@@ -1060,12 +1051,6 @@ export class PharmacyService {
           this.setCachedData(cacheKey, data);
         }
         console.log('[PharmacyService] Top categories data loaded:', data.length, 'categories');
-      }),
-      catchError(error => {
-        console.error('[PharmacyService] Error fetching top categories:', error);
-        const fallbackData: MedicationCategoryData[] = this.getMockTopCategories();
-        console.warn('[PharmacyService] Using fallback top categories data');
-        return of(fallbackData);
       })
     );
   }
@@ -1113,12 +1098,6 @@ export class PharmacyService {
           this.setCachedData(cacheKey, data);
         }
         console.log('[PharmacyService] Stock trends data loaded:', data.length, 'data points');
-      }),
-      catchError(error => {
-        console.error('[PharmacyService] Error fetching stock trends:', error);
-        const fallbackData: StockTrendData[] = this.getMockStockTrends();
-        console.warn('[PharmacyService] Using fallback stock trends data');
-        return of(fallbackData);
       })
     );
   }
@@ -1191,9 +1170,7 @@ export class PharmacyService {
       topCategories: this.getTopMedicationCategories(categoryLimit, useCache),
       stockTrends: this.getStockTrends(undefined, stockTrendDays, useCache)
     }).pipe(
-      retry(3),
-      tap(data => {
-        // Calculate summary statistics
+      map(data => {
         const summary = {
           totalRevenue: data.monthlyRevenue.reduce((sum, item) => sum + item.revenue, 0),
           totalMedications: data.topCategories.reduce((sum, item) => sum + item.count, 0),
@@ -1203,33 +1180,16 @@ export class PharmacyService {
             : 0
         };
 
-        const dashboardStats: DashboardStats = {
+        return {
           ...data,
           summary
-        };
-
+        } satisfies DashboardStats;
+      }),
+      tap(dashboardStats => {
         if (useCache) {
           this.setCachedData(cacheKey, dashboardStats);
         }
-
         console.log('[PharmacyService] Dashboard stats loaded successfully');
-      }),
-      catchError(error => {
-        console.error('[PharmacyService] Error fetching dashboard stats:', error);
-        // Return fallback data
-        const fallbackStats: DashboardStats = {
-          monthlyRevenue: this.getMockMonthlyRevenue(),
-          topCategories: this.getMockTopCategories(),
-          stockTrends: this.getMockStockTrends(),
-          summary: {
-            totalRevenue: 0,
-            totalMedications: 0,
-            totalCategories: 0,
-            averageStockLevel: 0
-          }
-        };
-        console.warn('[PharmacyService] Using fallback dashboard stats');
-        return of(fallbackStats);
       })
     );
   }
@@ -1278,86 +1238,5 @@ export class PharmacyService {
     const pascalKey = camelKey.charAt(0).toUpperCase() + camelKey.slice(1);
     const value = source[camelKey] ?? source[pascalKey];
     return typeof value === 'number' ? value : undefined;
-  }
-
-  // ============================================
-  // Mock Data Methods (for testing/fallback)
-  // ============================================
-
-  /**
-   * Get mock monthly revenue data
-   * Used as fallback when API is unavailable
-   */
-  private getMockMonthlyRevenue(): MonthlyRevenueData[] {
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 
-                     'July', 'August', 'September', 'October', 'November', 'December'];
-    return months.map((month, index) => ({
-      month,
-      monthAbbr: month.substring(0, 3),
-      revenue: Math.floor(Math.random() * 50000) + 10000,
-      transactionCount: Math.floor(Math.random() * 200) + 50
-    }));
-  }
-
-  /**
-   * Get mock top categories data
-   * Used as fallback when API is unavailable
-   */
-  private getMockTopCategories(): MedicationCategoryData[] {
-    const categories = [
-      { name: 'Antibiotics', count: 45 },
-      { name: 'Pain Relief', count: 32 },
-      { name: 'Cardiovascular', count: 28 },
-      { name: 'Diabetes', count: 22 },
-      { name: 'Respiratory', count: 18 },
-      { name: 'Vitamins', count: 15 },
-      { name: 'Digestive', count: 12 },
-      { name: 'Skin Care', count: 10 }
-    ];
-
-    const total = categories.reduce((sum, cat) => sum + cat.count, 0);
-    
-    return categories.map(cat => ({
-      category: cat.name,
-      count: cat.count,
-      percentage: Math.round((cat.count / total) * 100 * 100) / 100,
-      totalStock: cat.count * 50
-    }));
-  }
-
-  /**
-   * Get mock stock trends data
-   * Used as fallback when API is unavailable
-   */
-  private getMockStockTrends(): StockTrendData[] {
-    const medications = [
-      { id: 1, name: 'Paracetamol 500mg', minStock: 100 },
-      { id: 2, name: 'Ibuprofen 400mg', minStock: 80 },
-      { id: 3, name: 'Amoxicillin 250mg', minStock: 50 },
-      { id: 4, name: 'Metformin 500mg', minStock: 120 },
-      { id: 5, name: 'Aspirin 100mg', minStock: 90 }
-    ];
-
-    const trends: StockTrendData[] = [];
-    const days = 30;
-    const today = new Date();
-
-    medications.forEach(med => {
-      for (let i = days; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        
-        trends.push({
-          date: date.toISOString().split('T')[0],
-          medicationId: med.id,
-          medicationName: med.name,
-          stockLevel: Math.floor(Math.random() * 200) + med.minStock,
-          minimumStockLevel: med.minStock,
-          category: 'General'
-        });
-      }
-    });
-
-    return trends;
   }
 }
