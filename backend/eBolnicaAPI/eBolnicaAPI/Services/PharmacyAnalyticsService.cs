@@ -103,20 +103,26 @@ namespace eBolnicaAPI.Services
                     queryParams.MedicationIds,
                     queryParams.TrendDays ?? 30,
                     queryParams.TrendInterval ?? "daily");
+                var summaryCountsTask = GetDashboardSummaryCountsAsync();
 
-                await Task.WhenAll(revenueTask, categoriesTask, trendsTask);
+                await Task.WhenAll(revenueTask, categoriesTask, trendsTask, summaryCountsTask);
 
                 response.MonthlyRevenue = await revenueTask;
                 response.TopCategories = await categoriesTask;
                 response.StockTrends = await trendsTask;
+                var summaryCounts = await summaryCountsTask;
 
                 // Update metadata summary
                 response.Metadata.Summary = new StatisticsSummary
                 {
                     TotalRevenue = response.MonthlyRevenue.TotalRevenue,
                     TotalCategories = response.TopCategories.TotalCategories,
-                    TotalMedications = response.TopCategories.TotalMedications,
-                    TotalPrescriptions = response.MonthlyRevenue.Data.Sum(m => m.PrescriptionCount)
+                    TotalMedications = summaryCounts.ActiveMedications,
+                    TotalPrescriptions = response.MonthlyRevenue.Data.Sum(m => m.PrescriptionCount),
+                    PendingPrescriptions = summaryCounts.PendingPrescriptions,
+                    LowStockAlerts = summaryCounts.LowStockAlerts,
+                    ExpiringSoon = summaryCounts.ExpiringSoon,
+                    ExpiredMedications = summaryCounts.ExpiredMedications
                 };
 
                 // Cache the response
@@ -689,6 +695,32 @@ namespace eBolnicaAPI.Services
                     string.Join(",", medicationIds ?? Array.Empty<int>()), days, interval);
                 throw new InvalidOperationException("An error occurred while calculating stock trends. Please try again later.", ex);
             }
+        }
+
+        /// <summary>
+        /// Authoritative counts for dashboard summary cards (inventory + prescriptions).
+        /// Uses the same expiry window as the inventory API (30 days, local time).
+        /// </summary>
+        private async Task<(int ActiveMedications, int PendingPrescriptions, int LowStockAlerts, int ExpiringSoon, int ExpiredMedications)> GetDashboardSummaryCountsAsync()
+        {
+            var now = DateTime.Now;
+            var in30Days = now.AddDays(30);
+
+            var activeMedicationsQuery = _context.Medications.AsNoTracking().Where(m => m.IsActive);
+
+            var activeMedications = await activeMedicationsQuery.CountAsync();
+            var pendingPrescriptions = await _context.Prescriptions.AsNoTracking()
+                .CountAsync(p => p.Status == "Pending");
+            var lowStockAlerts = await activeMedicationsQuery
+                .CountAsync(m => m.StockQuantity < m.MinimumStockLevel);
+            var expiringSoon = await activeMedicationsQuery
+                .CountAsync(m => m.ExpiryDate.HasValue
+                    && m.ExpiryDate.Value > now
+                    && m.ExpiryDate.Value <= in30Days);
+            var expiredMedications = await activeMedicationsQuery
+                .CountAsync(m => m.ExpiryDate.HasValue && m.ExpiryDate.Value <= now);
+
+            return (activeMedications, pendingPrescriptions, lowStockAlerts, expiringSoon, expiredMedications);
         }
 
         /// <summary>

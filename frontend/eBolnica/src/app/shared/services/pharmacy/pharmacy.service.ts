@@ -21,6 +21,8 @@ import {
   MedicationCategoryData, 
   StockTrendData, 
   DashboardStats,
+  DashboardStatsApiResponse,
+  DashboardStatisticsSummary,
   AnalyticsPeriod,
   AnalyticsDateRange
 } from '../../../models/analytics.dto';
@@ -1122,6 +1124,38 @@ export class PharmacyService {
   }
 
   /**
+   * Summary metrics for dashboard cards from GET /analytics/dashboard-stats.
+   * Errors propagate to callers (no mock fallback).
+   */
+  getDashboardSummaryMetrics(useCache: boolean = true): Observable<DashboardStatisticsSummary> {
+    const cacheKey = this.getCacheKey('dashboardSummaryMetrics', {});
+
+    if (useCache) {
+      const cached = this.getCachedData<DashboardStatisticsSummary>(cacheKey);
+      if (cached) {
+        return of(cached);
+      }
+    }
+
+    const params = new HttpParams()
+      .set('revenueMonths', '1')
+      .set('topCategoriesCount', '1')
+      .set('trendDays', '1');
+
+    return this.http.get<DashboardStatsApiResponse>(
+      `${this.analyticsApiUrl}/dashboard-stats`,
+      { params }
+    ).pipe(
+      map(response => this.mapDashboardSummary(response)),
+      tap(summary => {
+        if (useCache) {
+          this.setCachedData(cacheKey, summary);
+        }
+      })
+    );
+  }
+
+  /**
    * Get all dashboard statistics at once
    * Fetches monthly revenue, top categories, and stock trends in parallel
    * @param period Optional period for revenue data
@@ -1216,6 +1250,34 @@ export class PharmacyService {
     } catch (error) {
       console.warn('[PharmacyService] Error clearing analytics cache:', error);
     }
+  }
+
+  // ============================================
+  // Analytics response mapping
+  // ============================================
+
+  private mapDashboardSummary(response: DashboardStatsApiResponse): DashboardStatisticsSummary {
+    const raw = response.metadata?.summary as Record<string, unknown> | undefined;
+    if (!raw) {
+      return {};
+    }
+
+    return {
+      totalRevenue: this.readNumber(raw, 'totalRevenue'),
+      totalMedications: this.readNumber(raw, 'totalMedications'),
+      totalCategories: this.readNumber(raw, 'totalCategories'),
+      totalPrescriptions: this.readNumber(raw, 'totalPrescriptions'),
+      pendingPrescriptions: this.readNumber(raw, 'pendingPrescriptions'),
+      lowStockAlerts: this.readNumber(raw, 'lowStockAlerts'),
+      expiringSoon: this.readNumber(raw, 'expiringSoon'),
+      expiredMedications: this.readNumber(raw, 'expiredMedications')
+    };
+  }
+
+  private readNumber(source: Record<string, unknown>, camelKey: string): number | undefined {
+    const pascalKey = camelKey.charAt(0).toUpperCase() + camelKey.slice(1);
+    const value = source[camelKey] ?? source[pascalKey];
+    return typeof value === 'number' ? value : undefined;
   }
 
   // ============================================

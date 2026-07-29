@@ -120,6 +120,14 @@ namespace eBolnicaAPI.Models.DTOs
         public int TotalMedications { get; set; }
         public int TotalCategories { get; set; }
         public decimal TotalRevenue { get; set; }
+        /// <summary>Prescriptions awaiting dispense.</summary>
+        public int PendingPrescriptions { get; set; }
+        /// <summary>Medications below minimum stock level.</summary>
+        public int LowStockAlerts { get; set; }
+        /// <summary>Active medications expiring within the next 30 days.</summary>
+        public int ExpiringSoon { get; set; }
+        /// <summary>Active medications past expiry date.</summary>
+        public int ExpiredMedications { get; set; }
     }
 
     /// <summary>

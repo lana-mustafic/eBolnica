@@ -5,7 +5,6 @@ import { FormsModule } from "@angular/forms";
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { forkJoin, finalize } from 'rxjs';
-import { MedicationDto } from '../../../models/medication.dto';
 import { PrescriptionDto } from '../../../models/prescription.dto';
 import { RevenueBarChartComponent } from '../../../features/pharmacy/analytics/components/revenue-bar-chart/revenue-bar-chart.component';
 import { CategoriesPieChartComponent } from '../../../features/pharmacy/analytics/components/categories-pie-chart/categories-pie-chart.component';
@@ -36,20 +35,14 @@ export class PharmacyDashboardComponent implements OnInit {
   private pharmacyService = inject(PharmacyService);
   private router = inject(Router);
 
-  // Data
-  medications: MedicationDto[] = [];
-  prescriptions: PrescriptionDto[] = [];
-  
-  // Metrics
+  // Metrics (from GET /api/pharmacy/analytics/dashboard-stats)
   totalMedications: number = 0;
   pendingPrescriptions: number = 0;
   lowStockAlerts: number = 0;
   expiringSoon: number = 0;
-  
-  // Recent prescriptions (pending)
+
   recentPrescriptions: PrescriptionDto[] = [];
-  
-  // Loading and error states
+
   isLoading: boolean = true;
   errorMessage: string | null = null;
 
@@ -62,61 +55,27 @@ export class PharmacyDashboardComponent implements OnInit {
     this.errorMessage = null;
 
     forkJoin({
-      medications: this.pharmacyService.getAllMedications({
-        isActive: true,
+      summary: this.pharmacyService.getDashboardSummaryMetrics(),
+      prescriptions: this.pharmacyService.getPrescriptions({
+        status: 'Pending',
         page: 1,
-        pageSize: 1000
-      }),
-      prescriptions: this.pharmacyService.getPrescriptions()
+        pageSize: 5
+      })
     }).pipe(
       finalize(() => this.isLoading = false)
     ).subscribe({
-      next: (data) => {
-        this.medications = data.medications.items || [];
-        this.prescriptions = data.prescriptions.items || [];
-        this.calculateMetrics();
-        this.recentPrescriptions = this.getRecentPrescriptions();
+      next: ({ summary, prescriptions }) => {
+        this.totalMedications = summary.totalMedications ?? 0;
+        this.pendingPrescriptions = summary.pendingPrescriptions ?? 0;
+        this.lowStockAlerts = summary.lowStockAlerts ?? 0;
+        this.expiringSoon = summary.expiringSoon ?? 0;
+        this.recentPrescriptions = prescriptions.items ?? [];
       },
       error: (error) => {
         this.errorMessage = 'Failed to load dashboard data. Please try again later.';
         console.error('Error loading dashboard data:', error);
       }
     });
-  }
-
-  calculateMetrics(): void {
-    // Total active medications
-    this.totalMedications = this.medications.filter(m => m.isActive).length;
-
-    // Pending prescriptions
-    this.pendingPrescriptions = this.prescriptions.filter(p => p.status === 'Pending').length;
-
-    // Low stock alerts
-    this.lowStockAlerts = this.medications.filter(m => 
-      m.isActive && m.stockQuantity < m.minimumStockLevel
-    ).length;
-
-    // Expiring soon (within next 30 days)
-    const today = new Date();
-    const in30Days = new Date();
-    in30Days.setDate(today.getDate() + 30);
-
-    this.expiringSoon = this.medications.filter(m => {
-      if (!m.expiryDate || !m.isActive) return false;
-      const expiry = new Date(m.expiryDate);
-      return expiry >= today && expiry <= in30Days;
-    }).length;
-  }
-
-  getRecentPrescriptions(): PrescriptionDto[] {
-    return this.prescriptions
-      .filter(p => p.status === 'Pending')
-      .sort((a, b) => {
-        const dateA = new Date(a.prescribedDate).getTime();
-        const dateB = new Date(b.prescribedDate).getTime();
-        return dateB - dateA; // Most recent first
-      })
-      .slice(0, 5); // Get top 5 most recent
   }
 
   navigateToPrescription(prescriptionId: number): void {

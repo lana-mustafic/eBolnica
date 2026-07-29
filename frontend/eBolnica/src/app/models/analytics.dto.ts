@@ -73,6 +73,44 @@ export type AnalyticsPeriod =
   | 'custom';
 
 /**
+ * Summary statistics from dashboard-stats metadata
+ */
+export interface DashboardStatisticsSummary {
+  totalRevenue?: number;
+  totalMedications?: number;
+  totalCategories?: number;
+  totalPrescriptions?: number;
+  pendingPrescriptions?: number;
+  lowStockAlerts?: number;
+  expiringSoon?: number;
+  expiredMedications?: number;
+}
+
+/**
+ * Raw API response from GET /api/pharmacy/analytics/dashboard-stats
+ */
+export interface DashboardStatsApiResponse {
+  monthlyRevenue?: {
+    data?: unknown[];
+    totalRevenue?: number;
+  };
+  topCategories?: {
+    data?: unknown[];
+    totalCategories?: number;
+    totalMedications?: number;
+  };
+  stockTrends?: {
+    data?: unknown[];
+    medications?: unknown[];
+    timeline?: string[];
+  };
+  metadata?: {
+    generatedAt?: string;
+    summary?: DashboardStatisticsSummary;
+  };
+}
+
+/**
  * Complete dashboard statistics response
  */
 export interface DashboardStats {
@@ -83,10 +121,7 @@ export interface DashboardStats {
   /** Stock trends for line chart */
   stockTrends: StockTrendData[];
   /** Additional summary statistics */
-  summary?: {
-    totalRevenue?: number;
-    totalMedications?: number;
-    totalCategories?: number;
+  summary?: DashboardStatisticsSummary & {
     averageStockLevel?: number;
   };
 }
