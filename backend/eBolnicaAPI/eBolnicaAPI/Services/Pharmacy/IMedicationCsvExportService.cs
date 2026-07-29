@@ -13,5 +13,9 @@ namespace eBolnicaAPI.Services.Pharmacy
         string BuildCsv(IEnumerable<Medication> medications);
 
         string GetExportFileName(DateTime? timestamp = null);
+
+        string BuildImportTemplateCsv();
+
+        string GetImportTemplateFileName();
     }
 }

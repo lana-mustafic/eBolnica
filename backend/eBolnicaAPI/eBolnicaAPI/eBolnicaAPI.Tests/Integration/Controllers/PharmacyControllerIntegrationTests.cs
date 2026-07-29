@@ -323,6 +323,25 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
         }
 
         [Fact]
+        public async Task DownloadMedicationImportTemplate_ReturnsCsvWithHeadersAndExampleRow()
+        {
+            var response = await _client.GetAsync("/api/pharmacy/medications/import/template");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("text/csv", response.Content.Headers.ContentType?.MediaType);
+
+            var disposition = response.Content.Headers.ContentDisposition;
+            Assert.NotNull(disposition);
+            Assert.Contains("medication-import-template.csv", disposition.FileName);
+
+            var content = await response.Content.ReadAsStringAsync();
+            Assert.Contains("Name", content);
+            Assert.Contains("Requires Prescription", content);
+            Assert.DoesNotContain(",Status", content);
+            Assert.Contains("Paracetamol (required, 3-100 characters)", content);
+        }
+
+        [Fact]
         public async Task GetMedications_PriceRangeAndCategory_ReturnsMatchingSubset()
         {
             var url = "/api/pharmacy/medications?category=painkiller&minPrice=7&maxPrice=9&pageSize=100";

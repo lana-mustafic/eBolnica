@@ -60,5 +60,24 @@ namespace eBolnicaAPI.Tests.Unit.Services
             var fileName = _service.GetExportFileName(new DateTime(2026, 3, 15, 12, 0, 0, DateTimeKind.Utc));
             Assert.Equal("pharmacy-medications-2026-03-15.csv", fileName);
         }
+
+        [Fact]
+        public void BuildImportTemplateCsv_IncludesHeadersAndExampleRowWithoutStatus()
+        {
+            var csv = _service.BuildImportTemplateCsv();
+            var lines = csv.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            Assert.Equal(2, lines.Length);
+            Assert.Contains("Requires Prescription", lines[0]);
+            Assert.DoesNotContain("Status", lines[0]);
+            Assert.Contains("Paracetamol (required, 3-100 characters)", lines[1]);
+            Assert.Contains("2026-12-31 (required, YYYY-MM-DD, must be future date)", lines[1]);
+        }
+
+        [Fact]
+        public void GetImportTemplateFileName_ReturnsFixedName()
+        {
+            Assert.Equal("medication-import-template.csv", _service.GetImportTemplateFileName());
+        }
     }
 }

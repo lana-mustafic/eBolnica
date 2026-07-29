@@ -255,6 +255,21 @@ namespace eBolnicaAPI.Controllers
             return ReturnCsvFile(Encoding.UTF8.GetBytes(csvContent), fileName);
         }
 
+        /// <summary>
+        /// Download the medication import CSV template (headers + example row with validation hints).
+        /// </summary>
+        [HttpGet("medications/import/template")]
+        [Authorize(Roles = "Pharmacist")]
+        [Produces("text/csv")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public IActionResult DownloadMedicationImportTemplate()
+        {
+            var csvContent = _medicationCsvExportService.BuildImportTemplateCsv();
+            var fileName = _medicationCsvExportService.GetImportTemplateFileName();
+
+            return ReturnCsvFile(Encoding.UTF8.GetBytes(csvContent), fileName);
+        }
+
         [HttpGet("medications/{id}")]
         [Authorize(Roles = "Pharmacist")]
         public async Task<IActionResult> GetMedication(int id)

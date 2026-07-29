@@ -11,7 +11,7 @@ namespace eBolnicaAPI.Services.Pharmacy
     {
         public int MaxExportRows { get; } = 10_000;
 
-        private static readonly string[] Headers =
+        private static readonly string[] ImportHeaders =
         {
             "Name",
             "Generic Name",
@@ -26,14 +26,37 @@ namespace eBolnicaAPI.Services.Pharmacy
             "Dosage Form",
             "Strength",
             "Requires Prescription",
-            "Active",
+            "Active"
+        };
+
+        private static readonly string[] ExportHeaders =
+        [
+            .. ImportHeaders,
             "Status"
+        ];
+
+        private static readonly string[] ImportTemplateExampleRow =
+        {
+            "Paracetamol (required, 3-100 characters)",
+            "Acetaminophen (optional)",
+            "Painkillers (required)",
+            "PharmaCorp (optional)",
+            "Pain reliever (optional, max 500 characters)",
+            "9.99 (required, > 0)",
+            "100 (required, integer >= 0)",
+            "20 (required, integer >= 0)",
+            "2026-12-31 (required, YYYY-MM-DD, must be future date)",
+            "BATCH-001 (optional)",
+            "Tablet (optional)",
+            "500mg (optional)",
+            "No (required: Yes or No)",
+            "Yes (required: Yes or No)"
         };
 
         public string BuildCsv(IEnumerable<Medication> medications)
         {
             var builder = new StringBuilder();
-            builder.AppendLine(string.Join(",", Headers));
+            builder.AppendLine(string.Join(",", ExportHeaders));
 
             foreach (var medication in medications)
             {
@@ -65,6 +88,16 @@ namespace eBolnicaAPI.Services.Pharmacy
             var day = (timestamp ?? DateTime.UtcNow).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             return $"pharmacy-medications-{day}.csv";
         }
+
+        public string BuildImportTemplateCsv()
+        {
+            var builder = new StringBuilder();
+            builder.AppendLine(string.Join(",", ImportHeaders));
+            builder.AppendLine(string.Join(",", ImportTemplateExampleRow.Select(Escape)));
+            return builder.ToString();
+        }
+
+        public string GetImportTemplateFileName() => "medication-import-template.csv";
 
         internal static string Escape(string? value)
         {
