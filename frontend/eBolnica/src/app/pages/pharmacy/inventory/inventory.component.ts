@@ -608,17 +608,19 @@ export class InventoryComponent implements OnInit, OnDestroy {
     }, 200);
   }
 
+  isSortColumnActive(column: string): boolean {
+    return this.sortColumn === mapInventorySortColumn(column);
+  }
+
   getSortIconClass(column: string, direction: 'asc' | 'desc'): string {
-    const backendColumn = mapInventorySortColumn(column);
-    if (this.sortColumn !== backendColumn) {
+    if (!this.isSortColumnActive(column)) {
       return '';
     }
     return this.sortOrder === direction ? 'active' : '';
   }
 
   getAriaSort(column: string): string {
-    const backendColumn = mapInventorySortColumn(column);
-    if (this.sortColumn !== backendColumn) {
+    if (!this.isSortColumnActive(column)) {
       return 'none';
     }
     return this.sortOrder === 'asc' ? 'ascending' : 'descending';
