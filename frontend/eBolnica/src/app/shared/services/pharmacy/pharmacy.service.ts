@@ -1,7 +1,8 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { Observable, throwError, of, timer, forkJoin } from 'rxjs';
-import { catchError, tap, retry, retryWhen, delayWhen, take, concatMap } from 'rxjs/operators';
+import { catchError, tap, retry, retryWhen, delayWhen, take, concatMap, map } from 'rxjs/operators';
+import { normalizePagedResponse } from '../../utils/paged-response.util';
 import { MedicationDto } from '../../../models/medication.dto';
 import { MedicationImageDto } from '../../../models/medication-image.dto';
 import { MedicationCreateDto } from '../../../models/medication-create.dto';
@@ -274,6 +275,7 @@ export class PharmacyService {
     console.log('[PharmacyService] Query params:', params.toString());
     
     return this.http.get<PagedResponse<MedicationDto>>(`${this.apiUrl}/medications`, { params }).pipe(
+      map(response => normalizePagedResponse<MedicationDto>(response, filters.pageSize || 10)),
       tap(response => {
         console.log('[PharmacyService] Medications loaded:', {
           count: response.items?.length || 0,
@@ -295,6 +297,7 @@ export class PharmacyService {
     console.log('[PharmacyService] Loading prescriptions with filters:', filters);
     
     return this.http.get<PagedResponse<PrescriptionDto>>(`${this.apiUrl}/prescriptions`, { params }).pipe(
+      map(response => normalizePagedResponse<PrescriptionDto>(response, filters.pageSize || 10)),
       tap(response => {
         console.log('[PharmacyService] Prescriptions loaded:', {
           count: response.items?.length || 0,
@@ -316,6 +319,14 @@ export class PharmacyService {
     console.log('[PharmacyService] Loading inventory with filters:', filters);
     
     return this.http.get<any>(`${this.apiUrl}/inventory`, { params }).pipe(
+      map(response => {
+        const paged = normalizePagedResponse<MedicationDto>(response, filters.pageSize || 10);
+        return {
+          ...paged,
+          LowStockAlerts: response?.LowStockAlerts ?? response?.lowStockAlerts ?? [],
+          ExpiryAlerts: response?.ExpiryAlerts ?? response?.expiryAlerts ?? []
+        };
+      }),
       tap(response => {
         console.log('[PharmacyService] Inventory loaded:', {
           count: response.items?.length || 0,

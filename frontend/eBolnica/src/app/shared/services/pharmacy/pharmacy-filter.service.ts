@@ -123,6 +123,23 @@ export class PharmacyFilterService {
   }
 
   /**
+   * Sync pagination metadata returned by the backend (authoritative source).
+   */
+  syncPaginationFromResponse(pageNumber: number, pageSize: number): void {
+    const current = this.filters$.value;
+
+    if (current.pageNumber === pageNumber && current.pageSize === pageSize) {
+      return;
+    }
+
+    this.filters$.next({
+      ...current,
+      pageNumber,
+      pageSize
+    });
+  }
+
+  /**
    * Get count of active filters (excluding pagination)
    */
   getActiveFilterCount(): number {

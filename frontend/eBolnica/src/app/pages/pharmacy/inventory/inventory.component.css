@@ -1104,6 +1104,23 @@ table tbody tr.row-expiring {
   min-width: auto;
 }
 
+.page-info {
+  color: #4a5568;
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.page-current {
+  font-weight: 700;
+  color: #667eea;
+}
+
+.page-total {
+  font-weight: 600;
+}
+
 @media (max-width: 768px) {
   .pagination-controls {
     grid-template-columns: 1fr;

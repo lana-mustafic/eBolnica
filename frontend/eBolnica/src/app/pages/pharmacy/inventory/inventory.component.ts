@@ -13,6 +13,7 @@ import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { PagedResponse } from '../../../models/paged-response.dto';
 import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, catchError, of } from 'rxjs';
 import { TABLE_DEFAULT_SORTS } from '../../../constants/sort.constants';
+import { getPageRangeEnd, getPageRangeStart } from '../../../shared/utils/paged-response.util';
 
 type StockStatus = 'adequate' | 'low' | 'critical' | 'out-of-stock';
 type ExpiryStatus = 'good' | 'warning' | 'critical' | 'expired';
@@ -124,10 +125,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
         this.inventoryItems = response.items || [];
         this.lowStockAlerts = response.LowStockAlerts || [];
         this.expiryAlerts = response.ExpiryAlerts || [];
-        this.totalCount = response.totalCount || 0;
-        this.totalPages = response.totalPages || 0;
-        this.currentPage = response.currentPage || 1;
-        this.pageSize = response.pageSize || 50;
+        this.applyPaginationFromResponse(response);
         this.extractCategories();
         this.calculateSummaryStats();
         this.updateActiveFilters();
@@ -164,14 +162,28 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.selectedCategory = filters.category || '';
     this.selectedStockFilter = this.mapApiStockFilterToUi(filters);
     this.selectedExpiryFilter = filters.expiryStatus || 'all';
-    this.currentPage = filters.pageNumber || 1;
-    this.pageSize = filters.pageSize || 50;
     if (filters.sortBy) {
       this.sortColumn = filters.sortBy;
     }
     if (filters.sortOrder) {
       this.sortOrder = filters.sortOrder as 'asc' | 'desc';
     }
+  }
+
+  private applyPaginationFromResponse(response: PagedResponse<MedicationDto>): void {
+    this.totalCount = response.totalCount;
+    this.totalPages = response.totalPages;
+    this.currentPage = response.currentPage;
+    this.pageSize = response.pageSize;
+    this.filterService.syncPaginationFromResponse(response.currentPage, response.pageSize);
+  }
+
+  get paginationRangeStart(): number {
+    return getPageRangeStart(this.currentPage, this.pageSize, this.totalCount);
+  }
+
+  get paginationRangeEnd(): number {
+    return getPageRangeEnd(this.currentPage, this.pageSize, this.totalCount);
   }
 
   /**

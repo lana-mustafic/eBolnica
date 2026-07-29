@@ -238,6 +238,7 @@
   <app-filter-summary
     [filters]="filterService.getFilters()"
     [totalCount]="totalCount"
+    [totalPages]="totalPages"
     [currentPage]="currentPage"
     [pageSize]="pageSize"
     [isLoading]="isLoading || isSearching"
@@ -390,7 +391,7 @@
 
     <div class="pagination-container" *ngIf="!isLoading && totalCount > 0" role="navigation" aria-label="Inventory pagination">
       <div class="pagination-info" aria-live="polite">
-        Showing {{ (currentPage - 1) * pageSize + 1 }} - {{ Math.min(currentPage * pageSize, totalCount) }} of {{ totalCount }} item{{ totalCount !== 1 ? 's' : '' }}
+        Showing {{ paginationRangeStart }} - {{ paginationRangeEnd }} of {{ totalCount }} item{{ totalCount !== 1 ? 's' : '' }}
       </div>
 
       <div class="pagination-controls">
@@ -398,7 +399,7 @@
           <label for="inventory-page-size-select" class="page-size-label">Items per page:</label>
           <select
             id="inventory-page-size-select"
-            [(ngModel)]="pageSize"
+            [ngModel]="pageSize"
             (ngModelChange)="changePageSize($event)"
             class="page-size-select"
             aria-label="Items per page">
@@ -452,6 +453,10 @@
               <polyline points="9 18 15 12 9 6"></polyline>
             </svg>
           </button>
+        </div>
+
+        <div class="page-info" aria-live="polite">
+          Page <span class="page-current">{{ currentPage }}</span> of <span class="page-total">{{ totalPages }}</span>
         </div>
       </div>
     </div>

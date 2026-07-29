@@ -13,6 +13,7 @@ import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { PagedResponse } from '../../../models/paged-response.dto';
 import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, catchError, of } from 'rxjs';
 import { TABLE_DEFAULT_SORTS } from '../../../constants/sort.constants';
+import { getPageRangeEnd, getPageRangeStart } from '../../../shared/utils/paged-response.util';
 
 @Component({
   selector: 'app-prescriptions',
@@ -116,10 +117,7 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (response) => {
         this.prescriptions = response.items || [];
-        this.totalCount = response.totalCount || 0;
-        this.totalPages = response.totalPages || 0;
-        this.currentPage = response.currentPage || 1;
-        this.pageSize = response.pageSize || 10;
+        this.applyPaginationFromResponse(response);
         this.updateFilterCounts();
         this.updateActiveFilters();
         this.errorMessage = null;
@@ -158,13 +156,27 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   private syncUIFromFilters(filters: PharmacyFilters): void {
     this.searchTerm = filters.searchTerm || '';
     this.selectedStatus = filters.prescriptionStatus || 'Pending';
-    this.currentPage = filters.pageNumber || 1;
-    this.pageSize = filters.pageSize || 10;
     if (filters.sortBy) {
       this.sortBy = filters.sortBy;
       this.sortColumn = filters.sortBy;
     }
     if (filters.sortOrder) this.sortOrder = filters.sortOrder as 'asc' | 'desc';
+  }
+
+  private applyPaginationFromResponse(response: PagedResponse<PrescriptionDto>): void {
+    this.totalCount = response.totalCount;
+    this.totalPages = response.totalPages;
+    this.currentPage = response.currentPage;
+    this.pageSize = response.pageSize;
+    this.filterService.syncPaginationFromResponse(response.currentPage, response.pageSize);
+  }
+
+  get paginationRangeStart(): number {
+    return getPageRangeStart(this.currentPage, this.pageSize, this.totalCount);
+  }
+
+  get paginationRangeEnd(): number {
+    return getPageRangeEnd(this.currentPage, this.pageSize, this.totalCount);
   }
 
   /**
@@ -515,6 +527,55 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   changePageSize(size: number): void {
     this.updateFilters({ pageSize: size, pageNumber: 1 });
   }
+
+  getPageNumbers(): (number | string)[] {
+    const pages: (number | string)[] = [];
+    const maxVisiblePages = 7;
+
+    if (this.totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= this.totalPages; i++) {
+        pages.push(i);
+      }
+    } else if (this.currentPage <= 4) {
+      for (let i = 1; i <= 5; i++) {
+        pages.push(i);
+      }
+      pages.push('...');
+      pages.push(this.totalPages);
+    } else if (this.currentPage >= this.totalPages - 3) {
+      pages.push(1);
+      pages.push('...');
+      for (let i = this.totalPages - 4; i <= this.totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      pages.push('...');
+      for (let i = this.currentPage - 1; i <= this.currentPage + 1; i++) {
+        pages.push(i);
+      }
+      pages.push('...');
+      pages.push(this.totalPages);
+    }
+
+    return pages;
+  }
+
+  onPageNumberClick(pageNum: number | string): void {
+    if (typeof pageNum === 'number') {
+      this.goToPage(pageNum);
+    }
+  }
+
+  isEllipsis(pageNum: number | string): boolean {
+    return pageNum === '...';
+  }
+
+  trackByPageNum(_: number, pageNum: number | string): number | string {
+    return pageNum;
+  }
+
+  Math = Math;
 
   getStatusClass(status: string): string {
     switch (status) {
