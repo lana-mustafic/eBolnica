@@ -194,6 +194,25 @@
       <!-- Analytics Charts Section -->
       <section class="analytics-section">
         <h2 class="section-title">Analytics & Insights</h2>
+
+        <div
+          *ngIf="hasAnalyticsErrors"
+          class="analytics-error-banner"
+          role="alert"
+          aria-live="polite">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <div class="analytics-error-content">
+            <p class="analytics-error-title">Analytics unavailable</p>
+            <p class="analytics-error-message">{{ analyticsErrorMessage }}</p>
+          </div>
+          <button class="btn-retry analytics-retry-btn" type="button" (click)="retryAnalytics()">
+            Retry analytics
+          </button>
+        </div>
         
         <div class="charts-grid">
           <!-- Revenue Bar Chart -->
@@ -201,7 +220,9 @@
             <app-revenue-bar-chart 
               [title]="'Monthly Revenue Overview'"
               [period]="'last12months'"
-              [height]="350">
+              [height]="350"
+              (errorOccurred)="onAnalyticsError('revenue', $event)"
+              (dataLoaded)="onAnalyticsLoaded('revenue')">
             </app-revenue-bar-chart>
           </div>
 
@@ -211,7 +232,9 @@
               [title]="'Medication Categories Distribution'"
               [chartType]="'doughnut'"
               [maxCategories]="8"
-              [height]="350">
+              [height]="350"
+              (errorOccurred)="onAnalyticsError('categories', $event)"
+              (dataLoaded)="onAnalyticsLoaded('categories')">
             </app-categories-pie-chart>
           </div>
 
@@ -220,7 +243,9 @@
             <app-stock-trends-line-chart 
               [days]="30"
               [showThresholds]="true"
-              [height]="350">
+              [height]="350"
+              (errorOccurred)="onAnalyticsError('stock', $event)"
+              (dataLoaded)="onAnalyticsLoaded('stock')">
             </app-stock-trends-line-chart>
           </div>
         </div>
