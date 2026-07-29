@@ -29,3 +29,34 @@ export const TABLE_DEFAULT_SORTS = {
     description: 'Newest items first'
   }
 };
+
+/**
+ * Maps inventory table header / UI column keys to backend sortBy field names.
+ * Backend supports: name, price, createdAt, stockQuantity, stock, category, expiryDate
+ */
+export const INVENTORY_SORT_COLUMN_MAP: Record<string, string> = {
+  name: 'name',
+  medicationName: 'name',
+  category: 'category',
+  stock: 'stockQuantity',
+  stockQuantity: 'stockQuantity',
+  quantity: 'stockQuantity',
+  stockStatus: 'stockQuantity',
+  expiryDate: 'expiryDate',
+  expiry: 'expiryDate',
+  createdAt: 'createdAt',
+  dateCreated: 'createdAt',
+  createdDate: 'createdAt'
+};
+
+export const INVENTORY_SORT_DISPLAY_NAMES: Record<string, string> = {
+  name: 'Medication Name',
+  category: 'Category',
+  stockQuantity: 'Stock Quantity',
+  expiryDate: 'Expiry Date',
+  createdAt: 'Date Created'
+};
+
+export function mapInventorySortColumn(column: string): string {
+  return INVENTORY_SORT_COLUMN_MAP[column] ?? column;
+}

@@ -290,31 +290,31 @@
     <table>
       <thead>
         <tr>
-          <th (click)="onSort('medicationName')"
-              (keydown)="onSortKeydown($event, 'medicationName')"
+          <th (click)="onSort('name')"
+              (keydown)="onSortKeydown($event, 'name')"
               [class.sort-active]="sortColumn === 'name'"
-              [attr.aria-sort]="getAriaSort('medicationName')"
+              [attr.aria-sort]="getAriaSort('name')"
               [attr.aria-label]="'Sort by Medication Name'"
               tabindex="0"
               class="sortable-header">
             Medication
             <span class="sort-icons">
-              <span class="sort-asc" [class.active]="getSortIconClass('medicationName', 'asc')" aria-hidden="true">↑</span>
-              <span class="sort-desc" [class.active]="getSortIconClass('medicationName', 'desc')" aria-hidden="true">↓</span>
+              <span class="sort-asc" [class.active]="getSortIconClass('name', 'asc')" aria-hidden="true">↑</span>
+              <span class="sort-desc" [class.active]="getSortIconClass('name', 'desc')" aria-hidden="true">↓</span>
             </span>
           </th>
           <th>Category</th>
-          <th (click)="onSort('quantity')"
-              (keydown)="onSortKeydown($event, 'quantity')"
+          <th (click)="onSort('stock')"
+              (keydown)="onSortKeydown($event, 'stock')"
               [class.sort-active]="sortColumn === 'stockQuantity'"
-              [attr.aria-sort]="getAriaSort('quantity')"
+              [attr.aria-sort]="getAriaSort('stock')"
               [attr.aria-label]="'Sort by Current Stock'"
               tabindex="0"
               class="sortable-header">
             Current Stock
             <span class="sort-icons">
-              <span class="sort-asc" [class.active]="getSortIconClass('quantity', 'asc')" aria-hidden="true">↑</span>
-              <span class="sort-desc" [class.active]="getSortIconClass('quantity', 'desc')" aria-hidden="true">↓</span>
+              <span class="sort-asc" [class.active]="getSortIconClass('stock', 'asc')" aria-hidden="true">↑</span>
+              <span class="sort-desc" [class.active]="getSortIconClass('stock', 'desc')" aria-hidden="true">↓</span>
             </span>
           </th>
           <th>Min Stock</th>

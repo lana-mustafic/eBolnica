@@ -13,7 +13,11 @@ import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { InventoryResponse } from '../../../models/inventory-response.dto';
 import { PagedResponse } from '../../../models/paged-response.dto';
 import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, tap, catchError, of } from 'rxjs';
-import { TABLE_DEFAULT_SORTS } from '../../../constants/sort.constants';
+import {
+  INVENTORY_SORT_DISPLAY_NAMES,
+  mapInventorySortColumn,
+  TABLE_DEFAULT_SORTS
+} from '../../../constants/sort.constants';
 import { getPageRangeEnd, getPageRangeStart } from '../../../shared/utils/paged-response.util';
 
 type StockStatus = 'adequate' | 'low' | 'critical' | 'out-of-stock';
@@ -411,15 +415,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
    * Get display name for current sort column
    */
   getSortDisplayName(): string {
-    const columnNames: { [key: string]: string } = {
-      'name': 'Medication Name',
-      'stockQuantity': 'Stock Quantity',
-      'stockStatus': 'Stock Status',
-      'expiryDate': 'Expiry Date',
-      'createdAt': 'Date Created',
-      'updatedAt': 'Date Updated'
-    };
-    return columnNames[this.sortColumn] || this.sortColumn;
+    return INVENTORY_SORT_DISPLAY_NAMES[this.sortColumn] ?? this.sortColumn;
   }
 
   /**
@@ -578,7 +574,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
    * Handle column header sort click — server-side sorting via API
    */
   onSort(column: string): void {
-    const backendColumn = this.mapSortColumnToBackend(column);
+    const backendColumn = mapInventorySortColumn(column);
 
     this.previousSortColumn = this.sortColumn;
     this.previousSortOrder = this.sortOrder;
@@ -603,7 +599,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   getSortIconClass(column: string, direction: 'asc' | 'desc'): string {
-    const backendColumn = this.mapSortColumnToBackend(column);
+    const backendColumn = mapInventorySortColumn(column);
     if (this.sortColumn !== backendColumn) {
       return '';
     }
@@ -611,7 +607,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   getAriaSort(column: string): string {
-    const backendColumn = this.mapSortColumnToBackend(column);
+    const backendColumn = mapInventorySortColumn(column);
     if (this.sortColumn !== backendColumn) {
       return 'none';
     }
@@ -623,23 +619,6 @@ export class InventoryComponent implements OnInit, OnDestroy {
       event.preventDefault();
       this.onSort(column);
     }
-  }
-
-  private mapSortColumnToBackend(column: string): string {
-    const columnMapping: Record<string, string> = {
-      medicationName: 'name',
-      name: 'name',
-      quantity: 'stockQuantity',
-      stockQuantity: 'stockQuantity',
-      stock: 'stockQuantity',
-      expiryDate: 'expiryDate',
-      expiry: 'expiryDate',
-      stockStatus: 'stockQuantity',
-      createdAt: 'createdAt',
-      updatedAt: 'updatedAt'
-    };
-
-    return columnMapping[column] || column;
   }
 
   Math = Math;
