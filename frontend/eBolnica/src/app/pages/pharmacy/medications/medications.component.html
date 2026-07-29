@@ -138,9 +138,26 @@
       <button type="button" class="btn btn-secondary" (click)="downloadCsvTemplate()">
         Download template
       </button>
-      <span class="csv-import-footer-hint" *ngIf="selectedImportFile">
-        File ready — import will run in the next step.
-      </span>
+      <div class="csv-import-footer-actions">
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="importMedicationsFromCsv()"
+          [disabled]="!selectedImportFile || isImporting">
+          {{ isImporting ? 'Importing…' : 'Import medications' }}
+        </button>
+      </div>
+    </div>
+
+    <app-medication-import-summary
+      *ngIf="importSummary"
+      [summary]="importSummary">
+    </app-medication-import-summary>
+
+    <div *ngIf="importSummary" class="csv-import-summary-actions">
+      <button type="button" class="btn btn-secondary" (click)="dismissImportSummary()">
+        Dismiss summary
+      </button>
     </div>
   </section>
 

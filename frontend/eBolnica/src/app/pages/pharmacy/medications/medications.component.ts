@@ -8,7 +8,9 @@ import { FilterSummaryComponent } from '../../../shared/components/filter-summar
 import { ActiveFiltersComponent } from '../../../shared/components/active-filters/active-filters.component';
 import { SortStatusComponent } from '../../../shared/components/sort-status/sort-status.component';
 import { MedicationThumbnailComponent } from './medication-thumbnail.component';
+import { MedicationImportSummaryComponent } from './medication-import-summary.component';
 import { MedicationDto } from '../../../models/medication.dto';
+import { MedicationImportSummary } from '../../../models/medication-import.dto';
 import { ActiveFilter, PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { PagedResponse } from '../../../models/paged-response.dto';
 import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, catchError, of } from 'rxjs';
@@ -41,7 +43,7 @@ const MAX_MEDICATION_IMPORT_FILE_BYTES = 5 * 1024 * 1024;
 @Component({
   selector: 'app-medications',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, FilterSummaryComponent, ActiveFiltersComponent, SortStatusComponent, MedicationThumbnailComponent],
+  imports: [CommonModule, FormsModule, RouterModule, FilterSummaryComponent, ActiveFiltersComponent, SortStatusComponent, MedicationThumbnailComponent, MedicationImportSummaryComponent],
   templateUrl: './medications.component.html',
   styleUrl: './medications.component.css'
 })
@@ -103,6 +105,8 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   selectedImportFile: File | null = null;
   importFileError: string | null = null;
   isImportDragOver: boolean = false;
+  isImporting: boolean = false;
+  importSummary: MedicationImportSummary | null = null;
   readonly maxImportFileSizeLabel = '5 MB';
 
   ngOnInit(): void {
@@ -881,6 +885,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     if (!this.showImportPanel) {
       this.clearImportFile();
       this.importFileError = null;
+      this.importSummary = null;
     }
   }
 
@@ -888,6 +893,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     this.showImportPanel = false;
     this.clearImportFile();
     this.importFileError = null;
+    this.importSummary = null;
   }
 
   triggerImportFilePicker(): void {
@@ -931,10 +937,62 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   clearImportFile(): void {
     this.selectedImportFile = null;
     this.importFileError = null;
+    this.importSummary = null;
 
     if (this.csvFileInput?.nativeElement) {
       this.csvFileInput.nativeElement.value = '';
     }
+  }
+
+  importMedicationsFromCsv(): void {
+    if (!this.selectedImportFile || this.isImporting) {
+      return;
+    }
+
+    this.isImporting = true;
+    this.importFileError = null;
+    this.importSummary = null;
+
+    this.pharmacyService.importMedicationsFromCsv(this.selectedImportFile).subscribe({
+      next: (summary) => {
+        this.isImporting = false;
+        this.importSummary = summary;
+
+        if (summary.successCount > 0) {
+          this.loadMedications();
+        }
+      },
+      error: (error) => {
+        this.isImporting = false;
+        this.importFileError = this.getImportApiErrorMessage(error);
+      }
+    });
+  }
+
+  dismissImportSummary(): void {
+    this.importSummary = null;
+  }
+
+  private getImportApiErrorMessage(error: unknown): string {
+    const httpError = error as { error?: { error?: string; message?: string }; status?: number; message?: string };
+
+    if (httpError?.error?.error) {
+      return httpError.error.error;
+    }
+
+    if (httpError?.error?.message) {
+      return httpError.error.message;
+    }
+
+    if (httpError?.status === 0) {
+      return 'Network error. Unable to import medications. Please check your connection.';
+    }
+
+    if (httpError?.status === 400) {
+      return 'Invalid CSV file. Check column headers and file format, then try again.';
+    }
+
+    return httpError?.message || 'Failed to import medications. Please try again.';
   }
 
   formatImportFileSize(bytes: number): string {
@@ -971,6 +1029,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     }
 
     this.selectedImportFile = file;
+    this.importSummary = null;
   }
 
   private isCsvFile(file: File): boolean {

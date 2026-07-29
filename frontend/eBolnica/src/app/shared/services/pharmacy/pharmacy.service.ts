@@ -11,6 +11,7 @@ import { PharmacistDataDto } from '../../../models/pharmacist-data.dto';
 import { PrescriptionDto } from '../../../models/prescription.dto';
 import { PrescriptionCreateDto } from '../../../models/prescription-create.dto';
 import { PrescriptionDispenseDto } from '../../../models/prescription-dispense.dto';
+import { MedicationImportSummary } from '../../../models/medication-import.dto';
 import { InventoryResponse } from '../../../models/inventory-response.dto';
 import { PagedResponse } from '../../../models/paged-response.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
@@ -171,6 +172,27 @@ export class PharmacyService {
   deleteMedication(id: number): Observable<any> {
     return this.http.delete(this.apiUrl + `/medications/${id}`).pipe(
       tap(() => this.clearAnalyticsCache())
+    );
+  }
+
+  /**
+   * Import medications from a CSV file.
+   * Returns per-row success/failure summary (partial imports are supported).
+   */
+  importMedicationsFromCsv(file: File): Observable<MedicationImportSummary> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+
+    return this.http.post<MedicationImportSummary>(
+      `${this.apiUrl}/medications/import`,
+      formData
+    ).pipe(
+      map(response => this.mapMedicationImportSummary(response)),
+      tap(summary => {
+        if (summary.successCount > 0) {
+          this.clearAnalyticsCache();
+        }
+      })
     );
   }
 
@@ -1246,5 +1268,22 @@ export class PharmacyService {
     const pascalKey = camelKey.charAt(0).toUpperCase() + camelKey.slice(1);
     const value = source[camelKey] ?? source[pascalKey];
     return typeof value === 'number' ? value : undefined;
+  }
+
+  private mapMedicationImportSummary(raw: MedicationImportSummary): MedicationImportSummary {
+    const source = raw as unknown as Record<string, unknown>;
+    const errorsRaw = (source['errors'] ?? source['Errors']) as Array<Record<string, unknown>> | undefined;
+
+    return {
+      successCount: this.readNumber(source, 'successCount') ?? 0,
+      failureCount: this.readNumber(source, 'failureCount') ?? 0,
+      totalRows: this.readNumber(source, 'totalRows') ?? 0,
+      errors: (errorsRaw ?? []).map(error => ({
+        rowNumber: this.readNumber(error, 'rowNumber') ?? 0,
+        reason: String(error['reason'] ?? error['Reason'] ?? ''),
+        field: (error['field'] ?? error['Field']) as string | undefined,
+        value: (error['value'] ?? error['Value']) as string | undefined
+      }))
+    };
   }
 }
