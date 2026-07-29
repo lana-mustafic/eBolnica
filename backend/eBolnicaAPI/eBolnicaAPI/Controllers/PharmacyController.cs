@@ -475,6 +475,9 @@ namespace eBolnicaAPI.Controllers
 
         [HttpPost("medications")]
         [Authorize(Roles = "Pharmacist")]
+        [ProducesResponseType(typeof(MedicationDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<IActionResult> CreateMedication([FromBody] MedicationCreateDto dto)
         {
             if (!ModelState.IsValid)
@@ -485,6 +488,12 @@ namespace eBolnicaAPI.Controllers
             if (dto.ExpiryDate <= DateTime.Now)
             {
                 return BadRequest("Expiry date must be in the future");
+            }
+
+            var nameConflict = await ValidateMedicationNameAvailabilityAsync(dto.Name);
+            if (nameConflict != null)
+            {
+                return nameConflict;
             }
 
             var medication = new Medication
@@ -537,6 +546,10 @@ namespace eBolnicaAPI.Controllers
 
         [HttpPut("medications/{id}")]
         [Authorize(Roles = "Pharmacist")]
+        [ProducesResponseType(typeof(MedicationDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<IActionResult> UpdateMedication(int id, [FromBody] MedicationCreateDto dto)
         {
             if (!ModelState.IsValid)
@@ -554,6 +567,12 @@ namespace eBolnicaAPI.Controllers
             if (dto.ExpiryDate <= DateTime.Now)
             {
                 return BadRequest("Expiry date must be in the future");
+            }
+
+            var nameConflict = await ValidateMedicationNameAvailabilityAsync(dto.Name, id);
+            if (nameConflict != null)
+            {
+                return nameConflict;
             }
 
             medication.Name = dto.Name;
@@ -1911,6 +1930,18 @@ namespace eBolnicaAPI.Controllers
         #endregion
 
         #region Helper Methods
+
+        private async Task<IActionResult?> ValidateMedicationNameAvailabilityAsync(
+            string name,
+            int? excludeMedicationId = null)
+        {
+            if (await _medicationDuplicateChecker.IsNameAvailableAsync(name, excludeMedicationId))
+            {
+                return null;
+            }
+
+            return Conflict(new { message = "Medication name already exists" });
+        }
 
         /// <summary>
         /// Converts PharmacyPdfReportRequest to PharmacyQueryParameters for filtering

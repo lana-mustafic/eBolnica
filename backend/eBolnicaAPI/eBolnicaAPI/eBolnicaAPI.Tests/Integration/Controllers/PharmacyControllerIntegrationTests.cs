@@ -1058,7 +1058,88 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
 
         #endregion
 
+        #region Medication Create/Update Integration Tests
+
+        [Fact]
+        public async Task CreateMedication_DuplicateName_Returns409Conflict()
+        {
+            var dto = CreateValidMedicationDto("Penicillin");
+
+            var response = await _client.PostAsJsonAsync("/api/pharmacy/medications", dto);
+
+            Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+            var body = await response.Content.ReadFromJsonAsync<DuplicateNameErrorResponse>();
+            Assert.NotNull(body);
+            Assert.Equal("Medication name already exists", body!.Message);
+        }
+
+        [Fact]
+        public async Task CreateMedication_CaseInsensitiveDuplicateName_Returns409Conflict()
+        {
+            var dto = CreateValidMedicationDto("  penicillin  ");
+
+            var response = await _client.PostAsJsonAsync("/api/pharmacy/medications", dto);
+
+            Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task CreateMedication_UniqueName_ReturnsCreated()
+        {
+            var dto = CreateValidMedicationDto("Unique Server Med");
+
+            var response = await _client.PostAsJsonAsync("/api/pharmacy/medications", dto);
+
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+            Assert.True(_context.Medications.Any(m => m.Name == "Unique Server Med"));
+        }
+
+        [Fact]
+        public async Task UpdateMedication_SameNameOnCurrentRecord_ReturnsOk()
+        {
+            var aspirin = await _context.Medications.FirstAsync(m => m.Name == "Aspirin");
+            var dto = CreateValidMedicationDto("Aspirin");
+
+            var response = await _client.PutAsJsonAsync($"/api/pharmacy/medications/{aspirin.Id}", dto);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task UpdateMedication_RenameToExistingOtherName_Returns409Conflict()
+        {
+            var aspirin = await _context.Medications.FirstAsync(m => m.Name == "Aspirin");
+            var dto = CreateValidMedicationDto("Penicillin");
+
+            var response = await _client.PutAsJsonAsync($"/api/pharmacy/medications/{aspirin.Id}", dto);
+
+            Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+            var body = await response.Content.ReadFromJsonAsync<DuplicateNameErrorResponse>();
+            Assert.NotNull(body);
+            Assert.Equal("Medication name already exists", body!.Message);
+        }
+
+        #endregion
+
         #region Helper Methods
+
+        private static MedicationCreateDto CreateValidMedicationDto(string name) =>
+            new()
+            {
+                Name = name,
+                Category = "Other",
+                Price = 9.99m,
+                StockQuantity = 10,
+                MinimumStockLevel = 5,
+                ExpiryDate = DateTime.Now.AddYears(1),
+                IsActive = true,
+                RequiresPrescription = false
+            };
+
+        private sealed class DuplicateNameErrorResponse
+        {
+            public string Message { get; set; } = string.Empty;
+        }
 
         private static MultipartFormDataContent CreateCsvUploadContent(string csv, string fileName = "medications.csv")
         {
