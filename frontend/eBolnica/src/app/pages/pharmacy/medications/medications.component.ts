@@ -780,4 +780,91 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     this.errorMessage = null;
     this.loadMedications();
   }
+
+  /**
+   * Export medications on the **current page** to CSV.
+   * Respects active filters and sort order; does not fetch all pages.
+   */
+  exportToCSV(): void {
+    if (this.medications.length === 0) {
+      return;
+    }
+
+    const headers = [
+      'Name',
+      'Generic Name',
+      'Category',
+      'Manufacturer',
+      'Description',
+      'Price',
+      'Stock Quantity',
+      'Minimum Stock Level',
+      'Expiry Date',
+      'Batch Number',
+      'Dosage Form',
+      'Strength',
+      'Requires Prescription',
+      'Active',
+      'Status'
+    ];
+
+    const csvData = this.medications.map(medication => [
+      this.escapeCSV(medication.name),
+      this.escapeCSV(medication.genericName || ''),
+      this.escapeCSV(medication.category || ''),
+      this.escapeCSV(medication.manufacturer || ''),
+      this.escapeCSV(medication.description || ''),
+      medication.price.toString(),
+      medication.stockQuantity.toString(),
+      medication.minimumStockLevel.toString(),
+      medication.expiryDate ? this.formatDateForCsv(medication.expiryDate) : '',
+      this.escapeCSV(medication.batchNumber || ''),
+      this.escapeCSV(medication.dosageForm || ''),
+      this.escapeCSV(medication.strength || ''),
+      medication.requiresPrescription ? 'Yes' : 'No',
+      medication.isActive ? 'Yes' : 'No',
+      this.escapeCSV(this.getStockStatus(medication).label)
+    ]);
+
+    const csvContent = [headers, ...csvData]
+      .map(row => row.join(','))
+      .join('\n');
+
+    const today = new Date().toISOString().split('T')[0];
+    this.downloadCSV(csvContent, `pharmacy-medications-${today}.csv`);
+  }
+
+  private formatDateForCsv(dateString: string): string {
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+
+    return date.toISOString().split('T')[0];
+  }
+
+  private escapeCSV(value: string): string {
+    if (!value) {
+      return '';
+    }
+
+    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+      return `"${value.replace(/"/g, '""')}"`;
+    }
+
+    return value;
+  }
+
+  private downloadCSV(content: string, filename: string): void {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }
 }
