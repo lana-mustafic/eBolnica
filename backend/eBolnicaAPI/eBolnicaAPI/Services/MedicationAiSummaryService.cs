@@ -66,10 +66,7 @@ namespace eBolnicaAPI.Services
 
         private void EnsureServiceConfigured()
         {
-            if (!_settings.Enabled || string.IsNullOrWhiteSpace(_settings.ApiKey))
-            {
-                throw new MedicationAiSummaryUnavailableException("AI summary service is not configured.");
-            }
+            MedicationAiSummaryLlmRequestBuilder.EnsureConfigured(_settings);
         }
     }
 }

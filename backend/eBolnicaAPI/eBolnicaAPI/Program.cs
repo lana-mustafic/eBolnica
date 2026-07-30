@@ -190,7 +190,7 @@ builder.Services.Configure<MedicationAiSummarySettings>(
 builder.Services.AddHttpClient<IMedicationAiSummaryClient, MedicationAiSummaryClient>((sp, client) =>
 {
     var settings = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<MedicationAiSummarySettings>>().Value;
-    client.BaseAddress = new Uri(settings.BaseUrl.TrimEnd('/') + "/");
+    client.BaseAddress = MedicationAiSummaryLlmRequestBuilder.ResolveHttpClientBaseAddress(settings);
     client.Timeout = TimeSpan.FromSeconds(Math.Max(5, settings.TimeoutSeconds));
 });
 builder.Services.AddScoped<IMedicationAiSummaryService, MedicationAiSummaryService>();

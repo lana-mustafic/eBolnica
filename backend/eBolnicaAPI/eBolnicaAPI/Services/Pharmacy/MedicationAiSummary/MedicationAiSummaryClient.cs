@@ -1,4 +1,3 @@
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using eBolnicaAPI.Models.Settings;
@@ -24,25 +23,10 @@ namespace eBolnicaAPI.Services.Pharmacy.MedicationAiSummary
             string userPrompt,
             CancellationToken cancellationToken = default)
         {
-            var settings = _settings.Value;
-
-            if (!settings.Enabled || string.IsNullOrWhiteSpace(settings.ApiKey))
-            {
-                throw new MedicationAiSummaryUnavailableException("AI summary service is not configured.");
-            }
-
-            using var request = new HttpRequestMessage(HttpMethod.Post, "chat/completions");
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", settings.ApiKey);
-            request.Content = JsonContent.Create(new ChatCompletionRequest
-            {
-                Model = settings.Model,
-                ResponseFormat = new ResponseFormat { Type = "json_object" },
-                Messages =
-                [
-                    new ChatMessage { Role = "system", Content = systemPrompt },
-                    new ChatMessage { Role = "user", Content = userPrompt }
-                ]
-            });
+            using var request = MedicationAiSummaryLlmRequestBuilder.CreateChatCompletionRequest(
+                _settings.Value,
+                systemPrompt,
+                userPrompt);
 
             HttpResponseMessage response;
             try
@@ -75,33 +59,6 @@ namespace eBolnicaAPI.Services.Pharmacy.MedicationAiSummary
             return content;
         }
 
-        private sealed class ChatCompletionRequest
-        {
-            [JsonPropertyName("model")]
-            public string Model { get; set; } = string.Empty;
-
-            [JsonPropertyName("messages")]
-            public ChatMessage[] Messages { get; set; } = Array.Empty<ChatMessage>();
-
-            [JsonPropertyName("response_format")]
-            public ResponseFormat ResponseFormat { get; set; } = new();
-        }
-
-        private sealed class ChatMessage
-        {
-            [JsonPropertyName("role")]
-            public string Role { get; set; } = string.Empty;
-
-            [JsonPropertyName("content")]
-            public string Content { get; set; } = string.Empty;
-        }
-
-        private sealed class ResponseFormat
-        {
-            [JsonPropertyName("type")]
-            public string Type { get; set; } = "json_object";
-        }
-
         private sealed class ChatCompletionResponse
         {
             [JsonPropertyName("choices")]
@@ -111,7 +68,13 @@ namespace eBolnicaAPI.Services.Pharmacy.MedicationAiSummary
         private sealed class ChatChoice
         {
             [JsonPropertyName("message")]
-            public ChatMessage? Message { get; set; }
+            public ChatMessageResponse? Message { get; set; }
+        }
+
+        private sealed class ChatMessageResponse
+        {
+            [JsonPropertyName("content")]
+            public string? Content { get; set; }
         }
     }
 }
