@@ -1,5 +1,6 @@
 using eBolnicaAPI.Data;
 using eBolnicaAPI.Models.DTOs;
+using eBolnicaAPI.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace eBolnicaAPI.Services.Pharmacy
@@ -48,7 +49,7 @@ namespace eBolnicaAPI.Services.Pharmacy
         }
 
         public static string NormalizeName(string name) =>
-            name.Trim().ToLowerInvariant();
+            Medication.NormalizeNameValue(name);
 
         /// <summary>
         /// Finds normalized names that appear more than once (case-insensitive, trimmed).
@@ -66,11 +67,10 @@ namespace eBolnicaAPI.Services.Pharmacy
         {
             var names = await _context.Medications
                 .AsNoTracking()
-                .Select(m => m.Name)
+                .Select(m => m.NormalizedName)
                 .ToListAsync(cancellationToken);
 
             return names
-                .Select(NormalizeName)
                 .ToHashSet(StringComparer.Ordinal);
         }
 
@@ -139,7 +139,7 @@ namespace eBolnicaAPI.Services.Pharmacy
             var nameTaken = await _context.Medications
                 .AsNoTracking()
                 .Where(m => excludeMedicationId == null || m.Id != excludeMedicationId.Value)
-                .AnyAsync(m => m.Name.ToLower() == normalizedName, cancellationToken);
+                .AnyAsync(m => m.NormalizedName == normalizedName, cancellationToken);
 
             return !nameTaken;
         }
@@ -149,7 +149,7 @@ namespace eBolnicaAPI.Services.Pharmacy
         {
             var names = await _context.Medications
                 .AsNoTracking()
-                .Select(m => m.Name)
+                .Select(m => m.NormalizedName)
                 .ToListAsync(cancellationToken);
 
             return FindDuplicateNormalizedNames(names);

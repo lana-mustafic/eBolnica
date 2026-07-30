@@ -13,6 +13,16 @@ namespace eBolnicaAPI.Models.Entities
         [Required]
         public string Name { get; set; }
 
+        /// <summary>
+        /// Trimmed, lower-case name used for case-insensitive uniqueness (DB unique index).
+        /// </summary>
+        [Required]
+        [MaxLength(450)]
+        public string NormalizedName { get; set; } = string.Empty;
+
+        public static string NormalizeNameValue(string name) =>
+            name.Trim().ToLowerInvariant();
+
         public string? GenericName { get; set; }
 
         public string? Description { get; set; }
