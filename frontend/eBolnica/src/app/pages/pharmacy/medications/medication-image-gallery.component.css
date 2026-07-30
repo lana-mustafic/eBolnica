@@ -255,6 +255,86 @@
   border-top: 1px solid #e2e8f0;
 }
 
+.gallery-upload-status-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.gallery-upload-status-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 8px;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  color: #4a5568;
+  font-size: 0.875rem;
+}
+
+.gallery-upload-status-item.is-uploading {
+  background: #eef2ff;
+  border-color: #c3dafe;
+  color: #434190;
+}
+
+.gallery-upload-status-item.is-done {
+  background: #f0fff4;
+  border-color: #c6f6d5;
+  color: #276749;
+}
+
+.gallery-upload-status-item.is-error {
+  background: #fff5f5;
+  border-color: #fed7d7;
+  color: #c53030;
+}
+
+.gallery-upload-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #c3dafe;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: gallery-upload-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+.gallery-upload-filename {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.gallery-upload-label {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.gallery-upload-label.is-success {
+  color: #276749;
+}
+
+.gallery-upload-label.is-error {
+  color: #c53030;
+  text-align: right;
+  max-width: 45%;
+}
+
+@keyframes gallery-upload-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .gallery-controls {
   display: flex;
   flex-wrap: wrap;

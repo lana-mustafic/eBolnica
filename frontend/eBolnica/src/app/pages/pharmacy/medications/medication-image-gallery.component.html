@@ -98,6 +98,26 @@
 
   <!-- Upload Dropzone -->
   <div class="gallery-upload">
+    @if (uploadFileStatuses.length > 0) {
+      <ul class="gallery-upload-status-list" role="status" aria-live="polite" aria-label="Image upload progress">
+        @for (item of uploadFileStatuses; track item.fileName) {
+          <li class="gallery-upload-status-item" [class]="'is-' + item.status">
+            @if (item.status === 'uploading') {
+              <span class="gallery-upload-spinner" aria-hidden="true"></span>
+            }
+            <span class="gallery-upload-filename">{{ item.fileName }}</span>
+            @if (item.status === 'uploading') {
+              <span class="gallery-upload-label">Uploading...</span>
+            } @else if (item.status === 'done') {
+              <span class="gallery-upload-label is-success">Uploaded</span>
+            } @else if (item.status === 'error') {
+              <span class="gallery-upload-label is-error">{{ item.message }}</span>
+            }
+          </li>
+        }
+      </ul>
+    }
+
     <app-medication-image-dropzone
       [busy]="isUploading"
       [disabled]="isDeleting"

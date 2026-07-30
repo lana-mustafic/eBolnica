@@ -1,5 +1,5 @@
 import { Observable, from, of } from 'rxjs';
-import { catchError, concatMap, map, reduce } from 'rxjs/operators';
+import { catchError, concatMap, map, reduce, tap } from 'rxjs/operators';
 import { MedicationImageDto } from '../../../models/medication-image.dto';
 
 export interface MedicationImageUploadError {
@@ -16,6 +16,12 @@ export type MedicationImageUploadFn = (
   medicationId: number,
   file: File
 ) => Observable<MedicationImageDto>;
+
+export interface MedicationImageUploadProgressHandlers {
+  onFileStart?: (fileName: string, index: number, total: number) => void;
+  onFileComplete?: (fileName: string, image: MedicationImageDto) => void;
+  onFileError?: (fileName: string, message: string) => void;
+}
 
 export function getMedicationImageUploadErrorMessage(
   error: { status?: number; error?: { message?: string } | string },
@@ -36,24 +42,30 @@ export function getMedicationImageUploadErrorMessage(
 export function uploadMedicationImagesSequentially(
   medicationId: number,
   files: File[],
-  uploadFn: MedicationImageUploadFn
+  uploadFn: MedicationImageUploadFn,
+  progress?: MedicationImageUploadProgressHandlers
 ): Observable<MedicationImageUploadBatchResult> {
   if (files.length === 0) {
     return of({ uploaded: [], errors: [] });
   }
 
   return from(files).pipe(
-    concatMap(file =>
-      uploadFn(medicationId, file).pipe(
+    concatMap((file, index) => {
+      progress?.onFileStart?.(file.name, index, files.length);
+
+      return uploadFn(medicationId, file).pipe(
+        tap(image => progress?.onFileComplete?.(file.name, image)),
         map(image => ({ fileName: file.name, image })),
-        catchError(error =>
-          of({
+        catchError(error => {
+          const errorMessage = getMedicationImageUploadErrorMessage(error, file.name);
+          progress?.onFileError?.(file.name, errorMessage);
+          return of({
             fileName: file.name,
-            errorMessage: getMedicationImageUploadErrorMessage(error, file.name)
-          })
-        )
-      )
-    ),
+            errorMessage
+          });
+        })
+      );
+    }),
     reduce(
       (result, item) => {
         if ('image' in item && item.image) {

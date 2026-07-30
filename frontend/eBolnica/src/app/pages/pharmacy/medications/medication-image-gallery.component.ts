@@ -10,6 +10,11 @@ import { MedicationImageLightboxComponent } from './medication-image-lightbox.co
 import { MedicationImageDropzoneComponent } from './medication-image-dropzone.component';
 import { SelectionLimitedEvent } from './medication-image-dropzone-selection.util';
 import { uploadMedicationImagesSequentially } from './medication-image-upload.util';
+import {
+  createUploadFileStatuses,
+  markUploadFileStatus,
+  MedicationImageUploadFileStatus
+} from './medication-image-upload-status.util';
 
 const IMAGE_DELETE_ROLES = ['Pharmacist', 'Admin'] as const;
 
@@ -41,6 +46,7 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
   lightboxOpen = false;
   canDeleteImages = false;
   deletingImageId: number | null = null;
+  uploadFileStatuses: MedicationImageUploadFileStatus[] = [];
 
   private successTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -105,22 +111,40 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
 
   private uploadFilesSequentially(files: File[]): void {
     this.isUploading = true;
+    this.uploadFileStatuses = createUploadFileStatuses(files);
     this.clearMessages();
 
     uploadMedicationImagesSequentially(
       this.medicationId,
       files,
-      (medicationId, file) => this.pharmacyService.uploadMedicationImage(medicationId, file)
+      (medicationId, file) => this.pharmacyService.uploadMedicationImage(medicationId, file),
+      {
+        onFileStart: (fileName) => {
+          this.uploadFileStatuses = markUploadFileStatus(this.uploadFileStatuses, fileName, 'uploading');
+        },
+        onFileComplete: (fileName, image) => {
+          this.uploadFileStatuses = markUploadFileStatus(this.uploadFileStatuses, fileName, 'done');
+          this.images = [...this.images, image];
+          this.selectedIndex = this.images.length - 1;
+          this.imagesChange.emit(this.images);
+        },
+        onFileError: (fileName, message) => {
+          this.uploadFileStatuses = markUploadFileStatus(
+            this.uploadFileStatuses,
+            fileName,
+            'error',
+            message
+          );
+        }
+      }
     ).pipe(
       finalize(() => {
         this.isUploading = false;
+        this.uploadFileStatuses = [];
       })
     ).subscribe({
       next: (result) => {
         if (result.uploaded.length > 0) {
-          this.images = [...this.images, ...result.uploaded];
-          this.selectedIndex = this.images.length - 1;
-          this.imagesChange.emit(this.images);
           this.showUploadSuccess(result.uploaded.length);
         }
 
