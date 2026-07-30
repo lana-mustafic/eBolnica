@@ -172,12 +172,17 @@ namespace eBolnicaAPI.Services
             _storageService.Delete(image.RelativeUrl, image.ThumbnailRelativeUrl);
             _context.MedicationImages.Remove(image);
 
+            var remainingImages = await _context.MedicationImages
+                .Where(i => i.MedicationId == medicationId && i.Id != imageId)
+                .ToListAsync();
+
+            MedicationImageSortOrderUpdater.CompactSequentialSortOrders(remainingImages);
+
             if (wasPrimary)
             {
-                var nextPrimary = await _context.MedicationImages
-                    .Where(i => i.MedicationId == medicationId && i.Id != imageId)
+                var nextPrimary = remainingImages
                     .OrderBy(i => i.SortOrder)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefault();
 
                 if (nextPrimary != null)
                 {
@@ -222,16 +227,7 @@ namespace eBolnicaAPI.Services
             }
 
             var imageLookup = images.ToDictionary(i => i.Id);
-
-            for (var index = 0; index < imageIds.Count; index++)
-            {
-                if (!imageLookup.TryGetValue(imageIds[index], out var image))
-                {
-                    throw new MedicationImageValidationException("Image order contains invalid image ids for this medication.");
-                }
-
-                image.SortOrder = index;
-            }
+            MedicationImageSortOrderUpdater.ApplyOrderedImageIds(imageLookup, imageIds);
 
             await _context.SaveChangesAsync();
 

@@ -94,6 +94,23 @@ namespace eBolnicaAPI.Tests.Unit.Services
             Assert.Contains("invalid image ids", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
+        [Fact]
+        public async Task DeleteImageAsync_CompactsRemainingSortOrdersSequentiallyFromZero()
+        {
+            var service = CreateService();
+
+            await service.DeleteImageAsync(7, 12);
+
+            var remaining = await _context.MedicationImages
+                .Where(image => image.MedicationId == 7)
+                .OrderBy(image => image.SortOrder)
+                .Select(image => new { image.Id, image.SortOrder })
+                .ToListAsync();
+
+            Assert.Equal(new[] { 11, 13 }, remaining.Select(image => image.Id).ToArray());
+            Assert.Equal(new[] { 0, 1 }, remaining.Select(image => image.SortOrder).ToArray());
+        }
+
         public void Dispose()
         {
             _context.Dispose();
