@@ -62,8 +62,8 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
   @Input() title = 'Drag and drop images here';
   @Input() subtitle = 'or browse files';
   @Input() hint?: string;
-  /** When true, validated files accumulate in a pending queue instead of emitting immediately. */
-  @Input() usePendingQueue = false;
+  /** When true, files queue for preview and upload starts only after Upload selected. */
+  @Input() usePendingQueue = true;
 
   @Output() filesSelected = new EventEmitter<File[]>();
   @Output() pendingQueueChange = new EventEmitter<PendingMedicationImage[]>();

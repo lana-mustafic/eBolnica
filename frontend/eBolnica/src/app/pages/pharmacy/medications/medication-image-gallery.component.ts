@@ -107,6 +107,7 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
     this.selectedIndex = index;
   }
 
+  /** Starts upload for files confirmed via Upload selected (not on drop/browse). */
   onDropzoneFilesSelected(files: File[]): void {
     if (files.length === 0 || this.isDeleting) return;
 
