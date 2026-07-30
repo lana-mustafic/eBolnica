@@ -6,6 +6,7 @@ import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 
 interface JwtTokenPayload {
+  sub?: string;
   role: string;
   exp: number;
   firstName:string;
@@ -36,6 +37,20 @@ export class AuthService {
 
   getToken():string|null{
     return localStorage.getItem('jwtToken');
+  }
+
+  getUserId(): string | null {
+    const token = this.getToken();
+    if (!token) {
+      return null;
+    }
+
+    try {
+      const decoded = jwtDecode<JwtTokenPayload>(token);
+      return decoded.sub?.trim() || null;
+    } catch {
+      return null;
+    }
   }
 
   getUserType():string|null{

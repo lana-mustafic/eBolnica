@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { AuthService } from '../auth.service';
 import {
+  buildMedicationWizardDraftOwnerKey,
+  buildMedicationWizardDraftStorageKey,
   MEDICATION_WIZARD_DRAFT_SESSION_KEY,
   MEDICATION_WIZARD_DRAFT_TTL_MS,
   MedicationWizardDraftService
@@ -11,8 +13,8 @@ describe('MedicationWizardDraftService', () => {
   let authService: jasmine.SpyObj<AuthService>;
   let storage: Record<string, string>;
 
-  const userToken = createToken({ sub: 'pharmacist-42' });
-  const otherUserToken = createToken({ sub: 'pharmacist-99' });
+  const pharmacistUserId = 'pharmacist-42';
+  const otherUserId = 'pharmacist-99';
 
   const formValue = {
     name: 'Draft Med',
@@ -33,7 +35,7 @@ describe('MedicationWizardDraftService', () => {
 
   beforeEach(() => {
     storage = {};
-    authService = jasmine.createSpyObj<AuthService>('AuthService', ['getToken']);
+    authService = jasmine.createSpyObj<AuthService>('AuthService', ['getUserId']);
 
     spyOn(localStorage, 'getItem').and.callFake((key: string) => storage[key] ?? null);
     spyOn(localStorage, 'setItem').and.callFake((key: string, value: string) => {
@@ -55,24 +57,31 @@ describe('MedicationWizardDraftService', () => {
     service = TestBed.inject(MedicationWizardDraftService);
   });
 
+  it('namespaces draft storage key by AuthService user id', () => {
+    expect(service.getUserDraftStorageKey(pharmacistUserId))
+      .toBe('medication-wizard-draft:user:pharmacist-42');
+    expect(buildMedicationWizardDraftStorageKey(buildMedicationWizardDraftOwnerKey(pharmacistUserId, 'fallback')))
+      .toBe('medication-wizard-draft:user:pharmacist-42');
+  });
+
   it('saves draft to localStorage with timestamp for authenticated pharmacist', () => {
-    authService.getToken.and.returnValue(userToken);
+    authService.getUserId.and.returnValue(pharmacistUserId);
 
     service.save({ currentStep: 2, formValue });
 
-    const key = service.getDraftStorageKey('pharmacist-42');
+    const key = service.getUserDraftStorageKey(pharmacistUserId);
     expect(localStorage.setItem).toHaveBeenCalled();
     expect(storage[key]).toBeTruthy();
 
     const saved = JSON.parse(storage[key]);
     expect(saved.currentStep).toBe(2);
     expect(saved.formValue.name).toBe('Draft Med');
-    expect(saved.ownerKey).toBe('pharmacist-42');
+    expect(saved.ownerKey).toBe('user:pharmacist-42');
     expect(saved.savedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
   it('loads saved draft for current owner', () => {
-    authService.getToken.and.returnValue(userToken);
+    authService.getUserId.and.returnValue(pharmacistUserId);
     service.save({ currentStep: 3, formValue });
 
     const loaded = service.load();
@@ -80,11 +89,11 @@ describe('MedicationWizardDraftService', () => {
     expect(loaded).not.toBeNull();
     expect(loaded?.currentStep).toBe(3);
     expect(loaded?.formValue.name).toBe('Draft Med');
-    expect(loaded?.ownerKey).toBe('pharmacist-42');
+    expect(loaded?.ownerKey).toBe('user:pharmacist-42');
   });
 
   it('persists all wizard form fields and step index in localStorage', () => {
-    authService.getToken.and.returnValue(userToken);
+    authService.getUserId.and.returnValue(pharmacistUserId);
 
     service.save({ currentStep: 2, formValue });
 
@@ -93,24 +102,24 @@ describe('MedicationWizardDraftService', () => {
     expect(loaded?.currentStep).toBe(2);
     expect(loaded?.formValue).toEqual(formValue);
 
-    const key = service.getDraftStorageKey('pharmacist-42');
+    const key = service.getUserDraftStorageKey(pharmacistUserId);
     const stored = JSON.parse(storage[key]);
     expect(stored.currentStep).toBe(2);
     expect(stored.formValue).toEqual(formValue);
   });
 
-  it('uses session key when no auth token is available', () => {
-    authService.getToken.and.returnValue(null);
+  it('uses session namespace when AuthService user id is unavailable', () => {
+    authService.getUserId.and.returnValue(null);
 
     service.save({ currentStep: 1, formValue });
 
     const sessionKey = storage[`session:${MEDICATION_WIZARD_DRAFT_SESSION_KEY}`];
-    expect(sessionKey).toMatch(/^session-/);
-    expect(storage[service.getDraftStorageKey(sessionKey)]).toBeTruthy();
+    expect(sessionKey).toBeTruthy();
+    expect(storage[service.getDraftStorageKey(`session:${sessionKey}`)]).toBeTruthy();
   });
 
   it('hasDraft returns true only when a valid draft exists', () => {
-    authService.getToken.and.returnValue(userToken);
+    authService.getUserId.and.returnValue(pharmacistUserId);
     expect(service.hasDraft()).toBeFalse();
 
     service.save({ currentStep: 1, formValue });
@@ -119,36 +128,36 @@ describe('MedicationWizardDraftService', () => {
   });
 
   it('clear removes draft from localStorage', () => {
-    authService.getToken.and.returnValue(userToken);
+    authService.getUserId.and.returnValue(pharmacistUserId);
     service.save({ currentStep: 2, formValue });
     expect(service.hasDraft()).toBeTrue();
 
     service.clear();
 
     expect(service.hasDraft()).toBeFalse();
-    expect(storage[service.getDraftStorageKey('pharmacist-42')]).toBeUndefined();
+    expect(storage[service.getUserDraftStorageKey(pharmacistUserId)]).toBeUndefined();
   });
 
   it('does not load draft for a different pharmacist user', () => {
-    authService.getToken.and.returnValue(userToken);
+    authService.getUserId.and.returnValue(pharmacistUserId);
     service.save({ currentStep: 2, formValue });
 
-    authService.getToken.and.returnValue(otherUserToken);
+    authService.getUserId.and.returnValue(otherUserId);
     expect(service.load()).toBeNull();
     expect(service.hasDraft()).toBeFalse();
   });
 
   it('ignores and clears expired drafts', () => {
-    authService.getToken.and.returnValue(userToken);
+    authService.getUserId.and.returnValue(pharmacistUserId);
     const staleSavedAt = new Date(Date.now() - MEDICATION_WIZARD_DRAFT_TTL_MS - 1000).toISOString();
-    const key = service.getDraftStorageKey('pharmacist-42');
+    const key = service.getUserDraftStorageKey(pharmacistUserId);
 
     storage[key] = JSON.stringify({
       version: 1,
       savedAt: staleSavedAt,
       currentStep: 1,
       formValue,
-      ownerKey: 'pharmacist-42'
+      ownerKey: 'user:pharmacist-42'
     });
 
     expect(service.load()).toBeNull();
@@ -156,9 +165,3 @@ describe('MedicationWizardDraftService', () => {
     expect(storage[key]).toBeUndefined();
   });
 });
-
-function createToken(payload: Record<string, unknown>): string {
-  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const body = btoa(JSON.stringify(payload));
-  return `${header}.${body}.signature`;
-}

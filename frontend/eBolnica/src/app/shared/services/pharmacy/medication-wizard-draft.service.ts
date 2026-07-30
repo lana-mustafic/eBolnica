@@ -1,5 +1,4 @@
 import { inject, Injectable } from '@angular/core';
-import { jwtDecode } from 'jwt-decode';
 import { AuthService } from '../auth.service';
 
 export const MEDICATION_WIZARD_DRAFT_STORAGE_PREFIX = 'medication-wizard-draft';
@@ -37,8 +36,16 @@ export interface MedicationWizardDraftSavePayload {
   formValue: MedicationWizardDraftFormValue;
 }
 
-interface JwtUserPayload {
-  sub?: string;
+export function buildMedicationWizardDraftOwnerKey(userId: string | null, sessionKey: string): string {
+  if (userId) {
+    return `user:${userId}`;
+  }
+
+  return `session:${sessionKey}`;
+}
+
+export function buildMedicationWizardDraftStorageKey(ownerKey: string): string {
+  return `${MEDICATION_WIZARD_DRAFT_STORAGE_PREFIX}:${ownerKey}`;
 }
 
 @Injectable({
@@ -84,7 +91,11 @@ export class MedicationWizardDraftService {
   }
 
   getDraftStorageKey(ownerKey: string): string {
-    return `${MEDICATION_WIZARD_DRAFT_STORAGE_PREFIX}:${ownerKey}`;
+    return buildMedicationWizardDraftStorageKey(ownerKey);
+  }
+
+  getUserDraftStorageKey(userId: string): string {
+    return buildMedicationWizardDraftStorageKey(`user:${userId}`);
   }
 
   isDraftExpired(draft: MedicationWizardDraft, nowMs: number = Date.now()): boolean {
@@ -146,21 +157,10 @@ export class MedicationWizardDraftService {
   }
 
   private getOwnerKey(): string {
-    return this.getUserIdFromToken() ?? this.getOrCreateSessionKey();
-  }
-
-  private getUserIdFromToken(): string | null {
-    const token = this.authService.getToken();
-    if (!token) {
-      return null;
-    }
-
-    try {
-      const payload = jwtDecode<JwtUserPayload>(token);
-      return payload.sub?.trim() || null;
-    } catch {
-      return null;
-    }
+    return buildMedicationWizardDraftOwnerKey(
+      this.authService.getUserId(),
+      this.getOrCreateSessionKey()
+    );
   }
 
   private getOrCreateSessionKey(): string {
@@ -170,11 +170,11 @@ export class MedicationWizardDraftService {
         return existing;
       }
 
-      const sessionKey = `session-${this.createRandomId()}`;
+      const sessionKey = this.createRandomId();
       sessionStorage.setItem(MEDICATION_WIZARD_DRAFT_SESSION_KEY, sessionKey);
       return sessionKey;
     } catch {
-      return `session-${this.createRandomId()}`;
+      return this.createRandomId();
     }
   }
 
