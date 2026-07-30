@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import {
   MEDICATION_IMAGE_ACCEPT,
+  MEDICATION_IMAGE_MAX_FILES,
   MedicationImageDropzoneComponent
 } from './medication-image-dropzone.component';
 
@@ -48,6 +49,9 @@ describe('MedicationImageDropzoneComponent', () => {
     const input = fixture.nativeElement.querySelector('.image-dropzone-input') as HTMLInputElement;
     expect(input.accept).toBe(MEDICATION_IMAGE_ACCEPT);
     expect(input.multiple).toBeTrue();
+    expect(component.maxFiles).toBe(MEDICATION_IMAGE_MAX_FILES);
+    expect(fixture.nativeElement.querySelector('.image-dropzone-hint')?.textContent)
+      .toContain(`max ${MEDICATION_IMAGE_MAX_FILES} files`);
   });
 
   it('emits filesSelected when files are chosen via input', () => {
@@ -77,6 +81,43 @@ describe('MedicationImageDropzoneComponent', () => {
     input.dispatchEvent(new Event('change'));
 
     expect(component.filesSelected.emit).toHaveBeenCalledWith(files);
+  });
+
+  it('limits multiple dropped files to maxFiles and emits selectionLimited', () => {
+    spyOn(component.filesSelected, 'emit');
+    spyOn(component.selectionLimited, 'emit');
+    const files = Array.from({ length: 7 }, (_, index) => createFile(`photo-${index + 1}.jpg`));
+    const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+
+    component.onDrop(dragEvent('drop', dropzone, { files }));
+
+    expect(component.filesSelected.emit).toHaveBeenCalledWith(files.slice(0, MEDICATION_IMAGE_MAX_FILES));
+    expect(component.selectionLimited.emit).toHaveBeenCalledWith({
+      selected: MEDICATION_IMAGE_MAX_FILES,
+      provided: 7,
+      maxFiles: MEDICATION_IMAGE_MAX_FILES
+    });
+  });
+
+  it('selects only one file when multiple input is disabled', () => {
+    component.multiple = false;
+    fixture.detectChanges();
+    spyOn(component.filesSelected, 'emit');
+    spyOn(component.selectionLimited, 'emit');
+
+    const files = [createFile('a.jpg'), createFile('b.jpg')];
+    const input = fixture.nativeElement.querySelector('.image-dropzone-input') as HTMLInputElement;
+    expect(input.multiple).toBeFalse();
+
+    Object.defineProperty(input, 'files', { configurable: true, value: files });
+    input.dispatchEvent(new Event('change'));
+
+    expect(component.filesSelected.emit).toHaveBeenCalledWith([files[0]]);
+    expect(component.selectionLimited.emit).toHaveBeenCalledWith({
+      selected: 1,
+      provided: 2,
+      maxFiles: 1
+    });
   });
 
   it('does not emit when file picker is cancelled', () => {

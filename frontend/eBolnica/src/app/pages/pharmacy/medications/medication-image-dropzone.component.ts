@@ -15,9 +15,14 @@ import {
 } from './medication-image-dropzone-drag.util';
 import {
   createDropzoneFileInputId,
-  filesFromInput,
   resetNativeFileInput
 } from './medication-image-dropzone-file-picker.util';
+import {
+  buildSelectionLimitedEvent,
+  MEDICATION_IMAGE_MAX_FILES,
+  normalizeSelectedFiles,
+  SelectionLimitedEvent
+} from './medication-image-dropzone-selection.util';
 
 /** Accepted MIME types for medication image uploads. */
 export const MEDICATION_IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp';
@@ -31,6 +36,8 @@ export const MEDICATION_IMAGE_ACCEPTED_MIME_TYPES = [
 /** Human-readable max file size label (matches backend MedicationImageUploadSettings). */
 export const MEDICATION_IMAGE_MAX_FILE_SIZE_LABEL = '5MB';
 
+export { MEDICATION_IMAGE_MAX_FILES } from './medication-image-dropzone-selection.util';
+
 @Component({
   selector: 'app-medication-image-dropzone',
   standalone: true,
@@ -42,12 +49,14 @@ export class MedicationImageDropzoneComponent {
   @Input() disabled = false;
   @Input() busy = false;
   @Input() multiple = true;
+  @Input() maxFiles = MEDICATION_IMAGE_MAX_FILES;
   @Input() accept = MEDICATION_IMAGE_ACCEPT;
   @Input() title = 'Drag and drop images here';
   @Input() subtitle = 'or browse files';
-  @Input() hint = `JPG, PNG, or WEBP up to ${MEDICATION_IMAGE_MAX_FILE_SIZE_LABEL}`;
+  @Input() hint?: string;
 
   @Output() filesSelected = new EventEmitter<File[]>();
+  @Output() selectionLimited = new EventEmitter<SelectionLimitedEvent>();
 
   readonly fileInputId = createDropzoneFileInputId();
 
@@ -65,6 +74,13 @@ export class MedicationImageDropzoneComponent {
 
   get browseInputId(): string | null {
     return this.isInteractive ? this.fileInputId : null;
+  }
+
+  get displayHint(): string {
+    if (this.hint) return this.hint;
+
+    const fileLimit = this.multiple ? ` (max ${this.maxFiles} files)` : '';
+    return `JPG, PNG, or WEBP up to ${MEDICATION_IMAGE_MAX_FILE_SIZE_LABEL} each${fileLimit}`;
   }
 
   onDropzoneClick(event: MouseEvent): void {
@@ -166,10 +182,21 @@ export class MedicationImageDropzoneComponent {
   }
 
   private emitFiles(fileList: FileList | null | undefined): void {
-    const files = filesFromInput(fileList);
-    if (files.length === 0) return;
+    const selection = normalizeSelectedFiles(fileList, {
+      multiple: this.multiple,
+      maxFiles: this.maxFiles
+    });
 
-    this.filesSelected.emit(files);
+    if (selection.files.length === 0) return;
+
+    this.filesSelected.emit(selection.files);
+
+    if (selection.wasLimited) {
+      this.selectionLimited.emit(
+        buildSelectionLimitedEvent(selection, this.multiple ? this.maxFiles : 1)
+      );
+    }
+
     this.prepareFileInput();
   }
 }
