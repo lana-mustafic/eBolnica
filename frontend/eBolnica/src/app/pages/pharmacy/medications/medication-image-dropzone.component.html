@@ -39,6 +39,14 @@
   <p class="image-dropzone-subtitle">{{ subtitle }}</p>
   <p class="image-dropzone-hint">{{ displayHint }}</p>
 
+  @if (validationMessages.length > 0) {
+    <div class="image-dropzone-errors" role="alert" aria-live="polite">
+      @for (error of validationMessages; track error.fileName) {
+        <p class="image-dropzone-error">{{ error.fileName }}: {{ error.message }}</p>
+      }
+    </div>
+  }
+
   <label
     class="image-dropzone-browse-btn"
     [attr.for]="browseInputId"

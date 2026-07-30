@@ -63,6 +63,26 @@
   font-size: 0.8rem;
 }
 
+.image-dropzone-errors {
+  width: 100%;
+  margin: 0 0 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #fed7d7;
+  color: #c53030;
+  text-align: left;
+}
+
+.image-dropzone-error {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.image-dropzone-error + .image-dropzone-error {
+  margin-top: 0.35rem;
+}
+
 .image-dropzone-browse-btn {
   display: inline-flex;
   align-items: center;

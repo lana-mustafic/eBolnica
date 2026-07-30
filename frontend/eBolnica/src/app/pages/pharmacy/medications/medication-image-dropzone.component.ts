@@ -23,19 +23,17 @@ import {
   normalizeSelectedFiles,
   SelectionLimitedEvent
 } from './medication-image-dropzone-selection.util';
+import {
+  MEDICATION_IMAGE_ACCEPT,
+  MEDICATION_IMAGE_MAX_FILE_SIZE_LABEL,
+  MedicationImageValidationError,
+  partitionMedicationImageFiles
+} from './medication-image-validation.util';
 
-/** Accepted MIME types for medication image uploads. */
-export const MEDICATION_IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp';
-
-export const MEDICATION_IMAGE_ACCEPTED_MIME_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/webp'
-] as const;
-
-/** Human-readable max file size label (matches backend MedicationImageUploadSettings). */
-export const MEDICATION_IMAGE_MAX_FILE_SIZE_LABEL = '5MB';
-
+export {
+  MEDICATION_IMAGE_ACCEPT,
+  MEDICATION_IMAGE_MAX_FILE_SIZE_LABEL
+} from './medication-image-validation.util';
 export { MEDICATION_IMAGE_MAX_FILES } from './medication-image-dropzone-selection.util';
 
 @Component({
@@ -57,12 +55,14 @@ export class MedicationImageDropzoneComponent {
 
   @Output() filesSelected = new EventEmitter<File[]>();
   @Output() selectionLimited = new EventEmitter<SelectionLimitedEvent>();
+  @Output() validationErrors = new EventEmitter<MedicationImageValidationError[]>();
 
   readonly fileInputId = createDropzoneFileInputId();
 
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
 
   isDragOver = false;
+  validationMessages: MedicationImageValidationError[] = [];
 
   get isInteractive(): boolean {
     return !this.disabled && !this.busy;
@@ -120,6 +120,7 @@ export class MedicationImageDropzoneComponent {
 
     if (!this.isInteractive) return;
 
+    this.clearValidationMessages();
     this.prepareFileInput();
     this.fileInput?.nativeElement.click();
   }
@@ -134,6 +135,7 @@ export class MedicationImageDropzoneComponent {
 
     configureFileDragOver(event);
     this.isDragOver = true;
+    this.clearValidationMessages();
   }
 
   onDragOver(event: DragEvent): void {
@@ -189,7 +191,16 @@ export class MedicationImageDropzoneComponent {
 
     if (selection.files.length === 0) return;
 
-    this.filesSelected.emit(selection.files);
+    const { validFiles, errors } = partitionMedicationImageFiles(selection.files);
+    this.validationMessages = errors;
+
+    if (errors.length > 0) {
+      this.validationErrors.emit(errors);
+    }
+
+    if (validFiles.length > 0) {
+      this.filesSelected.emit(validFiles);
+    }
 
     if (selection.wasLimited) {
       this.selectionLimited.emit(
@@ -198,5 +209,9 @@ export class MedicationImageDropzoneComponent {
     }
 
     this.prepareFileInput();
+  }
+
+  private clearValidationMessages(): void {
+    this.validationMessages = [];
   }
 }

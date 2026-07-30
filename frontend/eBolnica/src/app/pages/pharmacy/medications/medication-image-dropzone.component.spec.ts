@@ -4,6 +4,7 @@ import {
   MEDICATION_IMAGE_MAX_FILES,
   MedicationImageDropzoneComponent
 } from './medication-image-dropzone.component';
+import { MEDICATION_IMAGE_MAX_FILE_SIZE_BYTES } from './medication-image-validation.util';
 
 describe('MedicationImageDropzoneComponent', () => {
   let component: MedicationImageDropzoneComponent;
@@ -19,8 +20,14 @@ describe('MedicationImageDropzoneComponent', () => {
     fixture.detectChanges();
   });
 
-  function createFile(name: string): File {
-    return new File(['image-bytes'], name, { type: 'image/jpeg' });
+  function createFile(
+    name: string,
+    options: { type?: string; size?: number } = {}
+  ): File {
+    const size = options.size ?? 11;
+    return new File([new Uint8Array(size)], name, {
+      type: options.type ?? 'image/jpeg'
+    });
   }
 
   function dragEvent(
@@ -304,5 +311,39 @@ describe('MedicationImageDropzoneComponent', () => {
     input.dispatchEvent(new Event('change'));
 
     expect(component.filesSelected.emit).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects invalid files client-side and still emits valid ones', () => {
+    spyOn(component.filesSelected, 'emit');
+    spyOn(component.validationErrors, 'emit');
+    const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+    const valid = createFile('ok.jpg');
+    const invalid = createFile('bad.pdf', { type: 'application/pdf' });
+
+    component.onDrop(dragEvent('drop', dropzone, { files: [valid, invalid] }));
+    fixture.detectChanges();
+
+    expect(component.filesSelected.emit).toHaveBeenCalledWith([valid]);
+    expect(component.validationErrors.emit).toHaveBeenCalledWith([
+      { fileName: 'bad.pdf', message: 'Invalid file type. Allowed formats: JPG, PNG, WEBP.' }
+    ]);
+    expect(fixture.nativeElement.querySelector('.image-dropzone-errors')?.textContent)
+      .toContain('bad.pdf');
+  });
+
+  it('rejects files larger than 5MB with a clear message', () => {
+    spyOn(component.filesSelected, 'emit');
+    spyOn(component.validationErrors, 'emit');
+    const input = fixture.nativeElement.querySelector('.image-dropzone-input') as HTMLInputElement;
+    const tooLarge = createFile('large.jpg', { size: MEDICATION_IMAGE_MAX_FILE_SIZE_BYTES + 1 });
+
+    Object.defineProperty(input, 'files', { configurable: true, value: [tooLarge] });
+    input.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(component.filesSelected.emit).not.toHaveBeenCalled();
+    expect(component.validationErrors.emit).toHaveBeenCalledWith([
+      { fileName: 'large.jpg', message: 'File is too large. Maximum size is 5MB.' }
+    ]);
   });
 });
