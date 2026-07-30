@@ -115,6 +115,7 @@ export class MedicationImageLightboxComponent implements OnChanges {
   }
 
   resetZoom(): void {
+    this.isPanning = false;
     this.applyZoomScale(LIGHTBOX_DEFAULT_ZOOM_STATE.scale);
     this.zoomTranslateX = LIGHTBOX_DEFAULT_ZOOM_STATE.translateX;
     this.zoomTranslateY = LIGHTBOX_DEFAULT_ZOOM_STATE.translateY;
@@ -248,6 +249,7 @@ export class MedicationImageLightboxComponent implements OnChanges {
   }
 
   close(): void {
+    this.resetZoom();
     this.closed.emit();
   }
 

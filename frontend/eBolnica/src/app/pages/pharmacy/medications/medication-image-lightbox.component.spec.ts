@@ -77,6 +77,33 @@ describe('MedicationImageLightboxComponent zoom state', () => {
     expect(component.indexChange.emit).toHaveBeenCalledWith(1);
   });
 
+  it('resets zoom when navigating to previous image', () => {
+    component.currentIndex = 1;
+    component.zoomScale = 2;
+    component.zoomTranslateX = 25;
+    component.isPanning = true;
+    spyOn(component.indexChange, 'emit');
+
+    component.previous();
+
+    expect(component.zoomState).toEqual(LIGHTBOX_DEFAULT_ZOOM_STATE);
+    expect(component.isPanning).toBeFalse();
+    expect(component.indexChange.emit).toHaveBeenCalledWith(0);
+  });
+
+  it('resets zoom immediately when closing lightbox', () => {
+    component.zoomScale = 2.5;
+    component.zoomTranslateX = 40;
+    component.isPanning = true;
+    spyOn(component.closed, 'emit');
+
+    component.close();
+
+    expect(component.zoomState).toEqual(LIGHTBOX_DEFAULT_ZOOM_STATE);
+    expect(component.isPanning).toBeFalse();
+    expect(component.closed.emit).toHaveBeenCalled();
+  });
+
   it('resets zoom when currentIndex input changes', () => {
     fixture.detectChanges();
     component.zoomScale = 2.5;
