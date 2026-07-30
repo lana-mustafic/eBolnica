@@ -31,6 +31,7 @@ namespace eBolnicaAPI.Controllers
         private readonly IMedicationCsvExportService _medicationCsvExportService;
         private readonly IMedicationCsvImportService _medicationCsvImportService;
         private readonly IMedicationImportDuplicateChecker _medicationDuplicateChecker;
+        private readonly IMedicationAutocompleteService _medicationAutocompleteService;
         private readonly ILogger<PharmacyController> _logger;
         private readonly IMemoryCache _cache;
         private readonly IConfiguration _configuration;
@@ -45,6 +46,7 @@ namespace eBolnicaAPI.Controllers
             IMedicationCsvExportService medicationCsvExportService,
             IMedicationCsvImportService medicationCsvImportService,
             IMedicationImportDuplicateChecker medicationDuplicateChecker,
+            IMedicationAutocompleteService medicationAutocompleteService,
             ILogger<PharmacyController> logger,
             IMemoryCache cache,
             IConfiguration configuration)
@@ -58,6 +60,7 @@ namespace eBolnicaAPI.Controllers
             _medicationCsvExportService = medicationCsvExportService;
             _medicationCsvImportService = medicationCsvImportService;
             _medicationDuplicateChecker = medicationDuplicateChecker;
+            _medicationAutocompleteService = medicationAutocompleteService;
             _logger = logger;
             _cache = cache;
             _configuration = configuration;
@@ -335,37 +338,15 @@ namespace eBolnicaAPI.Controllers
         [HttpGet("medications/autocomplete")]
         [Authorize(Roles = "Pharmacist,Admin")]
         [ProducesResponseType(typeof(IReadOnlyList<MedicationAutocompleteSuggestionDto>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetMedicationAutocompleteSuggestions(
+        public async Task<IActionResult> GetMedicationAutocomplete(
             [FromQuery] string q,
-            [FromQuery] int limit = 10)
+            [FromQuery] int limit = MedicationAutocompleteService.MaxSuggestions,
+            CancellationToken cancellationToken = default)
         {
-            var trimmed = q?.Trim() ?? string.Empty;
-
-            if (trimmed.Length < 2)
-            {
-                return Ok(Array.Empty<MedicationAutocompleteSuggestionDto>());
-            }
-
-            var cappedLimit = Math.Clamp(limit, 1, 10);
-            var searchTerm = trimmed.ToLower();
-
-            var suggestions = await _context.Medications
-                .AsNoTracking()
-                .Where(m => m.IsActive)
-                .Where(m =>
-                    m.Name.ToLower().Contains(searchTerm) ||
-                    (m.GenericName != null && m.GenericName.ToLower().Contains(searchTerm)) ||
-                    (m.Manufacturer != null && m.Manufacturer.ToLower().Contains(searchTerm)))
-                .OrderBy(m => m.Name)
-                .Take(cappedLimit)
-                .Select(m => new MedicationAutocompleteSuggestionDto
-                {
-                    Id = m.Id,
-                    Name = m.Name,
-                    Category = m.Category,
-                    GenericName = m.GenericName
-                })
-                .ToListAsync();
+            var suggestions = await _medicationAutocompleteService.GetSuggestionsAsync(
+                q,
+                limit,
+                cancellationToken);
 
             return Ok(suggestions);
         }
