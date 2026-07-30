@@ -3,6 +3,8 @@ using eBolnicaAPI.Extensions;
 using eBolnicaAPI.Models.Entities;
 using eBolnicaAPI.Services;
 using eBolnicaAPI.Services.Pharmacy;
+using eBolnicaAPI.Models.Settings;
+using eBolnicaAPI.Services.Pharmacy.MedicationAiSummary;
 using eBolnicaAPI.Services.Pharmacy.MedicationImages;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
@@ -182,6 +184,16 @@ builder.Services.AddScoped<IMedicationImageOptimizer, MedicationImageOptimizer>(
 builder.Services.AddScoped<IMedicationImageThumbnailGenerator, MedicationImageThumbnailGenerator>();
 builder.Services.AddScoped<IMedicationImageStorageService, MedicationImageStorageService>();
 builder.Services.AddScoped<IMedicationImageService, MedicationImageService>();
+
+builder.Services.Configure<MedicationAiSummarySettings>(
+    builder.Configuration.GetSection(MedicationAiSummarySettings.SectionName));
+builder.Services.AddHttpClient<IMedicationAiSummaryClient, MedicationAiSummaryClient>((sp, client) =>
+{
+    var settings = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<MedicationAiSummarySettings>>().Value;
+    client.BaseAddress = new Uri(settings.BaseUrl.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromSeconds(Math.Max(5, settings.TimeoutSeconds));
+});
+builder.Services.AddScoped<IMedicationAiSummaryService, MedicationAiSummaryService>();
 
 // Configure PDF generation settings
 builder.Services.Configure<eBolnicaAPI.Models.Settings.PdfGenerationSettings>(
