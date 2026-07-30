@@ -203,8 +203,29 @@
   border-color: #48bb78;
 }
 
+.image-dropzone-pending-item.is-upload-error {
+  width: 108px;
+}
+
 .image-dropzone-pending-item.is-upload-error .image-dropzone-pending-thumb-wrap {
   border-color: #f56565;
+}
+
+.image-dropzone-pending-error-badge.is-upload-failed {
+  background: #9b2c2c;
+}
+
+.image-dropzone-pending-error-message {
+  margin: 0;
+  width: 100%;
+  color: #9b2c2c;
+  font-size: 0.62rem;
+  line-height: 1.25;
+  text-align: center;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .image-dropzone-pending-progress {

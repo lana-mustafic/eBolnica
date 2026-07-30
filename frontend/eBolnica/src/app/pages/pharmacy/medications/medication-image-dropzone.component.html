@@ -124,6 +124,13 @@
                 [attr.aria-label]="item.errorMessage">
                 Invalid
               </span>
+            } @else if (uploadStatus?.status === 'error') {
+              <span
+                class="image-dropzone-pending-error-badge is-upload-failed"
+                [attr.title]="uploadStatus.message"
+                [attr.aria-label]="uploadStatus.message">
+                Failed
+              </span>
             }
           </div>
           <span
@@ -146,17 +153,23 @@
             </div>
             <span class="image-dropzone-pending-progress-label">
               @if (uploadStatus.status === 'error') {
-                Failed
+                Upload failed
               } @else {
                 {{ uploadStatus.progressPercent ?? 0 }}%
               }
             </span>
             @if (uploadStatus.status === 'error') {
+              <p
+                class="image-dropzone-pending-error-message"
+                role="alert"
+                [attr.title]="uploadStatus.message">
+                {{ uploadStatus.message }}
+              </p>
               <button
                 type="button"
                 class="image-dropzone-pending-retry-btn"
                 (click)="onRetryUploadClick($event, item.fileName)"
-                [disabled]="busy || disabled"
+                [disabled]="!canRetryUpload(item.fileName)"
                 [attr.aria-label]="'Retry upload for ' + item.fileName">
                 Retry
               </button>

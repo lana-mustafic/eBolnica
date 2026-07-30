@@ -286,6 +286,20 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
     this.pendingQueueChange.emit(this.pendingQueue);
   }
 
+  removePendingFilesByName(fileNames: string[]): void {
+    const names = new Set(fileNames);
+    const toRemove = this.pendingQueue.filter(item => names.has(item.fileName));
+
+    for (const item of toRemove) {
+      this.removePendingFile(item.id);
+    }
+  }
+
+  canRetryUpload(fileName: string): boolean {
+    const status = this.getUploadStatus(fileName);
+    return !!status && status.status === 'error' && !this.busy && !this.disabled;
+  }
+
   ngOnDestroy(): void {
     this.pendingQueue = cancelPendingMedicationImageQueue(this.pendingQueue);
   }

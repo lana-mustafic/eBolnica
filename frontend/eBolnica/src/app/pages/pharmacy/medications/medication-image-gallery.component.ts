@@ -14,7 +14,9 @@ import { uploadMedicationImagesSequentially } from './medication-image-upload.ut
 import {
   createUploadFileStatuses,
   deriveBatchUploadProgress,
+  finalizeUploadFileStatusesAfterBatch,
   formatBatchUploadProgressLabel,
+  hasUploadFileErrors,
   markUploadFileStatus,
   MedicationImageUploadFileStatus,
   shouldShowBatchUploadProgress,
@@ -81,6 +83,13 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
   get showBatchUploadProgress(): boolean {
     return this.isUploading && shouldShowBatchUploadProgress(this.uploadFileStatuses.length);
   }
+
+  get showUploadFileStatusList(): boolean {
+    return this.uploadFileStatuses.length > 0;
+  }
+
+  canRetryUpload = (item: MedicationImageUploadFileStatus): boolean =>
+    item.status === 'error' && !this.isUploading && !this.isDeleting;
 
   readonly formatImageDimensions = formatMedicationImageDimensions;
   readonly formatImageFileSize = formatMedicationImageFileSize;
@@ -329,25 +338,29 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
     ).pipe(
       finalize(() => {
         this.isUploading = false;
-        const hasErrors = this.uploadFileStatuses.some(item => item.status === 'error');
-        if (!hasErrors) {
+
+        if (!hasUploadFileErrors(this.uploadFileStatuses)) {
           this.uploadFileStatuses = [];
           this.batchUploadProgress = 0;
           this.batchUploadLabel = '';
+          return;
         }
+
+        this.uploadFileStatuses = finalizeUploadFileStatusesAfterBatch(this.uploadFileStatuses);
+        this.syncBatchUploadProgress();
       })
     ).subscribe({
       next: (result) => {
         if (result.uploaded.length > 0) {
           this.showUploadSuccess(result.uploaded);
-          this.imageDropzone?.clearPendingQueue();
+          this.removeUploadedPendingFiles(result.uploaded);
           this.refreshGalleryImages();
         }
 
         if (result.errors.length > 0) {
-          this.errorMessage = result.errors
-            .map(error => `"${error.fileName}": ${error.message}`)
-            .join(' ');
+          this.errorMessage = result.errors.length === 1
+            ? 'One upload failed. Review the file below and use Retry to try again.'
+            : `${result.errors.length} uploads failed. Review each file below and use Retry as needed.`;
         }
       },
       error: () => {
@@ -372,6 +385,16 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
     this.successTimeout = setTimeout(() => {
       this.successMessage = null;
     }, 4000);
+  }
+
+  private removeUploadedPendingFiles(uploaded: MedicationImageDto[]): void {
+    const fileNames = uploaded
+      .map(image => image.fileName?.trim())
+      .filter((fileName): fileName is string => !!fileName);
+
+    if (fileNames.length > 0) {
+      this.imageDropzone?.removePendingFilesByName(fileNames);
+    }
   }
 
   private refreshGalleryImages(): void {

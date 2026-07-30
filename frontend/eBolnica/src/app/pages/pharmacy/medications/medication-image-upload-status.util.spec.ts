@@ -1,10 +1,14 @@
 import {
   calculateBatchUploadProgress,
   calculateSequentialBatchProgress,
+  canRetryUploadFile,
   createUploadFileStatuses,
   deriveBatchUploadProgress,
+  finalizeUploadFileStatusesAfterBatch,
   formatBatchUploadProgressLabel,
   getActiveUploadFileName,
+  getUploadFileStatusSummary,
+  hasUploadFileErrors,
   markUploadFileStatus,
   shouldShowBatchUploadProgress,
   updateUploadFileProgress
@@ -95,5 +99,22 @@ describe('medication-image-upload-status.util', () => {
     expect(calculateSequentialBatchProgress(0, 3, 90)).toBe(30);
     expect(calculateSequentialBatchProgress(1, 3, 50)).toBe(50);
     expect(calculateSequentialBatchProgress(2, 3, 100)).toBe(100);
+  });
+
+  it('supports per-file error and retry state helpers', () => {
+    const statuses = finalizeUploadFileStatusesAfterBatch([
+      { fileName: 'a.jpg', status: 'done', progressPercent: 100 },
+      { fileName: 'b.jpg', status: 'error', progressPercent: 40, message: 'Network error' },
+      { fileName: 'c.jpg', status: 'pending' }
+    ]);
+
+    expect(statuses).toEqual([
+      { fileName: 'a.jpg', status: 'done', progressPercent: 100 },
+      { fileName: 'b.jpg', status: 'error', progressPercent: 40, message: 'Network error' }
+    ]);
+    expect(hasUploadFileErrors(statuses)).toBeTrue();
+    expect(canRetryUploadFile(statuses[1], false)).toBeTrue();
+    expect(canRetryUploadFile(statuses[1], true)).toBeFalse();
+    expect(getUploadFileStatusSummary(statuses[1])).toBe('Network error');
   });
 });

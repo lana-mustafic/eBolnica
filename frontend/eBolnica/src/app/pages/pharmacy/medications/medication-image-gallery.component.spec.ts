@@ -375,6 +375,23 @@ describe('MedicationImageGalleryComponent upload progress', () => {
     expect(fixture.nativeElement.querySelector('.gallery-upload-batch-progress')).toBeFalsy();
   });
 
+  it('keeps per-file error and retry visible after upload finishes', () => {
+    pharmacyService.uploadMedicationImage.and.returnValue(
+      throwError(() => ({ status: 500 }))
+    );
+
+    component.onDropzoneFilesSelected([createFile('failed.jpg')]);
+    fixture.detectChanges();
+
+    expect(component.isUploading).toBeFalse();
+    expect(component.uploadFileStatuses.length).toBe(1);
+    expect(component.uploadFileStatuses[0].status).toBe('error');
+    expect(fixture.nativeElement.querySelector('.gallery-upload-status-list')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.gallery-upload-status-badge.is-error')?.textContent?.trim())
+      .toBe('Failed');
+    expect(fixture.nativeElement.querySelector('.gallery-upload-retry-btn')).toBeTruthy();
+  });
+
   it('keeps error progress visible and allows retry', () => {
     pharmacyService.uploadMedicationImage.and.returnValues(
       throwError(() => ({ status: 500 })),
@@ -387,7 +404,9 @@ describe('MedicationImageGalleryComponent upload progress', () => {
 
     component.onDropzoneFilesSelected([createFile('retry-me.jpg')]);
     fixture.detectChanges();
+    fixture.detectChanges();
 
+    expect(component.isUploading).toBeFalse();
     expect(component.uploadFileStatuses.length).toBe(1);
     expect(component.uploadFileStatuses[0].status).toBe('error');
     expect(fixture.nativeElement.querySelector('.gallery-upload-retry-btn')).toBeTruthy();

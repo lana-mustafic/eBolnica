@@ -147,3 +147,38 @@ export function getFailedUploadFileNames(
     .filter(item => item.status === 'error')
     .map(item => item.fileName);
 }
+
+export function hasUploadFileErrors(
+  statuses: MedicationImageUploadFileStatus[]
+): boolean {
+  return statuses.some(item => item.status === 'error');
+}
+
+export function canRetryUploadFile(
+  item: MedicationImageUploadFileStatus,
+  isUploading: boolean,
+  isDisabled = false
+): boolean {
+  return item.status === 'error' && !isUploading && !isDisabled;
+}
+
+export function finalizeUploadFileStatusesAfterBatch(
+  statuses: MedicationImageUploadFileStatus[]
+): MedicationImageUploadFileStatus[] {
+  return statuses.filter(item => item.status === 'done' || item.status === 'error');
+}
+
+export function getUploadFileStatusSummary(
+  item: MedicationImageUploadFileStatus
+): string {
+  switch (item.status) {
+    case 'uploading':
+      return `Uploading ${item.fileName}`;
+    case 'done':
+      return `${item.fileName} uploaded successfully`;
+    case 'error':
+      return item.message ?? `Failed to upload ${item.fileName}`;
+    default:
+      return item.fileName;
+  }
+}

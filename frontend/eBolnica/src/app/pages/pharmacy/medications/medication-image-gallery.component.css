@@ -470,6 +470,28 @@
   color: #c53030;
 }
 
+.gallery-upload-status-badge {
+  flex-shrink: 0;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.gallery-upload-status-badge.is-error {
+  background: #fed7d7;
+  color: #9b2c2c;
+}
+
+.gallery-upload-error-message {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #9b2c2c;
+}
+
 .gallery-upload-retry-btn {
   align-self: flex-start;
   padding: 0.35rem 0.75rem;

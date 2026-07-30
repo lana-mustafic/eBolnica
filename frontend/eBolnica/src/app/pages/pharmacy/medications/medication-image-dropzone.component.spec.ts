@@ -697,12 +697,30 @@ describe('MedicationImageDropzoneComponent', () => {
       }];
       fixture.detectChanges();
 
+      expect(fixture.nativeElement.querySelector('.image-dropzone-pending-error-message')?.textContent?.trim())
+        .toBe('Upload failed');
+      expect(fixture.nativeElement.querySelector('.image-dropzone-pending-error-badge.is-upload-failed'))
+        .toBeTruthy();
+
       const retryButton = fixture.nativeElement.querySelector(
         '.image-dropzone-pending-retry-btn'
       ) as HTMLButtonElement;
       retryButton.click();
 
       expect(component.retryUploadRequested.emit).toHaveBeenCalledWith('a.jpg');
+    });
+
+    it('removes only uploaded files from the pending queue', () => {
+      spyOn(URL, 'createObjectURL').and.callFake((blob: Blob) => `blob:${(blob as File).name}`);
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      component.onDrop(dragEvent('drop', dropzone, {
+        files: [createFile('keep.jpg'), createFile('remove.jpg')]
+      }));
+
+      component.removePendingFilesByName(['remove.jpg']);
+      fixture.detectChanges();
+
+      expect(component.pendingQueue.map(item => item.fileName)).toEqual(['keep.jpg']);
     });
   });
 });
