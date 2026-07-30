@@ -61,6 +61,7 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
 
   private autosaveSubscription?: Subscription;
   private draftPromptResolved: boolean = false;
+  private suppressDraftPersist: boolean = false;
 
   // Common categories and dosage forms
   categories: string[] = [
@@ -202,7 +203,7 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (this.draftPromptResolved) {
+    if (this.draftPromptResolved && !this.suppressDraftPersist) {
       this.persistDraft();
     }
     this.autosaveSubscription?.unsubscribe();
@@ -333,7 +334,8 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
         finalize(() => this.isLoading = false)
       ).subscribe({
         next: () => {
-          // Redirect to medications list
+          this.suppressDraftPersist = true;
+          this.draftService.clear();
           this.router.navigate(['/pharmacy/medications']);
         },
         error: (error) => {

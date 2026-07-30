@@ -1,7 +1,7 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
+import { provideRouter, Router } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { MedicationWizardComponent } from './medication-wizard.component';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
 import { ConfirmDialogService } from '../../../shared/services/confirm-dialog.service';
@@ -137,4 +137,114 @@ describe('MedicationWizardComponent draft banner', () => {
     expect(draftService.clear).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('.draft-banner')).toBeTruthy();
   });
+});
+
+describe('MedicationWizardComponent draft cleanup on submit', () => {
+  let fixture: ComponentFixture<MedicationWizardComponent>;
+  let component: MedicationWizardComponent;
+  let draftService: jasmine.SpyObj<MedicationWizardDraftService>;
+  let confirmDialog: jasmine.SpyObj<ConfirmDialogService>;
+  let pharmacyService: jasmine.SpyObj<PharmacyService>;
+  let router: Router;
+
+  beforeEach(async () => {
+    draftService = jasmine.createSpyObj<MedicationWizardDraftService>('MedicationWizardDraftService', [
+      'load',
+      'save',
+      'clear',
+      'hasDraft'
+    ]);
+    confirmDialog = jasmine.createSpyObj<ConfirmDialogService>('ConfirmDialogService', ['confirm']);
+    pharmacyService = jasmine.createSpyObj<PharmacyService>('PharmacyService', [
+      'checkMedicationNameAvailability',
+      'createMedication'
+    ]);
+
+    draftService.load.and.returnValue(null);
+    pharmacyService.checkMedicationNameAvailability.and.returnValue(of({ isAvailable: true }));
+    confirmDialog.confirm.and.returnValue(of(false));
+
+    await TestBed.configureTestingModule({
+      imports: [MedicationWizardComponent, NoopAnimationsModule],
+      providers: [
+        provideRouter([]),
+        { provide: MedicationWizardDraftService, useValue: draftService },
+        { provide: ConfirmDialogService, useValue: confirmDialog },
+        { provide: PharmacyService, useValue: pharmacyService }
+      ]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(MedicationWizardComponent);
+    component = fixture.componentInstance;
+    router = TestBed.inject(Router);
+    spyOn(router, 'navigate').and.returnValue(Promise.resolve(true));
+  });
+
+  function fillValidForm(): void {
+    component.wizardForm.patchValue({
+      name: 'New Medication',
+      category: 'Antibiotics',
+      description: 'Description',
+      price: 12.5,
+      stockQuantity: 20,
+      minimumStockLevel: 5,
+      dosageForm: 'Tablet',
+      strength: '500mg',
+      expiryDate: '2027-01-15',
+      batchNumber: 'B-001',
+      requiresPrescription: true,
+      isActive: true,
+      genericName: 'Generic',
+      manufacturer: 'ACME'
+    });
+  }
+
+  it('clears draft after successful createMedication', fakeAsync(() => {
+    pharmacyService.createMedication.and.returnValue(of({ id: 1 } as never));
+
+    fixture.detectChanges();
+    fillValidForm();
+    tick(400);
+    fixture.detectChanges();
+
+    expect(component.wizardForm.valid).toBeTrue();
+
+    component.onSubmit();
+    tick();
+
+    expect(draftService.clear).toHaveBeenCalled();
+    expect(router.navigate).toHaveBeenCalledWith(['/pharmacy/medications']);
+  }));
+
+  it('does not clear draft when createMedication fails', fakeAsync(() => {
+    pharmacyService.createMedication.and.returnValue(
+      throwError(() => ({ error: { message: 'Create failed' } }))
+    );
+
+    fixture.detectChanges();
+    fillValidForm();
+    tick(400);
+    fixture.detectChanges();
+
+    component.onSubmit();
+    tick();
+
+    expect(draftService.clear).not.toHaveBeenCalled();
+    expect(router.navigate).not.toHaveBeenCalled();
+  }));
+
+  it('does not persist draft on destroy after successful create', fakeAsync(() => {
+    pharmacyService.createMedication.and.returnValue(of({ id: 1 } as never));
+
+    fixture.detectChanges();
+    fillValidForm();
+    tick(400);
+    fixture.detectChanges();
+
+    component.onSubmit();
+    tick();
+    fixture.destroy();
+
+    expect(draftService.save).not.toHaveBeenCalled();
+  }));
 });
