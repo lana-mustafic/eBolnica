@@ -28,6 +28,84 @@
   margin: 0;
 }
 
+/* Draft recovery banner */
+.draft-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.25rem;
+  background: #ebf4ff;
+  border: 1px solid #90cdf4;
+  border-radius: 10px;
+  color: #2c5282;
+}
+
+.draft-banner-icon {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+  color: #3182ce;
+}
+
+.draft-banner-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.draft-banner-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.draft-banner-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #2c5282;
+}
+
+.draft-banner-message {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: #2a4365;
+}
+
+.draft-banner-actions {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-self: center;
+}
+
+.btn-draft {
+  min-height: 40px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+.btn-draft-discard {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0.5rem 1rem;
+  border: 1px solid #fc8181;
+  border-radius: 6px;
+  background: white;
+  color: #c53030;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-draft-discard:hover {
+  background: #fff5f5;
+  border-color: #f56565;
+}
+
 /* Error Message */
 .error-message {
   display: flex;
@@ -608,6 +686,21 @@ textarea.form-control {
     min-height: 44px;
     border: 2px solid #e2e8f0;
     border-radius: 6px;
+  }
+
+  .draft-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .draft-banner-actions {
+    align-self: stretch;
+  }
+
+  .draft-banner-actions .btn,
+  .draft-banner-actions .btn-draft-discard {
+    flex: 1 1 calc(50% - 0.25rem);
+    min-width: 0;
   }
 }
 

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -18,7 +18,15 @@ import {
   isMedicationFieldInvalidForDisplay,
   isMedicationNameCheckUnavailable
 } from '../../../shared/utils/medication-field-error.util';
-import { finalize } from 'rxjs';
+import { finalize, Subscription } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
+import { MedicationWizardDraftService, MedicationWizardDraft } from '../../../shared/services/pharmacy/medication-wizard-draft.service';
+import {
+  buildMedicationWizardDraftRestoreState,
+  buildMedicationWizardDraftSavePayload,
+  MEDICATION_WIZARD_AUTOSAVE_DEBOUNCE_MS,
+  pickMedicationWizardDraftFormPatch
+} from './medication-wizard-autosave.util';
 
 @Component({
   selector: 'app-medication-wizard',
@@ -36,17 +44,24 @@ import { finalize } from 'rxjs';
   templateUrl: './medication-wizard.component.html',
   styleUrl: './medication-wizard.component.css'
 })
-export class MedicationWizardComponent {
+export class MedicationWizardComponent implements OnInit, OnDestroy {
   private formBuilder = inject(FormBuilder);
   private pharmacyService = inject(PharmacyService);
   private router = inject(Router);
   private confirmDialog = inject(ConfirmDialogService);
+  private draftService = inject(MedicationWizardDraftService);
 
   wizardForm: FormGroup;
   currentStep: number = 1;
   totalSteps: number = 3;
   isLoading: boolean = false;
   errorMessage: string | null = null;
+  showDraftBanner: boolean = false;
+  pendingDraft: MedicationWizardDraft | null = null;
+
+  private autosaveSubscription?: Subscription;
+  private draftPromptResolved: boolean = false;
+  private suppressDraftPersist: boolean = false;
 
   // Common categories and dosage forms
   categories: string[] = [
@@ -111,6 +126,108 @@ export class MedicationWizardComponent {
     });
   }
 
+  ngOnInit(): void {
+    this.initializeDraftPrompt();
+
+    this.autosaveSubscription = this.wizardForm.valueChanges.pipe(
+      debounceTime(MEDICATION_WIZARD_AUTOSAVE_DEBOUNCE_MS)
+    ).subscribe(() => this.persistDraft());
+  }
+
+  continueDraft(): void {
+    if (!this.pendingDraft) {
+      return;
+    }
+
+    this.restoreDraft(this.pendingDraft);
+    this.showDraftBanner = false;
+    this.draftPromptResolved = true;
+    this.pendingDraft = null;
+  }
+
+  discardDraft(): void {
+    this.confirmDialog.confirm({
+      title: 'Discard draft',
+      message: 'Are you sure you want to discard your saved draft? This cannot be undone.',
+      confirmText: 'Discard draft',
+      cancelText: 'Keep draft',
+      confirmColor: 'warn'
+    }).subscribe(confirmed => {
+      if (!confirmed) {
+        return;
+      }
+
+      this.draftService.clear();
+      this.pendingDraft = null;
+      this.showDraftBanner = false;
+      this.draftPromptResolved = true;
+    });
+  }
+
+  getDraftSavedAtLabel(): string | null {
+    if (!this.pendingDraft?.savedAt) {
+      return null;
+    }
+
+    const savedAt = new Date(this.pendingDraft.savedAt);
+    if (Number.isNaN(savedAt.getTime())) {
+      return null;
+    }
+
+    return savedAt.toLocaleString(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    });
+  }
+
+  private initializeDraftPrompt(): void {
+    const evaluation = this.draftService.evaluateDraft();
+
+    if (evaluation.status === 'none') {
+      this.draftPromptResolved = true;
+      return;
+    }
+
+    if (evaluation.status === 'expired') {
+      this.promptExpiredDraftDiscard();
+      return;
+    }
+
+    this.pendingDraft = evaluation.draft;
+    this.showDraftBanner = true;
+  }
+
+  private promptExpiredDraftDiscard(): void {
+    this.confirmDialog.confirm({
+      title: 'Draft expired',
+      message: 'Your saved medication draft is older than 7 days and has expired. It will be discarded so you can start fresh.',
+      confirmText: 'Discard draft',
+      cancelText: 'Close',
+      confirmColor: 'warn'
+    }).subscribe(() => {
+      this.draftService.clear();
+      this.draftPromptResolved = true;
+    });
+  }
+
+  private restoreDraft(draft: MedicationWizardDraft): void {
+    const { currentStep, formValue } = buildMedicationWizardDraftRestoreState(draft, this.totalSteps);
+
+    this.wizardForm.patchValue(pickMedicationWizardDraftFormPatch(formValue), { emitEvent: false });
+    this.currentStep = currentStep;
+    this.errorMessage = null;
+    this.wizardForm.updateValueAndValidity({ emitEvent: false });
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  ngOnDestroy(): void {
+    if (this.draftPromptResolved && !this.suppressDraftPersist) {
+      this.persistDraft();
+    }
+    this.autosaveSubscription?.unsubscribe();
+  }
+
   // Validators
   futureDateValidator(control: AbstractControl): ValidationErrors | null {
     if (!control.value) {
@@ -150,6 +267,7 @@ export class MedicationWizardComponent {
     if (this.isStepValid(this.currentStep) && this.currentStep < this.totalSteps) {
       this.currentStep++;
       this.errorMessage = null;
+      this.persistDraft();
       // Scroll to top
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
@@ -162,6 +280,7 @@ export class MedicationWizardComponent {
     if (this.currentStep > 1) {
       this.currentStep--;
       this.errorMessage = null;
+      this.persistDraft();
       // Scroll to top
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -183,6 +302,7 @@ export class MedicationWizardComponent {
       if (canGoToStep || step <= this.currentStep) {
         this.currentStep = step;
         this.errorMessage = null;
+        this.persistDraft();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     }
@@ -233,7 +353,8 @@ export class MedicationWizardComponent {
         finalize(() => this.isLoading = false)
       ).subscribe({
         next: () => {
-          // Redirect to medications list
+          this.suppressDraftPersist = true;
+          this.draftService.clear();
           this.router.navigate(['/pharmacy/medications']);
         },
         error: (error) => {
@@ -326,6 +447,20 @@ export class MedicationWizardComponent {
   private isNameControlReady(): boolean {
     const nameControl = this.wizardForm.get('name');
     return nameControl?.valid === true && !nameControl.pending;
+  }
+
+  private persistDraft(): void {
+    if (this.isLoading || !this.draftPromptResolved) {
+      return;
+    }
+
+    this.draftService.save(
+      buildMedicationWizardDraftSavePayload(
+        this.currentStep,
+        this.wizardForm.getRawValue(),
+        this.totalSteps
+      )
+    );
   }
 
   getFieldLabel(fieldName: string): string {
