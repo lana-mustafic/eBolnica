@@ -252,7 +252,9 @@
           (mousedown)="selectAutocompleteSuggestion(suggestion); $event.preventDefault()"
           (mouseenter)="autocompleteHighlightIndex = i">
           <span class="autocomplete-option-name">{{ suggestion.name }}</span>
-          <span *ngIf="suggestion.category" class="autocomplete-option-meta">{{ suggestion.category }}</span>
+          <span *ngIf="suggestion.category || suggestion.genericName" class="autocomplete-option-meta">
+            {{ suggestion.category || suggestion.genericName }}
+          </span>
         </li>
       </ul>
     </div>

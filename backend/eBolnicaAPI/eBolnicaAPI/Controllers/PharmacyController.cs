@@ -327,6 +327,49 @@ namespace eBolnicaAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Returns up to 10 medication name suggestions for search autocomplete.
+        /// </summary>
+        /// <param name="q">Search query (minimum 2 characters)</param>
+        /// <param name="limit">Maximum suggestions to return (1-10, default 10)</param>
+        [HttpGet("medications/autocomplete")]
+        [Authorize(Roles = "Pharmacist,Admin")]
+        [ProducesResponseType(typeof(IReadOnlyList<MedicationAutocompleteSuggestionDto>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetMedicationAutocompleteSuggestions(
+            [FromQuery] string q,
+            [FromQuery] int limit = 10)
+        {
+            var trimmed = q?.Trim() ?? string.Empty;
+
+            if (trimmed.Length < 2)
+            {
+                return Ok(Array.Empty<MedicationAutocompleteSuggestionDto>());
+            }
+
+            var cappedLimit = Math.Clamp(limit, 1, 10);
+            var searchTerm = trimmed.ToLower();
+
+            var suggestions = await _context.Medications
+                .AsNoTracking()
+                .Where(m => m.IsActive)
+                .Where(m =>
+                    m.Name.ToLower().Contains(searchTerm) ||
+                    (m.GenericName != null && m.GenericName.ToLower().Contains(searchTerm)) ||
+                    (m.Manufacturer != null && m.Manufacturer.ToLower().Contains(searchTerm)))
+                .OrderBy(m => m.Name)
+                .Take(cappedLimit)
+                .Select(m => new MedicationAutocompleteSuggestionDto
+                {
+                    Id = m.Id,
+                    Name = m.Name,
+                    Category = m.Category,
+                    GenericName = m.GenericName
+                })
+                .ToListAsync();
+
+            return Ok(suggestions);
+        }
+
         [HttpGet("medications/{id}")]
         [Authorize(Roles = "Pharmacist")]
         public async Task<IActionResult> GetMedication(int id)

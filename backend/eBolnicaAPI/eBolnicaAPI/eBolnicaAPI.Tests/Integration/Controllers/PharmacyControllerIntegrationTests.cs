@@ -535,6 +535,45 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
+        [Fact]
+        public async Task GetMedicationAutocompleteSuggestions_ReturnsUpToTenMatches()
+        {
+            var response = await _client.GetAsync("/api/pharmacy/medications/autocomplete?q=in&limit=10");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            var suggestions = await response.Content.ReadFromJsonAsync<List<MedicationAutocompleteSuggestionDto>>();
+            Assert.NotNull(suggestions);
+            Assert.True(suggestions.Count > 0);
+            Assert.True(suggestions.Count <= 10);
+            Assert.All(suggestions, s => Assert.False(string.IsNullOrWhiteSpace(s.Name)));
+            Assert.DoesNotContain(suggestions, s => s.Name == "Discontinued Drug");
+        }
+
+        [Fact]
+        public async Task GetMedicationAutocompleteSuggestions_ShortQuery_ReturnsEmptyList()
+        {
+            var response = await _client.GetAsync("/api/pharmacy/medications/autocomplete?q=a");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            var suggestions = await response.Content.ReadFromJsonAsync<List<MedicationAutocompleteSuggestionDto>>();
+            Assert.NotNull(suggestions);
+            Assert.Empty(suggestions);
+        }
+
+        [Fact]
+        public async Task GetMedicationAutocompleteSuggestions_RespectsLimitCap()
+        {
+            var response = await _client.GetAsync("/api/pharmacy/medications/autocomplete?q=e&limit=25");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            var suggestions = await response.Content.ReadFromJsonAsync<List<MedicationAutocompleteSuggestionDto>>();
+            Assert.NotNull(suggestions);
+            Assert.True(suggestions.Count <= 10);
+        }
+
         #endregion
 
         #region GetMedications Validation Integration Tests

@@ -285,3 +285,69 @@ describe('PharmacyService checkMedicationNameAvailability', () => {
     expect(result).toEqual({ isAvailable: false, checkFailed: true });
   });
 });
+
+describe('PharmacyService getMedicationAutocompleteSuggestions', () => {
+  let service: PharmacyService;
+  let httpMock: HttpTestingController;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [PharmacyService]
+    });
+
+    service = TestBed.inject(PharmacyService);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+  });
+
+  it('returns empty array without HTTP call for short queries', () => {
+    let result: unknown;
+
+    service.getMedicationAutocompleteSuggestions('a').subscribe(r => {
+      result = r;
+    });
+
+    httpMock.expectNone(request => request.url.includes('/medications/autocomplete'));
+    expect(result).toEqual([]);
+  });
+
+  it('calls autocomplete endpoint with trimmed query and limit', () => {
+    let result: unknown;
+
+    service.getMedicationAutocompleteSuggestions('  asp  ', 10).subscribe(r => {
+      result = r;
+    });
+
+    const req = httpMock.expectOne(
+      request => request.url.endsWith('/api/pharmacy/medications/autocomplete')
+    );
+
+    expect(req.request.params.get('q')).toBe('asp');
+    expect(req.request.params.get('limit')).toBe('10');
+    req.flush([
+      { id: 1, name: 'Aspirin', category: 'painkiller' }
+    ]);
+
+    expect(result).toEqual([
+      { id: 1, name: 'Aspirin', category: 'painkiller' }
+    ]);
+  });
+
+  it('caps limit to 10 suggestions', () => {
+    service.getMedicationAutocompleteSuggestions('med', 25).subscribe();
+
+    const req = httpMock.expectOne(
+      request => request.url.endsWith('/api/pharmacy/medications/autocomplete')
+    );
+
+    expect(req.request.params.get('limit')).toBe('10');
+    req.flush(Array.from({ length: 10 }, (_, index) => ({
+      id: index + 1,
+      name: `Medication ${index + 1}`
+    })));
+  });
+});

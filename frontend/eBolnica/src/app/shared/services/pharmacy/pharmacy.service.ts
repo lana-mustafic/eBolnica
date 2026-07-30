@@ -203,11 +203,10 @@ export class PharmacyService {
 
   /**
    * Lightweight medication name suggestions for search autocomplete.
-   * Backend endpoint is wired in a follow-up task.
    */
   getMedicationAutocompleteSuggestions(
     term: string,
-    _limit = 10
+    limit = 10
   ): Observable<MedicationAutocompleteSuggestion[]> {
     const trimmed = term?.trim() ?? '';
 
@@ -215,7 +214,14 @@ export class PharmacyService {
       return of([]);
     }
 
-    return of([]);
+    const cappedLimit = Math.min(Math.max(limit, 1), 10);
+    const params = new HttpParams()
+      .set('q', trimmed)
+      .set('limit', cappedLimit.toString());
+
+    return this.http
+      .get<MedicationAutocompleteSuggestion[]>(`${this.apiUrl}/medications/autocomplete`, { params })
+      .pipe(map(suggestions => suggestions.slice(0, cappedLimit)));
   }
 
   createMedication(medication: MedicationCreateDto): Observable<MedicationDto> {
