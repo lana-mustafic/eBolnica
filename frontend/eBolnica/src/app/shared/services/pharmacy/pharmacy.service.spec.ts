@@ -443,7 +443,9 @@ describe('PharmacyService uploadMedicationImage', () => {
     expect(req.request.method).toBe('POST');
     expect(req.request.reportProgress).toBeTrue();
     expect(req.request.body instanceof FormData).toBeTrue();
+    expect(req.request.headers.has('Content-Type')).toBeFalse();
     expect((req.request.body as FormData).get('file')).toBe(file);
+    expect((req.request.body as FormData).has('file')).toBeTrue();
 
     req.event({ type: HttpEventType.UploadProgress, loaded: 50, total: 100 });
     req.event(new HttpResponse({
