@@ -23,7 +23,8 @@ import {
 } from '../../../shared/utils/medication-csv.util';
 import {
   createMedicationAutocompleteSearch$,
-  MEDICATION_AUTOCOMPLETE_MIN_LENGTH
+  MEDICATION_AUTOCOMPLETE_MIN_LENGTH,
+  resolveMedicationAutocompleteSelection
 } from '../../../shared/utils/medication-autocomplete-search.util';
 
 /** Debounce delay for medication search input before combining with other filters */
@@ -400,8 +401,24 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   }
 
   selectAutocompleteSuggestion(suggestion: MedicationAutocompleteSuggestion): void {
-    this.searchTerm = suggestion.name;
+    const selectedSearchTerm = resolveMedicationAutocompleteSelection(suggestion);
+
+    if (!selectedSearchTerm) {
+      return;
+    }
+
+    this.applySearchSelection(selectedSearchTerm);
+  }
+
+  /**
+   * Commit a search term from autocomplete selection: populate input and reload the list.
+   */
+  private applySearchSelection(searchTerm: string): void {
+    this.searchTerm = searchTerm;
     this.closeAutocompleteDropdown();
+    this.currentPage = 1;
+    // Reset debounced search so a pending partial query cannot overwrite the selection.
+    this.searchSubject.next(searchTerm);
     this.pushFiltersFromUI();
   }
 

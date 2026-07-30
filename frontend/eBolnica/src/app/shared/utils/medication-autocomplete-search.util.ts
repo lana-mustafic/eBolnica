@@ -29,6 +29,16 @@ export type MedicationAutocompleteSearchResult =
   | { kind: 'error' };
 
 /**
+ * Resolve the search term to apply when a suggestion is selected.
+ */
+export function resolveMedicationAutocompleteSelection(
+  suggestion: MedicationAutocompleteSuggestion
+): string | null {
+  const searchTerm = suggestion.name?.trim() ?? '';
+  return searchTerm.length > 0 ? searchTerm : null;
+}
+
+/**
  * Debounced autocomplete pipeline for medication search input.
  * Waits for typing to settle, then fetches up to maxSuggestions items.
  */

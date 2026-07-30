@@ -3,7 +3,8 @@ import { Subject, of, throwError } from 'rxjs';
 import {
   MEDICATION_AUTOCOMPLETE_DEBOUNCE_MS,
   MEDICATION_AUTOCOMPLETE_MIN_LENGTH,
-  createMedicationAutocompleteSearch$
+  createMedicationAutocompleteSearch$,
+  resolveMedicationAutocompleteSelection
 } from './medication-autocomplete-search.util';
 
 describe('createMedicationAutocompleteSearch$', () => {
@@ -104,4 +105,15 @@ describe('createMedicationAutocompleteSearch$', () => {
 
     expect(fetch).toHaveBeenCalledOnceWith('as', 10);
   }));
+});
+
+describe('resolveMedicationAutocompleteSelection', () => {
+  it('returns trimmed medication name', () => {
+    expect(resolveMedicationAutocompleteSelection({ id: 1, name: '  Aspirin  ' }))
+      .toBe('Aspirin');
+  });
+
+  it('returns null for blank suggestion names', () => {
+    expect(resolveMedicationAutocompleteSelection({ id: 1, name: '   ' })).toBeNull();
+  });
 });
