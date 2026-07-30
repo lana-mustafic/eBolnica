@@ -1,14 +1,17 @@
 import {
   Component,
+  ElementRef,
   EventEmitter,
   HostListener,
   Input,
   OnChanges,
   Output,
-  SimpleChanges
+  SimpleChanges,
+  ViewChild
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MedicationImageDto } from '../../../models/medication-image.dto';
+import { clampLightboxPan } from './medication-image-lightbox-pan.util';
 
 /** Minimum zoom level (100%). */
 export const LIGHTBOX_MIN_ZOOM = 1;
@@ -51,9 +54,18 @@ export class MedicationImageLightboxComponent implements OnChanges {
   @Output() indexChange = new EventEmitter<number>();
   @Output() deleteRequested = new EventEmitter<void>();
 
+  @ViewChild('imageViewport') imageViewport?: ElementRef<HTMLElement>;
+  @ViewChild('lightboxImage') lightboxImage?: ElementRef<HTMLImageElement>;
+
   zoomScale = LIGHTBOX_DEFAULT_ZOOM_STATE.scale;
   zoomTranslateX = LIGHTBOX_DEFAULT_ZOOM_STATE.translateX;
   zoomTranslateY = LIGHTBOX_DEFAULT_ZOOM_STATE.translateY;
+  isPanning = false;
+
+  private panStartX = 0;
+  private panStartY = 0;
+  private panOriginTranslateX = 0;
+  private panOriginTranslateY = 0;
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['currentIndex'] && !changes['currentIndex'].firstChange) {
@@ -86,6 +98,10 @@ export class MedicationImageLightboxComponent implements OnChanges {
   }
 
   get canZoomOut(): boolean {
+    return this.zoomScale > LIGHTBOX_MIN_ZOOM;
+  }
+
+  get canPan(): boolean {
     return this.zoomScale > LIGHTBOX_MIN_ZOOM;
   }
 
@@ -126,6 +142,70 @@ export class MedicationImageLightboxComponent implements OnChanges {
     }
   }
 
+  onPointerDown(event: PointerEvent): void {
+    if (!this.isOpen || !this.canPan || event.button !== 0) return;
+
+    event.preventDefault();
+    this.isPanning = true;
+    this.panStartX = event.clientX;
+    this.panStartY = event.clientY;
+    this.panOriginTranslateX = this.zoomTranslateX;
+    this.panOriginTranslateY = this.zoomTranslateY;
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+  }
+
+  onPointerMove(event: PointerEvent): void {
+    if (!this.isPanning) return;
+
+    event.preventDefault();
+    this.setPanOffset(
+      this.panOriginTranslateX + (event.clientX - this.panStartX),
+      this.panOriginTranslateY + (event.clientY - this.panStartY)
+    );
+  }
+
+  onPointerUp(event: PointerEvent): void {
+    if (!this.isPanning) return;
+
+    this.isPanning = false;
+
+    if (event.currentTarget instanceof HTMLElement && event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }
+
+  private setPanOffset(translateX: number, translateY: number): void {
+    if (!this.canPan) return;
+
+    this.zoomTranslateX = translateX;
+    this.zoomTranslateY = translateY;
+    this.clampPanToBounds();
+  }
+
+  private clampPanToBounds(): void {
+    const viewport = this.imageViewport?.nativeElement;
+    const image = this.lightboxImage?.nativeElement;
+
+    if (!viewport || !image || !this.canPan) {
+      if (!this.canPan) {
+        this.zoomTranslateX = LIGHTBOX_DEFAULT_ZOOM_STATE.translateX;
+        this.zoomTranslateY = LIGHTBOX_DEFAULT_ZOOM_STATE.translateY;
+      }
+      return;
+    }
+
+    const clamped = clampLightboxPan(this.zoomTranslateX, this.zoomTranslateY, {
+      viewportWidth: viewport.clientWidth,
+      viewportHeight: viewport.clientHeight,
+      imageWidth: image.offsetWidth,
+      imageHeight: image.offsetHeight,
+      scale: this.zoomScale
+    });
+
+    this.zoomTranslateX = clamped.translateX;
+    this.zoomTranslateY = clamped.translateY;
+  }
+
   private applyZoomScale(scale: number): void {
     this.zoomScale = this.roundZoom(
       Math.min(LIGHTBOX_MAX_ZOOM, Math.max(LIGHTBOX_MIN_ZOOM, scale))
@@ -134,6 +214,8 @@ export class MedicationImageLightboxComponent implements OnChanges {
     if (this.zoomScale <= LIGHTBOX_MIN_ZOOM) {
       this.zoomTranslateX = LIGHTBOX_DEFAULT_ZOOM_STATE.translateX;
       this.zoomTranslateY = LIGHTBOX_DEFAULT_ZOOM_STATE.translateY;
+    } else {
+      this.clampPanToBounds();
     }
   }
 

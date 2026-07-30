@@ -285,3 +285,133 @@ describe('MedicationImageLightboxComponent wheel zoom', () => {
     expect(component.zoomScale).toBe(LIGHTBOX_MIN_ZOOM);
   });
 });
+
+describe('MedicationImageLightboxComponent pan drag', () => {
+  let component: MedicationImageLightboxComponent;
+  let fixture: ComponentFixture<MedicationImageLightboxComponent>;
+  let viewport: HTMLElement;
+
+  const images: MedicationImageDto[] = [
+    {
+      id: 1,
+      medicationId: 10,
+      imageUrl: '/a.jpg',
+      isPrimary: true,
+      sortOrder: 0,
+      uploadedAt: '2026-01-01T00:00:00Z'
+    }
+  ];
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [MedicationImageLightboxComponent]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(MedicationImageLightboxComponent);
+    component = fixture.componentInstance;
+    component.isOpen = true;
+    component.images = images;
+    component.currentIndex = 0;
+    component.resolveUrl = url => url;
+    fixture.detectChanges();
+    viewport = fixture.nativeElement.querySelector('.lightbox-image-viewport') as HTMLElement;
+  });
+
+  function mockPanDimensions(
+    viewportSize: { width: number; height: number },
+    imageSize: { width: number; height: number }
+  ): void {
+    const viewportEl = component.imageViewport!.nativeElement;
+    const imageEl = component.lightboxImage!.nativeElement;
+
+    Object.defineProperty(viewportEl, 'clientWidth', { configurable: true, value: viewportSize.width });
+    Object.defineProperty(viewportEl, 'clientHeight', { configurable: true, value: viewportSize.height });
+    Object.defineProperty(imageEl, 'offsetWidth', { configurable: true, value: imageSize.width });
+    Object.defineProperty(imageEl, 'offsetHeight', { configurable: true, value: imageSize.height });
+  }
+
+  function pointerDown(clientX: number, clientY: number): void {
+    component.onPointerDown({
+      button: 0,
+      clientX,
+      clientY,
+      pointerId: 1,
+      preventDefault: jasmine.createSpy('preventDefault'),
+      currentTarget: {
+        setPointerCapture: jasmine.createSpy('setPointerCapture'),
+        hasPointerCapture: () => true,
+        releasePointerCapture: jasmine.createSpy('releasePointerCapture')
+      }
+    } as unknown as PointerEvent);
+  }
+
+  function pointerMove(clientX: number, clientY: number): void {
+    component.onPointerMove({
+      clientX,
+      clientY,
+      preventDefault: jasmine.createSpy('preventDefault')
+    } as unknown as PointerEvent);
+  }
+
+  it('does not allow pan at 100% zoom', () => {
+    expect(component.canPan).toBeFalse();
+    expect(viewport.classList.contains('is-pannable')).toBeFalse();
+
+    pointerDown(100, 100);
+    pointerMove(150, 150);
+
+    expect(component.isPanning).toBeFalse();
+    expect(component.zoomTranslateX).toBe(0);
+    expect(component.zoomTranslateY).toBe(0);
+  });
+
+  it('enables pan styling when zoomed in', () => {
+    component.zoomScale = 1.5;
+    fixture.detectChanges();
+
+    expect(component.canPan).toBeTrue();
+    expect(viewport.classList.contains('is-pannable')).toBeTrue();
+  });
+
+  it('updates translate while dragging when zoomed in', () => {
+    component.zoomScale = 2;
+    mockPanDimensions({ width: 200, height: 200 }, { width: 200, height: 200 });
+
+    pointerDown(100, 100);
+    pointerMove(140, 130);
+
+    expect(component.isPanning).toBeTrue();
+    expect(component.zoomTranslateX).toBe(40);
+    expect(component.zoomTranslateY).toBe(30);
+    expect(component.imageTransform).toBe('translate(40px, 30px) scale(2)');
+  });
+
+  it('clamps pan within scaled image bounds', () => {
+    component.zoomScale = 2;
+    mockPanDimensions({ width: 200, height: 200 }, { width: 200, height: 200 });
+
+    pointerDown(0, 0);
+    pointerMove(500, 500);
+
+    expect(component.zoomTranslateX).toBe(100);
+    expect(component.zoomTranslateY).toBe(100);
+  });
+
+  it('stops panning on pointer up', () => {
+    component.zoomScale = 2;
+    mockPanDimensions({ width: 200, height: 200 }, { width: 200, height: 200 });
+
+    pointerDown(100, 100);
+    expect(component.isPanning).toBeTrue();
+
+    component.onPointerUp({
+      pointerId: 1,
+      currentTarget: {
+        hasPointerCapture: () => true,
+        releasePointerCapture: jasmine.createSpy('releasePointerCapture')
+      }
+    } as unknown as PointerEvent);
+
+    expect(component.isPanning).toBeFalse();
+  });
+});

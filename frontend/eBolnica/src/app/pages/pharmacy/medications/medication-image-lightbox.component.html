@@ -60,11 +60,22 @@
         </button>
       }
 
-      <div class="lightbox-image-viewport" (wheel)="onWheel($event)">
+      <div
+        #imageViewport
+        class="lightbox-image-viewport"
+        [class.is-pannable]="canPan"
+        [class.is-panning]="isPanning"
+        (wheel)="onWheel($event)"
+        (pointerdown)="onPointerDown($event)"
+        (pointermove)="onPointerMove($event)"
+        (pointerup)="onPointerUp($event)"
+        (pointercancel)="onPointerUp($event)">
         <img
+          #lightboxImage
           [src]="resolveUrl(currentImage.imageUrl)"
           [alt]="'Medication image ' + (currentIndex + 1)"
           class="lightbox-image"
+          draggable="false"
           [style.transform]="imageTransform" />
       </div>
 
