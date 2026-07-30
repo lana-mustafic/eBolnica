@@ -1,6 +1,34 @@
-import { MedicationWizardDraftFormValue } from '../services/pharmacy/medication-wizard-draft.service';
+import {
+  MedicationWizardDraftFormValue,
+  MedicationWizardDraftSavePayload
+} from '../../../shared/services/pharmacy/medication-wizard-draft.service';
 
 export const MEDICATION_WIZARD_AUTOSAVE_DEBOUNCE_MS = 2000;
+
+export const MEDICATION_WIZARD_FORM_FIELD_KEYS = [
+  'name',
+  'category',
+  'description',
+  'price',
+  'stockQuantity',
+  'minimumStockLevel',
+  'dosageForm',
+  'strength',
+  'expiryDate',
+  'batchNumber',
+  'requiresPrescription',
+  'isActive',
+  'genericName',
+  'manufacturer'
+] as const;
+
+export function normalizeMedicationWizardStepIndex(step: number, totalSteps: number): number {
+  if (!Number.isFinite(step)) {
+    return 1;
+  }
+
+  return Math.min(Math.max(Math.trunc(step), 1), totalSteps);
+}
 
 export function toMedicationWizardDraftFormValue(
   raw: Record<string, unknown>
@@ -20,5 +48,16 @@ export function toMedicationWizardDraftFormValue(
     isActive: Boolean(raw['isActive'] ?? true),
     genericName: String(raw['genericName'] ?? ''),
     manufacturer: String(raw['manufacturer'] ?? '')
+  };
+}
+
+export function buildMedicationWizardDraftSavePayload(
+  currentStep: number,
+  rawFormValue: Record<string, unknown>,
+  totalSteps: number
+): MedicationWizardDraftSavePayload {
+  return {
+    currentStep: normalizeMedicationWizardStepIndex(currentStep, totalSteps),
+    formValue: toMedicationWizardDraftFormValue(rawFormValue)
   };
 }

@@ -22,8 +22,10 @@ import { finalize, Subscription } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 import { MedicationWizardDraftService } from '../../../shared/services/pharmacy/medication-wizard-draft.service';
 import {
+  buildMedicationWizardDraftSavePayload,
   MEDICATION_WIZARD_AUTOSAVE_DEBOUNCE_MS,
-  toMedicationWizardDraftFormValue
+  MEDICATION_WIZARD_FORM_FIELD_KEYS,
+  normalizeMedicationWizardStepIndex
 } from './medication-wizard-autosave.util';
 
 @Component({
@@ -127,6 +129,7 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.persistDraft();
     this.autosaveSubscription?.unsubscribe();
   }
 
@@ -355,10 +358,13 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.draftService.save({
-      currentStep: this.currentStep,
-      formValue: toMedicationWizardDraftFormValue(this.wizardForm.getRawValue())
-    });
+    this.draftService.save(
+      buildMedicationWizardDraftSavePayload(
+        this.currentStep,
+        this.wizardForm.getRawValue(),
+        this.totalSteps
+      )
+    );
   }
 
   getFieldLabel(fieldName: string): string {

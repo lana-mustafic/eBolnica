@@ -83,6 +83,22 @@ describe('MedicationWizardDraftService', () => {
     expect(loaded?.ownerKey).toBe('pharmacist-42');
   });
 
+  it('persists all wizard form fields and step index in localStorage', () => {
+    authService.getToken.and.returnValue(userToken);
+
+    service.save({ currentStep: 2, formValue });
+
+    const loaded = service.load();
+    expect(loaded).not.toBeNull();
+    expect(loaded?.currentStep).toBe(2);
+    expect(loaded?.formValue).toEqual(formValue);
+
+    const key = service.getDraftStorageKey('pharmacist-42');
+    const stored = JSON.parse(storage[key]);
+    expect(stored.currentStep).toBe(2);
+    expect(stored.formValue).toEqual(formValue);
+  });
+
   it('uses session key when no auth token is available', () => {
     authService.getToken.and.returnValue(null);
 
