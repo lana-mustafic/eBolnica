@@ -3,7 +3,9 @@ import { Subject, of, throwError } from 'rxjs';
 import {
   MEDICATION_AUTOCOMPLETE_DEBOUNCE_MS,
   MEDICATION_AUTOCOMPLETE_MIN_LENGTH,
+  capMedicationAutocompleteLimit,
   createMedicationAutocompleteSearch$,
+  isMedicationAutocompleteQueryValid,
   resolveMedicationAutocompleteSelection,
   shouldShowMedicationAutocompleteEmptyState
 } from './medication-autocomplete-search.util';
@@ -144,5 +146,17 @@ describe('shouldShowMedicationAutocompleteEmptyState', () => {
       isLoading: false,
       suggestionsCount: 0
     })).toBeFalse();
+  });
+});
+
+describe('medication autocomplete limits', () => {
+  it('requires at least two trimmed characters', () => {
+    expect(isMedicationAutocompleteQueryValid('a')).toBeFalse();
+    expect(isMedicationAutocompleteQueryValid(' ab ')).toBeTrue();
+  });
+
+  it('caps suggestion limit to ten', () => {
+    expect(capMedicationAutocompleteLimit(25)).toBe(10);
+    expect(capMedicationAutocompleteLimit(0)).toBe(1);
   });
 });

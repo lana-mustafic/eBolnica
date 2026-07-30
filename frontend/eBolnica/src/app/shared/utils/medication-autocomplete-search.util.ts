@@ -29,6 +29,22 @@ export function shouldShowMedicationAutocompleteEmptyState(
   return state.showDropdown && !state.isLoading && state.suggestionsCount === 0;
 }
 
+/** True when trimmed query meets the minimum autocomplete length. */
+export function isMedicationAutocompleteQueryValid(
+  term: string,
+  minLength = MEDICATION_AUTOCOMPLETE_MIN_LENGTH
+): boolean {
+  return term.trim().length >= minLength;
+}
+
+/** Clamp autocomplete suggestion limit to 1–10. */
+export function capMedicationAutocompleteLimit(
+  limit: number,
+  maxSuggestions = MEDICATION_AUTOCOMPLETE_MAX_SUGGESTIONS
+): number {
+  return Math.min(Math.max(limit, 1), maxSuggestions);
+}
+
 export type MedicationAutocompleteFetchFn = (
   term: string,
   limit: number
@@ -79,12 +95,14 @@ export function createMedicationAutocompleteSearch$(
         return of({ kind: 'idle' } as const);
       }
 
+      const requestLimit = capMedicationAutocompleteLimit(maxSuggestions);
+
       return concat(
         of({ kind: 'loading', term: trimmed } as const),
-        fetchSuggestions(trimmed, maxSuggestions).pipe(
+        fetchSuggestions(trimmed, requestLimit).pipe(
           map(suggestions => ({
             kind: 'success' as const,
-            suggestions: suggestions.slice(0, maxSuggestions)
+            suggestions: suggestions.slice(0, requestLimit)
           })),
           catchError(() => of({ kind: 'error' } as const))
         )

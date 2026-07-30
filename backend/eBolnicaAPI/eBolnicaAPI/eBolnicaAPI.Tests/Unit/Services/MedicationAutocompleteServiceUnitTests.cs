@@ -108,6 +108,31 @@ namespace eBolnicaAPI.Tests.Unit.Services
             Assert.Equal("Amoxicillin", suggestions[0].Name);
         }
 
+        [Fact]
+        public async Task GetSuggestionsAsync_ReturnsAtMostTenMatches()
+        {
+            for (var i = 1; i <= 12; i++)
+            {
+                _context.Medications.Add(new Medication
+                {
+                    Name = $"Vitamin {i}",
+                    Category = "vitamins",
+                    Price = 5m,
+                    StockQuantity = 10,
+                    MinimumStockLevel = 2,
+                    IsActive = true,
+                    RequiresPrescription = false,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            await _context.SaveChangesAsync();
+
+            var suggestions = await _service.GetSuggestionsAsync("vitamin", limit: 25);
+
+            Assert.Equal(10, suggestions.Count);
+        }
+
         public void Dispose()
         {
             _context.Dispose();

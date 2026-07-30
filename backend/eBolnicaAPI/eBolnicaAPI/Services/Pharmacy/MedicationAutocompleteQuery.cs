@@ -25,6 +25,7 @@ namespace eBolnicaAPI.Services.Pharmacy
             int limit)
         {
             var normalizedSearch = NormalizeSearchTerm(searchQuery);
+            var cappedLimit = MedicationAutocompleteLimits.CapSuggestionLimit(limit);
 
             return medications
                 .AsNoTracking()
@@ -34,7 +35,7 @@ namespace eBolnicaAPI.Services.Pharmacy
                     (m.GenericName != null && m.GenericName.ToLower().Contains(normalizedSearch)) ||
                     (m.Manufacturer != null && m.Manufacturer.ToLower().Contains(normalizedSearch)))
                 .OrderBy(m => m.Name)
-                .Take(limit)
+                .Take(cappedLimit)
                 .Select(m => new MedicationAutocompleteSuggestionDto
                 {
                     Id = m.Id,

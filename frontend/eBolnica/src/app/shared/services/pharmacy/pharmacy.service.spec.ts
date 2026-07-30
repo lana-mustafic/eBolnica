@@ -315,6 +315,17 @@ describe('PharmacyService getMedicationAutocomplete', () => {
     expect(result).toEqual([]);
   });
 
+  it('calls autocomplete endpoint once query reaches minimum length', () => {
+    service.getMedicationAutocomplete('ab').subscribe();
+
+    const req = httpMock.expectOne(
+      request => request.url.endsWith('/api/pharmacy/medications/autocomplete')
+    );
+
+    expect(req.request.params.get('q')).toBe('ab');
+    req.flush([]);
+  });
+
   it('calls autocomplete endpoint with trimmed query and limit', () => {
     let result: unknown;
 

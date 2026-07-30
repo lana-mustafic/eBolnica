@@ -37,8 +37,9 @@ import {
 } from '../../../models/analytics.dto';
 import { MedicationNameAvailabilityResult } from '../../validators/medication-name-async.validator';
 import {
-  MEDICATION_AUTOCOMPLETE_MAX_SUGGESTIONS,
-  MEDICATION_AUTOCOMPLETE_MIN_LENGTH
+  capMedicationAutocompleteLimit,
+  isMedicationAutocompleteQueryValid,
+  MEDICATION_AUTOCOMPLETE_MAX_SUGGESTIONS
 } from '../../utils/medication-autocomplete-search.util';
 
 /** API response for GET /medications/check-name */
@@ -216,11 +217,11 @@ export class PharmacyService {
   ): Observable<MedicationAutocompleteSuggestion[]> {
     const trimmed = term?.trim() ?? '';
 
-    if (trimmed.length < MEDICATION_AUTOCOMPLETE_MIN_LENGTH) {
+    if (!isMedicationAutocompleteQueryValid(trimmed)) {
       return of([]);
     }
 
-    const cappedLimit = Math.min(Math.max(limit, 1), MEDICATION_AUTOCOMPLETE_MAX_SUGGESTIONS);
+    const cappedLimit = capMedicationAutocompleteLimit(limit);
     const params = new HttpParams()
       .set('q', trimmed)
       .set('limit', cappedLimit.toString());

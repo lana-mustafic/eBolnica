@@ -19,8 +19,8 @@ namespace eBolnicaAPI.Services.Pharmacy
 
     public class MedicationAutocompleteService : IMedicationAutocompleteService
     {
-        public const int MinQueryLength = 2;
-        public const int MaxSuggestions = 10;
+        public const int MinQueryLength = MedicationAutocompleteLimits.MinQueryLength;
+        public const int MaxSuggestions = MedicationAutocompleteLimits.MaxSuggestions;
 
         private readonly AppDbContext _context;
 
@@ -36,12 +36,12 @@ namespace eBolnicaAPI.Services.Pharmacy
         {
             var trimmed = query?.Trim() ?? string.Empty;
 
-            if (trimmed.Length < MinQueryLength)
+            if (!MedicationAutocompleteLimits.IsQueryLongEnough(trimmed))
             {
                 return Array.Empty<MedicationAutocompleteSuggestionDto>();
             }
 
-            var cappedLimit = Math.Clamp(limit, 1, MaxSuggestions);
+            var cappedLimit = MedicationAutocompleteLimits.CapSuggestionLimit(limit);
 
             return await MedicationAutocompleteQuery
                 .GetSuggestions(_context.Medications, trimmed, cappedLimit)
