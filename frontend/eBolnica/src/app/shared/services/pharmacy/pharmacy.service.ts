@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient, HttpParams, HttpErrorResponse, HttpResponse } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpErrorResponse, HttpResponse, HttpEvent } from '@angular/common/http';
 import { Observable, throwError, of, timer, forkJoin, timeout, TimeoutError } from 'rxjs';
 import { catchError, tap, retry, retryWhen, delayWhen, take, concatMap, map } from 'rxjs/operators';
 import { normalizePagedResponse, normalizeInventoryResponse } from '../../utils/paged-response.util';
@@ -301,10 +301,17 @@ export class PharmacyService {
     return this.http.get<MedicationImageDto[]>(`${this.apiUrl}/medications/${medicationId}/images`);
   }
 
-  uploadMedicationImage(medicationId: number, file: File): Observable<MedicationImageDto> {
+  uploadMedicationImage(medicationId: number, file: File): Observable<HttpEvent<MedicationImageDto>> {
     const formData = new FormData();
     formData.append('file', file);
-    return this.http.post<MedicationImageDto>(`${this.apiUrl}/medications/${medicationId}/images`, formData);
+    return this.http.post<MedicationImageDto>(
+      `${this.apiUrl}/medications/${medicationId}/images`,
+      formData,
+      {
+        reportProgress: true,
+        observe: 'events'
+      }
+    );
   }
 
   setPrimaryMedicationImage(medicationId: number, imageId: number): Observable<void> {

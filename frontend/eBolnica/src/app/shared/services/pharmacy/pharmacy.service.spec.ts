@@ -1,7 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { HttpEvent, HttpEventType, HttpResponse } from '@angular/common/http';
 import { PharmacyService } from './pharmacy.service';
 import { PHARMACY_MEDICATION_QUERY_PARAMS as MED_Q } from '../../../constants/pharmacy-query-params.constants';
+import { MedicationImageDto } from '../../../models/medication-image.dto';
 
 describe('PharmacyService inventory sort mapping', () => {
   let service: PharmacyService;
@@ -407,5 +409,58 @@ describe('PharmacyService generateMedicationAiSummary', () => {
     req.flush(summary);
 
     expect(result).toEqual(summary);
+  });
+});
+
+describe('PharmacyService uploadMedicationImage', () => {
+  let service: PharmacyService;
+  let httpMock: HttpTestingController;
+
+  const medicationId = 42;
+  const uploadUrl = `http://localhost:5004/api/pharmacy/medications/${medicationId}/images`;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [PharmacyService]
+    });
+
+    service = TestBed.inject(PharmacyService);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+  });
+
+  it('POSTs multipart file with reportProgress and observe events', () => {
+    const file = new File(['image-bytes'], 'photo.jpg', { type: 'image/jpeg' });
+    const events: HttpEvent<MedicationImageDto>[] = [];
+
+    service.uploadMedicationImage(medicationId, file).subscribe(event => events.push(event));
+
+    const req = httpMock.expectOne(uploadUrl);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.reportProgress).toBeTrue();
+    expect(req.request.body instanceof FormData).toBeTrue();
+    expect((req.request.body as FormData).get('file')).toBe(file);
+
+    req.event({ type: HttpEventType.UploadProgress, loaded: 50, total: 100 });
+    req.event(new HttpResponse({
+      status: 201,
+      statusText: 'Created',
+      url: uploadUrl,
+      body: {
+        id: 1,
+        medicationId,
+        imageUrl: '/uploads/medications/photo.jpg',
+        isPrimary: false,
+        sortOrder: 0,
+        uploadedAt: '2026-07-30T00:00:00Z'
+      }
+    }));
+
+    expect(events.some(event => event.type === HttpEventType.UploadProgress)).toBeTrue();
+    expect(events.some(event => event.type === HttpEventType.Response)).toBeTrue();
   });
 });
