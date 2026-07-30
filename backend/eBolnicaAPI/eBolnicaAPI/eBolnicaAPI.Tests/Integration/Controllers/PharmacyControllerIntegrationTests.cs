@@ -1252,7 +1252,7 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
             var reorderedIds = new[] { uploaded[2].Id, uploaded[0].Id, uploaded[1].Id };
 
             var reorderResponse = await _client.PutAsJsonAsync(
-                $"/api/pharmacy/medications/{medication.Id}/images/order",
+                $"/api/pharmacy/medications/{medication.Id}/images/reorder",
                 new { imageIds = reorderedIds });
 
             Assert.Equal(HttpStatusCode.OK, reorderResponse.StatusCode);

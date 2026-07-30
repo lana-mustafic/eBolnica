@@ -316,7 +316,7 @@ export class PharmacyService {
 
   reorderMedicationImages(medicationId: number, imageIds: number[]): Observable<MedicationImageDto[]> {
     return this.http.put<MedicationImageDto[]>(
-      `${this.apiUrl}/medications/${medicationId}/images/order`,
+      `${this.apiUrl}/medications/${medicationId}/images/reorder`,
       { imageIds }
     );
   }

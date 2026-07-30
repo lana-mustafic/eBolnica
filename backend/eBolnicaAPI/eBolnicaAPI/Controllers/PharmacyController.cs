@@ -500,7 +500,7 @@ namespace eBolnicaAPI.Controllers
         /// <summary>
         /// Reorder medication gallery images by the provided image id sequence.
         /// </summary>
-        [HttpPut("medications/{id}/images/order")]
+        [HttpPut("medications/{id}/images/reorder")]
         [Authorize(Roles = "Pharmacist,Admin")]
         [ProducesResponseType(typeof(IEnumerable<MedicationImageDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
