@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { HttpEvent, HttpEventType, HttpResponse } from '@angular/common/http';
-import { of, Subject, throwError } from 'rxjs';
+import { of, Subject, throwError, NEVER } from 'rxjs';
 import { MedicationImageGalleryComponent } from './medication-image-gallery.component';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
 import { AuthService } from '../../../shared/services/auth.service';
@@ -317,14 +317,42 @@ describe('MedicationImageGalleryComponent upload progress', () => {
     fixture.detectChanges();
 
     expect(component.isUploading).toBeTrue();
-    expect(component.batchUploadProgress).toBe(50);
-    expect(fixture.nativeElement.querySelector('.gallery-upload-batch-progress')).toBeTruthy();
+    expect(component.showBatchUploadProgress).toBeFalse();
+    expect(fixture.nativeElement.querySelector('.gallery-upload-batch-progress')).toBeFalsy();
     expect(fixture.nativeElement.querySelector('.gallery-upload-status-list')).toBeTruthy();
 
     upload$.next(new HttpResponse({ body: createImage(2) }));
     upload$.complete();
     pharmacyService.getMedicationImages.and.returnValue(of([createImage(1), createImage(2)]));
     fixture.detectChanges();
+  });
+
+  it('shows overall batch progress label for multiple files', () => {
+    pharmacyService.uploadMedicationImage.and.callFake((_id, file) => {
+      if (file.name === 'one.jpg') {
+        return of(
+          { type: HttpEventType.UploadProgress, loaded: 60, total: 100 } as HttpEvent<MedicationImageDto>
+        );
+      }
+
+      return NEVER;
+    });
+
+    component.onDropzoneFilesSelected([
+      createFile('one.jpg'),
+      createFile('two.jpg'),
+      createFile('three.jpg')
+    ]);
+    fixture.detectChanges();
+
+    expect(component.showBatchUploadProgress).toBeTrue();
+    expect(component.batchUploadLabel).toBe('Uploading 1 of 3 files');
+    expect(component.batchUploadProgress).toBe(20);
+
+    const batchProgress = fixture.nativeElement.querySelector('.gallery-upload-batch-progress');
+    expect(batchProgress).toBeTruthy();
+    expect(batchProgress.textContent).toContain('Uploading 1 of 3 files');
+    expect(batchProgress.textContent).toContain('20%');
   });
 
   it('hides progress UI and refreshes gallery after successful upload', () => {

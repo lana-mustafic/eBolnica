@@ -69,6 +69,7 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
   /** When true, files queue for preview and upload starts only after Upload selected. */
   @Input() usePendingQueue = true;
   @Input() uploadBatchProgress: number | null = null;
+  @Input() uploadBatchLabel: string | null = null;
   @Input() uploadFileStatuses: MedicationImageUploadFileStatus[] = [];
 
   @Output() filesSelected = new EventEmitter<File[]>();

@@ -49,6 +49,7 @@ describe('medication-image-upload.util', () => {
   it('reports upload progress from HttpEvent stream', (done) => {
     const files = [createFile('a.jpg')];
     const progressUpdates: number[] = [];
+    const batchUpdates: number[] = [];
 
     uploadMedicationImagesSequentially(
       medicationId,
@@ -58,10 +59,47 @@ describe('medication-image-upload.util', () => {
         new HttpResponse({ body: createImage('a.jpg', 1) })
       ),
       {
-        onFileProgress: (_fileName, progressPercent) => progressUpdates.push(progressPercent)
+        onFileProgress: (_fileName, progressPercent) => progressUpdates.push(progressPercent),
+        onBatchProgress: (overallPercent) => batchUpdates.push(overallPercent)
       }
     ).subscribe(() => {
       expect(progressUpdates).toEqual([40, 100]);
+      expect(batchUpdates).toEqual([0, 40, 100, 100]);
+      done();
+    });
+  });
+
+  it('reports overall batch progress while uploading multiple files', (done) => {
+    const files = [createFile('a.jpg'), createFile('b.jpg'), createFile('c.jpg')];
+    const batchUpdates: number[] = [];
+
+    uploadMedicationImagesSequentially(
+      medicationId,
+      files,
+      (_id, file) => {
+        if (file.name === 'a.jpg') {
+          return of(
+            { type: HttpEventType.UploadProgress, loaded: 100, total: 100 } as HttpEvent<MedicationImageDto>,
+            new HttpResponse({ body: createImage('a.jpg', 1) })
+          );
+        }
+
+        if (file.name === 'b.jpg') {
+          return of(
+            { type: HttpEventType.UploadProgress, loaded: 50, total: 100 } as HttpEvent<MedicationImageDto>,
+            new HttpResponse({ body: createImage('b.jpg', 2) })
+          );
+        }
+
+        return createUploadResponse('c.jpg', 3);
+      },
+      {
+        onBatchProgress: (overallPercent) => batchUpdates.push(overallPercent)
+      }
+    ).subscribe(() => {
+      expect(batchUpdates).toContain(33);
+      expect(batchUpdates).toContain(50);
+      expect(batchUpdates).toContain(100);
       done();
     });
   });

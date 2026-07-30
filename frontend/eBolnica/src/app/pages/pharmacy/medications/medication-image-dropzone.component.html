@@ -67,7 +67,7 @@
         [attr.aria-valuenow]="uploadBatchProgress"
         aria-label="Overall upload progress">
         <div class="image-dropzone-batch-progress-header">
-          <span>Upload in progress</span>
+          <span>{{ uploadBatchLabel ?? 'Upload in progress' }}</span>
           <span>{{ uploadBatchProgress }}%</span>
         </div>
         <div class="upload-progress-bar">

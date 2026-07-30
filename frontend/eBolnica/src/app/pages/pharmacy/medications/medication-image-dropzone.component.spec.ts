@@ -655,11 +655,13 @@ describe('MedicationImageDropzoneComponent', () => {
     it('shows batch progress bar inside dropzone while busy', () => {
       component.busy = true;
       component.uploadBatchProgress = 65;
+      component.uploadBatchLabel = 'Uploading 2 of 3 files';
       fixture.detectChanges();
 
       const progressBar = fixture.nativeElement.querySelector('.image-dropzone-batch-progress');
       expect(progressBar).toBeTruthy();
       expect(progressBar.getAttribute('aria-valuenow')).toBe('65');
+      expect(progressBar.textContent).toContain('Uploading 2 of 3 files');
       expect(progressBar.textContent).toContain('65%');
     });
 

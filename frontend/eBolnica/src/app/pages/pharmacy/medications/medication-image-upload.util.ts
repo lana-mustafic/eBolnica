@@ -6,6 +6,7 @@ import {
   extractMedicationImageUploadResponse,
   getHttpUploadProgressPercent
 } from './medication-image-upload-progress.util';
+import { calculateSequentialBatchProgress } from './medication-image-upload-status.util';
 
 export interface MedicationImageUploadError {
   fileName: string;
@@ -25,6 +26,7 @@ export type MedicationImageUploadFn = (
 export interface MedicationImageUploadProgressHandlers {
   onFileStart?: (fileName: string, index: number, total: number) => void;
   onFileProgress?: (fileName: string, progressPercent: number, index: number, total: number) => void;
+  onBatchProgress?: (overallPercent: number, index: number, total: number) => void;
   onFileComplete?: (fileName: string, image: MedicationImageDto) => void;
   onFileError?: (fileName: string, message: string) => void;
 }
@@ -69,12 +71,22 @@ export function uploadMedicationImagesSequentially(
   return from(files).pipe(
     concatMap((file, index) => {
       progress?.onFileStart?.(file.name, index, files.length);
+      progress?.onBatchProgress?.(
+        calculateSequentialBatchProgress(index, files.length, 0),
+        index,
+        files.length
+      );
 
       return uploadFn(medicationId, file).pipe(
         tap(event => {
           const progressPercent = getHttpUploadProgressPercent(event);
           if (progressPercent != null) {
             progress?.onFileProgress?.(file.name, progressPercent, index, files.length);
+            progress?.onBatchProgress?.(
+              calculateSequentialBatchProgress(index, files.length, progressPercent),
+              index,
+              files.length
+            );
           }
         }),
         filter((event): event is HttpEvent<MedicationImageDto> => event.type === HttpEventType.Response),
@@ -86,6 +98,13 @@ export function uploadMedicationImagesSequentially(
           return image;
         }),
         tap(image => progress?.onFileComplete?.(file.name, image)),
+        tap(() => {
+          progress?.onBatchProgress?.(
+            calculateSequentialBatchProgress(index + 1, files.length, 0),
+            index,
+            files.length
+          );
+        }),
         map(image => ({ fileName: file.name, image })),
         catchError(error => {
           const errorMessage = getMedicationImageUploadErrorMessage(error, file.name);

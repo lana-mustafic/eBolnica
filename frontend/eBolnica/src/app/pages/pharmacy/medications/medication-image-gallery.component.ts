@@ -12,10 +12,12 @@ import { MedicationImageDropzoneComponent } from './medication-image-dropzone.co
 import { SelectionLimitedEvent } from './medication-image-dropzone-selection.util';
 import { uploadMedicationImagesSequentially } from './medication-image-upload.util';
 import {
-  calculateBatchUploadProgress,
   createUploadFileStatuses,
+  deriveBatchUploadProgress,
+  formatBatchUploadProgressLabel,
   markUploadFileStatus,
   MedicationImageUploadFileStatus,
+  shouldShowBatchUploadProgress,
   updateUploadFileProgress
 } from './medication-image-upload-status.util';
 import {
@@ -74,6 +76,11 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
   deletingImageId: number | null = null;
   uploadFileStatuses: MedicationImageUploadFileStatus[] = [];
   batchUploadProgress = 0;
+  batchUploadLabel = '';
+
+  get showBatchUploadProgress(): boolean {
+    return this.isUploading && shouldShowBatchUploadProgress(this.uploadFileStatuses.length);
+  }
 
   readonly formatImageDimensions = formatMedicationImageDimensions;
   readonly formatImageFileSize = formatMedicationImageFileSize;
@@ -275,15 +282,14 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
 
     if (!options?.preserveExistingStatuses) {
       this.uploadFileStatuses = createUploadFileStatuses(files);
-      this.batchUploadProgress = 0;
     } else {
       this.uploadFileStatuses = files.reduce(
         (statuses, file) => markUploadFileStatus(statuses, file.name, 'pending'),
         this.uploadFileStatuses
       );
-      this.batchUploadProgress = calculateBatchUploadProgress(this.uploadFileStatuses);
     }
 
+    this.syncBatchUploadProgress();
     this.clearMessages();
 
     uploadMedicationImagesSequentially(
@@ -293,7 +299,7 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
       {
         onFileStart: (fileName) => {
           this.uploadFileStatuses = markUploadFileStatus(this.uploadFileStatuses, fileName, 'uploading');
-          this.batchUploadProgress = calculateBatchUploadProgress(this.uploadFileStatuses);
+          this.syncBatchUploadProgress();
         },
         onFileProgress: (fileName, progressPercent) => {
           this.uploadFileStatuses = updateUploadFileProgress(
@@ -301,11 +307,11 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
             fileName,
             progressPercent
           );
-          this.batchUploadProgress = calculateBatchUploadProgress(this.uploadFileStatuses);
+          this.syncBatchUploadProgress();
         },
         onFileComplete: (fileName, image) => {
           this.uploadFileStatuses = markUploadFileStatus(this.uploadFileStatuses, fileName, 'done');
-          this.batchUploadProgress = calculateBatchUploadProgress(this.uploadFileStatuses);
+          this.syncBatchUploadProgress();
           this.images = [...this.images, image];
           this.selectedIndex = this.images.length - 1;
           this.imagesChange.emit(this.images);
@@ -317,7 +323,7 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
             'error',
             message
           );
-          this.batchUploadProgress = calculateBatchUploadProgress(this.uploadFileStatuses);
+          this.syncBatchUploadProgress();
         }
       }
     ).pipe(
@@ -327,6 +333,7 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
         if (!hasErrors) {
           this.uploadFileStatuses = [];
           this.batchUploadProgress = 0;
+          this.batchUploadLabel = '';
         }
       })
     ).subscribe({
@@ -347,6 +354,12 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
         this.errorMessage = 'Failed to upload images. Please try again.';
       }
     });
+  }
+
+  private syncBatchUploadProgress(): void {
+    const batch = deriveBatchUploadProgress(this.uploadFileStatuses);
+    this.batchUploadProgress = batch.overallPercent;
+    this.batchUploadLabel = formatBatchUploadProgressLabel(batch);
   }
 
   private showUploadSuccess(uploaded: MedicationImageDto[]): void {

@@ -135,21 +135,23 @@
     <p class="gallery-upload-helper">Images are automatically optimized on upload (max 1920×1920).</p>
 
     @if (isUploading && uploadFileStatuses.length > 0) {
-      <div
-        class="gallery-upload-batch-progress"
-        role="progressbar"
-        [attr.aria-valuemin]="0"
-        [attr.aria-valuemax]="100"
-        [attr.aria-valuenow]="batchUploadProgress"
-        aria-label="Overall upload progress">
-        <div class="gallery-upload-batch-header">
-          <span>Uploading images...</span>
-          <span class="gallery-upload-batch-percent">{{ batchUploadProgress }}%</span>
+      @if (showBatchUploadProgress) {
+        <div
+          class="gallery-upload-batch-progress"
+          role="progressbar"
+          [attr.aria-valuemin]="0"
+          [attr.aria-valuemax]="100"
+          [attr.aria-valuenow]="batchUploadProgress"
+          [attr.aria-label]="batchUploadLabel">
+          <div class="gallery-upload-batch-header">
+            <span>{{ batchUploadLabel }}</span>
+            <span class="gallery-upload-batch-percent">{{ batchUploadProgress }}%</span>
+          </div>
+          <div class="upload-progress-bar">
+            <div class="upload-progress-fill" [style.width.%]="batchUploadProgress"></div>
+          </div>
         </div>
-        <div class="upload-progress-bar">
-          <div class="upload-progress-fill" [style.width.%]="batchUploadProgress"></div>
-        </div>
-      </div>
+      }
 
       <ul class="gallery-upload-status-list" role="status" aria-live="polite" aria-label="Image upload progress">
         @for (item of uploadFileStatuses; track item.fileName) {
@@ -203,7 +205,8 @@
       [usePendingQueue]="true"
       [busy]="isUploading"
       [disabled]="isDeleting"
-      [uploadBatchProgress]="isUploading ? batchUploadProgress : null"
+      [uploadBatchProgress]="showBatchUploadProgress ? batchUploadProgress : null"
+      [uploadBatchLabel]="showBatchUploadProgress ? batchUploadLabel : null"
       [uploadFileStatuses]="uploadFileStatuses"
       (filesSelected)="onDropzoneFilesSelected($event)"
       (pendingQueueCancelRequested)="onPendingQueueCancelRequested()"

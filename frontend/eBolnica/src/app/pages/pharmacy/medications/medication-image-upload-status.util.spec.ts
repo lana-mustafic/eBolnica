@@ -1,8 +1,12 @@
 import {
   calculateBatchUploadProgress,
+  calculateSequentialBatchProgress,
   createUploadFileStatuses,
+  deriveBatchUploadProgress,
+  formatBatchUploadProgressLabel,
   getActiveUploadFileName,
   markUploadFileStatus,
+  shouldShowBatchUploadProgress,
   updateUploadFileProgress
 } from './medication-image-upload-status.util';
 
@@ -63,5 +67,33 @@ describe('medication-image-upload-status.util', () => {
 
     const pending = markUploadFileStatus(initial, 'a.jpg', 'pending');
     expect(pending[0].message).toBeUndefined();
+  });
+
+  it('derives batch progress for a three-file upload', () => {
+    let statuses = createUploadFileStatuses([
+      new File(['a'], 'a.jpg', { type: 'image/jpeg' }),
+      new File(['b'], 'b.jpg', { type: 'image/jpeg' }),
+      new File(['c'], 'c.jpg', { type: 'image/jpeg' })
+    ]);
+
+    statuses = markUploadFileStatus(statuses, 'a.jpg', 'uploading');
+    statuses = updateUploadFileProgress(statuses, 'a.jpg', 60);
+
+    expect(deriveBatchUploadProgress(statuses)).toEqual({
+      overallPercent: 20,
+      totalFiles: 3,
+      completedFiles: 0,
+      activeFileName: 'a.jpg'
+    });
+    expect(formatBatchUploadProgressLabel(deriveBatchUploadProgress(statuses)))
+      .toBe('Uploading 1 of 3 files');
+    expect(shouldShowBatchUploadProgress(3)).toBeTrue();
+    expect(shouldShowBatchUploadProgress(1)).toBeFalse();
+  });
+
+  it('calculates sequential batch progress across multiple files', () => {
+    expect(calculateSequentialBatchProgress(0, 3, 90)).toBe(30);
+    expect(calculateSequentialBatchProgress(1, 3, 50)).toBe(50);
+    expect(calculateSequentialBatchProgress(2, 3, 100)).toBe(100);
   });
 });
