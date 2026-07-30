@@ -64,7 +64,8 @@
       @for (item of pendingQueue; track item.id) {
         <li
           class="image-dropzone-pending-item"
-          [class.is-invalid]="item.status === 'invalid'">
+          [class.is-invalid]="item.status === 'invalid'"
+          [attr.aria-invalid]="item.status === 'invalid'">
           <div class="image-dropzone-pending-thumb-wrap">
             @if (item.previewUrl) {
               <img
@@ -94,8 +95,21 @@
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
             </button>
+            @if (item.status === 'invalid') {
+              <span
+                class="image-dropzone-pending-error-badge"
+                [attr.title]="item.errorMessage"
+                [attr.aria-label]="item.errorMessage">
+                Invalid
+              </span>
+            }
           </div>
-          <span class="image-dropzone-pending-name" [title]="item.fileName">{{ item.fileName }}</span>
+          <span
+            class="image-dropzone-pending-name"
+            [class.is-invalid]="item.status === 'invalid'"
+            [title]="item.status === 'invalid' ? item.errorMessage : item.fileName">
+            {{ item.fileName }}
+          </span>
         </li>
       }
     </ul>

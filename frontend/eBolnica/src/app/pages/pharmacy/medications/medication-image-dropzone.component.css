@@ -232,6 +232,28 @@
   background: #fff5f5;
 }
 
+.image-dropzone-pending-error-badge {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  transform: translateX(-50%);
+  z-index: 1;
+  max-width: calc(100% - 8px);
+  padding: 0.125rem 0.4rem;
+  border-radius: 999px;
+  background: #c53030;
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
 .image-dropzone-pending-name {
   max-width: 100%;
   color: #4a5568;
@@ -241,6 +263,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.image-dropzone-pending-name.is-invalid {
+  color: #c53030;
 }
 
 @media (max-width: 768px), (hover: none), (pointer: coarse) {

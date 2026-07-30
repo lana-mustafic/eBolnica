@@ -397,6 +397,37 @@ describe('MedicationImageDropzoneComponent', () => {
       const placeholders = fixture.nativeElement.querySelectorAll('.image-dropzone-pending-placeholder');
       expect(previews.length).toBe(1);
       expect(placeholders.length).toBe(1);
+
+      const invalidItem = fixture.nativeElement.querySelector(
+        '.image-dropzone-pending-item.is-invalid'
+      ) as HTMLElement;
+      const errorBadge = invalidItem.querySelector('.image-dropzone-pending-error-badge') as HTMLElement;
+      expect(errorBadge).not.toBeNull();
+      expect(errorBadge.textContent?.trim()).toBe('Invalid');
+      expect(errorBadge.getAttribute('aria-label')).toContain('Invalid file type');
+      expect(invalidItem.getAttribute('aria-invalid')).toBe('true');
+    });
+
+    it('shows error badge for oversized files and excludes them from upload', () => {
+      spyOn(component.filesSelected, 'emit');
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      const tooLarge = createFile('large.jpg', { size: MEDICATION_IMAGE_MAX_FILE_SIZE_BYTES + 1 });
+
+      component.onDrop(dragEvent('drop', dropzone, { files: [tooLarge] }));
+      fixture.detectChanges();
+
+      const errorBadge = fixture.nativeElement.querySelector(
+        '.image-dropzone-pending-error-badge'
+      ) as HTMLElement;
+      expect(errorBadge).not.toBeNull();
+      expect(errorBadge.getAttribute('title')).toContain('too large');
+
+      const uploadButton = fixture.nativeElement.querySelector(
+        '.image-dropzone-action-upload'
+      ) as HTMLButtonElement;
+      expect(uploadButton.disabled).toBeTrue();
+      uploadButton.click();
+      expect(component.filesSelected.emit).not.toHaveBeenCalled();
     });
 
     it('respects remaining queue capacity when adding more files', () => {
