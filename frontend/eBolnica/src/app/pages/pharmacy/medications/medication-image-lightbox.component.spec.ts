@@ -442,3 +442,148 @@ describe('MedicationImageLightboxComponent pan drag', () => {
     expect(component.isPanning).toBeFalse();
   });
 });
+
+describe('MedicationImageLightboxComponent keyboard and delete', () => {
+  let component: MedicationImageLightboxComponent;
+  let fixture: ComponentFixture<MedicationImageLightboxComponent>;
+
+  const images: MedicationImageDto[] = [
+    {
+      id: 1,
+      medicationId: 10,
+      imageUrl: '/a.jpg',
+      isPrimary: true,
+      sortOrder: 0,
+      uploadedAt: '2026-01-01T00:00:00Z'
+    },
+    {
+      id: 2,
+      medicationId: 10,
+      imageUrl: '/b.jpg',
+      isPrimary: false,
+      sortOrder: 1,
+      uploadedAt: '2026-01-02T00:00:00Z'
+    }
+  ];
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [MedicationImageLightboxComponent]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(MedicationImageLightboxComponent);
+    component = fixture.componentInstance;
+    component.isOpen = true;
+    component.images = images;
+    component.currentIndex = 0;
+    component.resolveUrl = url => url;
+    fixture.detectChanges();
+  });
+
+  function dispatchKey(key: string): KeyboardEvent {
+    const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+    spyOn(event, 'preventDefault');
+    document.dispatchEvent(event);
+    return event;
+  }
+
+  it('closes on Escape and resets zoom', () => {
+    component.zoomScale = 2;
+    component.zoomTranslateX = 30;
+    spyOn(component.closed, 'emit');
+
+    const event = dispatchKey('Escape');
+
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(component.closed.emit).toHaveBeenCalled();
+    expect(component.zoomState).toEqual(LIGHTBOX_DEFAULT_ZOOM_STATE);
+  });
+
+  it('navigates to previous image on ArrowLeft and resets zoom', () => {
+    component.currentIndex = 1;
+    fixture.detectChanges();
+    component.zoomScale = LIGHTBOX_MAX_ZOOM;
+    component.zoomTranslateX = 20;
+    spyOn(component.indexChange, 'emit');
+
+    const event = dispatchKey('ArrowLeft');
+
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(component.indexChange.emit).toHaveBeenCalledWith(0);
+    expect(component.zoomState).toEqual(LIGHTBOX_DEFAULT_ZOOM_STATE);
+  });
+
+  it('navigates to next image on ArrowRight and resets zoom', () => {
+    component.zoomScale = 1.75;
+    component.zoomTranslateY = -15;
+    spyOn(component.indexChange, 'emit');
+
+    const event = dispatchKey('ArrowRight');
+
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(component.indexChange.emit).toHaveBeenCalledWith(1);
+    expect(component.zoomState).toEqual(LIGHTBOX_DEFAULT_ZOOM_STATE);
+  });
+
+  it('ignores keyboard shortcuts when lightbox is closed', () => {
+    component.isOpen = false;
+    spyOn(component.closed, 'emit');
+    spyOn(component.indexChange, 'emit');
+
+    dispatchKey('Escape');
+    dispatchKey('ArrowLeft');
+    dispatchKey('ArrowRight');
+
+    expect(component.closed.emit).not.toHaveBeenCalled();
+    expect(component.indexChange.emit).not.toHaveBeenCalled();
+  });
+
+  it('shows delete button when deletion is allowed', () => {
+    component.canDelete = true;
+    fixture.detectChanges();
+
+    const deleteButton = fixture.nativeElement.querySelector('.lightbox-delete-btn') as HTMLButtonElement;
+    expect(deleteButton).toBeTruthy();
+    expect(deleteButton.textContent?.trim()).toBe('Delete');
+  });
+
+  it('hides delete button when deletion is not allowed', () => {
+    component.canDelete = false;
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.lightbox-delete-btn')).toBeNull();
+  });
+
+  it('emits deleteRequested when delete button is clicked', () => {
+    component.canDelete = true;
+    fixture.detectChanges();
+    spyOn(component.deleteRequested, 'emit');
+
+    const deleteButton = fixture.nativeElement.querySelector('.lightbox-delete-btn') as HTMLButtonElement;
+    deleteButton.click();
+
+    expect(component.deleteRequested.emit).toHaveBeenCalled();
+  });
+
+  it('disables delete button while deletion is in progress', () => {
+    component.canDelete = true;
+    component.isDeleting = true;
+    fixture.detectChanges();
+
+    const deleteButton = fixture.nativeElement.querySelector('.lightbox-delete-btn') as HTMLButtonElement;
+    expect(deleteButton.disabled).toBeTrue();
+    expect(deleteButton.textContent?.trim()).toBe('Deleting...');
+  });
+
+  it('keeps delete available while image is zoomed', () => {
+    component.canDelete = true;
+    component.zoomScale = 2.5;
+    fixture.detectChanges();
+    spyOn(component.deleteRequested, 'emit');
+
+    const deleteButton = fixture.nativeElement.querySelector('.lightbox-delete-btn') as HTMLButtonElement;
+    deleteButton.click();
+
+    expect(component.deleteRequested.emit).toHaveBeenCalled();
+  });
+});
