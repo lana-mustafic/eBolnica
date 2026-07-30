@@ -1292,16 +1292,18 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
             Assert.Equal("Test usage notes", summary.UsageNotes);
             Assert.Equal("Test stock alert", summary.StockExpiryAlert);
             Assert.Equal("Test prescription info", summary.PrescriptionRequirement);
+            await AssertResponseDoesNotExposeSecrets(response);
         }
 
         [Fact]
-        public async Task GenerateMedicationAiSummary_UnknownMedication_ReturnsNotFound()
+        public async Task GenerateMedicationAiSummary_UnknownMedication_ReturnsNotFoundWithoutSecrets()
         {
             var response = await _client.PostAsync(
                 "/api/pharmacy/medications/999999/ai-summary",
                 JsonContent.Create(new { }));
 
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+            await AssertResponseDoesNotExposeSecrets(response);
         }
 
         [Fact]
@@ -1328,11 +1330,22 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
                 JsonContent.Create(new { }));
 
             Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+            await AssertResponseDoesNotExposeSecrets(response);
         }
 
         #endregion
 
         #region Helper Methods
+
+        private static async Task AssertResponseDoesNotExposeSecrets(HttpResponseMessage response)
+        {
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.DoesNotContain("ApiKey", body, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("api-key", body, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Bearer ", body, StringComparison.Ordinal);
+            Assert.DoesNotContain("sk-", body, StringComparison.Ordinal);
+            Assert.False(response.Headers.Contains("api-key"));
+        }
 
         private static MedicationCreateDto CreateValidMedicationDto(string name) =>
             new()

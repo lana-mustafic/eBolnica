@@ -323,8 +323,8 @@ export class PharmacyService {
   }
 
   /**
-   * Request an AI-generated summary for a medication.
-   * Backend builds the prompt from stored medication fields only.
+   * Request an AI-generated summary via the backend proxy.
+   * LLM credentials stay server-side; this call only sends the medication id.
    */
   generateMedicationAiSummary(medicationId: number): Observable<MedicationAiSummaryDto> {
     const requestTimeoutMs = 45_000;

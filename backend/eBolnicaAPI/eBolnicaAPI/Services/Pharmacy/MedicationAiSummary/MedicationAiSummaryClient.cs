@@ -70,7 +70,9 @@ namespace eBolnicaAPI.Services.Pharmacy.MedicationAiSummary
                 _logger.LogWarning(
                     "AI summary provider returned status {StatusCode}. Details: {ProviderError}",
                     (int)response.StatusCode,
-                    providerError ?? "(none)");
+                    MedicationAiSummarySecretSanitizer.SanitizeForLogs(providerError) is { Length: > 0 } sanitized
+                        ? sanitized
+                        : "(none)");
 
                 throw MedicationAiSummaryUnavailableException.ServiceUnavailable(
                     $"AI summary provider returned status {(int)response.StatusCode}.");

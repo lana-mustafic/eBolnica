@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace eBolnicaAPI.Models.Settings
 {
     /// <summary>
@@ -16,8 +18,10 @@ namespace eBolnicaAPI.Models.Settings
         public string Provider { get; set; } = "OpenAI";
 
         /// <summary>
-        /// Provider API key. For Azure OpenAI this is the resource key.
+        /// Provider API key. Server-side only — never expose to clients.
+        /// Set via MedicationAiSummary__ApiKey environment variable or user secrets.
         /// </summary>
+        [JsonIgnore]
         public string ApiKey { get; set; } = string.Empty;
 
         /// <summary>

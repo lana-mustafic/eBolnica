@@ -400,6 +400,10 @@ describe('PharmacyService generateMedicationAiSummary', () => {
 
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({});
+    expect(req.request.headers.has('Authorization')).toBeFalse();
+    expect(req.request.headers.has('api-key')).toBeFalse();
+    expect(req.request.url).not.toMatch(/openai|azure/i);
+    expect(JSON.stringify(req.request.body)).not.toMatch(/apiKey|api-key|sk-/i);
     req.flush(summary);
 
     expect(result).toEqual(summary);
