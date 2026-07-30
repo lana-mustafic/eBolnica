@@ -110,7 +110,7 @@ namespace eBolnicaAPI.Tests.Unit.Services
                     It.IsAny<string>(),
                     It.IsAny<string>(),
                     It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new MedicationAiSummaryUnavailableException("provider down"));
+                .ThrowsAsync(MedicationAiSummaryUnavailableException.ServiceUnavailable("provider down"));
 
             var service = CreateService(new MedicationAiSummarySettings
             {

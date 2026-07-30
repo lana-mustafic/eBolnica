@@ -9,18 +9,18 @@ namespace eBolnicaAPI.Services.Pharmacy.MedicationAiSummary
         {
             if (!settings.Enabled)
             {
-                throw new MedicationAiSummaryUnavailableException("AI summary service is disabled.");
+                throw MedicationAiSummaryUnavailableException.NotConfigured("AI summary service is disabled.");
             }
 
             if (string.IsNullOrWhiteSpace(settings.ApiKey))
             {
-                throw new MedicationAiSummaryUnavailableException("AI summary service is not configured.");
+                throw MedicationAiSummaryUnavailableException.NotConfigured();
             }
 
             var provider = MedicationAiSummaryLlmProvider.Normalize(settings.Provider);
             if (!MedicationAiSummaryLlmProvider.IsSupported(provider))
             {
-                throw new MedicationAiSummaryUnavailableException(
+                throw MedicationAiSummaryUnavailableException.NotConfigured(
                     $"AI summary provider '{settings.Provider}' is not supported.");
             }
 
@@ -28,12 +28,12 @@ namespace eBolnicaAPI.Services.Pharmacy.MedicationAiSummary
             {
                 if (string.IsNullOrWhiteSpace(settings.Model))
                 {
-                    throw new MedicationAiSummaryUnavailableException("OpenAI model is not configured.");
+                    throw MedicationAiSummaryUnavailableException.NotConfigured("OpenAI model is not configured.");
                 }
 
                 if (string.IsNullOrWhiteSpace(settings.BaseUrl))
                 {
-                    throw new MedicationAiSummaryUnavailableException("OpenAI base URL is not configured.");
+                    throw MedicationAiSummaryUnavailableException.NotConfigured("OpenAI base URL is not configured.");
                 }
 
                 return;
@@ -41,17 +41,19 @@ namespace eBolnicaAPI.Services.Pharmacy.MedicationAiSummary
 
             if (string.IsNullOrWhiteSpace(settings.Endpoint))
             {
-                throw new MedicationAiSummaryUnavailableException("Azure OpenAI endpoint is not configured.");
+                throw MedicationAiSummaryUnavailableException.NotConfigured("Azure OpenAI endpoint is not configured.");
             }
 
             if (string.IsNullOrWhiteSpace(ResolveDeploymentName(settings)))
             {
-                throw new MedicationAiSummaryUnavailableException("Azure OpenAI deployment name is not configured.");
+                throw MedicationAiSummaryUnavailableException.NotConfigured(
+                    "Azure OpenAI deployment name is not configured.");
             }
 
             if (string.IsNullOrWhiteSpace(settings.ApiVersion))
             {
-                throw new MedicationAiSummaryUnavailableException("Azure OpenAI API version is not configured.");
+                throw MedicationAiSummaryUnavailableException.NotConfigured(
+                    "Azure OpenAI API version is not configured.");
             }
         }
 

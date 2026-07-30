@@ -31,6 +31,13 @@ describe('medication-ai-summary.util', () => {
       .toContain('temporarily unavailable');
   });
 
+  it('builds timeout message for gateway timeout and client timeout', () => {
+    expect(getMedicationAiSummaryErrorMessage({ status: 504 }))
+      .toContain('timed out');
+    expect(getMedicationAiSummaryErrorMessage({ name: 'TimeoutError' }))
+      .toContain('timed out');
+  });
+
   it('builds non-blocking fallback message for unknown errors', () => {
     expect(getMedicationAiSummaryErrorMessage({ status: 500 }))
       .toContain('rest of this page is still available');

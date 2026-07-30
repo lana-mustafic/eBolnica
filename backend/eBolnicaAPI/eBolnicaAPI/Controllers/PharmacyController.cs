@@ -546,6 +546,7 @@ namespace eBolnicaAPI.Controllers
         [ProducesResponseType(typeof(MedicationAiSummaryDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+        [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
         public async Task<ActionResult<MedicationAiSummaryDto>> GenerateMedicationAiSummary(
             int id,
             CancellationToken cancellationToken)
@@ -562,7 +563,12 @@ namespace eBolnicaAPI.Controllers
             catch (MedicationAiSummaryUnavailableException ex)
             {
                 _logger.LogWarning(ex, "AI summary unavailable for MedicationId={MedicationId}", id);
-                return StatusCode(StatusCodes.Status503ServiceUnavailable, ex.Message);
+                return StatusCode(ex.StatusCode, ex.UserMessage);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogDebug("AI summary request cancelled for MedicationId={MedicationId}", id);
+                throw;
             }
         }
 

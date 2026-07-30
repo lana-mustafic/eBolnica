@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpErrorResponse, HttpResponse } from '@angular/common/http';
-import { Observable, throwError, of, timer, forkJoin } from 'rxjs';
+import { Observable, throwError, of, timer, forkJoin, timeout, TimeoutError } from 'rxjs';
 import { catchError, tap, retry, retryWhen, delayWhen, take, concatMap, map } from 'rxjs/operators';
 import { normalizePagedResponse, normalizeInventoryResponse } from '../../utils/paged-response.util';
 import { normalizePaginationParams } from '../../utils/pagination-params.util';
@@ -327,9 +327,20 @@ export class PharmacyService {
    * Backend builds the prompt from stored medication fields only.
    */
   generateMedicationAiSummary(medicationId: number): Observable<MedicationAiSummaryDto> {
+    const requestTimeoutMs = 45_000;
+
     return this.http.post<MedicationAiSummaryDto>(
       `${this.apiUrl}/medications/${medicationId}/ai-summary`,
       {}
+    ).pipe(
+      timeout(requestTimeoutMs),
+      catchError((error: unknown) => {
+        if (error instanceof TimeoutError) {
+          return throwError(() => ({ status: 504, name: 'TimeoutError' }));
+        }
+
+        return throwError(() => error);
+      })
     );
   }
 

@@ -60,7 +60,8 @@ namespace eBolnicaAPI.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to generate AI summary for medication {MedicationId}", medicationId);
-                throw new MedicationAiSummaryUnavailableException("AI summary service is temporarily unavailable.");
+                throw MedicationAiSummaryUnavailableException.ServiceUnavailable(
+                    "Unexpected AI summary generation failure.");
             }
         }
 

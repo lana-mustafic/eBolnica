@@ -14,7 +14,7 @@ namespace eBolnicaAPI.Services.Pharmacy.MedicationAiSummary
         {
             if (string.IsNullOrWhiteSpace(json))
             {
-                throw new MedicationAiSummaryUnavailableException("AI summary response was empty.");
+                throw MedicationAiSummaryUnavailableException.InvalidProviderResponse("AI summary response was empty.");
             }
 
             MedicationAiSummaryDto? summary;
@@ -22,14 +22,15 @@ namespace eBolnicaAPI.Services.Pharmacy.MedicationAiSummary
             {
                 summary = JsonSerializer.Deserialize<MedicationAiSummaryDto>(json, JsonOptions);
             }
-            catch (JsonException ex)
+            catch (JsonException)
             {
-                throw new MedicationAiSummaryUnavailableException("AI summary response was not valid JSON.", ex);
+                throw MedicationAiSummaryUnavailableException.InvalidProviderResponse(
+                    "AI summary response was not valid JSON.");
             }
 
             if (summary == null)
             {
-                throw new MedicationAiSummaryUnavailableException("AI summary response was empty.");
+                throw MedicationAiSummaryUnavailableException.InvalidProviderResponse("AI summary response was empty.");
             }
 
             summary.Overview = RequireSection(summary.Overview, "overview");
@@ -44,7 +45,8 @@ namespace eBolnicaAPI.Services.Pharmacy.MedicationAiSummary
         {
             if (string.IsNullOrWhiteSpace(value))
             {
-                throw new MedicationAiSummaryUnavailableException($"AI summary response missing required field: {fieldName}.");
+                throw MedicationAiSummaryUnavailableException.InvalidProviderResponse(
+                    $"AI summary response missing required field: {fieldName}.");
             }
 
             return value.Trim();

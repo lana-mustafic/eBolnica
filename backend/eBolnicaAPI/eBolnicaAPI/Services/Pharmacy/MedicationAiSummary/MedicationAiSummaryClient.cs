@@ -1,6 +1,9 @@
+using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using eBolnicaAPI.Models.Settings;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace eBolnicaAPI.Services.Pharmacy.MedicationAiSummary
@@ -9,13 +12,16 @@ namespace eBolnicaAPI.Services.Pharmacy.MedicationAiSummary
     {
         private readonly HttpClient _httpClient;
         private readonly IOptions<MedicationAiSummarySettings> _settings;
+        private readonly ILogger<MedicationAiSummaryClient> _logger;
 
         public MedicationAiSummaryClient(
             HttpClient httpClient,
-            IOptions<MedicationAiSummarySettings> settings)
+            IOptions<MedicationAiSummarySettings> settings,
+            ILogger<MedicationAiSummaryClient> logger)
         {
             _httpClient = httpClient;
             _settings = settings;
+            _logger = logger;
         }
 
         public async Task<string> GenerateSummaryJsonAsync(
@@ -28,35 +34,86 @@ namespace eBolnicaAPI.Services.Pharmacy.MedicationAiSummary
                 systemPrompt,
                 userPrompt);
 
+            var timeout = TimeSpan.FromSeconds(Math.Max(5, _settings.Value.TimeoutSeconds));
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(timeout);
+
             HttpResponseMessage response;
             try
             {
-                response = await _httpClient.SendAsync(request, cancellationToken);
+                response = await _httpClient.SendAsync(request, timeoutCts.Token);
             }
-            catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+            catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
             {
-                throw new MedicationAiSummaryUnavailableException("AI summary service timed out.", ex);
+                _logger.LogWarning(ex, "AI summary LLM request timed out after {TimeoutSeconds}s", timeout.TotalSeconds);
+                throw MedicationAiSummaryUnavailableException.Timeout(ex);
             }
             catch (HttpRequestException ex)
             {
-                throw new MedicationAiSummaryUnavailableException("AI summary service is temporarily unavailable.", ex);
+                _logger.LogWarning(ex, "AI summary LLM request failed due to a network error");
+                throw MedicationAiSummaryUnavailableException.ServiceUnavailable(
+                    "AI summary LLM network request failed.",
+                    ex);
+            }
+
+            if (IsTimeoutStatusCode(response.StatusCode))
+            {
+                _logger.LogWarning(
+                    "AI summary provider returned timeout status {StatusCode}",
+                    (int)response.StatusCode);
+                throw MedicationAiSummaryUnavailableException.Timeout();
             }
 
             if (!response.IsSuccessStatusCode)
             {
-                throw new MedicationAiSummaryUnavailableException(
+                var providerError = await TryReadProviderErrorAsync(response, timeoutCts.Token);
+                _logger.LogWarning(
+                    "AI summary provider returned status {StatusCode}. Details: {ProviderError}",
+                    (int)response.StatusCode,
+                    providerError ?? "(none)");
+
+                throw MedicationAiSummaryUnavailableException.ServiceUnavailable(
                     $"AI summary provider returned status {(int)response.StatusCode}.");
             }
 
-            var payload = await response.Content.ReadFromJsonAsync<ChatCompletionResponse>(cancellationToken);
-            var content = payload?.Choices?.FirstOrDefault()?.Message?.Content;
+            ChatCompletionResponse? payload;
+            try
+            {
+                payload = await response.Content.ReadFromJsonAsync<ChatCompletionResponse>(timeoutCts.Token);
+            }
+            catch (Exception ex) when (ex is JsonException or OperationCanceledException or NotSupportedException)
+            {
+                _logger.LogWarning(ex, "Failed to deserialize AI summary provider response");
+                throw MedicationAiSummaryUnavailableException.InvalidProviderResponse(
+                    "AI summary provider response could not be parsed.");
+            }
 
+            var content = payload?.Choices?.FirstOrDefault()?.Message?.Content;
             if (string.IsNullOrWhiteSpace(content))
             {
-                throw new MedicationAiSummaryUnavailableException("AI summary provider returned an empty response.");
+                throw MedicationAiSummaryUnavailableException.InvalidProviderResponse(
+                    "AI summary provider returned empty content.");
             }
 
             return content;
+        }
+
+        private static bool IsTimeoutStatusCode(HttpStatusCode statusCode) =>
+            statusCode is HttpStatusCode.RequestTimeout or HttpStatusCode.GatewayTimeout;
+
+        private static async Task<string?> TryReadProviderErrorAsync(
+            HttpResponseMessage response,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                return string.IsNullOrWhiteSpace(body) ? null : body.Trim();
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         private sealed class ChatCompletionResponse

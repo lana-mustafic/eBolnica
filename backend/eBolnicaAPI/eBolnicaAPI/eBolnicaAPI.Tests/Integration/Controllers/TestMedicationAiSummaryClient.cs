@@ -11,7 +11,8 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
         {
             if (string.IsNullOrWhiteSpace(userPrompt) || !userPrompt.Contains("name:", StringComparison.Ordinal))
             {
-                throw new MedicationAiSummaryUnavailableException("Test AI client received an invalid prompt.");
+                throw MedicationAiSummaryUnavailableException.InvalidProviderResponse(
+                    "Test AI client received an invalid prompt.");
             }
 
             return Task.FromResult(
