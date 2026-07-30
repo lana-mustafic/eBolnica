@@ -10,6 +10,7 @@ import { SortStatusComponent } from '../../../shared/components/sort-status/sort
 import { MedicationThumbnailComponent } from './medication-thumbnail.component';
 import { MedicationImportSummaryComponent } from './medication-import-summary.component';
 import { MedicationDto } from '../../../models/medication.dto';
+import { MedicationAutocompleteSuggestion } from '../../../models/medication-autocomplete.dto';
 import { MedicationImportSummary } from '../../../models/medication-import.dto';
 import { ActiveFilter, PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { PagedResponse } from '../../../models/paged-response.dto';
@@ -20,6 +21,14 @@ import {
   MAX_MEDICATION_IMPORT_FILE_SIZE_LABEL,
   validateMedicationImportFile
 } from '../../../shared/utils/medication-csv.util';
+import {
+  createMedicationAutocompleteSearch$,
+  MEDICATION_AUTOCOMPLETE_EMPTY_MESSAGE,
+  MEDICATION_AUTOCOMPLETE_MIN_LENGTH,
+  resolveMedicationAutocompleteSelection,
+  shouldShowMedicationAutocompleteEmptyState
+} from '../../../shared/utils/medication-autocomplete-search.util';
+import { handleMedicationAutocompleteKeydown } from '../../../shared/utils/medication-autocomplete-keyboard.util';
 
 /** Debounce delay for medication search input before combining with other filters */
 const MEDICATION_SEARCH_DEBOUNCE_MS = 300;
@@ -33,6 +42,8 @@ const MEDICATION_SEARCH_DEBOUNCE_MS = 300;
 })
 export class MedicationsComponent implements OnInit, OnDestroy {
   @ViewChild('csvFileInput') csvFileInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('searchBox') searchBox?: ElementRef<HTMLElement>;
+  @ViewChild('autocompleteList') autocompleteList?: ElementRef<HTMLUListElement>;
 
   protected pharmacyService = inject(PharmacyService);
   protected filterService = inject(PharmacyFilterService);
@@ -53,7 +64,24 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   // Search
   searchTerm: string = '';
   private searchSubject = new Subject<string>();
+  private autocompleteSubject = new Subject<string>();
   private destroy$ = new Subject<void>();
+
+  // Autocomplete
+  autocompleteSuggestions: MedicationAutocompleteSuggestion[] = [];
+  showAutocompleteDropdown = false;
+  autocompleteHighlightIndex = -1;
+  isAutocompleteLoading = false;
+  readonly autocompleteMinLength = MEDICATION_AUTOCOMPLETE_MIN_LENGTH;
+  readonly autocompleteEmptyMessage = MEDICATION_AUTOCOMPLETE_EMPTY_MESSAGE;
+
+  get showAutocompleteEmptyState(): boolean {
+    return shouldShowMedicationAutocompleteEmptyState({
+      showDropdown: this.showAutocompleteDropdown,
+      isLoading: this.isAutocompleteLoading,
+      suggestionsCount: this.autocompleteSuggestions.length
+    });
+  }
 
   // Filters (UI state)
   selectedCategory: string = '';
@@ -104,6 +132,32 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     ).subscribe(searchTerm => {
       this.searchTerm = searchTerm;
       this.pushFiltersFromUI();
+    });
+
+    createMedicationAutocompleteSearch$(
+      this.autocompleteSubject.asObservable(),
+      (term, limit) => this.pharmacyService.getMedicationAutocomplete(term, limit)
+    ).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(result => {
+      switch (result.kind) {
+        case 'idle':
+          this.closeAutocompleteDropdown();
+          break;
+        case 'loading':
+          this.isAutocompleteLoading = true;
+          this.showAutocompleteDropdown = true;
+          break;
+        case 'success':
+          this.isAutocompleteLoading = false;
+          this.showAutocompleteDropdown = true;
+          this.autocompleteSuggestions = result.suggestions;
+          this.autocompleteHighlightIndex = -1;
+          break;
+        case 'error':
+          this.closeAutocompleteDropdown();
+          break;
+      }
     });
 
     // Single API pipeline — all filter changes (search + dropdowns + paging + sort) flow here
@@ -318,6 +372,95 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     // Update input immediately; API call is debounced via searchSubject → pushFiltersFromUI
     this.searchTerm = searchTerm;
     this.searchSubject.next(searchTerm);
+    this.autocompleteSubject.next(searchTerm);
+  }
+
+  onSearchFocus(): void {
+    const trimmed = this.searchTerm.trim();
+
+    if (trimmed.length >= MEDICATION_AUTOCOMPLETE_MIN_LENGTH) {
+      this.autocompleteSubject.next(this.searchTerm);
+    }
+  }
+
+  onSearchKeydown(event: KeyboardEvent): void {
+    const result = handleMedicationAutocompleteKeydown(event.key, {
+      showDropdown: this.showAutocompleteDropdown,
+      suggestionsCount: this.autocompleteSuggestions.length,
+      highlightIndex: this.autocompleteHighlightIndex
+    });
+
+    switch (result.action.type) {
+      case 'moveHighlight':
+        event.preventDefault();
+        this.autocompleteHighlightIndex = result.action.nextIndex;
+        this.scrollHighlightedSuggestionIntoView();
+        break;
+      case 'selectHighlighted':
+        event.preventDefault();
+        this.selectAutocompleteSuggestion(
+          this.autocompleteSuggestions[result.action.index]
+        );
+        break;
+      case 'closeDropdown':
+        event.preventDefault();
+        event.stopPropagation();
+        this.closeAutocompleteDropdown();
+        break;
+    }
+  }
+
+  selectAutocompleteSuggestion(suggestion: MedicationAutocompleteSuggestion): void {
+    const selectedSearchTerm = resolveMedicationAutocompleteSelection(suggestion);
+
+    if (!selectedSearchTerm) {
+      return;
+    }
+
+    this.applySearchSelection(selectedSearchTerm);
+  }
+
+  /**
+   * Commit a search term from autocomplete selection: populate input and reload the list.
+   */
+  private applySearchSelection(searchTerm: string): void {
+    this.searchTerm = searchTerm;
+    this.closeAutocompleteDropdown();
+    this.currentPage = 1;
+    // Reset debounced search so a pending partial query cannot overwrite the selection.
+    this.searchSubject.next(searchTerm);
+    this.pushFiltersFromUI();
+  }
+
+  closeAutocompleteDropdown(): void {
+    this.showAutocompleteDropdown = false;
+    this.autocompleteSuggestions = [];
+    this.autocompleteHighlightIndex = -1;
+    this.isAutocompleteLoading = false;
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as Node | null;
+
+    if (target && this.searchBox?.nativeElement.contains(target)) {
+      return;
+    }
+
+    this.closeAutocompleteDropdown();
+  }
+
+  private scrollHighlightedSuggestionIntoView(): void {
+    if (this.autocompleteHighlightIndex < 0) {
+      return;
+    }
+
+    const optionId = `medication-autocomplete-option-${this.autocompleteHighlightIndex}`;
+    const option = this.autocompleteList?.nativeElement.querySelector(
+      `#${optionId}`
+    );
+
+    option?.scrollIntoView({ block: 'nearest' });
   }
 
   onCategoryChange(category: string): void {
@@ -345,6 +488,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
    * Resets all UI controls and reloads data with default filters
    */
   clearFilters(): void {
+    this.closeAutocompleteDropdown();
     this.searchTerm = '';
     this.selectedCategory = '';
     this.selectedStockStatus = '';
@@ -424,8 +568,8 @@ export class MedicationsComponent implements OnInit, OnDestroy {
       this.clearFilters();
     }
     
-    // Escape key to clear filters when active
-    if (event.key === 'Escape' && hasActiveFilters && 
+    // Escape key to clear filters when active (autocomplete Escape is handled on the search input)
+    if (event.key === 'Escape' && hasActiveFilters && !this.showAutocompleteDropdown &&
         !(event.target instanceof HTMLInputElement && (event.target as HTMLInputElement).type === 'text')) {
       // Don't clear if user is typing in an input field
       const target = event.target as HTMLElement;
@@ -438,7 +582,10 @@ export class MedicationsComponent implements OnInit, OnDestroy {
 
   removeFilter(filterKey: string): void {
     const uiResetters: Record<string, () => void> = {
-      searchTerm: () => { this.searchTerm = ''; },
+      searchTerm: () => {
+        this.searchTerm = '';
+        this.closeAutocompleteDropdown();
+      },
       category: () => { this.selectedCategory = ''; },
       stockStatus: () => { this.selectedStockStatus = ''; },
       requiresPrescription: () => { this.selectedRequiresPrescription = ''; },

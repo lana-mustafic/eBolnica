@@ -31,6 +31,7 @@ namespace eBolnicaAPI.Controllers
         private readonly IMedicationCsvExportService _medicationCsvExportService;
         private readonly IMedicationCsvImportService _medicationCsvImportService;
         private readonly IMedicationImportDuplicateChecker _medicationDuplicateChecker;
+        private readonly IMedicationAutocompleteService _medicationAutocompleteService;
         private readonly ILogger<PharmacyController> _logger;
         private readonly IMemoryCache _cache;
         private readonly IConfiguration _configuration;
@@ -45,6 +46,7 @@ namespace eBolnicaAPI.Controllers
             IMedicationCsvExportService medicationCsvExportService,
             IMedicationCsvImportService medicationCsvImportService,
             IMedicationImportDuplicateChecker medicationDuplicateChecker,
+            IMedicationAutocompleteService medicationAutocompleteService,
             ILogger<PharmacyController> logger,
             IMemoryCache cache,
             IConfiguration configuration)
@@ -58,6 +60,7 @@ namespace eBolnicaAPI.Controllers
             _medicationCsvExportService = medicationCsvExportService;
             _medicationCsvImportService = medicationCsvImportService;
             _medicationDuplicateChecker = medicationDuplicateChecker;
+            _medicationAutocompleteService = medicationAutocompleteService;
             _logger = logger;
             _cache = cache;
             _configuration = configuration;
@@ -325,6 +328,27 @@ namespace eBolnicaAPI.Controllers
             {
                 return BadRequest(new { error = ex.Message });
             }
+        }
+
+        /// <summary>
+        /// Returns up to 10 medication name suggestions for search autocomplete.
+        /// </summary>
+        /// <param name="q">Search query (minimum 2 characters)</param>
+        /// <param name="limit">Maximum suggestions to return (1-10, default 10)</param>
+        [HttpGet("medications/autocomplete")]
+        [Authorize(Roles = "Pharmacist,Admin")]
+        [ProducesResponseType(typeof(IReadOnlyList<MedicationAutocompleteSuggestionDto>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetMedicationAutocomplete(
+            [FromQuery] string q,
+            [FromQuery] int limit = MedicationAutocompleteService.MaxSuggestions,
+            CancellationToken cancellationToken = default)
+        {
+            var suggestions = await _medicationAutocompleteService.GetSuggestionsAsync(
+                q,
+                limit,
+                cancellationToken);
+
+            return Ok(suggestions);
         }
 
         [HttpGet("medications/{id}")]

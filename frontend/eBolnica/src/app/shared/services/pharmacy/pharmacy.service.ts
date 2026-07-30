@@ -5,6 +5,7 @@ import { catchError, tap, retry, retryWhen, delayWhen, take, concatMap, map } fr
 import { normalizePagedResponse, normalizeInventoryResponse } from '../../utils/paged-response.util';
 import { normalizePaginationParams } from '../../utils/pagination-params.util';
 import { MedicationDto } from '../../../models/medication.dto';
+import { MedicationAutocompleteSuggestion } from '../../../models/medication-autocomplete.dto';
 import { MedicationImageDto } from '../../../models/medication-image.dto';
 import { MedicationCreateDto } from '../../../models/medication-create.dto';
 import { PharmacistDataDto } from '../../../models/pharmacist-data.dto';
@@ -35,6 +36,11 @@ import {
   AnalyticsDateRange
 } from '../../../models/analytics.dto';
 import { MedicationNameAvailabilityResult } from '../../validators/medication-name-async.validator';
+import {
+  capMedicationAutocompleteLimit,
+  isMedicationAutocompleteQueryValid,
+  MEDICATION_AUTOCOMPLETE_MAX_SUGGESTIONS
+} from '../../utils/medication-autocomplete-search.util';
 
 /** API response for GET /medications/check-name */
 export interface MedicationNameAvailabilityDto {
@@ -198,6 +204,31 @@ export class PharmacyService {
         map(response => ({ isAvailable: response.isAvailable })),
         catchError(() => of({ isAvailable: false, checkFailed: true }))
       );
+  }
+
+  /**
+   * Fetch medication autocomplete suggestions for the search dropdown.
+   * @param term Search query (minimum 2 trimmed characters)
+   * @param limit Maximum suggestions to return (1-10, default 10)
+   */
+  getMedicationAutocomplete(
+    term: string,
+    limit = MEDICATION_AUTOCOMPLETE_MAX_SUGGESTIONS
+  ): Observable<MedicationAutocompleteSuggestion[]> {
+    const trimmed = term?.trim() ?? '';
+
+    if (!isMedicationAutocompleteQueryValid(trimmed)) {
+      return of([]);
+    }
+
+    const cappedLimit = capMedicationAutocompleteLimit(limit);
+    const params = new HttpParams()
+      .set('q', trimmed)
+      .set('limit', cappedLimit.toString());
+
+    return this.http
+      .get<MedicationAutocompleteSuggestion[]>(`${this.apiUrl}/medications/autocomplete`, { params })
+      .pipe(map(suggestions => suggestions.slice(0, cappedLimit)));
   }
 
   createMedication(medication: MedicationCreateDto): Observable<MedicationDto> {
