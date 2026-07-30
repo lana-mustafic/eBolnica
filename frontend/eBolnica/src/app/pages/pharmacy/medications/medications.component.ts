@@ -21,15 +21,13 @@ import {
   MAX_MEDICATION_IMPORT_FILE_SIZE_LABEL,
   validateMedicationImportFile
 } from '../../../shared/utils/medication-csv.util';
+import {
+  createMedicationAutocompleteSearch$,
+  MEDICATION_AUTOCOMPLETE_MIN_LENGTH
+} from '../../../shared/utils/medication-autocomplete-search.util';
 
 /** Debounce delay for medication search input before combining with other filters */
 const MEDICATION_SEARCH_DEBOUNCE_MS = 300;
-
-/** Minimum characters before autocomplete suggestions are requested */
-const MEDICATION_AUTOCOMPLETE_MIN_LENGTH = 2;
-
-/** Maximum autocomplete suggestions shown in the dropdown */
-const MEDICATION_AUTOCOMPLETE_MAX_SUGGESTIONS = 10;
 
 @Component({
   selector: 'app-medications',
@@ -122,41 +120,30 @@ export class MedicationsComponent implements OnInit, OnDestroy {
       this.pushFiltersFromUI();
     });
 
-    this.autocompleteSubject.pipe(
-      debounceTime(MEDICATION_SEARCH_DEBOUNCE_MS),
-      distinctUntilChanged(),
-      switchMap(searchTerm => {
-        const trimmed = searchTerm.trim();
-
-        if (trimmed.length < MEDICATION_AUTOCOMPLETE_MIN_LENGTH) {
-          this.closeAutocompleteDropdown();
-          return of([] as MedicationAutocompleteSuggestion[]);
-        }
-
-        this.isAutocompleteLoading = true;
-        this.showAutocompleteDropdown = true;
-
-        return this.pharmacyService.getMedicationAutocompleteSuggestions(
-          trimmed,
-          MEDICATION_AUTOCOMPLETE_MAX_SUGGESTIONS
-        ).pipe(
-          catchError(() => {
-            this.closeAutocompleteDropdown();
-            return of([] as MedicationAutocompleteSuggestion[]);
-          }),
-          finalize(() => {
-            this.isAutocompleteLoading = false;
-          })
-        );
-      }),
+    createMedicationAutocompleteSearch$(
+      this.autocompleteSubject.asObservable(),
+      (term, limit) => this.pharmacyService.getMedicationAutocompleteSuggestions(term, limit)
+    ).pipe(
       takeUntil(this.destroy$)
-    ).subscribe(suggestions => {
-      if (!this.showAutocompleteDropdown) {
-        return;
+    ).subscribe(result => {
+      switch (result.kind) {
+        case 'idle':
+          this.closeAutocompleteDropdown();
+          break;
+        case 'loading':
+          this.isAutocompleteLoading = true;
+          this.showAutocompleteDropdown = true;
+          break;
+        case 'success':
+          this.isAutocompleteLoading = false;
+          this.showAutocompleteDropdown = true;
+          this.autocompleteSuggestions = result.suggestions;
+          this.autocompleteHighlightIndex = -1;
+          break;
+        case 'error':
+          this.closeAutocompleteDropdown();
+          break;
       }
-
-      this.autocompleteSuggestions = suggestions.slice(0, MEDICATION_AUTOCOMPLETE_MAX_SUGGESTIONS);
-      this.autocompleteHighlightIndex = -1;
     });
 
     // Single API pipeline — all filter changes (search + dropdowns + paging + sort) flow here
