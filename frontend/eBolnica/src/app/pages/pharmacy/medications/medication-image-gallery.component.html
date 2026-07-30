@@ -115,6 +115,8 @@
 
   <!-- Upload Dropzone -->
   <div class="gallery-upload">
+    <p class="gallery-upload-helper">Images are automatically optimized on upload</p>
+
     @if (uploadFileStatuses.length > 0) {
       <ul class="gallery-upload-status-list" role="status" aria-live="polite" aria-label="Image upload progress">
         @for (item of uploadFileStatuses; track item.fileName) {

@@ -103,4 +103,11 @@ describe('MedicationImageGalleryComponent metadata', () => {
     expect(metadata.textContent).toContain('128 × 128 px');
     expect(metadata.textContent).toContain('1.0 KB');
   });
+
+  it('shows upload optimization helper text', () => {
+    fixture.detectChanges();
+
+    const helper = fixture.nativeElement.querySelector('.gallery-upload-helper');
+    expect(helper?.textContent?.trim()).toBe('Images are automatically optimized on upload');
+  });
 });
