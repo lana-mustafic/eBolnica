@@ -329,11 +329,11 @@ describe('PharmacyService getMedicationAutocomplete', () => {
     expect(req.request.params.get('q')).toBe('asp');
     expect(req.request.params.get('limit')).toBe('10');
     req.flush([
-      { id: 1, name: 'Aspirin', category: 'painkiller' }
+      { id: 1, name: 'Aspirin', category: 'painkiller', manufacturer: 'PharmaCorp' }
     ]);
 
     expect(result).toEqual([
-      { id: 1, name: 'Aspirin', category: 'painkiller' }
+      { id: 1, name: 'Aspirin', category: 'painkiller', manufacturer: 'PharmaCorp' }
     ]);
   });
 

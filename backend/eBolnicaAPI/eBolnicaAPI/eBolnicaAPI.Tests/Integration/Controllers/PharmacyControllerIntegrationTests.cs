@@ -548,6 +548,7 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
             Assert.True(suggestions.Count <= 10);
             Assert.All(suggestions, s => Assert.False(string.IsNullOrWhiteSpace(s.Name)));
             Assert.DoesNotContain(suggestions, s => s.Name == "Discontinued Drug");
+            Assert.Contains(suggestions, s => !string.IsNullOrWhiteSpace(s.Category) || !string.IsNullOrWhiteSpace(s.Manufacturer));
         }
 
         [Fact]

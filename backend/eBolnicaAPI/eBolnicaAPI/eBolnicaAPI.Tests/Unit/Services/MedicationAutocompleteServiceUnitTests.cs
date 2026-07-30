@@ -81,6 +81,8 @@ namespace eBolnicaAPI.Tests.Unit.Services
 
             Assert.Single(byName);
             Assert.Equal("Aspirin", byName[0].Name);
+            Assert.Equal("painkiller", byName[0].Category);
+            Assert.Equal("PharmaCorp", byName[0].Manufacturer);
             Assert.Single(byGeneric);
             Assert.Equal("Aspirin", byGeneric[0].Name);
             Assert.Single(byManufacturer);

@@ -11,6 +11,6 @@ namespace eBolnicaAPI.Models.DTOs
 
         public string? Category { get; set; }
 
-        public string? GenericName { get; set; }
+        public string? Manufacturer { get; set; }
     }
 }

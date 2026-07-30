@@ -40,7 +40,7 @@ namespace eBolnicaAPI.Services.Pharmacy
                     Id = m.Id,
                     Name = m.Name,
                     Category = m.Category,
-                    GenericName = m.GenericName
+                    Manufacturer = m.Manufacturer
                 });
         }
     }
