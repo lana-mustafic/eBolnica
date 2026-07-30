@@ -38,6 +38,10 @@ import {
   MedicationImageValidationError,
   partitionMedicationImageFiles
 } from './medication-image-validation.util';
+import {
+  getUploadStatusForFileName,
+  MedicationImageUploadFileStatus
+} from './medication-image-upload-status.util';
 
 export {
   MEDICATION_IMAGE_ACCEPT,
@@ -64,6 +68,9 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
   @Input() hint?: string;
   /** When true, files queue for preview and upload starts only after Upload selected. */
   @Input() usePendingQueue = true;
+  @Input() uploadBatchProgress: number | null = null;
+  @Input() uploadBatchLabel: string | null = null;
+  @Input() uploadFileStatuses: MedicationImageUploadFileStatus[] = [];
 
   @Output() filesSelected = new EventEmitter<File[]>();
   @Output() pendingQueueChange = new EventEmitter<PendingMedicationImage[]>();
@@ -71,6 +78,7 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
   @Output() selectionLimited = new EventEmitter<SelectionLimitedEvent>();
   @Output() validationErrors = new EventEmitter<MedicationImageValidationError[]>();
   @Output() uploadBlocked = new EventEmitter<void>();
+  @Output() retryUploadRequested = new EventEmitter<string>();
 
   readonly fileInputId = createDropzoneFileInputId();
 
@@ -113,6 +121,10 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
 
     const fileLimit = this.multiple ? ` (max ${this.maxFiles} files)` : '';
     return `JPG, PNG, or WEBP up to ${MEDICATION_IMAGE_MAX_FILE_SIZE_LABEL} each${fileLimit}`;
+  }
+
+  getUploadStatus(fileName: string): MedicationImageUploadFileStatus | undefined {
+    return getUploadStatusForFileName(this.uploadFileStatuses, fileName);
   }
 
   onDropzoneClick(event: MouseEvent): void {
@@ -258,9 +270,34 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
     this.pendingQueueCancelRequested.emit();
   }
 
+  onRetryUploadClick(event: Event, fileName: string): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (this.busy || this.disabled) {
+      return;
+    }
+
+    this.retryUploadRequested.emit(fileName);
+  }
+
   clearPendingQueue(): void {
     this.pendingQueue = cancelPendingMedicationImageQueue(this.pendingQueue);
     this.pendingQueueChange.emit(this.pendingQueue);
+  }
+
+  removePendingFilesByName(fileNames: string[]): void {
+    const names = new Set(fileNames);
+    const toRemove = this.pendingQueue.filter(item => names.has(item.fileName));
+
+    for (const item of toRemove) {
+      this.removePendingFile(item.id);
+    }
+  }
+
+  canRetryUpload(fileName: string): boolean {
+    const status = this.getUploadStatus(fileName);
+    return !!status && status.status === 'error' && !this.busy && !this.disabled;
   }
 
   ngOnDestroy(): void {

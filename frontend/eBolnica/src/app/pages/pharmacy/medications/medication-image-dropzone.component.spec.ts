@@ -646,4 +646,81 @@ describe('MedicationImageDropzoneComponent', () => {
       expect(component.pendingQueue).toEqual([]);
     });
   });
+
+  describe('upload progress UI', () => {
+    beforeEach(() => {
+      spyOn(URL, 'createObjectURL').and.callFake((blob: Blob) => `blob:${(blob as File).name}`);
+    });
+
+    it('shows batch progress bar inside dropzone while busy', () => {
+      component.busy = true;
+      component.uploadBatchProgress = 65;
+      component.uploadBatchLabel = 'Uploading 2 of 3 files';
+      fixture.detectChanges();
+
+      const progressBar = fixture.nativeElement.querySelector('.image-dropzone-batch-progress');
+      expect(progressBar).toBeTruthy();
+      expect(progressBar.getAttribute('aria-valuenow')).toBe('65');
+      expect(progressBar.textContent).toContain('Uploading 2 of 3 files');
+      expect(progressBar.textContent).toContain('65%');
+    });
+
+    it('shows per-file progress on pending thumbnails during upload', () => {
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      component.onDrop(dragEvent('drop', dropzone, {
+        files: [createFile('a.jpg')]
+      }));
+      component.uploadFileStatuses = [{
+        fileName: 'a.jpg',
+        status: 'uploading',
+        progressPercent: 42
+      }];
+      fixture.detectChanges();
+
+      const fileProgress = fixture.nativeElement.querySelector('.image-dropzone-pending-progress');
+      expect(fileProgress?.getAttribute('aria-valuenow')).toBe('42');
+      expect(fixture.nativeElement.querySelector('.image-dropzone-pending-progress-label')?.textContent?.trim())
+        .toBe('42%');
+    });
+
+    it('emits retryUploadRequested when retry is clicked on failed file', () => {
+      spyOn(component.retryUploadRequested, 'emit');
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      component.onDrop(dragEvent('drop', dropzone, {
+        files: [createFile('a.jpg')]
+      }));
+      component.uploadFileStatuses = [{
+        fileName: 'a.jpg',
+        status: 'error',
+        progressPercent: 35,
+        message: 'Upload failed'
+      }];
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.image-dropzone-pending-error-message')?.textContent?.trim())
+        .toBe('Upload failed');
+      expect(fixture.nativeElement.querySelector('.image-dropzone-pending-error-badge.is-upload-failed'))
+        .toBeTruthy();
+
+      const retryButton = fixture.nativeElement.querySelector(
+        '.image-dropzone-pending-retry-btn'
+      ) as HTMLButtonElement;
+      retryButton.click();
+
+      expect(component.retryUploadRequested.emit).toHaveBeenCalledWith('a.jpg');
+    });
+
+    it('removes only uploaded files from the pending queue', () => {
+      spyOn(URL, 'createObjectURL').and.callFake((blob: Blob) => `blob:${(blob as File).name}`);
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      component.onDrop(dragEvent('drop', dropzone, {
+        files: [createFile('keep.jpg'), createFile('remove.jpg')]
+      }));
+
+      component.removePendingFilesByName(['remove.jpg']);
+      fixture.detectChanges();
+
+      expect(component.pendingQueue.map(item => item.fileName)).toEqual(['keep.jpg']);
+    });
+  });
 });

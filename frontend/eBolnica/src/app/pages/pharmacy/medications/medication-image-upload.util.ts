@@ -1,6 +1,12 @@
-import { Observable, from, of } from 'rxjs';
-import { catchError, concatMap, map, reduce, tap } from 'rxjs/operators';
+import { HttpEvent, HttpEventType } from '@angular/common/http';
+import { Observable, from, of, throwError } from 'rxjs';
+import { catchError, concatMap, filter, map, reduce, tap } from 'rxjs/operators';
 import { MedicationImageDto } from '../../../models/medication-image.dto';
+import {
+  extractMedicationImageUploadResponse,
+  getHttpUploadProgressPercent
+} from './medication-image-upload-progress.util';
+import { calculateSequentialBatchProgress } from './medication-image-upload-status.util';
 
 export interface MedicationImageUploadError {
   fileName: string;
@@ -15,10 +21,12 @@ export interface MedicationImageUploadBatchResult {
 export type MedicationImageUploadFn = (
   medicationId: number,
   file: File
-) => Observable<MedicationImageDto>;
+) => Observable<HttpEvent<MedicationImageDto>>;
 
 export interface MedicationImageUploadProgressHandlers {
   onFileStart?: (fileName: string, index: number, total: number) => void;
+  onFileProgress?: (fileName: string, progressPercent: number, index: number, total: number) => void;
+  onBatchProgress?: (overallPercent: number, index: number, total: number) => void;
   onFileComplete?: (fileName: string, image: MedicationImageDto) => void;
   onFileError?: (fileName: string, message: string) => void;
 }
@@ -63,9 +71,40 @@ export function uploadMedicationImagesSequentially(
   return from(files).pipe(
     concatMap((file, index) => {
       progress?.onFileStart?.(file.name, index, files.length);
+      progress?.onBatchProgress?.(
+        calculateSequentialBatchProgress(index, files.length, 0),
+        index,
+        files.length
+      );
 
       return uploadFn(medicationId, file).pipe(
+        tap(event => {
+          const progressPercent = getHttpUploadProgressPercent(event);
+          if (progressPercent != null) {
+            progress?.onFileProgress?.(file.name, progressPercent, index, files.length);
+            progress?.onBatchProgress?.(
+              calculateSequentialBatchProgress(index, files.length, progressPercent),
+              index,
+              files.length
+            );
+          }
+        }),
+        filter((event): event is HttpEvent<MedicationImageDto> => event.type === HttpEventType.Response),
+        map(event => {
+          const image = extractMedicationImageUploadResponse(event);
+          if (!image) {
+            throw { status: 500, error: { message: 'Upload completed without a response body.' } };
+          }
+          return image;
+        }),
         tap(image => progress?.onFileComplete?.(file.name, image)),
+        tap(() => {
+          progress?.onBatchProgress?.(
+            calculateSequentialBatchProgress(index + 1, files.length, 0),
+            index,
+            files.length
+          );
+        }),
         map(image => ({ fileName: file.name, image })),
         catchError(error => {
           const errorMessage = getMedicationImageUploadErrorMessage(error, file.name);

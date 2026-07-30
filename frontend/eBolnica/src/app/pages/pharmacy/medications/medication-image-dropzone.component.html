@@ -57,14 +57,36 @@
       (click)="onBrowseClick($event)">
       {{ browseLabel }}
     </label>
+
+    @if (busy && uploadBatchProgress != null) {
+      <div
+        class="image-dropzone-batch-progress"
+        role="progressbar"
+        [attr.aria-valuemin]="0"
+        [attr.aria-valuemax]="100"
+        [attr.aria-valuenow]="uploadBatchProgress"
+        aria-label="Overall upload progress">
+        <div class="image-dropzone-batch-progress-header">
+          <span>{{ uploadBatchLabel ?? 'Upload in progress' }}</span>
+          <span>{{ uploadBatchProgress }}%</span>
+        </div>
+        <div class="upload-progress-bar">
+          <div class="upload-progress-fill" [style.width.%]="uploadBatchProgress"></div>
+        </div>
+      </div>
+    }
   </div>
 
   @if (usePendingQueue && pendingQueue.length > 0) {
     <ul class="image-dropzone-pending-list" role="list" aria-label="Pending image previews">
       @for (item of pendingQueue; track item.id) {
+        @let uploadStatus = getUploadStatus(item.fileName);
         <li
           class="image-dropzone-pending-item"
           [class.is-invalid]="item.status === 'invalid'"
+          [class.is-uploading]="uploadStatus?.status === 'uploading'"
+          [class.is-uploaded]="uploadStatus?.status === 'done'"
+          [class.is-upload-error]="uploadStatus?.status === 'error'"
           [attr.aria-invalid]="item.status === 'invalid'">
           <div class="image-dropzone-pending-thumb-wrap">
             @if (item.previewUrl) {
@@ -102,6 +124,13 @@
                 [attr.aria-label]="item.errorMessage">
                 Invalid
               </span>
+            } @else if (uploadStatus?.status === 'error') {
+              <span
+                class="image-dropzone-pending-error-badge is-upload-failed"
+                [attr.title]="uploadStatus.message"
+                [attr.aria-label]="uploadStatus.message">
+                Failed
+              </span>
             }
           </div>
           <span
@@ -110,6 +139,42 @@
             [title]="item.status === 'invalid' ? item.errorMessage : item.fileName">
             {{ item.fileName }}
           </span>
+          @if (uploadStatus && (uploadStatus.status === 'uploading' || uploadStatus.status === 'done' || uploadStatus.status === 'error')) {
+            <div
+              class="upload-progress-bar image-dropzone-pending-progress"
+              [class.is-complete]="uploadStatus.status === 'done'"
+              [class.is-error]="uploadStatus.status === 'error'"
+              role="progressbar"
+              [attr.aria-valuemin]="0"
+              [attr.aria-valuemax]="100"
+              [attr.aria-valuenow]="uploadStatus.progressPercent ?? 0"
+              [attr.aria-label]="'Upload progress for ' + item.fileName">
+              <div class="upload-progress-fill" [style.width.%]="uploadStatus.progressPercent ?? 0"></div>
+            </div>
+            <span class="image-dropzone-pending-progress-label">
+              @if (uploadStatus.status === 'error') {
+                Upload failed
+              } @else {
+                {{ uploadStatus.progressPercent ?? 0 }}%
+              }
+            </span>
+            @if (uploadStatus.status === 'error') {
+              <p
+                class="image-dropzone-pending-error-message"
+                role="alert"
+                [attr.title]="uploadStatus.message">
+                {{ uploadStatus.message }}
+              </p>
+              <button
+                type="button"
+                class="image-dropzone-pending-retry-btn"
+                (click)="onRetryUploadClick($event, item.fileName)"
+                [disabled]="!canRetryUpload(item.fileName)"
+                [attr.aria-label]="'Retry upload for ' + item.fileName">
+                Retry
+              </button>
+            }
+          }
         </li>
       }
     </ul>
