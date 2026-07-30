@@ -7,6 +7,12 @@ import {
   ViewChild
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import {
+  configureBlockedDragOver,
+  configureFileDragOver,
+  hasFileDragPayload,
+  shouldClearDragOver
+} from './medication-image-dropzone-drag.util';
 
 /** Accepted MIME types for medication image uploads. */
 export const MEDICATION_IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp';
@@ -74,17 +80,36 @@ export class MedicationImageDropzoneComponent {
     this.openFilePicker();
   }
 
-  onDragOver(event: DragEvent): void {
-    if (!this.isInteractive) return;
+  onDragEnter(event: DragEvent): void {
+    if (!hasFileDragPayload(event)) return;
 
-    event.preventDefault();
-    event.stopPropagation();
+    if (!this.isInteractive) {
+      configureBlockedDragOver(event);
+      return;
+    }
+
+    configureFileDragOver(event);
     this.isDragOver = true;
+  }
+
+  onDragOver(event: DragEvent): void {
+    if (!hasFileDragPayload(event)) return;
+
+    if (!this.isInteractive) {
+      configureBlockedDragOver(event);
+      return;
+    }
+
+    configureFileDragOver(event);
   }
 
   onDragLeave(event: DragEvent): void {
     event.preventDefault();
     event.stopPropagation();
+
+    const dropzone = event.currentTarget as HTMLElement;
+    if (!shouldClearDragOver(event, dropzone)) return;
+
     this.isDragOver = false;
   }
 
@@ -93,7 +118,7 @@ export class MedicationImageDropzoneComponent {
     event.stopPropagation();
     this.isDragOver = false;
 
-    if (!this.isInteractive) return;
+    if (!this.isInteractive || !hasFileDragPayload(event)) return;
 
     this.emitFiles(event.dataTransfer?.files);
   }

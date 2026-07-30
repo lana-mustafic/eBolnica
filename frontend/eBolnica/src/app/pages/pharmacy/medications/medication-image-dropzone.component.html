@@ -1,10 +1,12 @@
 <div
+  #dropzone
   class="image-dropzone"
   [class.drag-over]="isDragOver"
   [class.busy]="busy"
   [class.disabled]="disabled || busy"
   (click)="onDropzoneClick($event)"
   (keydown)="onDropzoneKeydown($event)"
+  (dragenter)="onDragEnter($event)"
   (dragover)="onDragOver($event)"
   (dragleave)="onDragLeave($event)"
   (drop)="onDrop($event)"
