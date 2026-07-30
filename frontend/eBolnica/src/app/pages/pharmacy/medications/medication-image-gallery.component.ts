@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, Output, ViewChild, inject, OnChanges, SimpleChanges, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { finalize } from 'rxjs';
 import { MedicationImageDto } from '../../../models/medication-image.dto';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
@@ -26,13 +27,21 @@ import {
   formatMedicationImageFileSize,
   hasMedicationImageMetadata
 } from './medication-image-metadata.util';
+import {
+  buildMedicationImageReorderPayload,
+  createMedicationImageGalleryReorderSnapshot,
+  getMedicationImageReorderErrorMessage,
+  MedicationImageGalleryReorderSnapshot,
+  moveMedicationImageInGallery,
+  restoreMedicationImageGalleryReorderSnapshot
+} from './medication-image-gallery-reorder.util';
 
 const IMAGE_DELETE_ROLES = ['Pharmacist', 'Admin'] as const;
 
 @Component({
   selector: 'app-medication-image-gallery',
   standalone: true,
-  imports: [CommonModule, MedicationImageLightboxComponent, MedicationImageDropzoneComponent],
+  imports: [CommonModule, DragDropModule, MedicationImageLightboxComponent, MedicationImageDropzoneComponent],
   templateUrl: './medication-image-gallery.component.html',
   styleUrl: './medication-image-gallery.component.css'
 })
@@ -55,6 +64,7 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
   isUploading = false;
   isManaging = false;
   isDeleting = false;
+  isReordering = false;
   errorMessage: string | null = null;
   successMessage: string | null = null;
   lightboxOpen = false;
@@ -97,6 +107,14 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
     return image ? this.pharmacyService.resolveMedicationImageUrl(image.imageUrl) : null;
   }
 
+  get canReorderImages(): boolean {
+    return this.images.length >= 2
+      && !this.isDeleting
+      && !this.isUploading
+      && !this.isManaging
+      && !this.isReordering;
+  }
+
   selectImage(index: number): void {
     if (index >= 0 && index < this.images.length) {
       this.selectedIndex = index;
@@ -115,6 +133,73 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
 
   onLightboxIndexChange(index: number): void {
     this.selectedIndex = index;
+  }
+
+  onThumbnailDrop(event: CdkDragDrop<MedicationImageDto[]>): void {
+    if (!this.canReorderImages || event.previousIndex === event.currentIndex) {
+      return;
+    }
+
+    const snapshot = createMedicationImageGalleryReorderSnapshot(this.images, this.selectedIndex);
+    const result = moveMedicationImageInGallery(
+      this.images,
+      event.previousIndex,
+      event.currentIndex,
+      this.selectedIndex
+    );
+    const selectedImageId = this.selectedImage?.id;
+
+    this.applyGalleryImages(result.images, result.selectedIndex);
+
+    this.isReordering = true;
+    this.clearMessages();
+
+    this.pharmacyService.reorderMedicationImages(
+      this.medicationId,
+      buildMedicationImageReorderPayload(result.images)
+    ).pipe(
+      finalize(() => {
+        this.isReordering = false;
+      })
+    ).subscribe({
+      next: (images) => {
+        this.applyGalleryImages(
+          images,
+          this.resolveSelectedIndex(images, selectedImageId, result.selectedIndex)
+        );
+      },
+      error: (error) => {
+        this.rollbackGalleryReorder(snapshot, error);
+      }
+    });
+  }
+
+  private rollbackGalleryReorder(
+    snapshot: MedicationImageGalleryReorderSnapshot,
+    error: { status?: number; error?: { message?: string } | string }
+  ): void {
+    const restored = restoreMedicationImageGalleryReorderSnapshot(snapshot);
+    this.applyGalleryImages(restored.images, restored.selectedIndex);
+    this.errorMessage = getMedicationImageReorderErrorMessage(error);
+  }
+
+  private applyGalleryImages(images: MedicationImageDto[], selectedIndex: number): void {
+    this.images = images;
+    this.selectedIndex = selectedIndex;
+    this.imagesChange.emit(this.images);
+  }
+
+  private resolveSelectedIndex(
+    images: MedicationImageDto[],
+    selectedImageId: number | undefined,
+    fallbackIndex: number
+  ): number {
+    if (selectedImageId == null) {
+      return fallbackIndex;
+    }
+
+    const index = images.findIndex(image => image.id === selectedImageId);
+    return index >= 0 ? index : fallbackIndex;
   }
 
   /** Starts upload for files confirmed via Upload selected (not on drop/browse). */

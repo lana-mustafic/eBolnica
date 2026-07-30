@@ -42,8 +42,7 @@ namespace eBolnicaAPI.Services
             var images = await _context.MedicationImages
                 .AsNoTracking()
                 .Where(i => i.MedicationId == medicationId)
-                .OrderByDescending(i => i.IsPrimary)
-                .ThenBy(i => i.SortOrder)
+                .OrderBy(i => i.SortOrder)
                 .ToListAsync();
 
             return images.Select(MapToDto).ToList();
@@ -173,12 +172,17 @@ namespace eBolnicaAPI.Services
             _storageService.Delete(image.RelativeUrl, image.ThumbnailRelativeUrl);
             _context.MedicationImages.Remove(image);
 
+            var remainingImages = await _context.MedicationImages
+                .Where(i => i.MedicationId == medicationId && i.Id != imageId)
+                .ToListAsync();
+
+            MedicationImageSortOrderUpdater.CompactSequentialSortOrders(remainingImages);
+
             if (wasPrimary)
             {
-                var nextPrimary = await _context.MedicationImages
-                    .Where(i => i.MedicationId == medicationId && i.Id != imageId)
+                var nextPrimary = remainingImages
                     .OrderBy(i => i.SortOrder)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefault();
 
                 if (nextPrimary != null)
                 {
@@ -192,6 +196,50 @@ namespace eBolnicaAPI.Services
             }
 
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<List<MedicationImageDto>> ReorderImagesAsync(int medicationId, IReadOnlyList<int> imageIds)
+        {
+            await GetMedicationOrThrow(medicationId);
+
+            if (imageIds == null || imageIds.Count == 0)
+            {
+                throw new MedicationImageValidationException("At least one image id is required to reorder.");
+            }
+
+            if (imageIds.Count != imageIds.Distinct().Count())
+            {
+                throw new MedicationImageValidationException("Image order cannot contain duplicate image ids.");
+            }
+
+            var images = await _context.MedicationImages
+                .Where(i => i.MedicationId == medicationId)
+                .ToListAsync();
+
+            if (images.Count == 0)
+            {
+                throw new MedicationImageValidationException("Medication has no images to reorder.");
+            }
+
+            await MedicationImageReorderValidator.ValidateAllImageIdsBelongToMedicationAsync(
+                _context,
+                medicationId,
+                imageIds,
+                images);
+
+            if (imageIds.Count != images.Count)
+            {
+                throw new MedicationImageValidationException("Image order must include every medication image exactly once.");
+            }
+
+            var imageLookup = images.ToDictionary(i => i.Id);
+            MedicationImageSortOrderUpdater.ApplyOrderedImageIds(imageLookup, imageIds);
+
+            await _context.SaveChangesAsync();
+
+            return imageIds
+                .Select(id => MapToDto(imageLookup[id]))
+                .ToList();
         }
 
         public async Task<string?> GetPrimaryImageUrlAsync(int medicationId)
