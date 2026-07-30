@@ -6,11 +6,15 @@ import {
   deriveBatchUploadProgress,
   finalizeUploadFileStatusesAfterBatch,
   formatBatchUploadProgressLabel,
+  formatCompletedBatchUploadProgressLabel,
   getActiveUploadFileName,
   getUploadFileStatusSummary,
   hasUploadFileErrors,
+  isSuccessfulUploadBatch,
   markUploadFileStatus,
+  markUploadFileStatusesComplete,
   shouldShowBatchUploadProgress,
+  UPLOAD_PROGRESS_COMPLETE_DISPLAY_MS,
   updateUploadFileProgress
 } from './medication-image-upload-status.util';
 
@@ -116,5 +120,20 @@ describe('medication-image-upload-status.util', () => {
     expect(canRetryUploadFile(statuses[1], false)).toBeTrue();
     expect(canRetryUploadFile(statuses[1], true)).toBeFalse();
     expect(getUploadFileStatusSummary(statuses[1])).toBe('Network error');
+  });
+
+  it('marks all upload rows complete at 100% before hiding progress', () => {
+    const completed = markUploadFileStatusesComplete([
+      { fileName: 'a.jpg', status: 'uploading', progressPercent: 80 },
+      { fileName: 'b.jpg', status: 'pending' }
+    ]);
+
+    expect(completed).toEqual([
+      { fileName: 'a.jpg', status: 'done', progressPercent: 100, message: undefined },
+      { fileName: 'b.jpg', status: 'done', progressPercent: 100, message: undefined }
+    ]);
+    expect(isSuccessfulUploadBatch({ uploaded: [{}], errors: [] })).toBeTrue();
+    expect(isSuccessfulUploadBatch({ uploaded: [{}], errors: [{}] })).toBeFalse();
+    expect(formatCompletedBatchUploadProgressLabel(3)).toBe('Uploaded 3 of 3 files');
   });
 });

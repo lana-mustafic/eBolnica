@@ -1,9 +1,10 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { HttpEvent, HttpEventType, HttpResponse } from '@angular/common/http';
 import { of, Subject, throwError, NEVER } from 'rxjs';
 import { MedicationImageGalleryComponent } from './medication-image-gallery.component';
+import { UPLOAD_PROGRESS_COMPLETE_DISPLAY_MS } from './medication-image-upload-status.util';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
 import { AuthService } from '../../../shared/services/auth.service';
 import { NotificationService } from '../../../shared/services/notification.service';
@@ -355,7 +356,7 @@ describe('MedicationImageGalleryComponent upload progress', () => {
     expect(batchProgress.textContent).toContain('20%');
   });
 
-  it('hides progress UI and refreshes gallery after successful upload', () => {
+  it('shows 100% briefly then hides progress and refreshes gallery after successful upload', fakeAsync(() => {
     const refreshedImages = [createImage(1), createImage(2)];
     pharmacyService.uploadMedicationImage.and.returnValue(of(
       { type: HttpEventType.UploadProgress, loaded: 100, total: 100 } as HttpEvent<MedicationImageDto>,
@@ -365,15 +366,22 @@ describe('MedicationImageGalleryComponent upload progress', () => {
 
     component.onDropzoneFilesSelected([createFile('new.jpg')]);
     fixture.detectChanges();
-    fixture.detectChanges();
 
     expect(component.isUploading).toBeFalse();
-    expect(component.uploadFileStatuses).toEqual([]);
-    expect(component.batchUploadProgress).toBe(0);
+    expect(component.batchUploadProgress).toBe(100);
+    expect(component.uploadFileStatuses.every(item => item.status === 'done' && item.progressPercent === 100))
+      .toBeTrue();
     expect(pharmacyService.getMedicationImages).toHaveBeenCalledWith(10);
     expect(component.images).toEqual(refreshedImages);
-    expect(fixture.nativeElement.querySelector('.gallery-upload-batch-progress')).toBeFalsy();
-  });
+    expect(fixture.nativeElement.querySelector('.gallery-upload-status-list')).toBeTruthy();
+
+    tick(UPLOAD_PROGRESS_COMPLETE_DISPLAY_MS);
+    fixture.detectChanges();
+
+    expect(component.uploadFileStatuses).toEqual([]);
+    expect(component.batchUploadProgress).toBe(0);
+    expect(fixture.nativeElement.querySelector('.gallery-upload-status-list')).toBeFalsy();
+  }));
 
   it('keeps per-file error and retry visible after upload finishes', () => {
     pharmacyService.uploadMedicationImage.and.returnValue(
@@ -392,7 +400,7 @@ describe('MedicationImageGalleryComponent upload progress', () => {
     expect(fixture.nativeElement.querySelector('.gallery-upload-retry-btn')).toBeTruthy();
   });
 
-  it('keeps error progress visible and allows retry', () => {
+  it('keeps error progress visible and allows retry', fakeAsync(() => {
     pharmacyService.uploadMedicationImage.and.returnValues(
       throwError(() => ({ status: 500 })),
       of(
@@ -413,9 +421,13 @@ describe('MedicationImageGalleryComponent upload progress', () => {
 
     component.retryFailedUpload('retry-me.jpg');
     fixture.detectChanges();
-    fixture.detectChanges();
 
     expect(pharmacyService.uploadMedicationImage).toHaveBeenCalledTimes(2);
+    expect(component.batchUploadProgress).toBe(100);
+
+    tick(UPLOAD_PROGRESS_COMPLETE_DISPLAY_MS);
+    fixture.detectChanges();
+
     expect(component.uploadFileStatuses).toEqual([]);
-  });
+  }));
 });

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, ViewChild, inject, OnChanges, SimpleChanges, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ViewChild, inject, OnChanges, SimpleChanges, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { finalize } from 'rxjs';
@@ -10,16 +10,20 @@ import { ConfirmDialogService } from '../../../shared/services/confirm-dialog.se
 import { MedicationImageLightboxComponent } from './medication-image-lightbox.component';
 import { MedicationImageDropzoneComponent } from './medication-image-dropzone.component';
 import { SelectionLimitedEvent } from './medication-image-dropzone-selection.util';
-import { uploadMedicationImagesSequentially } from './medication-image-upload.util';
+import { uploadMedicationImagesSequentially, MedicationImageUploadBatchResult } from './medication-image-upload.util';
 import {
   createUploadFileStatuses,
   deriveBatchUploadProgress,
   finalizeUploadFileStatusesAfterBatch,
   formatBatchUploadProgressLabel,
+  formatCompletedBatchUploadProgressLabel,
   hasUploadFileErrors,
+  isSuccessfulUploadBatch,
   markUploadFileStatus,
+  markUploadFileStatusesComplete,
   MedicationImageUploadFileStatus,
   shouldShowBatchUploadProgress,
+  UPLOAD_PROGRESS_COMPLETE_DISPLAY_MS,
   updateUploadFileProgress
 } from './medication-image-upload-status.util';
 import {
@@ -51,7 +55,7 @@ const IMAGE_DELETE_ROLES = ['Pharmacist', 'Admin'] as const;
   templateUrl: './medication-image-gallery.component.html',
   styleUrl: './medication-image-gallery.component.css'
 })
-export class MedicationImageGalleryComponent implements OnChanges, OnInit {
+export class MedicationImageGalleryComponent implements OnChanges, OnInit, OnDestroy {
   private pharmacyService = inject(PharmacyService);
   private authService = inject(AuthService);
   private notificationService = inject(NotificationService);
@@ -81,7 +85,11 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
   batchUploadLabel = '';
 
   get showBatchUploadProgress(): boolean {
-    return this.isUploading && shouldShowBatchUploadProgress(this.uploadFileStatuses.length);
+    if (!shouldShowBatchUploadProgress(this.uploadFileStatuses.length)) {
+      return false;
+    }
+
+    return this.isUploading || this.batchUploadProgress === 100;
   }
 
   get showUploadFileStatusList(): boolean {
@@ -96,10 +104,21 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
   readonly hasImageMetadata = hasMedicationImageMetadata;
 
   private successTimeout: ReturnType<typeof setTimeout> | null = null;
+  private uploadProgressHideTimeout: ReturnType<typeof setTimeout> | null = null;
   private uploadFilesByName = new Map<string, File>();
 
   ngOnInit(): void {
     this.canDeleteImages = this.hasDeletePermission();
+  }
+
+  ngOnDestroy(): void {
+    if (this.successTimeout) {
+      clearTimeout(this.successTimeout);
+    }
+
+    if (this.uploadProgressHideTimeout) {
+      clearTimeout(this.uploadProgressHideTimeout);
+    }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -339,34 +358,56 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
       finalize(() => {
         this.isUploading = false;
 
-        if (!hasUploadFileErrors(this.uploadFileStatuses)) {
-          this.uploadFileStatuses = [];
-          this.batchUploadProgress = 0;
-          this.batchUploadLabel = '';
-          return;
+        if (hasUploadFileErrors(this.uploadFileStatuses)) {
+          this.uploadFileStatuses = finalizeUploadFileStatusesAfterBatch(this.uploadFileStatuses);
+          this.syncBatchUploadProgress();
         }
-
-        this.uploadFileStatuses = finalizeUploadFileStatusesAfterBatch(this.uploadFileStatuses);
-        this.syncBatchUploadProgress();
       })
     ).subscribe({
-      next: (result) => {
-        if (result.uploaded.length > 0) {
-          this.showUploadSuccess(result.uploaded);
-          this.removeUploadedPendingFiles(result.uploaded);
-          this.refreshGalleryImages();
-        }
-
-        if (result.errors.length > 0) {
-          this.errorMessage = result.errors.length === 1
-            ? 'One upload failed. Review the file below and use Retry to try again.'
-            : `${result.errors.length} uploads failed. Review each file below and use Retry as needed.`;
-        }
-      },
+      next: (result) => this.handleUploadBatchResult(result),
       error: () => {
         this.errorMessage = 'Failed to upload images. Please try again.';
       }
     });
+  }
+
+  private handleUploadBatchResult(result: MedicationImageUploadBatchResult): void {
+    if (result.errors.length > 0) {
+      this.errorMessage = result.errors.length === 1
+        ? 'One upload failed. Review the file below and use Retry to try again.'
+        : `${result.errors.length} uploads failed. Review each file below and use Retry as needed.`;
+    }
+
+    if (result.uploaded.length > 0) {
+      this.removeUploadedPendingFiles(result.uploaded);
+      this.refreshGalleryImages();
+      this.showUploadSuccess(result.uploaded);
+    }
+
+    if (isSuccessfulUploadBatch(result)) {
+      this.completeSuccessfulUploadProgress();
+    }
+  }
+
+  private completeSuccessfulUploadProgress(): void {
+    this.uploadFileStatuses = markUploadFileStatusesComplete(this.uploadFileStatuses);
+    this.batchUploadProgress = 100;
+    this.batchUploadLabel = formatCompletedBatchUploadProgressLabel(this.uploadFileStatuses.length);
+
+    if (this.uploadProgressHideTimeout) {
+      clearTimeout(this.uploadProgressHideTimeout);
+    }
+
+    this.uploadProgressHideTimeout = setTimeout(() => {
+      this.clearUploadProgressState();
+      this.uploadProgressHideTimeout = null;
+    }, UPLOAD_PROGRESS_COMPLETE_DISPLAY_MS);
+  }
+
+  private clearUploadProgressState(): void {
+    this.uploadFileStatuses = [];
+    this.batchUploadProgress = 0;
+    this.batchUploadLabel = '';
   }
 
   private syncBatchUploadProgress(): void {

@@ -123,6 +123,14 @@ export function formatBatchUploadProgressLabel(
   return `Uploading ${Math.min(activeCount, progress.totalFiles)} of ${progress.totalFiles} files`;
 }
 
+export function formatCompletedBatchUploadProgressLabel(totalFiles: number): string {
+  if (totalFiles <= 1) {
+    return 'Upload complete';
+  }
+
+  return `Uploaded ${totalFiles} of ${totalFiles} files`;
+}
+
 export function shouldShowBatchUploadProgress(totalFiles: number): boolean {
   return totalFiles > 1;
 }
@@ -166,6 +174,26 @@ export function finalizeUploadFileStatusesAfterBatch(
   statuses: MedicationImageUploadFileStatus[]
 ): MedicationImageUploadFileStatus[] {
   return statuses.filter(item => item.status === 'done' || item.status === 'error');
+}
+
+export const UPLOAD_PROGRESS_COMPLETE_DISPLAY_MS = 400;
+
+export function markUploadFileStatusesComplete(
+  statuses: MedicationImageUploadFileStatus[]
+): MedicationImageUploadFileStatus[] {
+  return statuses.map(item => ({
+    ...item,
+    status: 'done',
+    progressPercent: 100,
+    message: undefined
+  }));
+}
+
+export function isSuccessfulUploadBatch(result: {
+  uploaded: unknown[];
+  errors: unknown[];
+}): boolean {
+  return result.errors.length === 0 && result.uploaded.length > 0;
 }
 
 export function getUploadFileStatusSummary(
