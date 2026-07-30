@@ -322,6 +322,10 @@ export class PharmacyService {
     );
   }
 
+  /**
+   * Request an AI-generated summary for a medication.
+   * Backend builds the prompt from stored medication fields only.
+   */
   generateMedicationAiSummary(medicationId: number): Observable<MedicationAiSummaryDto> {
     return this.http.post<MedicationAiSummaryDto>(
       `${this.apiUrl}/medications/${medicationId}/ai-summary`,

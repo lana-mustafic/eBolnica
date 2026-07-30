@@ -362,3 +362,46 @@ describe('PharmacyService getMedicationAutocomplete', () => {
     })));
   });
 });
+
+describe('PharmacyService generateMedicationAiSummary', () => {
+  let service: PharmacyService;
+  let httpMock: HttpTestingController;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [PharmacyService]
+    });
+
+    service = TestBed.inject(PharmacyService);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+  });
+
+  it('POSTs to the medication ai-summary endpoint with an empty body', () => {
+    const summary = {
+      overview: 'Overview text',
+      usageNotes: 'Usage notes',
+      stockExpiryAlert: 'Stock alert',
+      prescriptionRequirement: 'Prescription required'
+    };
+    let result: typeof summary | undefined;
+
+    service.generateMedicationAiSummary(42).subscribe(r => {
+      result = r;
+    });
+
+    const req = httpMock.expectOne(
+      request => request.url.endsWith('/api/pharmacy/medications/42/ai-summary')
+    );
+
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({});
+    req.flush(summary);
+
+    expect(result).toEqual(summary);
+  });
+});
