@@ -77,6 +77,7 @@ namespace eBolnicaAPI.Tests.Unit.Services
             var byName = await _service.GetSuggestionsAsync("asp");
             var byGeneric = await _service.GetSuggestionsAsync("acetyl");
             var byManufacturer = await _service.GetSuggestionsAsync("antibio");
+            var byNameCaseInsensitive = await _service.GetSuggestionsAsync("ASPI");
 
             Assert.Single(byName);
             Assert.Equal("Aspirin", byName[0].Name);
@@ -84,6 +85,8 @@ namespace eBolnicaAPI.Tests.Unit.Services
             Assert.Equal("Aspirin", byGeneric[0].Name);
             Assert.Single(byManufacturer);
             Assert.Equal("Amoxicillin", byManufacturer[0].Name);
+            Assert.Single(byNameCaseInsensitive);
+            Assert.Equal("Aspirin", byNameCaseInsensitive[0].Name);
         }
 
         [Fact]

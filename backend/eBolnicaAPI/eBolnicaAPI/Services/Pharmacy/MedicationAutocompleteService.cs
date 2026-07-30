@@ -42,24 +42,9 @@ namespace eBolnicaAPI.Services.Pharmacy
             }
 
             var cappedLimit = Math.Clamp(limit, 1, MaxSuggestions);
-            var searchTerm = trimmed.ToLower();
 
-            return await _context.Medications
-                .AsNoTracking()
-                .Where(m => m.IsActive)
-                .Where(m =>
-                    m.Name.ToLower().Contains(searchTerm) ||
-                    (m.GenericName != null && m.GenericName.ToLower().Contains(searchTerm)) ||
-                    (m.Manufacturer != null && m.Manufacturer.ToLower().Contains(searchTerm)))
-                .OrderBy(m => m.Name)
-                .Take(cappedLimit)
-                .Select(m => new MedicationAutocompleteSuggestionDto
-                {
-                    Id = m.Id,
-                    Name = m.Name,
-                    Category = m.Category,
-                    GenericName = m.GenericName
-                })
+            return await MedicationAutocompleteQuery
+                .GetSuggestions(_context.Medications, trimmed, cappedLimit)
                 .ToListAsync(cancellationToken);
         }
     }
