@@ -1,5 +1,10 @@
 import { MedicationImageDto } from '../../../models/medication-image.dto';
-import { moveMedicationImageInGallery } from './medication-image-gallery-reorder.util';
+import {
+  buildMedicationImageReorderPayload,
+  createMedicationImageGalleryReorderSnapshot,
+  getMedicationImageReorderErrorMessage,
+  moveMedicationImageInGallery
+} from './medication-image-gallery-reorder.util';
 
 describe('medication-image-gallery-reorder.util', () => {
   function createImage(id: number, sortOrder: number, isPrimary = false): MedicationImageDto {
@@ -50,5 +55,27 @@ describe('medication-image-gallery-reorder.util', () => {
 
     expect(result.images.map(image => image.id)).toEqual([1, 2]);
     expect(result.selectedIndex).toBe(0);
+  });
+
+  it('creates a deep snapshot for optimistic reorder rollback', () => {
+    const images = [createImage(1, 0, true), createImage(2, 1)];
+    const snapshot = createMedicationImageGalleryReorderSnapshot(images, 1);
+
+    images[0].sortOrder = 99;
+
+    expect(snapshot.images[0].sortOrder).toBe(0);
+    expect(snapshot.selectedIndex).toBe(1);
+  });
+
+  it('builds ordered image id payload for reorder API', () => {
+    const images = [createImage(3, 0), createImage(1, 1), createImage(2, 2)];
+    expect(buildMedicationImageReorderPayload(images)).toEqual([3, 1, 2]);
+  });
+
+  it('builds reorder error messages and mentions rollback', () => {
+    expect(getMedicationImageReorderErrorMessage({ status: 400, error: 'Invalid image order.' }))
+      .toBe('Invalid image order. The gallery has been restored to its previous order.');
+    expect(getMedicationImageReorderErrorMessage({ status: 500 }))
+      .toBe('Failed to save image order. The gallery has been restored to its previous order.');
   });
 });

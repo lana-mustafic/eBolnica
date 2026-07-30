@@ -80,6 +80,7 @@
 
     <div
       class="thumbnail-strip"
+      [class.is-reordering]="isReordering"
       cdkDropList
       cdkDropListOrientation="horizontal"
       [cdkDropListDisabled]="!canReorderImages"

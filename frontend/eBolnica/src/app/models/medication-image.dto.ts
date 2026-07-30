@@ -11,3 +11,7 @@ export interface MedicationImageDto {
   width?: number;
   height?: number;
 }
+
+export interface MedicationImageReorderRequest {
+  imageIds: number[];
+}

@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { MedicationImageGalleryComponent } from './medication-image-gallery.component';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
 import { AuthService } from '../../../shared/services/auth.service';
@@ -117,6 +117,7 @@ describe('MedicationImageGalleryComponent metadata', () => {
 describe('MedicationImageGalleryComponent reorder', () => {
   let fixture: ComponentFixture<MedicationImageGalleryComponent>;
   let component: MedicationImageGalleryComponent;
+  let pharmacyService: jasmine.SpyObj<PharmacyService>;
 
   function createImage(id: number, sortOrder: number, isPrimary = false): MedicationImageDto {
     return {
@@ -132,13 +133,15 @@ describe('MedicationImageGalleryComponent reorder', () => {
   }
 
   beforeEach(async () => {
-    const pharmacyService = jasmine.createSpyObj<PharmacyService>('PharmacyService', [
+    pharmacyService = jasmine.createSpyObj<PharmacyService>('PharmacyService', [
       'resolveMedicationImageUrl',
       'uploadMedicationImage',
       'setPrimaryMedicationImage',
-      'deleteMedicationImage'
+      'deleteMedicationImage',
+      'reorderMedicationImages'
     ]);
     pharmacyService.resolveMedicationImageUrl.and.callFake((url: string) => `http://localhost:5000${url}`);
+    pharmacyService.reorderMedicationImages.and.returnValue(of([]));
 
     const authService = jasmine.createSpyObj<AuthService>('AuthService', ['getUserType']);
     authService.getUserType.and.returnValue('Pharmacist');
@@ -188,16 +191,35 @@ describe('MedicationImageGalleryComponent reorder', () => {
     expect(helper?.textContent?.trim()).toBe('Drag thumbnails to reorder.');
   });
 
-  it('reorders thumbnails locally and updates sortOrder values', () => {
+  it('reorders thumbnails optimistically and persists via API', () => {
+    const serverImages = [
+      createImage(3, 0),
+      createImage(1, 1, true),
+      createImage(2, 2)
+    ];
+    pharmacyService.reorderMedicationImages.and.returnValue(of(serverImages));
     const emitted: MedicationImageDto[][] = [];
     component.imagesChange.subscribe(images => emitted.push(images));
 
     component.onThumbnailDrop(createDropEvent(2, 0));
 
     expect(component.images.map(image => image.id)).toEqual([3, 1, 2]);
-    expect(component.images.map(image => image.sortOrder)).toEqual([0, 1, 2]);
-    expect(component.images.find(image => image.id === 1)?.isPrimary).toBeTrue();
-    expect(emitted).toHaveSize(1);
+    expect(pharmacyService.reorderMedicationImages).toHaveBeenCalledWith(10, [3, 1, 2]);
+    expect(emitted[0].map(image => image.id)).toEqual([3, 1, 2]);
+    expect(emitted[emitted.length - 1].map(image => image.id)).toEqual([3, 1, 2]);
+    expect(component.isReordering).toBeFalse();
+  });
+
+  it('reverts gallery order and shows error when reorder API fails', () => {
+    pharmacyService.reorderMedicationImages.and.returnValue(
+      throwError(() => ({ status: 500 }))
+    );
+
+    component.onThumbnailDrop(createDropEvent(2, 0));
+
+    expect(component.images.map(image => image.id)).toEqual([1, 2, 3]);
+    expect(component.errorMessage).toContain('restored to its previous order');
+    expect(component.isReordering).toBeFalse();
   });
 
   it('does not reorder when drag ends at the same position', () => {

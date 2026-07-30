@@ -314,6 +314,13 @@ export class PharmacyService {
     return this.http.delete<void>(`${this.apiUrl}/medications/${medicationId}/images/${imageId}`);
   }
 
+  reorderMedicationImages(medicationId: number, imageIds: number[]): Observable<MedicationImageDto[]> {
+    return this.http.put<MedicationImageDto[]>(
+      `${this.apiUrl}/medications/${medicationId}/images/order`,
+      { imageIds }
+    );
+  }
+
   // Prescriptions Management
   /**
    * Get prescriptions with optional filtering, search, and pagination

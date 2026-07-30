@@ -27,7 +27,12 @@ import {
   formatMedicationImageFileSize,
   hasMedicationImageMetadata
 } from './medication-image-metadata.util';
-import { moveMedicationImageInGallery } from './medication-image-gallery-reorder.util';
+import {
+  buildMedicationImageReorderPayload,
+  createMedicationImageGalleryReorderSnapshot,
+  getMedicationImageReorderErrorMessage,
+  moveMedicationImageInGallery
+} from './medication-image-gallery-reorder.util';
 
 const IMAGE_DELETE_ROLES = ['Pharmacist', 'Admin'] as const;
 
@@ -57,6 +62,7 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
   isUploading = false;
   isManaging = false;
   isDeleting = false;
+  isReordering = false;
   errorMessage: string | null = null;
   successMessage: string | null = null;
   lightboxOpen = false;
@@ -103,7 +109,8 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
     return this.images.length >= 2
       && !this.isDeleting
       && !this.isUploading
-      && !this.isManaging;
+      && !this.isManaging
+      && !this.isReordering;
   }
 
   selectImage(index: number): void {
@@ -131,16 +138,58 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
       return;
     }
 
+    const snapshot = createMedicationImageGalleryReorderSnapshot(this.images, this.selectedIndex);
     const result = moveMedicationImageInGallery(
       this.images,
       event.previousIndex,
       event.currentIndex,
       this.selectedIndex
     );
+    const selectedImageId = this.selectedImage?.id;
 
-    this.images = result.images;
-    this.selectedIndex = result.selectedIndex;
+    this.applyGalleryImages(result.images, result.selectedIndex);
+
+    this.isReordering = true;
+    this.clearMessages();
+
+    this.pharmacyService.reorderMedicationImages(
+      this.medicationId,
+      buildMedicationImageReorderPayload(result.images)
+    ).pipe(
+      finalize(() => {
+        this.isReordering = false;
+      })
+    ).subscribe({
+      next: (images) => {
+        this.applyGalleryImages(
+          images,
+          this.resolveSelectedIndex(images, selectedImageId, result.selectedIndex)
+        );
+      },
+      error: (error) => {
+        this.applyGalleryImages(snapshot.images, snapshot.selectedIndex);
+        this.errorMessage = getMedicationImageReorderErrorMessage(error);
+      }
+    });
+  }
+
+  private applyGalleryImages(images: MedicationImageDto[], selectedIndex: number): void {
+    this.images = images;
+    this.selectedIndex = selectedIndex;
     this.imagesChange.emit(this.images);
+  }
+
+  private resolveSelectedIndex(
+    images: MedicationImageDto[],
+    selectedImageId: number | undefined,
+    fallbackIndex: number
+  ): number {
+    if (selectedImageId == null) {
+      return fallbackIndex;
+    }
+
+    const index = images.findIndex(image => image.id === selectedImageId);
+    return index >= 0 ? index : fallbackIndex;
   }
 
   /** Starts upload for files confirmed via Upload selected (not on drop/browse). */
