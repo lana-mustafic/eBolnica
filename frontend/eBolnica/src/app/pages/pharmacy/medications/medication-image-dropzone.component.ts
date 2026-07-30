@@ -26,7 +26,7 @@ import {
 } from './medication-image-dropzone-selection.util';
 import {
   addFilesToPendingQueue,
-  clearPendingMedicationImageQueue,
+  cancelPendingMedicationImageQueue,
   getUploadablePendingFiles,
   hasUploadablePendingFiles,
   PendingMedicationImage,
@@ -68,6 +68,7 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
 
   @Output() filesSelected = new EventEmitter<File[]>();
   @Output() pendingQueueChange = new EventEmitter<PendingMedicationImage[]>();
+  @Output() pendingQueueCancelRequested = new EventEmitter<void>();
   @Output() selectionLimited = new EventEmitter<SelectionLimitedEvent>();
   @Output() validationErrors = new EventEmitter<MedicationImageValidationError[]>();
   @Output() uploadBlocked = new EventEmitter<void>();
@@ -255,12 +256,11 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
 
     if (!this.isInteractive || this.pendingQueue.length === 0) return;
 
-    this.clearPendingQueue();
+    this.pendingQueueCancelRequested.emit();
   }
 
   clearPendingQueue(): void {
-    revokePendingMedicationImagePreviews(this.pendingQueue);
-    this.pendingQueue = clearPendingMedicationImageQueue();
+    this.pendingQueue = cancelPendingMedicationImageQueue(this.pendingQueue);
     this.pendingQueueChange.emit(this.pendingQueue);
   }
 

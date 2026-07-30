@@ -517,8 +517,7 @@ describe('MedicationImageDropzoneComponent', () => {
     });
 
     it('clears all pending previews via clear all button', () => {
-      spyOn(URL, 'revokeObjectURL');
-      spyOn(component.pendingQueueChange, 'emit');
+      spyOn(component.pendingQueueCancelRequested, 'emit');
       const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
       component.onDrop(dragEvent('drop', dropzone, {
         files: [createFile('a.jpg'), createFile('b.jpg')]
@@ -529,11 +528,24 @@ describe('MedicationImageDropzoneComponent', () => {
         '.image-dropzone-action-clear'
       ) as HTMLButtonElement;
       clearButton.click();
+
+      expect(component.pendingQueueCancelRequested.emit).toHaveBeenCalled();
+      expect(component.pendingQueue).toHaveSize(2);
+    });
+
+    it('clears pending queue locally when clearPendingQueue is called', () => {
+      spyOn(URL, 'revokeObjectURL');
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      component.onDrop(dragEvent('drop', dropzone, {
+        files: [createFile('a.jpg'), createFile('b.jpg')]
+      }));
+      fixture.detectChanges();
+
+      component.clearPendingQueue();
       fixture.detectChanges();
 
       expect(component.pendingQueue).toEqual([]);
       expect(fixture.nativeElement.querySelector('.image-dropzone-pending-list')).toBeNull();
-      expect(component.pendingQueueChange.emit).toHaveBeenCalledWith([]);
     });
   });
 });

@@ -1,5 +1,7 @@
 import {
   addFilesToPendingQueue,
+  cancelPendingMedicationImageQueue,
+  buildPendingQueueCancelMessage,
   clearPendingMedicationImageQueue,
   createPendingMedicationImage,
   getUploadablePendingFiles,
@@ -120,5 +122,30 @@ describe('medication-image-pending-queue.util', () => {
 
     expect(revokeSpy).toHaveBeenCalledWith('blob:a');
     expect(revokeSpy).toHaveBeenCalledWith('blob:b');
+  });
+
+  it('cancels pending queue locally without leaving stale previews', () => {
+    spyOn(URL, 'createObjectURL').and.returnValues('blob:a', 'blob:b');
+    const revokeSpy = spyRevokeObjectUrl();
+    const queue = addFilesToPendingQueue(
+      [],
+      [createFile('a.jpg'), createFile('b.jpg')],
+      5
+    ).queue;
+
+    const cancelled = cancelPendingMedicationImageQueue(queue);
+
+    expect(cancelled).toEqual([]);
+    expect(revokeSpy).toHaveBeenCalledWith('blob:a');
+    expect(revokeSpy).toHaveBeenCalledWith('blob:b');
+  });
+
+  it('builds cancel confirmation message for one or many images', () => {
+    expect(buildPendingQueueCancelMessage(1))
+      .toContain('Discard 1 selected image');
+    expect(buildPendingQueueCancelMessage(3))
+      .toContain('Discard 3 selected images');
+    expect(buildPendingQueueCancelMessage(3))
+      .toContain('No files will be uploaded');
   });
 });

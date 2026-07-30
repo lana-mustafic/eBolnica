@@ -102,3 +102,16 @@ export function getUploadablePendingFiles(queue: PendingMedicationImage[]): File
 export function hasUploadablePendingFiles(queue: PendingMedicationImage[]): boolean {
   return queue.some(item => item.status === 'valid');
 }
+
+/** Clears pending previews locally. Does not call upload APIs. */
+export function cancelPendingMedicationImageQueue(
+  queue: PendingMedicationImage[]
+): PendingMedicationImage[] {
+  revokePendingMedicationImagePreviews(queue);
+  return clearPendingMedicationImageQueue();
+}
+
+export function buildPendingQueueCancelMessage(count: number): string {
+  const label = count === 1 ? 'image' : 'images';
+  return `Discard ${count} selected ${label} from the upload queue? No files will be uploaded.`;
+}

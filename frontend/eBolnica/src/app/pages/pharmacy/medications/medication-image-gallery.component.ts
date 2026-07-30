@@ -19,6 +19,7 @@ import {
   beginMedicationImageUploadBatch,
   MEDICATION_IMAGE_UPLOAD_BATCH_IN_PROGRESS_MESSAGE
 } from './medication-image-upload-batch.util';
+import { buildPendingQueueCancelMessage } from './medication-image-pending-queue.util';
 
 const IMAGE_DELETE_ROLES = ['Pharmacist', 'Admin'] as const;
 
@@ -126,6 +127,23 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
   onDropzoneSelectionLimited(event: SelectionLimitedEvent): void {
     this.errorMessage =
       `Only ${event.maxFiles} files can be uploaded at once. ${event.provided} files were provided.`;
+  }
+
+  onPendingQueueCancelRequested(): void {
+    const pendingCount = this.imageDropzone?.pendingQueue.length ?? 0;
+    if (pendingCount === 0 || this.isUploading || this.isDeleting) return;
+
+    this.confirmDialog.confirm({
+      title: 'Clear pending images',
+      message: buildPendingQueueCancelMessage(pendingCount),
+      confirmText: 'Clear all',
+      cancelText: 'Keep images',
+      confirmColor: 'warn'
+    }).subscribe(confirmed => {
+      if (confirmed) {
+        this.imageDropzone?.clearPendingQueue();
+      }
+    });
   }
 
   private uploadFilesSequentially(files: File[]): void {
