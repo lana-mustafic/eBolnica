@@ -5,6 +5,7 @@ using eBolnicaAPI.Services.Pharmacy.MedicationImages;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SixLabors.ImageSharp;
 
 namespace eBolnicaAPI.Services
 {
@@ -57,10 +58,17 @@ namespace eBolnicaAPI.Services
 
             await using var uploadStream = new MemoryStream();
             await file.CopyToAsync(uploadStream);
+            var originalBytes = uploadStream.Length;
 
             await _virusScanner.ScanAsync(uploadStream);
 
+            uploadStream.Position = 0;
+            var originalImageInfo = await Image.IdentifyAsync(uploadStream);
+            uploadStream.Position = 0;
+
             using var optimizedImage = await _imageOptimizer.OptimizeAsync(uploadStream, extension);
+            var optimizedBytes = optimizedImage.Length;
+            var bytesSaved = MedicationImageUploadLog.CalculateBytesSaved(originalBytes, optimizedBytes);
             var storedImage = await _storageService.SaveAsync(
                 medicationId,
                 optimizedImage.Content,
@@ -93,11 +101,18 @@ namespace eBolnicaAPI.Services
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
-                "Medication image uploaded. MedicationId={MedicationId}, Original={OriginalUrl}, Thumbnail={ThumbnailUrl}, Bytes={OptimizedBytes}",
+                "Medication image uploaded. MedicationId={MedicationId}, FileName={FileName}, OriginalBytes={OriginalBytes}, OptimizedBytes={OptimizedBytes}, BytesSaved={BytesSaved}, OriginalWidth={OriginalWidth}, OriginalHeight={OriginalHeight}, OptimizedWidth={OptimizedWidth}, OptimizedHeight={OptimizedHeight}, ImageUrl={ImageUrl}, ThumbnailUrl={ThumbnailUrl}",
                 medicationId,
+                sanitizedFileName,
+                originalBytes,
+                optimizedBytes,
+                bytesSaved,
+                originalImageInfo?.Width,
+                originalImageInfo?.Height,
+                optimizedImage.Width,
+                optimizedImage.Height,
                 storedImage.RelativeUrl,
-                storedImage.ThumbnailRelativeUrl,
-                optimizedImage.Length);
+                storedImage.ThumbnailRelativeUrl);
 
             return MapToDto(image);
         }
