@@ -8,6 +8,7 @@ using eBolnicaAPI.Services.Pharmacy.MedicationImages;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -469,7 +470,7 @@ namespace eBolnicaAPI.Controllers
         /// Set the primary image for a medication
         /// </summary>
         [HttpPut("medications/{id}/images/{imageId}/primary")]
-        [Authorize(Roles = "Pharmacist")]
+        [Authorize(Roles = "Pharmacist,Admin")]
         public async Task<IActionResult> SetPrimaryMedicationImage(int id, int imageId)
         {
             try
@@ -543,6 +544,7 @@ namespace eBolnicaAPI.Controllers
         /// <response code="503">AI summary service unavailable</response>
         [HttpPost("medications/{id}/ai-summary")]
         [Authorize(Roles = "Pharmacist")]
+        [EnableRateLimiting("medication-ai-summary")]
         [ProducesResponseType(typeof(MedicationAiSummaryDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
@@ -658,14 +660,19 @@ namespace eBolnicaAPI.Controllers
 
             var medication = await _context.Medications.FindAsync(id);
 
-            if (medication == null || !medication.IsActive)
+            if (medication == null)
             {
                 return NotFound("Medication not found");
             }
 
-            if (dto.ExpiryDate <= DateTime.Now)
+            if (!medication.IsActive && !dto.IsActive)
             {
-                return BadRequest("Expiry date must be in the future");
+                return NotFound("Medication not found");
+            }
+
+            if (dto.IsActive && dto.ExpiryDate <= DateTime.UtcNow.Date)
+            {
+                return BadRequest("Expiry date must be in the future for active medications");
             }
 
             var nameConflict = await ValidateMedicationNameAvailabilityAsync(dto.Name, id);
@@ -730,7 +737,9 @@ namespace eBolnicaAPI.Controllers
             }
 
             medication.IsActive = false;
-            medication.UpdatedAt = DateTime.Now;
+            medication.UpdatedAt = DateTime.UtcNow;
+
+            await _medicationImageService.DeleteAllImagesForMedicationAsync(id);
 
             await _context.SaveChangesAsync();
             _analyticsService.InvalidateAnalyticsCache();
@@ -788,24 +797,12 @@ namespace eBolnicaAPI.Controllers
 
             NormalizePagination(parameters);
             
-            // Use AsNoTracking and AsSplitQuery for optimal read-only performance
-            var query = _context.Prescriptions
-                .AsNoTracking()
-                .AsSplitQuery()
-                .Include(p => p.Patient)
-                    .ThenInclude(pat => pat.AppUser)
-                .Include(p => p.Doctor)
-                    .ThenInclude(d => d.AppUser)
-                .Include(p => p.Pharmacist)
-                    .ThenInclude(ph => ph.AppUser)
-                .Include(p => p.PrescriptionItems)
-                    .ThenInclude(pi => pi.Medication)
-                .AsQueryable();
+            var filteredQuery = _pharmacyService.GetFilteredPrescriptions(
+                _context.Prescriptions.AsNoTracking().AsQueryable(),
+                parameters);
 
-            query = _pharmacyService.GetFilteredPrescriptions(query, parameters);
-
-            // Get total count BEFORE pagination (for performance optimization)
-            var totalCount = await query.CountAsync();
+            // Count on filtered base query without eager-loading graphs
+            var totalCount = await filteredQuery.CountAsync();
 
             var pageNumber = parameters.PageNumber;
             var pageSize = parameters.PageSize;
@@ -829,12 +826,23 @@ namespace eBolnicaAPI.Controllers
             }
 
             // Apply sorting using PharmacyService
-            query = _pharmacyService.ApplySorting(query, parameters.SortBy, parameters.SortOrder);
+            var sortedQuery = _pharmacyService.ApplySorting(filteredQuery, parameters.SortBy, parameters.SortOrder);
 
             // Calculate Skip and Take values for server-side pagination
-            // Skip = (pageNumber - 1) * pageSize
             var skipValue = (pageNumber - 1) * pageSize;
             var takeValue = pageSize;
+
+            // Load related data only for the paginated page
+            var query = sortedQuery
+                .AsSplitQuery()
+                .Include(p => p.Patient)
+                    .ThenInclude(pat => pat.AppUser)
+                .Include(p => p.Doctor)
+                    .ThenInclude(d => d.AppUser)
+                .Include(p => p.Pharmacist)
+                    .ThenInclude(ph => ph.AppUser)
+                .Include(p => p.PrescriptionItems)
+                    .ThenInclude(pi => pi.Medication);
 
             // Apply pagination and projection at database level for optimal performance
             var dtoList = await query
@@ -1059,105 +1067,128 @@ namespace eBolnicaAPI.Controllers
                 return BadRequest("At least one prescription item is required");
             }
 
-            var prescriptionNumber = await GeneratePrescriptionNumberAsync();
+            var itemDtos = dto.PrescriptionItems.ToList();
+            var medicationsById = new Dictionary<int, Medication>();
 
-            var prescription = new Prescription
-            {
-                PrescriptionNumber = prescriptionNumber,
-                MedicalReportId = dto.MedicalReportId,
-                PatientId = dto.PatientId,
-                DoctorId = dto.DoctorId,
-                Status = "Pending",
-                PrescribedDate = DateTime.Now,
-                Notes = dto.Notes,
-                CreatedAt = DateTime.Now
-            };
-
-            _context.Prescriptions.Add(prescription);
-            await _context.SaveChangesAsync();
-
-            decimal totalAmount = 0;
-
-            foreach (var itemDto in dto.PrescriptionItems)
+            foreach (var itemDto in itemDtos)
             {
                 var medication = await _context.Medications.FindAsync(itemDto.MedicationId);
-
                 if (medication == null || !medication.IsActive)
                 {
                     return BadRequest($"Medication with ID {itemDto.MedicationId} not found or inactive");
                 }
 
-                var unitPrice = medication.Price;
-                var itemTotalPrice = unitPrice * itemDto.Quantity;
-                totalAmount += itemTotalPrice;
-
-                var prescriptionItem = new PrescriptionItem
-                {
-                    PrescriptionId = prescription.Id,
-                    MedicationId = itemDto.MedicationId,
-                    Quantity = itemDto.Quantity,
-                    Instructions = itemDto.Instructions,
-                    UnitPrice = unitPrice,
-                    TotalPrice = itemTotalPrice,
-                    CreatedAt = DateTime.Now
-                };
-
-                _context.PrescriptionItems.Add(prescriptionItem);
+                medicationsById[itemDto.MedicationId] = medication;
             }
 
-            prescription.TotalAmount = totalAmount;
-            await _context.SaveChangesAsync();
-
-            var result = await _context.Prescriptions
-                .Include(p => p.Patient)
-                .Include(p => p.Doctor)
-                    .ThenInclude(d => d.AppUser)
-                .Include(p => p.PrescriptionItems)
-                    .ThenInclude(pi => pi.Medication)
-                .FirstOrDefaultAsync(p => p.Id == prescription.Id);
-
-            var resultDto = new PrescriptionDto
+            const int maxAttempts = 3;
+            for (var attempt = 1; attempt <= maxAttempts; attempt++)
             {
-                Id = result.Id,
-                PrescriptionNumber = result.PrescriptionNumber,
-                MedicalReportId = result.MedicalReportId,
-                PatientId = result.PatientId,
-                Patient = new PatientDataDto
+                await using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    Id = result.Patient.Id,
-                    FirstName = result.Patient.FirstName,
-                    LastName = result.Patient.LastName
-                },
-                DoctorId = result.DoctorId,
-                Doctor = new DoctorDataDto
-                {
-                    FirstName = result.Doctor.FirstName,
-                    LastName = result.Doctor.LastName,
-                    PhoneNumber = result.Doctor.PhoneNumber,
-                    Specialization = result.Doctor.Specialization,
-                    LicenseNumber = result.Doctor.LicenseNumber,
-                    BirthDate = result.Doctor.BirthDate ?? DateTime.MinValue,
-                    Address = result.Doctor.Address,
-                    Email = result.Doctor.AppUser?.Email ?? ""
-                },
-                Status = result.Status,
-                PrescribedDate = result.PrescribedDate,
-                TotalAmount = result.TotalAmount,
-                Notes = result.Notes,
-                CreatedAt = result.CreatedAt,
-                PrescriptionItems = result.PrescriptionItems.Select(pi => new PrescriptionItemDto
-                {
-                    Id = pi.Id,
-                    PrescriptionId = pi.PrescriptionId,
-                    MedicationId = pi.MedicationId,
-                    MedicationName = pi.Medication.Name,
-                    Quantity = pi.Quantity,
-                    Instructions = pi.Instructions,
-                    UnitPrice = pi.UnitPrice
-                }).ToList()
-            };
+                    var prescriptionNumber = await GeneratePrescriptionNumberAsync();
 
-            return CreatedAtAction(nameof(GetPrescription), new { id = prescription.Id }, resultDto);
+                    var prescription = new Prescription
+                    {
+                        PrescriptionNumber = prescriptionNumber,
+                        MedicalReportId = dto.MedicalReportId,
+                        PatientId = dto.PatientId,
+                        DoctorId = dto.DoctorId,
+                        Status = "Pending",
+                        PrescribedDate = DateTime.UtcNow,
+                        Notes = dto.Notes,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    _context.Prescriptions.Add(prescription);
+
+                    decimal totalAmount = 0;
+
+                    foreach (var itemDto in itemDtos)
+                    {
+                        var medication = medicationsById[itemDto.MedicationId];
+                        var unitPrice = medication.Price;
+                        var itemTotalPrice = unitPrice * itemDto.Quantity;
+                        totalAmount += itemTotalPrice;
+
+                        var prescriptionItem = new PrescriptionItem
+                        {
+                            Prescription = prescription,
+                            MedicationId = itemDto.MedicationId,
+                            Quantity = itemDto.Quantity,
+                            Instructions = itemDto.Instructions,
+                            UnitPrice = unitPrice,
+                            TotalPrice = itemTotalPrice,
+                            CreatedAt = DateTime.UtcNow
+                        };
+
+                        _context.PrescriptionItems.Add(prescriptionItem);
+                    }
+
+                    prescription.TotalAmount = totalAmount;
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    var result = await _context.Prescriptions
+                        .Include(p => p.Patient)
+                        .Include(p => p.Doctor)
+                            .ThenInclude(d => d.AppUser)
+                        .Include(p => p.PrescriptionItems)
+                            .ThenInclude(pi => pi.Medication)
+                        .FirstOrDefaultAsync(p => p.Id == prescription.Id);
+
+                    var resultDto = new PrescriptionDto
+                    {
+                        Id = result!.Id,
+                        PrescriptionNumber = result.PrescriptionNumber,
+                        MedicalReportId = result.MedicalReportId,
+                        PatientId = result.PatientId,
+                        Patient = new PatientDataDto
+                        {
+                            Id = result.Patient.Id,
+                            FirstName = result.Patient.FirstName,
+                            LastName = result.Patient.LastName
+                        },
+                        DoctorId = result.DoctorId,
+                        Doctor = new DoctorDataDto
+                        {
+                            FirstName = result.Doctor.FirstName,
+                            LastName = result.Doctor.LastName,
+                            PhoneNumber = result.Doctor.PhoneNumber,
+                            Specialization = result.Doctor.Specialization,
+                            LicenseNumber = result.Doctor.LicenseNumber,
+                            BirthDate = result.Doctor.BirthDate ?? DateTime.MinValue,
+                            Address = result.Doctor.Address,
+                            Email = result.Doctor.AppUser?.Email ?? ""
+                        },
+                        Status = result.Status,
+                        PrescribedDate = result.PrescribedDate,
+                        TotalAmount = result.TotalAmount,
+                        Notes = result.Notes,
+                        CreatedAt = result.CreatedAt,
+                        PrescriptionItems = result.PrescriptionItems.Select(pi => new PrescriptionItemDto
+                        {
+                            Id = pi.Id,
+                            PrescriptionId = pi.PrescriptionId,
+                            MedicationId = pi.MedicationId,
+                            MedicationName = pi.Medication.Name,
+                            Quantity = pi.Quantity,
+                            Instructions = pi.Instructions,
+                            UnitPrice = pi.UnitPrice
+                        }).ToList()
+                    };
+
+                    return CreatedAtAction(nameof(GetPrescription), new { id = prescription.Id }, resultDto);
+                }
+                catch (DbUpdateException ex) when (attempt < maxAttempts && IsPrescriptionNumberConflict(ex))
+                {
+                    await transaction.RollbackAsync();
+                    _context.ChangeTracker.Clear();
+                }
+            }
+
+            return Conflict(new { message = "Could not generate a unique prescription number. Please retry." });
         }
 
         [HttpPost("prescriptions/{id}/dispense")]
@@ -1169,48 +1200,99 @@ namespace eBolnicaAPI.Controllers
                 return BadRequest(ModelState);
             }
 
-            var prescription = await _context.Prescriptions
-                .Include(p => p.PrescriptionItems)
-                    .ThenInclude(pi => pi.Medication)
-                .FirstOrDefaultAsync(p => p.Id == id);
-
-            if (prescription == null)
-            {
-                return NotFound("Prescription not found");
-            }
-
-            if (prescription.Status != "Pending")
-            {
-                return BadRequest($"Prescription is already {prescription.Status}. Only pending prescriptions can be dispensed.");
-            }
-
-            var pharmacist = await _context.Pharmacists.FindAsync(dto.PharmacistId);
-
+            var pharmacist = await ResolveAuthenticatedPharmacistAsync();
             if (pharmacist == null)
             {
-                return NotFound("Pharmacist not found");
+                return Unauthorized("Authenticated pharmacist profile not found.");
             }
 
-            foreach (var item in prescription.PrescriptionItems)
+            await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+            try
             {
-                if (item.Medication.StockQuantity < item.Quantity)
+                var prescription = await _context.Prescriptions
+                    .Include(p => p.PrescriptionItems)
+                    .FirstOrDefaultAsync(p => p.Id == id);
+
+                if (prescription == null)
                 {
-                    return BadRequest($"Insufficient stock for medication {item.Medication.Name}. Available: {item.Medication.StockQuantity}, Required: {item.Quantity}");
+                    return NotFound("Prescription not found");
                 }
-            }
 
-            foreach (var item in prescription.PrescriptionItems)
+                if (!string.Equals(prescription.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest($"Prescription is already {prescription.Status}. Only pending prescriptions can be dispensed.");
+                }
+
+                if (prescription.PrescriptionItems == null || prescription.PrescriptionItems.Count == 0)
+                {
+                    return BadRequest("Prescription has no items to dispense.");
+                }
+
+                var requiredByMedication = prescription.PrescriptionItems
+                    .GroupBy(item => item.MedicationId)
+                    .ToDictionary(group => group.Key, group => group.Sum(item => item.Quantity));
+
+                var medicationIds = requiredByMedication.Keys.ToList();
+                var medications = await _context.Medications
+                    .Where(m => medicationIds.Contains(m.Id))
+                    .ToListAsync();
+
+                if (medications.Count != medicationIds.Count)
+                {
+                    return BadRequest("One or more medications on this prescription could not be found.");
+                }
+
+                var todayUtc = DateTime.UtcNow.Date;
+                foreach (var medication in medications)
+                {
+                    var requiredQuantity = requiredByMedication[medication.Id];
+
+                    if (!medication.IsActive)
+                    {
+                        return BadRequest($"Medication {medication.Name} is inactive and cannot be dispensed.");
+                    }
+
+                    if (medication.ExpiryDate.HasValue && medication.ExpiryDate.Value.Date < todayUtc)
+                    {
+                        return BadRequest($"Medication {medication.Name} is expired and cannot be dispensed.");
+                    }
+
+                    if (medication.StockQuantity < requiredQuantity)
+                    {
+                        return BadRequest(
+                            $"Insufficient stock for medication {medication.Name}. Available: {medication.StockQuantity}, Required: {requiredQuantity}");
+                    }
+                }
+
+                foreach (var medication in medications)
+                {
+                    var requiredQuantity = requiredByMedication[medication.Id];
+                    medication.StockQuantity -= requiredQuantity;
+                    medication.UpdatedAt = DateTime.UtcNow;
+
+                    _context.MedicationStockHistories.Add(new MedicationStockHistory
+                    {
+                        MedicationId = medication.Id,
+                        Quantity = medication.StockQuantity,
+                        RecordedAt = DateTime.UtcNow,
+                        Source = "Dispense"
+                    });
+                }
+
+                prescription.Status = "Dispensed";
+                prescription.PharmacistId = pharmacist.Id;
+                prescription.DispensedDate = dto.DispensedDate ?? DateTime.UtcNow;
+                prescription.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
             {
-                item.Medication.StockQuantity -= item.Quantity;
-                item.Medication.UpdatedAt = DateTime.Now;
+                await transaction.RollbackAsync();
+                throw;
             }
 
-            prescription.Status = "Dispensed";
-            prescription.PharmacistId = dto.PharmacistId;
-            prescription.DispensedDate = dto.DispensedDate ?? DateTime.Now;
-            prescription.UpdatedAt = DateTime.Now;
-
-            await _context.SaveChangesAsync();
             _analyticsService.InvalidateAnalyticsCache();
 
             var result = await _context.Prescriptions
@@ -1367,68 +1449,24 @@ namespace eBolnicaAPI.Controllers
             var skipValue = (pageNumber - 1) * pageSize;
             var takeValue = pageSize;
 
-            // For GetInventory, we need alerts from ALL matching items (not just current page)
-            // So we execute the query twice: once for all items (alerts), once with pagination (main result)
-            // Note: This is necessary because alerts must reflect all matching items regardless of pagination
-            
-            // First: Get all matching items for alerts calculation using projection for efficiency
-            var allDtoList = await query
-                .Select(m => new MedicationDto
-                {
-                    Id = m.Id,
-                    Name = m.Name,
-                    GenericName = m.GenericName,
-                    Description = m.Description,
-                    Manufacturer = m.Manufacturer,
-                    Price = m.Price,
-                    StockQuantity = m.StockQuantity,
-                    MinimumStockLevel = m.MinimumStockLevel,
-                    ExpiryDate = m.ExpiryDate,
-                    BatchNumber = m.BatchNumber,
-                    IsActive = m.IsActive,
-                    RequiresPrescription = m.RequiresPrescription,
-                    Category = m.Category,
-                    DosageForm = m.DosageForm,
-                    Strength = m.Strength,
-                    CreatedAt = m.CreatedAt,
-                    UpdatedAt = m.UpdatedAt,
-                    PrimaryImageUrl = m.ImageUrl ?? m.Images
-                        .OrderByDescending(i => i.IsPrimary)
-                        .ThenBy(i => i.SortOrder)
-                        .Select(i => i.RelativeUrl)
-                        .FirstOrDefault()
-                })
+            // Alerts are computed from filtered matches at the database level (not the full paginated page).
+            var expiryThreshold = DateTime.Now.AddDays(30);
+            var now = DateTime.Now;
+
+            var lowStockAlerts = await SelectInventoryMedicationDto(
+                    query.Where(m => m.StockQuantity < m.MinimumStockLevel))
                 .ToListAsync();
 
-            // Second: Apply pagination at database level using projection for optimal performance
-            var dtoList = await query
+            var expiryAlerts = await SelectInventoryMedicationDto(
+                    query.Where(m => m.ExpiryDate.HasValue
+                        && m.ExpiryDate.Value <= expiryThreshold
+                        && m.ExpiryDate.Value > now))
+                .ToListAsync();
+
+            // Apply pagination at database level using projection for optimal performance
+            var dtoList = await SelectInventoryMedicationDto(query)
                 .Skip(skipValue)
                 .Take(takeValue)
-                .Select(m => new MedicationDto
-                {
-                    Id = m.Id,
-                    Name = m.Name,
-                    GenericName = m.GenericName,
-                    Description = m.Description,
-                    Manufacturer = m.Manufacturer,
-                    Price = m.Price,
-                    StockQuantity = m.StockQuantity,
-                    MinimumStockLevel = m.MinimumStockLevel,
-                    ExpiryDate = m.ExpiryDate,
-                    BatchNumber = m.BatchNumber,
-                    IsActive = m.IsActive,
-                    RequiresPrescription = m.RequiresPrescription,
-                    Category = m.Category,
-                    DosageForm = m.DosageForm,
-                    Strength = m.Strength,
-                    CreatedAt = m.CreatedAt,
-                    UpdatedAt = m.UpdatedAt,
-                    PrimaryImageUrl = m.ImageUrl ?? m.Images
-                        .OrderByDescending(i => i.IsPrimary)
-                        .ThenBy(i => i.SortOrder)
-                        .Select(i => i.RelativeUrl)
-                        .FirstOrDefault()
-                })
                 .ToListAsync();
 
             stopwatch.Stop();
@@ -1450,13 +1488,6 @@ namespace eBolnicaAPI.Controllers
                 pageNumber,
                 pageSize
             );
-
-            var lowStockAlerts = allDtoList.Where(m => m.IsLowStock).ToList();
-            var expiryAlerts = allDtoList
-                .Where(m => m.ExpiryDate.HasValue
-                    && m.ExpiryDate.Value <= DateTime.Now.AddDays(30)
-                    && m.ExpiryDate.Value > DateTime.Now)
-                .ToList();
 
             var response = new InventoryResponse(
                 paginatedResponse.Items,
@@ -1595,6 +1626,15 @@ namespace eBolnicaAPI.Controllers
                 var filteredQuery = _pharmacyService.GetFilteredInventory(baseQuery, queryParams);
                 var sortedQuery = _pharmacyService.ApplySorting(filteredQuery, queryParams.SortBy, queryParams.SortOrder);
 
+                var exportCount = await sortedQuery.CountAsync();
+                if (request.IncludeAllData && exportCount > _medicationCsvExportService.MaxExportRows)
+                {
+                    return BadRequest(new
+                    {
+                        error = $"Export is limited to {_medicationCsvExportService.MaxExportRows} rows. Refine your filters and try again."
+                    });
+                }
+
                 // If IncludeAllData is true, get all matching items (override pagination)
                 var inventoryItems = request.IncludeAllData
                     ? await sortedQuery.AsNoTracking().ToListAsync()
@@ -1608,7 +1648,7 @@ namespace eBolnicaAPI.Controllers
 
                 // 5. Return PDF file with proper headers
                 var fileName = GetInventoryPdfFileName(request);
-                return ReturnPdfFile(pdfBytes, fileName);
+                return ReturnPdfFile(pdfBytes, fileName, inventoryItems.Count);
             }
             catch (ArgumentException ex)
             {
@@ -1724,6 +1764,15 @@ namespace eBolnicaAPI.Controllers
                 var filteredQuery = _pharmacyService.GetFilteredPrescriptions(baseQuery, queryParams);
                 var sortedQuery = _pharmacyService.ApplySorting(filteredQuery, queryParams.SortBy, queryParams.SortOrder);
 
+                var exportCount = await sortedQuery.CountAsync();
+                if (request.IncludeAllData && exportCount > _medicationCsvExportService.MaxExportRows)
+                {
+                    return BadRequest(new
+                    {
+                        error = $"Export is limited to {_medicationCsvExportService.MaxExportRows} rows. Refine your filters and try again."
+                    });
+                }
+
                 // If IncludeAllData is true, get all matching items (override pagination)
                 var prescriptions = request.IncludeAllData
                     ? await sortedQuery.AsNoTracking().ToListAsync()
@@ -1737,7 +1786,7 @@ namespace eBolnicaAPI.Controllers
 
                 // 5. Return PDF file with proper headers
                 var fileName = GetPrescriptionsPdfFileName(request);
-                return ReturnPdfFile(pdfBytes, fileName);
+                return ReturnPdfFile(pdfBytes, fileName, prescriptions.Count);
             }
             catch (ArgumentException ex)
             {
@@ -2066,10 +2115,37 @@ namespace eBolnicaAPI.Controllers
             };
         }
 
+        private static IQueryable<MedicationDto> SelectInventoryMedicationDto(IQueryable<Medication> query) =>
+            query.Select(m => new MedicationDto
+            {
+                Id = m.Id,
+                Name = m.Name,
+                GenericName = m.GenericName,
+                Description = m.Description,
+                Manufacturer = m.Manufacturer,
+                Price = m.Price,
+                StockQuantity = m.StockQuantity,
+                MinimumStockLevel = m.MinimumStockLevel,
+                ExpiryDate = m.ExpiryDate,
+                BatchNumber = m.BatchNumber,
+                IsActive = m.IsActive,
+                RequiresPrescription = m.RequiresPrescription,
+                Category = m.Category,
+                DosageForm = m.DosageForm,
+                Strength = m.Strength,
+                CreatedAt = m.CreatedAt,
+                UpdatedAt = m.UpdatedAt,
+                PrimaryImageUrl = m.ImageUrl ?? m.Images
+                    .OrderByDescending(i => i.IsPrimary)
+                    .ThenBy(i => i.SortOrder)
+                    .Select(i => i.RelativeUrl)
+                    .FirstOrDefault()
+            });
+
         /// <summary>
         /// Returns PDF file with proper headers for download
         /// </summary>
-        private IActionResult ReturnPdfFile(byte[] pdfBytes, string fileName)
+        private IActionResult ReturnPdfFile(byte[] pdfBytes, string fileName, int? exportedRowCount = null)
         {
             // Set security and cache headers
             Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
@@ -2078,6 +2154,11 @@ namespace eBolnicaAPI.Controllers
             Response.Headers["X-Content-Type-Options"] = "nosniff";
             Response.Headers["X-Frame-Options"] = "DENY"; // Prevent clickjacking
             Response.Headers["Content-Length"] = pdfBytes.Length.ToString();
+
+            if (exportedRowCount.HasValue)
+            {
+                Response.Headers["X-Export-Row-Count"] = exportedRowCount.Value.ToString();
+            }
 
             // Set Content-Disposition for download
             var contentDisposition = $"attachment; filename=\"{fileName}\"; filename*=UTF-8''{Uri.EscapeDataString(fileName)}";
@@ -2287,6 +2368,25 @@ namespace eBolnicaAPI.Controllers
             if (parameters.DispensedAfter.HasValue) count++;
             if (parameters.DispensedBefore.HasValue) count++;
             return count;
+        }
+
+        private async Task<Pharmacist?> ResolveAuthenticatedPharmacistAsync()
+        {
+            var appUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (appUserId == null)
+            {
+                return null;
+            }
+
+            return await _context.Pharmacists
+                .Include(p => p.AppUser)
+                .FirstOrDefaultAsync(p => p.AppUserId == appUserId);
+        }
+
+        private static bool IsPrescriptionNumberConflict(DbUpdateException exception)
+        {
+            return exception.InnerException?.Message.Contains("PrescriptionNumber", StringComparison.OrdinalIgnoreCase) == true
+                || exception.Message.Contains("PrescriptionNumber", StringComparison.OrdinalIgnoreCase);
         }
 
         private async Task<string> GeneratePrescriptionNumberAsync()

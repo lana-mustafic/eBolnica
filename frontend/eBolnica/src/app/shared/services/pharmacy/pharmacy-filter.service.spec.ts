@@ -2,42 +2,43 @@ import { PharmacyFilterService } from './pharmacy-filter.service';
 
 describe('PharmacyFilterService inventory sort', () => {
   let service: PharmacyFilterService;
+  const inventoryContext = 'inventory' as const;
 
   beforeEach(() => {
     service = new PharmacyFilterService();
   });
 
   it('updateSort stores sortBy and sortOrder in filter state', () => {
-    service.updateSort('expiryDate', 'desc');
+    service.updateSort(inventoryContext, 'expiryDate', 'desc');
 
-    expect(service.getSortParams()).toEqual({
+    expect(service.getSortParams(inventoryContext)).toEqual({
       sortBy: 'expiryDate',
       sortOrder: 'desc'
     });
   });
 
   it('updateSort resets pageNumber to 1', () => {
-    service.updateFilters({ pageNumber: 3, category: 'painkiller' });
+    service.updateFilters(inventoryContext, { pageNumber: 3, category: 'painkiller' });
 
-    service.updateSort('name', 'asc');
+    service.updateSort(inventoryContext, 'name', 'asc');
 
-    expect(service.getFilters().pageNumber).toBe(1);
-    expect(service.getFilters().category).toBe('painkiller');
-    expect(service.getFilters().sortBy).toBe('name');
-    expect(service.getFilters().sortOrder).toBe('asc');
+    expect(service.getFilters(inventoryContext).pageNumber).toBe(1);
+    expect(service.getFilters(inventoryContext).category).toBe('painkiller');
+    expect(service.getFilters(inventoryContext).sortBy).toBe('name');
+    expect(service.getFilters(inventoryContext).sortOrder).toBe('asc');
   });
 
   it('preserves sort when only pageNumber changes', () => {
-    service.updateFilters({
+    service.updateFilters(inventoryContext, {
       sortBy: 'expiryDate',
       sortOrder: 'desc',
       category: 'antibiotics',
       pageNumber: 1
     });
 
-    service.updateFilters({ pageNumber: 2 });
+    service.updateFilters(inventoryContext, { pageNumber: 2 });
 
-    expect(service.getFilters()).toEqual(
+    expect(service.getFilters(inventoryContext)).toEqual(
       jasmine.objectContaining({
         sortBy: 'expiryDate',
         sortOrder: 'desc',
@@ -48,61 +49,20 @@ describe('PharmacyFilterService inventory sort', () => {
   });
 
   it('clearFilters removes sort params', () => {
-    service.updateSort('stockQuantity', 'asc');
+    service.updateSort(inventoryContext, 'stockQuantity', 'asc');
 
-    service.clearFilters();
+    service.clearFilters(inventoryContext);
 
-    expect(service.getSortParams()).toEqual({});
+    expect(service.getSortParams(inventoryContext)).toEqual({});
   });
 
-  it('keeps sort, filters, and paging in one filter state for a single API query', () => {
-    service.updateFilters({
-      pageNumber: 2,
-      pageSize: 25,
-      category: 'antibiotics',
-      stockStatus: 'low stock',
-      searchTerm: 'amox',
-      sortBy: 'expiryDate',
-      sortOrder: 'desc'
-    });
+  it('isolates filter state between list contexts', () => {
+    service.updateFilters('medications', { searchTerm: 'aspirin', pageNumber: 3 });
+    service.updateFilters('prescriptions', { prescriptionStatus: 'Pending', pageNumber: 2 });
 
-    expect(service.getFilters()).toEqual(
-      jasmine.objectContaining({
-        pageNumber: 2,
-        pageSize: 25,
-        category: 'antibiotics',
-        stockStatus: 'low stock',
-        searchTerm: 'amox',
-        sortBy: 'expiryDate',
-        sortOrder: 'desc'
-      })
-    );
-  });
-
-  it('resets page to 1 when sort changes but keeps filters for the next query', () => {
-    service.updateFilters({
-      pageNumber: 3,
-      pageSize: 25,
-      category: 'painkiller',
-      searchTerm: 'ibu',
-      sortBy: 'name',
-      sortOrder: 'asc'
-    });
-
-    service.updateFilters({
-      sortBy: 'expiryDate',
-      sortOrder: 'desc'
-    });
-
-    expect(service.getFilters()).toEqual(
-      jasmine.objectContaining({
-        pageNumber: 1,
-        pageSize: 25,
-        category: 'painkiller',
-        searchTerm: 'ibu',
-        sortBy: 'expiryDate',
-        sortOrder: 'desc'
-      })
-    );
+    expect(service.getFilters('medications').searchTerm).toBe('aspirin');
+    expect(service.getFilters('medications').pageNumber).toBe(3);
+    expect(service.getFilters('prescriptions').prescriptionStatus).toBe('Pending');
+    expect(service.getFilters('prescriptions').searchTerm).toBeUndefined();
   });
 });

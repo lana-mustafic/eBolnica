@@ -30,6 +30,12 @@ describe('MedicationImageDropzoneComponent', () => {
     });
   }
 
+  function expectFilesSelected(spy: jasmine.Spy, expectedFiles: File[]): void {
+    expect(spy).toHaveBeenCalled();
+    const entries = spy.calls.mostRecent().args[0] as Array<{ file: File }>;
+    expect(entries.map(entry => entry.file)).toEqual(expectedFiles);
+  }
+
   function dragEvent(
     type: string,
     target: HTMLElement,
@@ -83,7 +89,7 @@ describe('MedicationImageDropzoneComponent', () => {
       ) as HTMLButtonElement;
       uploadButton.click();
 
-      expect(component.filesSelected.emit).toHaveBeenCalledWith(files);
+      expectFilesSelected(component.filesSelected.emit as jasmine.Spy, files);
     });
 
     it('does not start upload on browse until Upload selected is clicked', () => {
@@ -103,7 +109,7 @@ describe('MedicationImageDropzoneComponent', () => {
       ) as HTMLButtonElement;
       uploadButton.click();
 
-      expect(component.filesSelected.emit).toHaveBeenCalledWith([file]);
+      expectFilesSelected(component.filesSelected.emit as jasmine.Spy, [file]);
     });
   });
 
@@ -124,7 +130,7 @@ describe('MedicationImageDropzoneComponent', () => {
       });
       input.dispatchEvent(new Event('change'));
 
-      expect(component.filesSelected.emit).toHaveBeenCalledWith([file]);
+      expectFilesSelected(component.filesSelected.emit as jasmine.Spy, [file]);
       expect(input.value).toBe('');
     });
 
@@ -139,7 +145,7 @@ describe('MedicationImageDropzoneComponent', () => {
       });
       input.dispatchEvent(new Event('change'));
 
-      expect(component.filesSelected.emit).toHaveBeenCalledWith(files);
+      expectFilesSelected(component.filesSelected.emit as jasmine.Spy, files);
     });
 
     it('limits multiple dropped files to maxFiles and emits selectionLimited', () => {
@@ -150,7 +156,7 @@ describe('MedicationImageDropzoneComponent', () => {
 
       component.onDrop(dragEvent('drop', dropzone, { files }));
 
-      expect(component.filesSelected.emit).toHaveBeenCalledWith(files.slice(0, MEDICATION_IMAGE_MAX_FILES));
+      expectFilesSelected(component.filesSelected.emit as jasmine.Spy, files.slice(0, MEDICATION_IMAGE_MAX_FILES));
       expect(component.selectionLimited.emit).toHaveBeenCalledWith({
         selected: MEDICATION_IMAGE_MAX_FILES,
         provided: 7,
@@ -171,7 +177,7 @@ describe('MedicationImageDropzoneComponent', () => {
       Object.defineProperty(input, 'files', { configurable: true, value: files });
       input.dispatchEvent(new Event('change'));
 
-      expect(component.filesSelected.emit).toHaveBeenCalledWith([files[0]]);
+      expectFilesSelected(component.filesSelected.emit as jasmine.Spy, [files[0]]);
       expect(component.selectionLimited.emit).toHaveBeenCalledWith({
         selected: 1,
         provided: 2,
@@ -199,7 +205,7 @@ describe('MedicationImageDropzoneComponent', () => {
 
       component.onDrop(dragEvent('drop', dropzone, { files: [file] }));
 
-      expect(component.filesSelected.emit).toHaveBeenCalledWith([file]);
+      expectFilesSelected(component.filesSelected.emit as jasmine.Spy, [file]);
       expect(component.isDragOver).toBeFalse();
     });
 
@@ -226,7 +232,7 @@ describe('MedicationImageDropzoneComponent', () => {
       component.onDrop(dragEvent('drop', dropzone, { files: [valid, invalid] }));
       fixture.detectChanges();
 
-      expect(component.filesSelected.emit).toHaveBeenCalledWith([valid]);
+      expectFilesSelected(component.filesSelected.emit as jasmine.Spy, [valid]);
       expect(component.validationErrors.emit).toHaveBeenCalledWith([
         { fileName: 'bad.pdf', message: 'Invalid file type. Allowed formats: JPG, PNG, WEBP.' }
       ]);
@@ -582,7 +588,7 @@ describe('MedicationImageDropzoneComponent', () => {
 
       uploadButton.click();
 
-      expect(component.filesSelected.emit).toHaveBeenCalledWith([valid]);
+      expectFilesSelected(component.filesSelected.emit as jasmine.Spy, [valid]);
     });
 
     it('disables upload selected when queue has no valid files', () => {
@@ -671,6 +677,7 @@ describe('MedicationImageDropzoneComponent', () => {
         files: [createFile('a.jpg')]
       }));
       component.uploadFileStatuses = [{
+        uploadKey: component.pendingQueue[0].id,
         fileName: 'a.jpg',
         status: 'uploading',
         progressPercent: 42
@@ -690,6 +697,7 @@ describe('MedicationImageDropzoneComponent', () => {
         files: [createFile('a.jpg')]
       }));
       component.uploadFileStatuses = [{
+        uploadKey: component.pendingQueue[0].id,
         fileName: 'a.jpg',
         status: 'error',
         progressPercent: 35,
@@ -707,7 +715,7 @@ describe('MedicationImageDropzoneComponent', () => {
       ) as HTMLButtonElement;
       retryButton.click();
 
-      expect(component.retryUploadRequested.emit).toHaveBeenCalledWith('a.jpg');
+      expect(component.retryUploadRequested.emit).toHaveBeenCalledWith(component.pendingQueue[0].id);
     });
 
     it('removes only uploaded files from the pending queue', () => {

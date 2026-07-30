@@ -11,8 +11,8 @@ import { SortStatusComponent } from '../../../shared/components/sort-status/sort
 import { PrescriptionDto } from '../../../models/prescription.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { PagedResponse } from '../../../models/paged-response.dto';
-import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, catchError, of } from 'rxjs';
-import { TABLE_DEFAULT_SORTS } from '../../../constants/sort.constants';
+import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, catchError, of, EMPTY } from 'rxjs';
+import { TABLE_DEFAULT_SORTS, mapPrescriptionSortColumn } from '../../../constants/sort.constants';
 import { getPageRangeEnd, getPageRangeStart } from '../../../shared/utils/paged-response.util';
 
 @Component({
@@ -25,6 +25,7 @@ import { getPageRangeEnd, getPageRangeStart } from '../../../shared/utils/paged-
 export class PrescriptionsComponent implements OnInit, OnDestroy {
   protected pharmacyService = inject(PharmacyService);
   protected filterService = inject(PharmacyFilterService);
+  protected readonly filterContext = 'prescriptions' as const;
   private notificationService = inject(NotificationService);
 
   prescriptions: PrescriptionDto[] = [];
@@ -60,7 +61,7 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   // Sort (default: newest first)
-  sortBy: string = 'date';
+  sortBy: string = 'prescribedDate';
   sortOrder: 'asc' | 'desc' = TABLE_DEFAULT_SORTS.PRESCRIPTIONS.order;
   sortColumn: string = TABLE_DEFAULT_SORTS.PRESCRIPTIONS.column; // Default sort column for header clicks
   private previousSortColumn: string = TABLE_DEFAULT_SORTS.PRESCRIPTIONS.column; // For error recovery
@@ -68,13 +69,13 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   private sortDebounceTimer: any; // Timer for debouncing sort requests
 
   // Active filters for display
-  activeFilters = this.filterService.getActiveFilters();
+  activeFilters = this.filterService.getActiveFilters(this.filterContext);
 
   // Success message for clear operation
   clearSuccessMessage: string | null = null;
 
   ngOnInit(): void {
-    this.syncUIFromFilters(this.filterService.getFilters());
+    this.syncUIFromFilters(this.filterService.getFilters(this.filterContext));
 
     this.searchSubject.pipe(
       debounceTime(300),
@@ -85,7 +86,7 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
       this.pushFiltersFromUI();
     });
 
-    this.filterService.getFilters$().pipe(
+    this.filterService.getFilters$(this.filterContext).pipe(
       switchMap(filters => {
         if (!this.isSorting) {
           this.isSearching = true;
@@ -100,6 +101,11 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
             this.isSorting = false;
           }),
           catchError((error) => {
+            if (this.isSorting) {
+              this.handleSortError(error);
+              return EMPTY;
+            }
+
             this.handleApiError(error);
             return of({
               items: [],
@@ -168,7 +174,7 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
     this.totalPages = response.totalPages;
     this.currentPage = response.currentPage;
     this.pageSize = response.pageSize;
-    this.filterService.syncPaginationFromResponse(response.currentPage, response.pageSize);
+    this.filterService.syncPaginationFromResponse(this.filterContext,response.currentPage, response.pageSize);
   }
 
   get paginationRangeStart(): number {
@@ -208,14 +214,14 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   }
 
   private pushFiltersFromUI(): void {
-    this.filterService.updateFilters(this.buildFiltersFromUI());
+    this.filterService.updateFilters(this.filterContext,this.buildFiltersFromUI());
   }
 
   /**
    * Update filters in service (triggers API call)
    */
   private updateFilters(updates: Partial<PharmacyFilters>): void {
-    this.filterService.updateFilters(updates);
+    this.filterService.updateFilters(this.filterContext,updates);
   }
 
   loadPrescriptions(): void {
@@ -225,14 +231,11 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   updateFilterCounts(): void {
     this.statusFilters.forEach(filter => {
       if (filter.value === 'All') {
+        filter.count = this.selectedStatus === 'All' ? this.totalCount : 0;
+      } else if (filter.value === this.selectedStatus) {
         filter.count = this.totalCount;
       } else {
-        const pageCount = this.prescriptions.filter(p => p.status === filter.value).length;
-        if (this.totalCount > 0 && this.prescriptions.length > 0) {
-          filter.count = Math.round((pageCount / this.prescriptions.length) * this.totalCount);
-        } else {
-          filter.count = pageCount;
-        }
+        filter.count = 0;
       }
     });
   }
@@ -240,7 +243,7 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   onStatusFilterChange(status: string): void {
     this.selectedStatus = status;
     if (status === 'All') {
-      this.filterService.updateFilters({ prescriptionStatus: undefined });
+      this.filterService.updateFilters(this.filterContext,{ prescriptionStatus: undefined });
     } else {
       this.updateFilters({ prescriptionStatus: status });
     }
@@ -252,13 +255,14 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   }
 
   onSortChange(sortBy: string): void {
+    const backendSortBy = mapPrescriptionSortColumn(sortBy);
     if (this.sortBy === sortBy) {
       this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
     } else {
       this.sortBy = sortBy;
       this.sortOrder = 'desc';
     }
-    this.sortColumn = this.sortBy;
+    this.sortColumn = backendSortBy;
     this.pushFiltersFromUI();
   }
 
@@ -443,7 +447,7 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
     this.pageSize = 10;
     this.resetSortingToDefault();
 
-    this.filterService.clearAllFilters();
+    this.filterService.clearAllFilters(this.filterContext);
     this.pushFiltersFromUI();
 
     this.updateActiveFilters();
@@ -482,7 +486,7 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   }
 
   removeFilter(filterKey: string): void {
-    this.filterService.clearFilter(filterKey as keyof PharmacyFilters);
+    this.filterService.clearFilter(this.filterContext,filterKey as keyof PharmacyFilters);
     
     switch (filterKey) {
       case 'searchTerm':
@@ -497,11 +501,11 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
   }
 
   getActiveFilterCount(): number {
-    return this.filterService.getActiveFilterCount();
+    return this.filterService.getActiveFilterCount(this.filterContext);
   }
 
   updateActiveFilters(): void {
-    this.activeFilters = this.filterService.getActiveFilters();
+    this.activeFilters = this.filterService.getActiveFilters(this.filterContext);
   }
 
   // Pagination methods
@@ -702,13 +706,6 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
     this.showPdfProgress = true;
     this.pdfProgress = 0;
 
-    // Simulate progress (will be replaced with actual progress events when backend supports it)
-    this.progressInterval = setInterval(() => {
-      if (this.pdfProgress < 90) {
-        this.pdfProgress += 10;
-      }
-    }, 300);
-
     // Build current filters from component state
     const filters: PharmacyFilters = {
       pageNumber: 1,
@@ -749,7 +746,7 @@ export class PrescriptionsComponent implements OnInit, OnDestroy {
         
         // Extract file info from response
         const fileInfo = response?.fileInfo || { fileName: 'prescriptions-report.pdf', fileSize: 0 };
-        const itemCount = this.prescriptions.length;
+        const itemCount = fileInfo.exportedRowCount ?? this.totalCount;
         
         // Show success notification
         this.showPdfSuccess(fileInfo.fileName, fileInfo.fileSize, itemCount);

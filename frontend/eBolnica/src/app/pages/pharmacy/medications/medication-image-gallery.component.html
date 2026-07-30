@@ -154,7 +154,7 @@
       }
 
       <ul class="gallery-upload-status-list" role="status" aria-live="polite" aria-label="Image upload progress">
-        @for (item of uploadFileStatuses; track item.fileName) {
+        @for (item of uploadFileStatuses; track item.uploadKey) {
           <li
             class="gallery-upload-status-item"
             [class]="'is-' + item.status"
@@ -197,7 +197,7 @@
               <button
                 type="button"
                 class="gallery-upload-retry-btn"
-                (click)="retryFailedUpload(item.fileName)"
+                (click)="retryFailedUpload(item.uploadKey)"
                 [disabled]="!canRetryUpload(item)"
                 [attr.aria-label]="'Retry upload for ' + item.fileName">
                 Retry upload

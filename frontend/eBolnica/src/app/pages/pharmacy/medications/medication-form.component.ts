@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
+import { finalize } from 'rxjs';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
 import { MedicationDto } from '../../../models/medication.dto';
 import { MedicationCreateDto } from '../../../models/medication-create.dto';
@@ -13,7 +14,7 @@ import {
   isMedicationFieldInvalidForDisplay,
   isMedicationNameCheckUnavailable
 } from '../../../shared/utils/medication-field-error.util';
-import { finalize } from 'rxjs';
+import { dateInputToIsoString } from '../../../shared/utils/date-only.util';
 
 @Component({
   selector: 'app-medication-form',
@@ -83,7 +84,7 @@ export class MedicationFormComponent implements OnInit {
       price: [0, [Validators.required, Validators.min(0.01)]],
       stockQuantity: [0, [Validators.required, Validators.min(0)]],
       minimumStockLevel: [10, [Validators.required, Validators.min(0)]],
-      expiryDate: ['', [Validators.required, this.futureDateValidator]],
+      expiryDate: ['', [Validators.required, (control: AbstractControl) => this.expiryDateValidator(control)]],
       batchNumber: [''],
       isActive: [true],
       requiresPrescription: [true],
@@ -103,19 +104,19 @@ export class MedicationFormComponent implements OnInit {
     }
   }
 
-  futureDateValidator(control: AbstractControl): ValidationErrors | null {
-    if (!control.value) {
+  expiryDateValidator(control: AbstractControl): ValidationErrors | null {
+    if (!control.value || this.isEditMode) {
       return null;
     }
-    
+
     const selectedDate = new Date(control.value);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     if (selectedDate <= today) {
       return { pastDate: true };
     }
-    
+
     return null;
   }
 
@@ -168,8 +169,8 @@ export class MedicationFormComponent implements OnInit {
       const formValue = this.medicationForm.value;
       
       // Format expiry date
-      const expiryDate = formValue.expiryDate 
-        ? new Date(formValue.expiryDate).toISOString()
+      const expiryDate = formValue.expiryDate
+        ? dateInputToIsoString(formValue.expiryDate)
         : '';
 
       const medicationDto: MedicationCreateDto = {

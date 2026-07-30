@@ -10,6 +10,7 @@ import { AuthService } from '../../../shared/services/auth.service';
 import { NotificationService } from '../../../shared/services/notification.service';
 import { ConfirmDialogService } from '../../../shared/services/confirm-dialog.service';
 import { MedicationImageDto } from '../../../models/medication-image.dto';
+import { createMedicationImageUploadEntry } from './medication-image-upload.util';
 
 describe('MedicationImageGalleryComponent metadata', () => {
   let fixture: ComponentFixture<MedicationImageGalleryComponent>;
@@ -274,6 +275,10 @@ describe('MedicationImageGalleryComponent upload progress', () => {
     return new File(['image'], name, { type: 'image/jpeg' });
   }
 
+  function createUploadEntry(name: string, uploadKey?: string) {
+    return createMedicationImageUploadEntry(createFile(name), uploadKey);
+  }
+
   beforeEach(async () => {
     pharmacyService = jasmine.createSpyObj<PharmacyService>('PharmacyService', [
       'resolveMedicationImageUrl',
@@ -313,7 +318,7 @@ describe('MedicationImageGalleryComponent upload progress', () => {
     const upload$ = new Subject<HttpEvent<MedicationImageDto>>();
     pharmacyService.uploadMedicationImage.and.returnValue(upload$.asObservable());
 
-    component.onDropzoneFilesSelected([createFile('new.jpg')]);
+    component.onDropzoneFilesSelected([createUploadEntry('new.jpg')]);
     upload$.next({ type: HttpEventType.UploadProgress, loaded: 50, total: 100 } as HttpEvent<MedicationImageDto>);
     fixture.detectChanges();
 
@@ -340,9 +345,9 @@ describe('MedicationImageGalleryComponent upload progress', () => {
     });
 
     component.onDropzoneFilesSelected([
-      createFile('one.jpg'),
-      createFile('two.jpg'),
-      createFile('three.jpg')
+      createUploadEntry('one.jpg'),
+      createUploadEntry('two.jpg'),
+      createUploadEntry('three.jpg')
     ]);
     fixture.detectChanges();
 
@@ -364,7 +369,7 @@ describe('MedicationImageGalleryComponent upload progress', () => {
     ));
     pharmacyService.getMedicationImages.and.returnValue(of(refreshedImages));
 
-    component.onDropzoneFilesSelected([createFile('new.jpg')]);
+    component.onDropzoneFilesSelected([createUploadEntry('new.jpg')]);
     fixture.detectChanges();
 
     expect(component.isUploading).toBeFalse();
@@ -388,7 +393,7 @@ describe('MedicationImageGalleryComponent upload progress', () => {
       throwError(() => ({ status: 500 }))
     );
 
-    component.onDropzoneFilesSelected([createFile('failed.jpg')]);
+    component.onDropzoneFilesSelected([createUploadEntry('failed.jpg')]);
     fixture.detectChanges();
 
     expect(component.isUploading).toBeFalse();
@@ -410,7 +415,7 @@ describe('MedicationImageGalleryComponent upload progress', () => {
     );
     pharmacyService.getMedicationImages.and.returnValue(of([createImage(1), createImage(2)]));
 
-    component.onDropzoneFilesSelected([createFile('retry-me.jpg')]);
+    component.onDropzoneFilesSelected([createUploadEntry('retry-me.jpg', 'retry-key')]);
     fixture.detectChanges();
     fixture.detectChanges();
 
@@ -419,7 +424,7 @@ describe('MedicationImageGalleryComponent upload progress', () => {
     expect(component.uploadFileStatuses[0].status).toBe('error');
     expect(fixture.nativeElement.querySelector('.gallery-upload-retry-btn')).toBeTruthy();
 
-    component.retryFailedUpload('retry-me.jpg');
+    component.retryFailedUpload('retry-key');
     fixture.detectChanges();
 
     expect(pharmacyService.uploadMedicationImage).toHaveBeenCalledTimes(2);

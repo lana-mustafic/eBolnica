@@ -365,7 +365,7 @@ namespace eBolnicaAPI.Services
                 switch (status)
                 {
                     case "low stock":
-                        query = query.Where(m => m.StockQuantity >= 5 && m.StockQuantity < m.MinimumStockLevel);
+                        query = query.Where(m => m.StockQuantity > 0 && m.StockQuantity < m.MinimumStockLevel);
                         break;
                     case "out of stock":
                         query = query.Where(m => m.StockQuantity == 0);
@@ -453,10 +453,24 @@ namespace eBolnicaAPI.Services
         {
             var query = baseQuery;
 
-            // String filters: Status
+            // String filters: Status (case-insensitive)
             if (!string.IsNullOrEmpty(queryParams.Status))
             {
-                query = query.Where(p => p.Status == queryParams.Status);
+                var status = queryParams.Status.Trim();
+                query = query.Where(p => p.Status.ToLower() == status.ToLower());
+            }
+
+            // Search: prescription number, patient name, doctor name, medication name
+            if (!string.IsNullOrWhiteSpace(queryParams.SearchTerm))
+            {
+                var term = queryParams.SearchTerm.Trim().ToLower();
+                query = query.Where(p =>
+                    p.PrescriptionNumber.ToLower().Contains(term) ||
+                    (p.Patient.FirstName + " " + p.Patient.LastName).ToLower().Contains(term) ||
+                    (p.Doctor.FirstName + " " + p.Doctor.LastName).ToLower().Contains(term) ||
+                    p.PrescriptionItems.Any(pi =>
+                        pi.Medication.Name.ToLower().Contains(term) ||
+                        (pi.Medication.GenericName != null && pi.Medication.GenericName.ToLower().Contains(term))));
             }
 
             // Numeric filters: ID filters

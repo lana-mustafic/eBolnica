@@ -32,8 +32,12 @@ export function normalizeMedicationWizardStepIndex(step: number, totalSteps: num
 }
 
 export function toMedicationWizardDraftFormValue(
-  raw: Record<string, unknown>
+  raw: MedicationWizardDraftFormValue | Record<string, unknown>
 ): MedicationWizardDraftFormValue {
+  if (typeof raw['name'] === 'string') {
+    return raw as MedicationWizardDraftFormValue;
+  }
+
   return {
     name: String(raw['name'] ?? ''),
     category: String(raw['category'] ?? ''),

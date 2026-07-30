@@ -47,6 +47,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
 
   protected pharmacyService = inject(PharmacyService);
   protected filterService = inject(PharmacyFilterService);
+  protected readonly filterContext = 'medications' as const;
 
   medications: MedicationDto[] = [];
   isLoading: boolean = false;
@@ -107,7 +108,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   private sortDebounceTimer: any; // Timer for debouncing sort requests
 
   // Active filters for display
-  activeFilters: ActiveFilter[] = this.filterService.getActiveFilters();
+  activeFilters: ActiveFilter[] = [];
 
   // Success message for clear operation
   clearSuccessMessage: string | null = null;
@@ -122,7 +123,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   readonly maxImportFileSizeLabel = MAX_MEDICATION_IMPORT_FILE_SIZE_LABEL;
 
   ngOnInit(): void {
-    this.syncUIFromFilters(this.filterService.getFilters());
+    this.syncUIFromFilters(this.filterService.getFilters(this.filterContext));
 
     // Debounced search: waits 300ms, then pushes full filter set (search + dropdowns)
     this.searchSubject.pipe(
@@ -161,33 +162,46 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     });
 
     // Single API pipeline — all filter changes (search + dropdowns + paging + sort) flow here
-    this.filterService.getFilters$().pipe(
+    this.filterService.getFilters$(this.filterContext).pipe(
       switchMap(filters => {
+        this.isLoading = true;
         this.isSearching = true;
         this.errorMessage = null;
         this.syncUIFromFilters(filters);
+        const previousMedications = this.medications;
+        const previousPagination = {
+          totalCount: this.totalCount,
+          totalPages: this.totalPages,
+          currentPage: this.currentPage,
+          pageSize: this.pageSize
+        };
         return this.pharmacyService.getMedicationsWithFilters(filters).pipe(
           finalize(() => {
             this.isSearching = false;
             this.isSorting = false;
+            this.isLoading = false;
           }),
           catchError((error) => {
-            this.handleApiError(error);
-            return of({
-              items: [],
-              totalCount: 0,
-              totalPages: 0,
-              currentPage: 1,
-              pageSize: filters.pageSize || 10,
-              hasNext: false,
-              hasPrevious: false
-            } as PagedResponse<MedicationDto>);
+            if (this.isSorting) {
+              this.handleSortError(error);
+            } else {
+              this.handleApiError(error);
+            }
+            this.medications = previousMedications;
+            this.totalCount = previousPagination.totalCount;
+            this.totalPages = previousPagination.totalPages;
+            this.currentPage = previousPagination.currentPage;
+            this.pageSize = previousPagination.pageSize;
+            return of(null);
           })
         );
       }),
       takeUntil(this.destroy$)
     ).subscribe({
       next: (response) => {
+        if (!response) {
+          return;
+        }
         this.medications = response.items || [];
         this.applyPaginationFromResponse(response);
         this.extractCategories();
@@ -232,7 +246,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     this.totalPages = response.totalPages;
     this.currentPage = response.currentPage;
     this.pageSize = response.pageSize;
-    this.filterService.syncPaginationFromResponse(response.currentPage, response.pageSize);
+    this.filterService.syncPaginationFromResponse(this.filterContext,response.currentPage, response.pageSize);
   }
 
   get paginationRangeStart(): number {
@@ -284,12 +298,12 @@ export class MedicationsComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.filterService.updateFilters(filters);
+    this.filterService.updateFilters(this.filterContext,filters);
   }
 
   private filtersMatchServiceState(filters: Partial<PharmacyFilters>): boolean {
     return this.serializeMedicationFilters(filters)
-      === this.serializeMedicationFilters(this.filterService.getFilters());
+      === this.serializeMedicationFilters(this.filterService.getFilters(this.filterContext));
   }
 
   private serializeMedicationFilters(filters: Partial<PharmacyFilters>): string {
@@ -337,7 +351,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
    * Update filters in service (triggers API call)
    */
   private updateFilters(updates: Partial<PharmacyFilters>): void {
-    this.filterService.updateFilters(updates);
+    this.filterService.updateFilters(this.filterContext,updates);
   }
 
   loadMedications(): void {
@@ -498,7 +512,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     this.pageSize = 10;
     this.resetSortingToDefault();
 
-    this.filterService.clearAllFilters();
+    this.filterService.clearAllFilters(this.filterContext);
     this.pushFiltersFromUI();
 
     this.updateActiveFilters();
@@ -596,8 +610,8 @@ export class MedicationsComponent implements OnInit, OnDestroy {
       uiResetters[filterKey]();
       this.pushFiltersFromUI();
     } else {
-      this.filterService.clearFilterByBadgeKey(filterKey);
-      this.syncUIFromFilters(this.filterService.getFilters());
+      this.filterService.clearFilterByBadgeKey(this.filterContext,filterKey);
+      this.syncUIFromFilters(this.filterService.getFilters(this.filterContext));
     }
 
     this.updateActiveFilters();
@@ -685,7 +699,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   }
 
   getActiveFilterCount(): number {
-    return this.filterService.getActiveFilterCount();
+    return this.filterService.getActiveFilterCount(this.filterContext);
   }
 
   hasActiveFilters(): boolean {
@@ -708,7 +722,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   }
 
   updateActiveFilters(): void {
-    this.activeFilters = this.filterService.getActiveFilters();
+    this.activeFilters = this.filterService.getActiveFilters(this.filterContext);
   }
 
   deleteMedication(medication: MedicationDto): void {
@@ -721,7 +735,11 @@ export class MedicationsComponent implements OnInit, OnDestroy {
         next: () => {
           this.isLoading = false;
           this.successMessage = `Medication "${medication.name}" deleted successfully.`;
-          this.loadMedications();
+          if (this.medications.length === 1 && this.currentPage > 1) {
+            this.updateFilters({ pageNumber: this.currentPage - 1 });
+          } else {
+            this.loadMedications();
+          }
           setTimeout(() => this.successMessage = null, 3000);
         },
         error: (error) => {
@@ -946,11 +964,36 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Export medications on the **current page** to CSV.
-   * Respects active filters and sort order; does not fetch all pages.
+   * Export all medications matching current filters via backend CSV endpoint.
    */
   exportToCSV(): void {
-    this.pharmacyService.exportCsv(this.medications);
+    const filters: PharmacyFilters = {
+      pageNumber: this.currentPage,
+      pageSize: this.pageSize,
+      ...this.buildFiltersFromUI()
+    };
+    this.pharmacyService.exportMedicationsCsvFromFilters(filters).subscribe({
+      next: (response) => {
+        const blob = response.body;
+        if (!blob) {
+          this.errorMessage = 'Failed to export medications.';
+          return;
+        }
+
+        const disposition = response.headers.get('content-disposition') ?? '';
+        const match = disposition.match(/filename="?([^";]+)"?/i);
+        const fileName = match?.[1] ?? 'medications-export.csv';
+        const url = window.URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = fileName;
+        anchor.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: () => {
+        this.errorMessage = 'Failed to export medications. Please try again.';
+      }
+    });
   }
 
   /** Download import template with required headers and example row. */

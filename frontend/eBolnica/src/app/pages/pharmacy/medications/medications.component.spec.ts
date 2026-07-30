@@ -46,15 +46,15 @@ describe('MedicationsComponent autocomplete selection', () => {
 
     component.showAutocompleteDropdown = true;
     component.autocompleteSuggestions = [{ id: 3, name: 'Aspirin', category: 'painkiller' }];
-    filterService.updateFilters({ pageNumber: 2, searchTerm: 'asp' });
+    filterService.updateFilters('medications', { pageNumber: 2, searchTerm: 'asp' });
 
     component.selectAutocompleteSuggestion({ id: 3, name: 'Aspirin', category: 'painkiller' });
 
     expect(component.searchTerm).toBe('Aspirin');
     expect(component.showAutocompleteDropdown).toBeFalse();
     expect(component.autocompleteSuggestions).toEqual([]);
-    expect(filterService.getFilters().searchTerm).toBe('Aspirin');
-    expect(filterService.getFilters().pageNumber).toBe(1);
+    expect(filterService.getFilters('medications').searchTerm).toBe('Aspirin');
+    expect(filterService.getFilters('medications').pageNumber).toBe(1);
     expect(pharmacyService.getMedicationsWithFilters).toHaveBeenCalled();
   });
 

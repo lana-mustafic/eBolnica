@@ -236,7 +236,7 @@
 
   <!-- Filter Summary and Active Filters -->
   <app-filter-summary
-    [filters]="filterService.getFilters()"
+    [filters]="filterService.getFilters(filterContext)"
     [totalCount]="totalCount"
     [totalPages]="totalPages"
     [currentPage]="currentPage"
@@ -247,7 +247,7 @@
   </app-filter-summary>
 
   <app-active-filters
-    [filters]="filterService.getFilters()"
+    [filters]="filterService.getFilters(filterContext)"
     [activeFilters]="activeFilters"
     (removeFilter)="removeFilter($event)">
   </app-active-filters>

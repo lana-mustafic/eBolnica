@@ -2,6 +2,7 @@ import { HttpEvent, HttpEventType, HttpResponse } from '@angular/common/http';
 import { of, throwError } from 'rxjs';
 import { MedicationImageDto } from '../../../models/medication-image.dto';
 import {
+  createMedicationImageUploadEntry,
   getMedicationImageUploadErrorMessage,
   uploadMedicationImagesSequentially
 } from './medication-image-upload.util';
@@ -32,10 +33,10 @@ describe('medication-image-upload.util', () => {
   }
 
   it('uploads each file sequentially via uploadMedicationImage', (done) => {
-    const files = [createFile('a.jpg'), createFile('b.jpg')];
+    const entries = [createFile('a.jpg'), createFile('b.jpg')].map(file => createMedicationImageUploadEntry(file));
     const calls: string[] = [];
 
-    uploadMedicationImagesSequentially(medicationId, files, (_id, file) => {
+    uploadMedicationImagesSequentially(medicationId, entries, (_id, file) => {
       calls.push(file.name);
       return createUploadResponse(file.name, calls.length);
     }).subscribe(result => {
@@ -47,19 +48,19 @@ describe('medication-image-upload.util', () => {
   });
 
   it('reports upload progress from HttpEvent stream', (done) => {
-    const files = [createFile('a.jpg')];
+    const entries = [createMedicationImageUploadEntry(createFile('a.jpg'))];
     const progressUpdates: number[] = [];
     const batchUpdates: number[] = [];
 
     uploadMedicationImagesSequentially(
       medicationId,
-      files,
+      entries,
       () => of(
         { type: HttpEventType.UploadProgress, loaded: 40, total: 100 } as HttpEvent<MedicationImageDto>,
         new HttpResponse({ body: createImage('a.jpg', 1) })
       ),
       {
-        onFileProgress: (_fileName, progressPercent) => progressUpdates.push(progressPercent),
+        onFileProgress: (_uploadKey, _fileName, progressPercent) => progressUpdates.push(progressPercent),
         onBatchProgress: (overallPercent) => batchUpdates.push(overallPercent)
       }
     ).subscribe(() => {
@@ -70,12 +71,13 @@ describe('medication-image-upload.util', () => {
   });
 
   it('reports overall batch progress while uploading multiple files', (done) => {
-    const files = [createFile('a.jpg'), createFile('b.jpg'), createFile('c.jpg')];
+    const entries = [createFile('a.jpg'), createFile('b.jpg'), createFile('c.jpg')]
+      .map(file => createMedicationImageUploadEntry(file));
     const batchUpdates: number[] = [];
 
     uploadMedicationImagesSequentially(
       medicationId,
-      files,
+      entries,
       (_id, file) => {
         if (file.name === 'a.jpg') {
           return of(
@@ -105,13 +107,14 @@ describe('medication-image-upload.util', () => {
   });
 
   it('continues uploading remaining files after a per-file failure', (done) => {
-    const files = [createFile('bad.jpg'), createFile('good.jpg')];
+    const entries = [createFile('bad.jpg'), createFile('good.jpg')]
+      .map(file => createMedicationImageUploadEntry(file));
     const started: string[] = [];
     const completed: string[] = [];
 
     uploadMedicationImagesSequentially(
       medicationId,
-      files,
+      entries,
       (_id, file) => {
       if (file.name === 'bad.jpg') {
         return throwError(() => ({ status: 400, error: { message: 'Invalid image content.' } }));
@@ -119,16 +122,16 @@ describe('medication-image-upload.util', () => {
       return createUploadResponse(file.name, 2);
     },
       {
-        onFileStart: (fileName) => started.push(fileName),
-        onFileComplete: (fileName) => completed.push(fileName),
-        onFileError: (fileName) => completed.push(`error:${fileName}`)
+        onFileStart: (_uploadKey, fileName) => started.push(fileName),
+        onFileComplete: (_uploadKey, fileName) => completed.push(fileName),
+        onFileError: (_uploadKey, fileName) => completed.push(`error:${fileName}`)
       }
     ).subscribe(result => {
       expect(started).toEqual(['bad.jpg', 'good.jpg']);
       expect(completed).toEqual(['error:bad.jpg', 'good.jpg']);
       expect(result.uploaded).toEqual([createImage('good.jpg', 2)]);
       expect(result.errors).toEqual([
-        { fileName: 'bad.jpg', message: 'Invalid image content.' }
+        { uploadKey: entries[0].uploadKey, fileName: 'bad.jpg', message: 'Invalid image content.' }
       ]);
       done();
     });

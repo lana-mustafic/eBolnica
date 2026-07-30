@@ -18,6 +18,7 @@ import {
   mapInventorySortColumn,
   TABLE_DEFAULT_SORTS
 } from '../../../constants/sort.constants';
+import { formatLocalDateParam } from '../../../shared/utils/date-only.util';
 import { getPageRangeEnd, getPageRangeStart } from '../../../shared/utils/paged-response.util';
 import { buildInventoryExportCsv, getInventoryExportFilename } from '../../../shared/utils/inventory-csv.util';
 import { downloadCsv } from '../../../shared/utils/csv.util';
@@ -35,6 +36,7 @@ type ExpiryStatus = 'good' | 'warning' | 'critical' | 'expired';
 export class InventoryComponent implements OnInit, OnDestroy {
   protected pharmacyService = inject(PharmacyService);
   protected filterService = inject(PharmacyFilterService);
+  protected readonly filterContext = 'inventory' as const;
   private notificationService = inject(NotificationService);
 
   inventoryItems: MedicationDto[] = [];
@@ -83,13 +85,13 @@ export class InventoryComponent implements OnInit, OnDestroy {
   criticalStockCount: number = 0;
 
   // Active filters for display
-  activeFilters = this.filterService.getActiveFilters();
+  activeFilters = this.filterService.getActiveFilters(this.filterContext);
 
   // Success message for clear operation
   clearSuccessMessage: string | null = null;
 
   ngOnInit(): void {
-    this.syncUIFromFilters(this.filterService.getFilters());
+    this.syncUIFromFilters(this.filterService.getFilters(this.filterContext));
 
     this.searchSubject.pipe(
       debounceTime(300),
@@ -100,7 +102,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
       this.pushFiltersFromUI();
     });
 
-    this.filterService.getFilters$().pipe(
+    this.filterService.getFilters$(this.filterContext).pipe(
       switchMap(filters => {
         this.isSearching = true;
         this.errorMessage = null;
@@ -187,7 +189,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.totalPages = response.totalPages;
     this.currentPage = response.currentPage;
     this.pageSize = response.pageSize;
-    this.filterService.syncPaginationFromResponse(response.currentPage, response.pageSize);
+    this.filterService.syncPaginationFromResponse(this.filterContext,response.currentPage, response.pageSize);
   }
 
   get paginationRangeStart(): number {
@@ -227,7 +229,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   private pushFiltersFromUI(): void {
-    this.filterService.updateFilters(this.buildFiltersFromUI());
+    this.filterService.updateFilters(this.filterContext,this.buildFiltersFromUI());
   }
 
   private mapStockFilterToApi(stockFilter: string): Pick<PharmacyFilters, 'stockStatus' | 'minStock' | 'maxStock'> {
@@ -311,7 +313,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   private formatDateParam(date: Date): string {
-    return date.toISOString().split('T')[0];
+    return formatLocalDateParam(date);
   }
 
   loadInventory(): void {
@@ -401,7 +403,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.pageSize = 50;
     this.resetSortingToDefault();
 
-    this.filterService.clearAllFilters();
+    this.filterService.clearAllFilters(this.filterContext);
     this.pushFiltersFromUI();
 
     this.updateActiveFilters();
@@ -474,15 +476,15 @@ export class InventoryComponent implements OnInit, OnDestroy {
     switch (filterKey) {
       case 'searchTerm':
         this.searchTerm = '';
-        this.filterService.clearFilter('searchTerm');
+        this.filterService.clearFilter(this.filterContext,'searchTerm');
         break;
       case 'category':
         this.selectedCategory = '';
-        this.filterService.clearFilter('category');
+        this.filterService.clearFilter(this.filterContext,'category');
         break;
       case 'stockStatus':
         this.selectedStockFilter = 'all';
-        this.filterService.updateFilters({
+        this.filterService.updateFilters(this.filterContext,{
           stockStatus: undefined,
           minStock: undefined,
           maxStock: undefined
@@ -490,14 +492,14 @@ export class InventoryComponent implements OnInit, OnDestroy {
         break;
       case 'expiryStatus':
         this.selectedExpiryFilter = 'all';
-        this.filterService.updateFilters({
+        this.filterService.updateFilters(this.filterContext,{
           expiryStatus: undefined,
           expiryAfter: undefined,
           expiryBefore: undefined
         });
         break;
       default:
-        this.filterService.clearFilter(filterKey as keyof PharmacyFilters);
+        this.filterService.clearFilter(this.filterContext,filterKey as keyof PharmacyFilters);
         break;
     }
 
@@ -505,17 +507,17 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   getActiveFilterCount(): number {
-    return this.filterService.getActiveFilterCount();
+    return this.filterService.getActiveFilterCount(this.filterContext);
   }
 
   updateActiveFilters(): void {
-    this.activeFilters = this.filterService.getActiveFilters();
+    this.activeFilters = this.filterService.getActiveFilters(this.filterContext);
   }
 
   // Pagination methods
   goToPage(page: number): void {
     if (page >= 1 && page <= this.totalPages) {
-      this.filterService.updateFilters({ pageNumber: page });
+      this.filterService.updateFilters(this.filterContext,{ pageNumber: page });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
@@ -533,7 +535,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   changePageSize(size: number): void {
-    this.filterService.updateFilters({ pageSize: size, pageNumber: 1 });
+    this.filterService.updateFilters(this.filterContext,{ pageSize: size, pageNumber: 1 });
   }
 
   getPageNumbers(): (number | string)[] {
@@ -825,20 +827,15 @@ export class InventoryComponent implements OnInit, OnDestroy {
     // Set loading state
     this.isGeneratingPdf = true;
     this.wasGeneratingPdf = false;
+    // Simulate progress removed — spinner reflects isGeneratingPdf until download completes.
     this.showPdfProgress = true;
     this.pdfProgress = 0;
 
-    // Simulate progress (will be replaced with actual progress events when backend supports it)
-    this.progressInterval = setInterval(() => {
-      if (this.pdfProgress < 90) {
-        this.pdfProgress += 10;
-      }
-    }, 300);
-
     // Build current filters from component state
     const filters: PharmacyFilters = {
-      ...this.buildFiltersFromUI(),
       pageNumber: 1,
+      pageSize: this.pageSize,
+      ...this.buildFiltersFromUI(),
       sortBy: this.sortColumn,
       sortOrder: this.sortOrder
     };
@@ -873,7 +870,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
         
         // Extract file info from response
         const fileInfo = response?.fileInfo || { fileName: 'inventory-report.pdf', fileSize: 0 };
-        const itemCount = this.inventoryItems.length;
+        const itemCount = fileInfo.exportedRowCount ?? this.totalCount;
         
         // Show success notification
         this.showPdfSuccess(fileInfo.fileName, fileInfo.fileSize, itemCount);
