@@ -269,6 +269,13 @@
   cursor: not-allowed;
 }
 
+.ai-summary-idle {
+  margin: 0.875rem 0 0;
+  color: #718096;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 .ai-summary-status {
   display: flex;
   align-items: center;
@@ -296,6 +303,20 @@
   border-radius: 8px;
   color: #c53030;
   font-size: 0.9rem;
+}
+
+.ai-summary-success {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: #f0fff4;
+  border: 1px solid #c6f6d5;
+  border-radius: 8px;
+  color: #22543d;
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .ai-summary-result {

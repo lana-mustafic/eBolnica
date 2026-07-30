@@ -6,6 +6,11 @@ import { MedicationDto } from '../../../models/medication.dto';
 import { MedicationImageDto } from '../../../models/medication-image.dto';
 import { MedicationAiSummaryDto } from '../../../models/medication-ai-summary.dto';
 import { MedicationImageGalleryComponent } from './medication-image-gallery.component';
+import {
+  getMedicationAiSummaryErrorMessage,
+  resolveMedicationAiSummaryState,
+  MedicationAiSummaryState
+} from './medication-ai-summary.util';
 import { finalize } from 'rxjs';
 
 @Component({
@@ -30,6 +35,14 @@ export class MedicationDetailComponent implements OnInit {
   aiSummaryError: string | null = null;
   aiSummary: MedicationAiSummaryDto | null = null;
 
+  get aiSummaryState(): MedicationAiSummaryState {
+    return resolveMedicationAiSummaryState(
+      this.isGeneratingAiSummary,
+      this.aiSummaryError,
+      this.aiSummary
+    );
+  }
+
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
@@ -43,6 +56,7 @@ export class MedicationDetailComponent implements OnInit {
 
     this.isLoading = true;
     this.errorMessage = null;
+    this.resetAiSummaryState();
 
     this.pharmacyService.getMedicationById(this.medicationId).pipe(
       finalize(() => this.isLoading = false)
@@ -130,6 +144,27 @@ export class MedicationDetailComponent implements OnInit {
       return;
     }
 
+    this.isGeneratingAiSummary = true;
     this.aiSummaryError = null;
+    this.aiSummary = null;
+
+    this.pharmacyService.generateMedicationAiSummary(this.medicationId).pipe(
+      finalize(() => {
+        this.isGeneratingAiSummary = false;
+      })
+    ).subscribe({
+      next: (summary) => {
+        this.aiSummary = summary;
+      },
+      error: (error) => {
+        this.aiSummaryError = getMedicationAiSummaryErrorMessage(error);
+      }
+    });
+  }
+
+  private resetAiSummaryState(): void {
+    this.isGeneratingAiSummary = false;
+    this.aiSummaryError = null;
+    this.aiSummary = null;
   }
 }

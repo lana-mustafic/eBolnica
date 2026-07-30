@@ -7,6 +7,7 @@ import { normalizePaginationParams } from '../../utils/pagination-params.util';
 import { MedicationDto } from '../../../models/medication.dto';
 import { MedicationAutocompleteSuggestion } from '../../../models/medication-autocomplete.dto';
 import { MedicationImageDto } from '../../../models/medication-image.dto';
+import { MedicationAiSummaryDto } from '../../../models/medication-ai-summary.dto';
 import { MedicationCreateDto } from '../../../models/medication-create.dto';
 import { PharmacistDataDto } from '../../../models/pharmacist-data.dto';
 import { PrescriptionDto } from '../../../models/prescription.dto';
@@ -318,6 +319,13 @@ export class PharmacyService {
     return this.http.put<MedicationImageDto[]>(
       `${this.apiUrl}/medications/${medicationId}/images/reorder`,
       { imageIds }
+    );
+  }
+
+  generateMedicationAiSummary(medicationId: number): Observable<MedicationAiSummaryDto> {
+    return this.http.post<MedicationAiSummaryDto>(
+      `${this.apiUrl}/medications/${medicationId}/ai-summary`,
+      {}
     );
   }
 
