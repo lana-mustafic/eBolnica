@@ -60,11 +60,13 @@
         </button>
       }
 
-      <img
-        [src]="resolveUrl(currentImage.imageUrl)"
-        [alt]="'Medication image ' + (currentIndex + 1)"
-        class="lightbox-image"
-        [style.transform]="imageTransform" />
+      <div class="lightbox-image-viewport" (wheel)="onWheel($event)">
+        <img
+          [src]="resolveUrl(currentImage.imageUrl)"
+          [alt]="'Medication image ' + (currentIndex + 1)"
+          class="lightbox-image"
+          [style.transform]="imageTransform" />
+      </div>
 
       @if (images.length > 1) {
         <div class="lightbox-thumbnail-strip" role="tablist" aria-label="Image thumbnails">

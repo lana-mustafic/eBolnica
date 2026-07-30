@@ -99,26 +99,36 @@ export class MedicationImageLightboxComponent implements OnChanges {
   }
 
   resetZoom(): void {
-    this.zoomScale = LIGHTBOX_DEFAULT_ZOOM_STATE.scale;
+    this.applyZoomScale(LIGHTBOX_DEFAULT_ZOOM_STATE.scale);
     this.zoomTranslateX = LIGHTBOX_DEFAULT_ZOOM_STATE.translateX;
     this.zoomTranslateY = LIGHTBOX_DEFAULT_ZOOM_STATE.translateY;
   }
 
   zoomIn(): void {
     if (!this.canZoomIn) return;
-
-    this.zoomScale = Math.min(
-      LIGHTBOX_MAX_ZOOM,
-      this.roundZoom(this.zoomScale + LIGHTBOX_ZOOM_STEP)
-    );
+    this.applyZoomScale(this.zoomScale + LIGHTBOX_ZOOM_STEP);
   }
 
   zoomOut(): void {
     if (!this.canZoomOut) return;
+    this.applyZoomScale(this.zoomScale - LIGHTBOX_ZOOM_STEP);
+  }
 
-    this.zoomScale = Math.max(
-      LIGHTBOX_MIN_ZOOM,
-      this.roundZoom(this.zoomScale - LIGHTBOX_ZOOM_STEP)
+  onWheel(event: WheelEvent): void {
+    if (!this.isOpen) return;
+
+    event.preventDefault();
+
+    if (event.deltaY < 0) {
+      this.zoomIn();
+    } else if (event.deltaY > 0) {
+      this.zoomOut();
+    }
+  }
+
+  private applyZoomScale(scale: number): void {
+    this.zoomScale = this.roundZoom(
+      Math.min(LIGHTBOX_MAX_ZOOM, Math.max(LIGHTBOX_MIN_ZOOM, scale))
     );
 
     if (this.zoomScale <= LIGHTBOX_MIN_ZOOM) {

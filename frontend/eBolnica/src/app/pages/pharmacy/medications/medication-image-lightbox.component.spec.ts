@@ -197,3 +197,91 @@ describe('MedicationImageLightboxComponent zoom controls', () => {
     expect(image.style.transform).toBe('translate(0px, 0px) scale(1.5)');
   });
 });
+
+describe('MedicationImageLightboxComponent wheel zoom', () => {
+  let component: MedicationImageLightboxComponent;
+  let fixture: ComponentFixture<MedicationImageLightboxComponent>;
+  let viewport: HTMLElement;
+
+  const images: MedicationImageDto[] = [
+    {
+      id: 1,
+      medicationId: 10,
+      imageUrl: '/a.jpg',
+      isPrimary: true,
+      sortOrder: 0,
+      uploadedAt: '2026-01-01T00:00:00Z'
+    }
+  ];
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [MedicationImageLightboxComponent]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(MedicationImageLightboxComponent);
+    component = fixture.componentInstance;
+    component.isOpen = true;
+    component.images = images;
+    component.currentIndex = 0;
+    component.resolveUrl = url => url;
+    fixture.detectChanges();
+    viewport = fixture.nativeElement.querySelector('.lightbox-image-viewport') as HTMLElement;
+  });
+
+  function dispatchWheel(deltaY: number): WheelEvent {
+    const event = new WheelEvent('wheel', {
+      deltaY,
+      bubbles: true,
+      cancelable: true
+    });
+    spyOn(event, 'preventDefault');
+    viewport.dispatchEvent(event);
+    return event;
+  }
+
+  it('renders an image viewport wired for wheel zoom', () => {
+    expect(viewport).toBeTruthy();
+  });
+
+  it('wheel up zooms in by one step', () => {
+    dispatchWheel(-100);
+    expect(component.zoomScale).toBe(1 + LIGHTBOX_ZOOM_STEP);
+  });
+
+  it('wheel down zooms out by one step', () => {
+    component.zoomScale = 1.5;
+    dispatchWheel(100);
+    expect(component.zoomScale).toBe(1.25);
+  });
+
+  it('does not zoom below 100% on wheel down', () => {
+    dispatchWheel(100);
+    expect(component.zoomScale).toBe(LIGHTBOX_MIN_ZOOM);
+  });
+
+  it('does not zoom above 300% on wheel up', () => {
+    component.zoomScale = LIGHTBOX_MAX_ZOOM;
+    dispatchWheel(-100);
+    expect(component.zoomScale).toBe(LIGHTBOX_MAX_ZOOM);
+  });
+
+  it('clears pan offset when wheel zoom returns to 100%', () => {
+    component.zoomScale = 1.25;
+    component.zoomTranslateX = 15;
+    dispatchWheel(100);
+    expect(component.zoomScale).toBe(LIGHTBOX_MIN_ZOOM);
+    expect(component.zoomTranslateX).toBe(0);
+  });
+
+  it('prevents default wheel scrolling while lightbox is open', () => {
+    const event = dispatchWheel(-100);
+    expect(event.preventDefault).toHaveBeenCalled();
+  });
+
+  it('ignores wheel events when lightbox is closed', () => {
+    component.isOpen = false;
+    dispatchWheel(-100);
+    expect(component.zoomScale).toBe(LIGHTBOX_MIN_ZOOM);
+  });
+});
