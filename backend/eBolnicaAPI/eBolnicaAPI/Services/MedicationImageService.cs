@@ -221,6 +221,12 @@ namespace eBolnicaAPI.Services
                 throw new MedicationImageValidationException("Medication has no images to reorder.");
             }
 
+            await MedicationImageReorderValidator.ValidateAllImageIdsBelongToMedicationAsync(
+                _context,
+                medicationId,
+                imageIds,
+                images);
+
             if (imageIds.Count != images.Count)
             {
                 throw new MedicationImageValidationException("Image order must include every medication image exactly once.");

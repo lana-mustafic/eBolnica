@@ -34,10 +34,25 @@ namespace eBolnicaAPI.Tests.Unit.Services
                 RequiresPrescription = false
             });
 
+            _context.Medications.Add(new Medication
+            {
+                Id = 8,
+                Name = "Other Med",
+                NormalizedName = "other med",
+                Category = "Test",
+                Price = 10,
+                StockQuantity = 1,
+                MinimumStockLevel = 1,
+                ExpiryDate = DateTime.UtcNow.AddYears(1),
+                IsActive = true,
+                RequiresPrescription = false
+            });
+
             _context.MedicationImages.AddRange(
                 CreateImage(11, 0, true),
                 CreateImage(12, 1, false),
-                CreateImage(13, 2, false));
+                CreateImage(13, 2, false),
+                CreateImage(99, 0, true, medicationId: 8));
             _context.SaveChanges();
         }
 
@@ -91,7 +106,18 @@ namespace eBolnicaAPI.Tests.Unit.Services
             var exception = await Assert.ThrowsAsync<MedicationImageValidationException>(
                 () => service.ReorderImagesAsync(7, new[] { 11, 12, 99 }));
 
-            Assert.Contains("invalid image ids", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("do not belong to this medication", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task ReorderImagesAsync_ThrowsWhenImageIdDoesNotExist()
+        {
+            var service = CreateService();
+
+            var exception = await Assert.ThrowsAsync<MedicationImageValidationException>(
+                () => service.ReorderImagesAsync(7, new[] { 11, 12, 404 }));
+
+            Assert.Contains("not found for this medication", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -127,15 +153,15 @@ namespace eBolnicaAPI.Tests.Unit.Services
                 Mock.Of<ILogger<MedicationImageService>>());
         }
 
-        private static MedicationImage CreateImage(int id, int sortOrder, bool isPrimary)
+        private static MedicationImage CreateImage(int id, int sortOrder, bool isPrimary, int medicationId = 7)
         {
             return new MedicationImage
             {
                 Id = id,
-                MedicationId = 7,
+                MedicationId = medicationId,
                 FileName = $"image-{id}.jpg",
-                RelativeUrl = $"/uploads/medications/7/original/{id}.jpg",
-                ThumbnailRelativeUrl = $"/uploads/medications/7/thumbnails/{id}.jpg",
+                RelativeUrl = $"/uploads/medications/{medicationId}/original/{id}.jpg",
+                ThumbnailRelativeUrl = $"/uploads/medications/{medicationId}/thumbnails/{id}.jpg",
                 IsPrimary = isPrimary,
                 SortOrder = sortOrder,
                 UploadedAt = DateTime.UtcNow,
