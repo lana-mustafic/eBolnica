@@ -305,7 +305,7 @@ namespace eBolnicaAPI.Controllers
         /// <param name="name">Medication name to check</param>
         /// <param name="excludeId">Optional medication ID to exclude (edit mode — current record)</param>
         [HttpGet("medications/check-name")]
-        [Authorize(Roles = "Pharmacist")]
+        [Authorize(Roles = "Pharmacist,Admin")]
         [ProducesResponseType(typeof(MedicationNameAvailabilityDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CheckMedicationNameAvailability(
@@ -474,7 +474,7 @@ namespace eBolnicaAPI.Controllers
         }
 
         [HttpPost("medications")]
-        [Authorize(Roles = "Pharmacist")]
+        [Authorize(Roles = "Pharmacist,Admin")]
         [ProducesResponseType(typeof(MedicationDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -545,7 +545,7 @@ namespace eBolnicaAPI.Controllers
         }
 
         [HttpPut("medications/{id}")]
-        [Authorize(Roles = "Pharmacist")]
+        [Authorize(Roles = "Pharmacist,Admin")]
         [ProducesResponseType(typeof(MedicationDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
