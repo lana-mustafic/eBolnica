@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -18,7 +18,13 @@ import {
   isMedicationFieldInvalidForDisplay,
   isMedicationNameCheckUnavailable
 } from '../../../shared/utils/medication-field-error.util';
-import { finalize } from 'rxjs';
+import { finalize, Subscription } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
+import { MedicationWizardDraftService } from '../../../shared/services/pharmacy/medication-wizard-draft.service';
+import {
+  MEDICATION_WIZARD_AUTOSAVE_DEBOUNCE_MS,
+  toMedicationWizardDraftFormValue
+} from './medication-wizard-autosave.util';
 
 @Component({
   selector: 'app-medication-wizard',
@@ -36,17 +42,20 @@ import { finalize } from 'rxjs';
   templateUrl: './medication-wizard.component.html',
   styleUrl: './medication-wizard.component.css'
 })
-export class MedicationWizardComponent {
+export class MedicationWizardComponent implements OnInit, OnDestroy {
   private formBuilder = inject(FormBuilder);
   private pharmacyService = inject(PharmacyService);
   private router = inject(Router);
   private confirmDialog = inject(ConfirmDialogService);
+  private draftService = inject(MedicationWizardDraftService);
 
   wizardForm: FormGroup;
   currentStep: number = 1;
   totalSteps: number = 3;
   isLoading: boolean = false;
   errorMessage: string | null = null;
+
+  private autosaveSubscription?: Subscription;
 
   // Common categories and dosage forms
   categories: string[] = [
@@ -111,6 +120,16 @@ export class MedicationWizardComponent {
     });
   }
 
+  ngOnInit(): void {
+    this.autosaveSubscription = this.wizardForm.valueChanges.pipe(
+      debounceTime(MEDICATION_WIZARD_AUTOSAVE_DEBOUNCE_MS)
+    ).subscribe(() => this.persistDraft());
+  }
+
+  ngOnDestroy(): void {
+    this.autosaveSubscription?.unsubscribe();
+  }
+
   // Validators
   futureDateValidator(control: AbstractControl): ValidationErrors | null {
     if (!control.value) {
@@ -150,6 +169,7 @@ export class MedicationWizardComponent {
     if (this.isStepValid(this.currentStep) && this.currentStep < this.totalSteps) {
       this.currentStep++;
       this.errorMessage = null;
+      this.persistDraft();
       // Scroll to top
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
@@ -162,6 +182,7 @@ export class MedicationWizardComponent {
     if (this.currentStep > 1) {
       this.currentStep--;
       this.errorMessage = null;
+      this.persistDraft();
       // Scroll to top
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -183,6 +204,7 @@ export class MedicationWizardComponent {
       if (canGoToStep || step <= this.currentStep) {
         this.currentStep = step;
         this.errorMessage = null;
+        this.persistDraft();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     }
@@ -326,6 +348,17 @@ export class MedicationWizardComponent {
   private isNameControlReady(): boolean {
     const nameControl = this.wizardForm.get('name');
     return nameControl?.valid === true && !nameControl.pending;
+  }
+
+  private persistDraft(): void {
+    if (this.isLoading) {
+      return;
+    }
+
+    this.draftService.save({
+      currentStep: this.currentStep,
+      formValue: toMedicationWizardDraftFormValue(this.wizardForm.getRawValue())
+    });
   }
 
   getFieldLabel(fieldName: string): string {
