@@ -99,5 +99,24 @@
         </li>
       }
     </ul>
+
+    <div class="image-dropzone-pending-actions">
+      <button
+        type="button"
+        class="image-dropzone-action-btn image-dropzone-action-upload"
+        (click)="onUploadSelectedClick($event)"
+        [disabled]="!canUploadSelected"
+        [attr.aria-label]="uploadSelectedLabel">
+        {{ uploadSelectedLabel }}
+      </button>
+      <button
+        type="button"
+        class="image-dropzone-action-btn image-dropzone-action-clear"
+        (click)="onClearAllClick($event)"
+        [disabled]="!isInteractive"
+        aria-label="Clear all pending images">
+        Clear all
+      </button>
+    </div>
   }
 </div>

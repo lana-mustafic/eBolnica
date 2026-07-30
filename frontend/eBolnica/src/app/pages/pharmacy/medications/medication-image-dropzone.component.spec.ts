@@ -482,5 +482,58 @@ describe('MedicationImageDropzoneComponent', () => {
       expect(component.pendingQueue).toEqual([]);
       previewUrls.forEach(url => expect(URL.revokeObjectURL).toHaveBeenCalledWith(url));
     });
+
+    it('shows upload selected count and emits only valid files', () => {
+      spyOn(component.filesSelected, 'emit');
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      const valid = createFile('ok.jpg');
+      const invalid = createFile('bad.pdf', { type: 'application/pdf' });
+
+      component.onDrop(dragEvent('drop', dropzone, { files: [valid, invalid] }));
+      fixture.detectChanges();
+
+      const uploadButton = fixture.nativeElement.querySelector(
+        '.image-dropzone-action-upload'
+      ) as HTMLButtonElement;
+      expect(uploadButton.textContent?.trim()).toBe('Upload selected (1)');
+
+      uploadButton.click();
+
+      expect(component.filesSelected.emit).toHaveBeenCalledWith([valid]);
+    });
+
+    it('disables upload selected when queue has no valid files', () => {
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      component.onDrop(dragEvent('drop', dropzone, {
+        files: [createFile('bad.pdf', { type: 'application/pdf' })]
+      }));
+      fixture.detectChanges();
+
+      const uploadButton = fixture.nativeElement.querySelector(
+        '.image-dropzone-action-upload'
+      ) as HTMLButtonElement;
+      expect(uploadButton.disabled).toBeTrue();
+      expect(uploadButton.textContent?.trim()).toBe('Upload selected (0)');
+    });
+
+    it('clears all pending previews via clear all button', () => {
+      spyOn(URL, 'revokeObjectURL');
+      spyOn(component.pendingQueueChange, 'emit');
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      component.onDrop(dragEvent('drop', dropzone, {
+        files: [createFile('a.jpg'), createFile('b.jpg')]
+      }));
+      fixture.detectChanges();
+
+      const clearButton = fixture.nativeElement.querySelector(
+        '.image-dropzone-action-clear'
+      ) as HTMLButtonElement;
+      clearButton.click();
+      fixture.detectChanges();
+
+      expect(component.pendingQueue).toEqual([]);
+      expect(fixture.nativeElement.querySelector('.image-dropzone-pending-list')).toBeNull();
+      expect(component.pendingQueueChange.emit).toHaveBeenCalledWith([]);
+    });
   });
 });

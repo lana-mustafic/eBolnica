@@ -27,6 +27,8 @@ import {
 import {
   addFilesToPendingQueue,
   clearPendingMedicationImageQueue,
+  getUploadablePendingFiles,
+  hasUploadablePendingFiles,
   PendingMedicationImage,
   removePendingMedicationImage,
   revokePendingMedicationImagePreviews
@@ -82,6 +84,18 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
     return this.pendingQueue.length > 0;
   }
 
+  get uploadablePendingCount(): number {
+    return getUploadablePendingFiles(this.pendingQueue).length;
+  }
+
+  get canUploadSelected(): boolean {
+    return this.isInteractive && hasUploadablePendingFiles(this.pendingQueue);
+  }
+
+  get uploadSelectedLabel(): string {
+    return `Upload selected (${this.uploadablePendingCount})`;
+  }
+
   get isInteractive(): boolean {
     return !this.disabled && !this.busy;
   }
@@ -106,6 +120,7 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
 
     const target = event.target as HTMLElement;
     if (target.closest('.image-dropzone-browse-btn')) return;
+    if (target.closest('.image-dropzone-pending-actions')) return;
 
     this.browseFiles(event);
   }
@@ -220,6 +235,27 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
     if (!this.isInteractive) return;
 
     this.removePendingFile(id);
+  }
+
+  onUploadSelectedClick(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!this.canUploadSelected) return;
+
+    const files = getUploadablePendingFiles(this.pendingQueue);
+    if (files.length === 0) return;
+
+    this.filesSelected.emit(files);
+  }
+
+  onClearAllClick(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!this.isInteractive || this.pendingQueue.length === 0) return;
+
+    this.clearPendingQueue();
   }
 
   clearPendingQueue(): void {

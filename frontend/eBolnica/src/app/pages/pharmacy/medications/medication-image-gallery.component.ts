@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, inject, OnChanges, SimpleChanges, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ViewChild, inject, OnChanges, SimpleChanges, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { finalize } from 'rxjs';
 import { MedicationImageDto } from '../../../models/medication-image.dto';
@@ -34,6 +34,9 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
   private authService = inject(AuthService);
   private notificationService = inject(NotificationService);
   private confirmDialog = inject(ConfirmDialogService);
+
+  @ViewChild(MedicationImageDropzoneComponent)
+  private imageDropzone?: MedicationImageDropzoneComponent;
 
   @Input({ required: true }) medicationId!: number;
   @Input() images: MedicationImageDto[] = [];
@@ -161,6 +164,7 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
       next: (result) => {
         if (result.uploaded.length > 0) {
           this.showUploadSuccess(result.uploaded.length);
+          this.imageDropzone?.clearPendingQueue();
         }
 
         if (result.errors.length > 0) {

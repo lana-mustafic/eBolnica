@@ -119,6 +119,7 @@
     }
 
     <app-medication-image-dropzone
+      [usePendingQueue]="true"
       [busy]="isUploading"
       [disabled]="isDeleting"
       (filesSelected)="onDropzoneFilesSelected($event)"
