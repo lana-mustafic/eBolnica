@@ -30,6 +30,7 @@ namespace eBolnicaAPI.Controllers
         private readonly IMedicationImageService _medicationImageService;
         private readonly IMedicationCsvExportService _medicationCsvExportService;
         private readonly IMedicationCsvImportService _medicationCsvImportService;
+        private readonly IMedicationImportDuplicateChecker _medicationDuplicateChecker;
         private readonly ILogger<PharmacyController> _logger;
         private readonly IMemoryCache _cache;
         private readonly IConfiguration _configuration;
@@ -43,6 +44,7 @@ namespace eBolnicaAPI.Controllers
             IMedicationImageService medicationImageService,
             IMedicationCsvExportService medicationCsvExportService,
             IMedicationCsvImportService medicationCsvImportService,
+            IMedicationImportDuplicateChecker medicationDuplicateChecker,
             ILogger<PharmacyController> logger,
             IMemoryCache cache,
             IConfiguration configuration)
@@ -55,6 +57,7 @@ namespace eBolnicaAPI.Controllers
             _medicationImageService = medicationImageService;
             _medicationCsvExportService = medicationCsvExportService;
             _medicationCsvImportService = medicationCsvImportService;
+            _medicationDuplicateChecker = medicationDuplicateChecker;
             _logger = logger;
             _cache = cache;
             _configuration = configuration;
@@ -296,6 +299,34 @@ namespace eBolnicaAPI.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Check whether a medication name is available (case-insensitive).
+        /// </summary>
+        /// <param name="name">Medication name to check</param>
+        /// <param name="excludeId">Optional medication ID to exclude (edit mode — current record)</param>
+        [HttpGet("medications/check-name")]
+        [Authorize(Roles = "Pharmacist,Admin")]
+        [ProducesResponseType(typeof(MedicationNameAvailabilityDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> CheckMedicationNameAvailability(
+            [FromQuery] string name,
+            [FromQuery] int? excludeId = null)
+        {
+            try
+            {
+                var isAvailable = await _medicationDuplicateChecker.IsNameAvailableAsync(name, excludeId);
+
+                return Ok(new MedicationNameAvailabilityDto
+                {
+                    IsAvailable = isAvailable
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
         [HttpGet("medications/{id}")]
         [Authorize(Roles = "Pharmacist")]
         public async Task<IActionResult> GetMedication(int id)
@@ -443,7 +474,10 @@ namespace eBolnicaAPI.Controllers
         }
 
         [HttpPost("medications")]
-        [Authorize(Roles = "Pharmacist")]
+        [Authorize(Roles = "Pharmacist,Admin")]
+        [ProducesResponseType(typeof(MedicationDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<IActionResult> CreateMedication([FromBody] MedicationCreateDto dto)
         {
             if (!ModelState.IsValid)
@@ -454,6 +488,12 @@ namespace eBolnicaAPI.Controllers
             if (dto.ExpiryDate <= DateTime.Now)
             {
                 return BadRequest("Expiry date must be in the future");
+            }
+
+            var nameConflict = await ValidateMedicationNameAvailabilityAsync(dto.Name);
+            if (nameConflict != null)
+            {
+                return nameConflict;
             }
 
             var medication = new Medication
@@ -505,7 +545,11 @@ namespace eBolnicaAPI.Controllers
         }
 
         [HttpPut("medications/{id}")]
-        [Authorize(Roles = "Pharmacist")]
+        [Authorize(Roles = "Pharmacist,Admin")]
+        [ProducesResponseType(typeof(MedicationDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<IActionResult> UpdateMedication(int id, [FromBody] MedicationCreateDto dto)
         {
             if (!ModelState.IsValid)
@@ -523,6 +567,12 @@ namespace eBolnicaAPI.Controllers
             if (dto.ExpiryDate <= DateTime.Now)
             {
                 return BadRequest("Expiry date must be in the future");
+            }
+
+            var nameConflict = await ValidateMedicationNameAvailabilityAsync(dto.Name, id);
+            if (nameConflict != null)
+            {
+                return nameConflict;
             }
 
             medication.Name = dto.Name;
@@ -1880,6 +1930,18 @@ namespace eBolnicaAPI.Controllers
         #endregion
 
         #region Helper Methods
+
+        private async Task<IActionResult?> ValidateMedicationNameAvailabilityAsync(
+            string name,
+            int? excludeMedicationId = null)
+        {
+            if (await _medicationDuplicateChecker.IsNameAvailableAsync(name, excludeMedicationId))
+            {
+                return null;
+            }
+
+            return Conflict(new { message = "Medication name already exists" });
+        }
 
         /// <summary>
         /// Converts PharmacyPdfReportRequest to PharmacyQueryParameters for filtering

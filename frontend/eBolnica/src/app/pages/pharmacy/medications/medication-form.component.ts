@@ -5,6 +5,14 @@ import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
 import { MedicationDto } from '../../../models/medication.dto';
 import { MedicationCreateDto } from '../../../models/medication-create.dto';
+import {
+  medicationNameAsyncValidator
+} from '../../../shared/validators/medication-name-async.validator';
+import {
+  getMedicationFieldErrorMessage,
+  isMedicationFieldInvalidForDisplay,
+  isMedicationNameCheckUnavailable
+} from '../../../shared/utils/medication-field-error.util';
 import { finalize } from 'rxjs';
 
 @Component({
@@ -59,7 +67,16 @@ export class MedicationFormComponent implements OnInit {
 
   constructor() {
     this.medicationForm = this.formBuilder.group({
-      name: ['', [Validators.required, Validators.minLength(3)]],
+      name: [
+        '',
+        [Validators.required, Validators.minLength(3)],
+        [
+          medicationNameAsyncValidator(
+            (name, excludeId) => this.pharmacyService.checkMedicationNameAvailability(name, excludeId),
+            { excludeId: () => this.medicationId ?? undefined }
+          )
+        ]
+      ],
       genericName: [''],
       description: [''],
       manufacturer: [''],
@@ -131,6 +148,9 @@ export class MedicationFormComponent implements OnInit {
           dosageForm: medication.dosageForm || '',
           strength: medication.strength || ''
         });
+
+        // Re-run async name check with excludeId so unchanged name is not flagged as duplicate
+        this.medicationForm.get('name')?.updateValueAndValidity();
       },
       error: (error) => {
         this.errorMessage = 'Failed to load medication. Please try again.';
@@ -229,22 +249,35 @@ export class MedicationFormComponent implements OnInit {
   }
 
   getFieldError(fieldName: string): string {
-    const field = this.medicationForm.get(fieldName);
-    if (field && field.invalid && field.touched) {
-      if (field.errors?.['required']) {
-        return `${this.getFieldLabel(fieldName)} is required.`;
-      }
-      if (field.errors?.['minlength']) {
-        return `${this.getFieldLabel(fieldName)} must be at least ${field.errors['minlength'].requiredLength} characters.`;
-      }
-      if (field.errors?.['min']) {
-        return `${this.getFieldLabel(fieldName)} must be at least ${field.errors['min'].min}.`;
-      }
-      if (field.errors?.['pastDate']) {
-        return 'Expiry date must be in the future.';
-      }
-    }
-    return '';
+    return getMedicationFieldErrorMessage(
+      this.medicationForm.get(fieldName),
+      this.getFieldLabel(fieldName)
+    ) ?? '';
+  }
+
+  getNameFieldError(): string {
+    return getMedicationFieldErrorMessage(
+      this.medicationForm.get('name'),
+      this.getFieldLabel('name')
+    ) ?? '';
+  }
+
+  retryNameValidation(): void {
+    const nameControl = this.medicationForm.get('name');
+    nameControl?.markAsTouched();
+    nameControl?.updateValueAndValidity();
+  }
+
+  isNameCheckUnavailable(): boolean {
+    return isMedicationNameCheckUnavailable(this.medicationForm.get('name'));
+  }
+
+  isNameControlPending(): boolean {
+    return this.medicationForm.get('name')?.pending ?? false;
+  }
+
+  isNameFieldInvalid(): boolean {
+    return isMedicationFieldInvalidForDisplay(this.medicationForm.get('name'));
   }
 
   getFieldLabel(fieldName: string): string {

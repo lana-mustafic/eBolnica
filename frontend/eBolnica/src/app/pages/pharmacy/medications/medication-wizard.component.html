@@ -56,11 +56,36 @@
         <p>Enter the basic details about the medication</p>
       </div>
 
-      <mat-form-field appearance="outline" class="full-width">
+      <mat-form-field
+        appearance="outline"
+        class="full-width"
+        [class.name-field-pending]="isNameControlPending()">
         <mat-label>Medication Name</mat-label>
-        <input matInput id="name" formControlName="name" placeholder="e.g., Paracetamol">
-        <mat-error *ngIf="getFieldError('name')">{{ getFieldError('name') }}</mat-error>
+        <input
+          matInput
+          id="name"
+          formControlName="name"
+          placeholder="e.g., Paracetamol"
+          [class.field-invalid]="isNameFieldInvalid()"
+          [attr.aria-busy]="isNameControlPending()"
+          [attr.aria-invalid]="isNameFieldInvalid()">
+        <mat-spinner
+          *ngIf="isNameControlPending()"
+          matSuffix
+          diameter="20"
+          aria-label="Validating medication name">
+        </mat-spinner>
+        <mat-hint *ngIf="isNameControlPending()">Validating...</mat-hint>
+        <mat-error *ngIf="getNameFieldError() as nameError">{{ nameError }}</mat-error>
       </mat-form-field>
+
+      <button
+        *ngIf="isNameCheckUnavailable()"
+        type="button"
+        class="btn-retry-name-check"
+        (click)="retryNameValidation()">
+        Retry name check
+      </button>
 
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Category</mat-label>
@@ -68,7 +93,7 @@
           <mat-option value="">Select a category</mat-option>
           <mat-option *ngFor="let cat of categories" [value]="cat">{{ cat }}</mat-option>
         </mat-select>
-        <mat-error *ngIf="getFieldError('category')">{{ getFieldError('category') }}</mat-error>
+        <mat-error *ngIf="getFieldError('category') as categoryError">{{ categoryError }}</mat-error>
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="full-width">
@@ -191,7 +216,7 @@
           type="button"
           class="btn btn-primary"
           (click)="nextStep()"
-          [disabled]="isLoading">
+          [disabled]="isLoading || !isStepValid(currentStep) || isNameControlPending()">
           Next
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="9 18 15 12 9 6"></polyline>
@@ -202,7 +227,7 @@
           *ngIf="currentStep === totalSteps"
           type="submit"
           class="btn btn-primary"
-          [disabled]="isLoading || wizardForm.invalid">
+          [disabled]="isLoading || wizardForm.invalid || wizardForm.pending">
           <span *ngIf="!isLoading">Submit</span>
           <span *ngIf="isLoading">Submitting...</span>
           <svg *ngIf="!isLoading" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

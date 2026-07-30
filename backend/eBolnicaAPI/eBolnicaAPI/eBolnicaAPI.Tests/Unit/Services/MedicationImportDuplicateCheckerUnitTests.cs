@@ -69,6 +69,67 @@ namespace eBolnicaAPI.Tests.Unit.Services
             Assert.Equal("aspirin", conflicts[0]);
         }
 
+        [Fact]
+        public async Task IsNameAvailableAsync_ExistingName_ReturnsFalse()
+        {
+            var isAvailable = await _checker.IsNameAvailableAsync("Aspirin");
+
+            Assert.False(isAvailable);
+        }
+
+        [Fact]
+        public async Task IsNameAvailableAsync_UniqueName_ReturnsTrue()
+        {
+            var isAvailable = await _checker.IsNameAvailableAsync("Paracetamol");
+
+            Assert.True(isAvailable);
+        }
+
+        [Fact]
+        public async Task IsNameAvailableAsync_CaseInsensitiveAndTrimmed_ReturnsFalse()
+        {
+            var isAvailable = await _checker.IsNameAvailableAsync("  ASPIRIN  ");
+
+            Assert.False(isAvailable);
+        }
+
+        [Fact]
+        public async Task IsNameAvailableAsync_WithExcludeId_ReturnsTrueForSameName()
+        {
+            var medication = _context.Medications.Single(m => m.Name == "Aspirin");
+
+            var isAvailable = await _checker.IsNameAvailableAsync("Aspirin", medication.Id);
+
+            Assert.True(isAvailable);
+        }
+
+        [Fact]
+        public async Task IsNameAvailableAsync_EmptyName_Throws()
+        {
+            await Assert.ThrowsAsync<ArgumentException>(() => _checker.IsNameAvailableAsync("   "));
+        }
+
+        [Fact]
+        public void FindDuplicateNormalizedNames_ReturnsEmptyForUniqueNames()
+        {
+            var duplicates = MedicationImportDuplicateChecker.FindDuplicateNormalizedNames(new[]
+            {
+                "Paracetamol",
+                "Ibuprofen",
+                "Aspirin"
+            });
+
+            Assert.Empty(duplicates);
+        }
+
+        [Fact]
+        public async Task FindExistingDuplicateNamesAsync_ReturnsEmptyForUniqueSeedRow()
+        {
+            var duplicates = await _checker.FindExistingDuplicateNamesAsync();
+
+            Assert.Empty(duplicates);
+        }
+
         public void Dispose()
         {
             _context.Dispose();

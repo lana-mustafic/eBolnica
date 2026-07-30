@@ -1,11 +1,12 @@
 using eBolnicaAPI.Data;
 using eBolnicaAPI.Models.DTOs;
+using eBolnicaAPI.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace eBolnicaAPI.Services.Pharmacy
 {
     /// <summary>
-    /// Case-insensitive medication name duplicate detection for CSV import.
+    /// Case-insensitive medication name duplicate detection.
     /// </summary>
     public interface IMedicationImportDuplicateChecker
     {
@@ -20,6 +21,22 @@ namespace eBolnicaAPI.Services.Pharmacy
         Task<IReadOnlyList<string>> FindConflictingNamesAsync(
             IEnumerable<string> names,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Returns true when no other medication has the same trimmed, case-insensitive name.
+        /// </summary>
+        /// <param name="name">Medication name to check</param>
+        /// <param name="excludeMedicationId">Optional medication ID to exclude (edit mode)</param>
+        Task<bool> IsNameAvailableAsync(
+            string name,
+            int? excludeMedicationId = null,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Returns normalized medication names that appear more than once in the database.
+        /// </summary>
+        Task<IReadOnlyList<string>> FindExistingDuplicateNamesAsync(
+            CancellationToken cancellationToken = default);
     }
 
     public class MedicationImportDuplicateChecker : IMedicationImportDuplicateChecker
@@ -32,17 +49,28 @@ namespace eBolnicaAPI.Services.Pharmacy
         }
 
         public static string NormalizeName(string name) =>
-            name.Trim().ToLowerInvariant();
+            Medication.NormalizeNameValue(name);
+
+        /// <summary>
+        /// Finds normalized names that appear more than once (case-insensitive, trimmed).
+        /// </summary>
+        public static IReadOnlyList<string> FindDuplicateNormalizedNames(IEnumerable<string> names) =>
+            names
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .GroupBy(NormalizeName, StringComparer.Ordinal)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key)
+                .OrderBy(name => name, StringComparer.Ordinal)
+                .ToList();
 
         public async Task<HashSet<string>> LoadExistingNormalizedNamesAsync(CancellationToken cancellationToken = default)
         {
             var names = await _context.Medications
                 .AsNoTracking()
-                .Select(m => m.Name)
+                .Select(m => m.NormalizedName)
                 .ToListAsync(cancellationToken);
 
             return names
-                .Select(NormalizeName)
                 .ToHashSet(StringComparer.Ordinal);
         }
 
@@ -92,6 +120,39 @@ namespace eBolnicaAPI.Services.Pharmacy
             return normalizedBatch
                 .Where(existingNames.Contains)
                 .ToList();
+        }
+
+        public async Task<bool> IsNameAvailableAsync(
+            string name,
+            int? excludeMedicationId = null,
+            CancellationToken cancellationToken = default)
+        {
+            var trimmedName = name?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrEmpty(trimmedName))
+            {
+                throw new ArgumentException("Name is required.", nameof(name));
+            }
+
+            var normalizedName = NormalizeName(trimmedName);
+
+            var nameTaken = await _context.Medications
+                .AsNoTracking()
+                .Where(m => excludeMedicationId == null || m.Id != excludeMedicationId.Value)
+                .AnyAsync(m => m.NormalizedName == normalizedName, cancellationToken);
+
+            return !nameTaken;
+        }
+
+        public async Task<IReadOnlyList<string>> FindExistingDuplicateNamesAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var names = await _context.Medications
+                .AsNoTracking()
+                .Select(m => m.NormalizedName)
+                .ToListAsync(cancellationToken);
+
+            return FindDuplicateNormalizedNames(names);
         }
 
         private static MedicationImportRowErrorDto CreateRowError(int rowNumber, string name, string reason) =>

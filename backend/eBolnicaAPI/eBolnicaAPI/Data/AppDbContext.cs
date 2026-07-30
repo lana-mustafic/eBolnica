@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
+
 namespace eBolnicaAPI.Data
 {
     public class AppDbContext : IdentityDbContext<AppUser>
@@ -137,6 +138,16 @@ namespace eBolnicaAPI.Data
 
             modelBuilder.Entity<Medication>()
                 .HasIndex(m => m.Name);
+
+            modelBuilder.Entity<Medication>()
+                .Property(m => m.NormalizedName)
+                .HasMaxLength(450)
+                .IsRequired();
+
+            modelBuilder.Entity<Medication>()
+                .HasIndex(m => m.NormalizedName)
+                .IsUnique()
+                .HasDatabaseName("IX_Medications_NormalizedName_Unique");
 
             // Performance optimization indexes for Medications
             // Composite index for name and category (common filter combination)
@@ -620,21 +631,21 @@ namespace eBolnicaAPI.Data
             );
 
             modelBuilder.Entity<Medication>().HasData(
-                new Medication { Id = 1, Name = "Paracetamol", GenericName = "Acetaminophen", Description = "Pain reliever and fever reducer", Manufacturer = "PharmaCorp", Price = 250.00m, StockQuantity = 500, MinimumStockLevel = 100, ExpiryDate = new DateTime(2026, 12, 31), BatchNumber = "BATCH-001", IsActive = true, RequiresPrescription = false, Category = "Painkillers", DosageForm = "Tablet", Strength = "500mg", CreatedAt = new DateTime(2024, 1, 1) },
-                new Medication { Id = 2, Name = "Ibuprofen", GenericName = "Ibuprofen", Description = "Nonsteroidal anti-inflammatory drug", Manufacturer = "MediPharm", Price = 320.00m, StockQuantity = 350, MinimumStockLevel = 80, ExpiryDate = new DateTime(2026, 6, 30), BatchNumber = "BATCH-002", IsActive = true, RequiresPrescription = false, Category = "Painkillers", DosageForm = "Tablet", Strength = "400mg", CreatedAt = new DateTime(2024, 1, 1) },
-                new Medication { Id = 3, Name = "Amoxicillin", GenericName = "Amoxicillin", Description = "Antibiotic for bacterial infections", Manufacturer = "AntibioPharm", Price = 850.00m, StockQuantity = 200, MinimumStockLevel = 50, ExpiryDate = new DateTime(2025, 9, 15), BatchNumber = "BATCH-003", IsActive = true, RequiresPrescription = true, Category = "Antibiotics", DosageForm = "Capsule", Strength = "500mg", CreatedAt = new DateTime(2024, 1, 1) },
-                new Medication { Id = 4, Name = "Aspirin", GenericName = "Acetylsalicylic acid", Description = "Pain reliever, anti-inflammatory, and blood thinner", Manufacturer = "PharmaCorp", Price = 180.00m, StockQuantity = 45, MinimumStockLevel = 50, ExpiryDate = new DateTime(2027, 3, 20), BatchNumber = "BATCH-004", IsActive = true, RequiresPrescription = false, Category = "Painkillers", DosageForm = "Tablet", Strength = "100mg", CreatedAt = new DateTime(2024, 1, 1) },
-                new Medication { Id = 5, Name = "Cetirizine", GenericName = "Cetirizine", Description = "Antihistamine for allergies", Manufacturer = "AllergyMed", Price = 420.00m, StockQuantity = 280, MinimumStockLevel = 60, ExpiryDate = new DateTime(2026, 8, 10), BatchNumber = "BATCH-005", IsActive = true, RequiresPrescription = false, Category = "Antihistamines", DosageForm = "Tablet", Strength = "10mg", CreatedAt = new DateTime(2024, 1, 1) },
-                new Medication { Id = 6, Name = "Omeprazole", GenericName = "Omeprazole", Description = "Proton pump inhibitor for acid reflux", Manufacturer = "DigestPharm", Price = 650.00m, StockQuantity = 150, MinimumStockLevel = 40, ExpiryDate = new DateTime(2025, 11, 30), BatchNumber = "BATCH-006", IsActive = true, RequiresPrescription = true, Category = "Gastrointestinal", DosageForm = "Capsule", Strength = "20mg", CreatedAt = new DateTime(2024, 1, 1) },
-                new Medication { Id = 7, Name = "Metformin", GenericName = "Metformin", Description = "Antidiabetic medication", Manufacturer = "DiabetPharm", Price = 550.00m, StockQuantity = 120, MinimumStockLevel = 30, ExpiryDate = new DateTime(2026, 4, 15), BatchNumber = "BATCH-007", IsActive = true, RequiresPrescription = true, Category = "Antidiabetic", DosageForm = "Tablet", Strength = "500mg", CreatedAt = new DateTime(2024, 1, 1) },
-                new Medication { Id = 8, Name = "Loratadine", GenericName = "Loratadine", Description = "Antihistamine for seasonal allergies", Manufacturer = "AllergyMed", Price = 380.00m, StockQuantity = 320, MinimumStockLevel = 70, ExpiryDate = new DateTime(2026, 7, 25), BatchNumber = "BATCH-008", IsActive = true, RequiresPrescription = false, Category = "Antihistamines", DosageForm = "Tablet", Strength = "10mg", CreatedAt = new DateTime(2024, 1, 1) },
-                new Medication { Id = 9, Name = "Azithromycin", GenericName = "Azithromycin", Description = "Broad-spectrum antibiotic", Manufacturer = "AntibioPharm", Price = 1200.00m, StockQuantity = 80, MinimumStockLevel = 25, ExpiryDate = new DateTime(2025, 10, 5), BatchNumber = "BATCH-009", IsActive = true, RequiresPrescription = true, Category = "Antibiotics", DosageForm = "Tablet", Strength = "500mg", CreatedAt = new DateTime(2024, 1, 1) },
-                new Medication { Id = 10, Name = "Vitamin D3", GenericName = "Cholecalciferol", Description = "Vitamin D supplement", Manufacturer = "VitaminsPlus", Price = 450.00m, StockQuantity = 600, MinimumStockLevel = 150, ExpiryDate = new DateTime(2027, 1, 10), BatchNumber = "BATCH-010", IsActive = true, RequiresPrescription = false, Category = "Vitamins", DosageForm = "Capsule", Strength = "2000 IU", CreatedAt = new DateTime(2024, 1, 1) },
-                new Medication { Id = 11, Name = "Ciprofloxacin", GenericName = "Ciprofloxacin", Description = "Fluoroquinolone antibiotic", Manufacturer = "AntibioPharm", Price = 950.00m, StockQuantity = 35, MinimumStockLevel = 20, ExpiryDate = new DateTime(2025, 8, 20), BatchNumber = "BATCH-011", IsActive = true, RequiresPrescription = true, Category = "Antibiotics", DosageForm = "Tablet", Strength = "500mg", CreatedAt = new DateTime(2024, 1, 1) },
-                new Medication { Id = 12, Name = "Diclofenac", GenericName = "Diclofenac", Description = "NSAID for pain and inflammation", Manufacturer = "MediPharm", Price = 520.00m, StockQuantity = 180, MinimumStockLevel = 45, ExpiryDate = new DateTime(2026, 5, 12), BatchNumber = "BATCH-012", IsActive = true, RequiresPrescription = true, Category = "Painkillers", DosageForm = "Tablet", Strength = "50mg", CreatedAt = new DateTime(2024, 1, 1) },
-                new Medication { Id = 13, Name = "Fexofenadine", GenericName = "Fexofenadine", Description = "Antihistamine for allergies", Manufacturer = "AllergyMed", Price = 480.00m, StockQuantity = 250, MinimumStockLevel = 55, ExpiryDate = new DateTime(2026, 9, 18), BatchNumber = "BATCH-013", IsActive = true, RequiresPrescription = false, Category = "Antihistamines", DosageForm = "Tablet", Strength = "120mg", CreatedAt = new DateTime(2024, 1, 1) },
-                new Medication { Id = 14, Name = "Calcium Carbonate", GenericName = "Calcium Carbonate", Description = "Calcium supplement and antacid", Manufacturer = "VitaminsPlus", Price = 280.00m, StockQuantity = 400, MinimumStockLevel = 100, ExpiryDate = new DateTime(2027, 2, 28), BatchNumber = "BATCH-014", IsActive = true, RequiresPrescription = false, Category = "Supplements", DosageForm = "Tablet", Strength = "500mg", CreatedAt = new DateTime(2024, 1, 1) },
-                new Medication { Id = 15, Name = "Atorvastatin", GenericName = "Atorvastatin", Description = "Cholesterol-lowering medication", Manufacturer = "CardioPharm", Price = 1100.00m, StockQuantity = 95, MinimumStockLevel = 25, ExpiryDate = new DateTime(2026, 11, 8), BatchNumber = "BATCH-015", IsActive = true, RequiresPrescription = true, Category = "Cardiovascular", DosageForm = "Tablet", Strength = "20mg", CreatedAt = new DateTime(2024, 1, 1) }
+                new Medication { Id = 1, Name = "Paracetamol", NormalizedName = "paracetamol", GenericName = "Acetaminophen", Description = "Pain reliever and fever reducer", Manufacturer = "PharmaCorp", Price = 250.00m, StockQuantity = 500, MinimumStockLevel = 100, ExpiryDate = new DateTime(2026, 12, 31), BatchNumber = "BATCH-001", IsActive = true, RequiresPrescription = false, Category = "Painkillers", DosageForm = "Tablet", Strength = "500mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 2, Name = "Ibuprofen", NormalizedName = "ibuprofen", GenericName = "Ibuprofen", Description = "Nonsteroidal anti-inflammatory drug", Manufacturer = "MediPharm", Price = 320.00m, StockQuantity = 350, MinimumStockLevel = 80, ExpiryDate = new DateTime(2026, 6, 30), BatchNumber = "BATCH-002", IsActive = true, RequiresPrescription = false, Category = "Painkillers", DosageForm = "Tablet", Strength = "400mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 3, Name = "Amoxicillin", NormalizedName = "amoxicillin", GenericName = "Amoxicillin", Description = "Antibiotic for bacterial infections", Manufacturer = "AntibioPharm", Price = 850.00m, StockQuantity = 200, MinimumStockLevel = 50, ExpiryDate = new DateTime(2025, 9, 15), BatchNumber = "BATCH-003", IsActive = true, RequiresPrescription = true, Category = "Antibiotics", DosageForm = "Capsule", Strength = "500mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 4, Name = "Aspirin", NormalizedName = "aspirin", GenericName = "Acetylsalicylic acid", Description = "Pain reliever, anti-inflammatory, and blood thinner", Manufacturer = "PharmaCorp", Price = 180.00m, StockQuantity = 45, MinimumStockLevel = 50, ExpiryDate = new DateTime(2027, 3, 20), BatchNumber = "BATCH-004", IsActive = true, RequiresPrescription = false, Category = "Painkillers", DosageForm = "Tablet", Strength = "100mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 5, Name = "Cetirizine", NormalizedName = "cetirizine", GenericName = "Cetirizine", Description = "Antihistamine for allergies", Manufacturer = "AllergyMed", Price = 420.00m, StockQuantity = 280, MinimumStockLevel = 60, ExpiryDate = new DateTime(2026, 8, 10), BatchNumber = "BATCH-005", IsActive = true, RequiresPrescription = false, Category = "Antihistamines", DosageForm = "Tablet", Strength = "10mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 6, Name = "Omeprazole", NormalizedName = "omeprazole", GenericName = "Omeprazole", Description = "Proton pump inhibitor for acid reflux", Manufacturer = "DigestPharm", Price = 650.00m, StockQuantity = 150, MinimumStockLevel = 40, ExpiryDate = new DateTime(2025, 11, 30), BatchNumber = "BATCH-006", IsActive = true, RequiresPrescription = true, Category = "Gastrointestinal", DosageForm = "Capsule", Strength = "20mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 7, Name = "Metformin", NormalizedName = "metformin", GenericName = "Metformin", Description = "Antidiabetic medication", Manufacturer = "DiabetPharm", Price = 550.00m, StockQuantity = 120, MinimumStockLevel = 30, ExpiryDate = new DateTime(2026, 4, 15), BatchNumber = "BATCH-007", IsActive = true, RequiresPrescription = true, Category = "Antidiabetic", DosageForm = "Tablet", Strength = "500mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 8, Name = "Loratadine", NormalizedName = "loratadine", GenericName = "Loratadine", Description = "Antihistamine for seasonal allergies", Manufacturer = "AllergyMed", Price = 380.00m, StockQuantity = 320, MinimumStockLevel = 70, ExpiryDate = new DateTime(2026, 7, 25), BatchNumber = "BATCH-008", IsActive = true, RequiresPrescription = false, Category = "Antihistamines", DosageForm = "Tablet", Strength = "10mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 9, Name = "Azithromycin", NormalizedName = "azithromycin", GenericName = "Azithromycin", Description = "Broad-spectrum antibiotic", Manufacturer = "AntibioPharm", Price = 1200.00m, StockQuantity = 80, MinimumStockLevel = 25, ExpiryDate = new DateTime(2025, 10, 5), BatchNumber = "BATCH-009", IsActive = true, RequiresPrescription = true, Category = "Antibiotics", DosageForm = "Tablet", Strength = "500mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 10, Name = "Vitamin D3", NormalizedName = "vitamin d3", GenericName = "Cholecalciferol", Description = "Vitamin D supplement", Manufacturer = "VitaminsPlus", Price = 450.00m, StockQuantity = 600, MinimumStockLevel = 150, ExpiryDate = new DateTime(2027, 1, 10), BatchNumber = "BATCH-010", IsActive = true, RequiresPrescription = false, Category = "Vitamins", DosageForm = "Capsule", Strength = "2000 IU", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 11, Name = "Ciprofloxacin", NormalizedName = "ciprofloxacin", GenericName = "Ciprofloxacin", Description = "Fluoroquinolone antibiotic", Manufacturer = "AntibioPharm", Price = 950.00m, StockQuantity = 35, MinimumStockLevel = 20, ExpiryDate = new DateTime(2025, 8, 20), BatchNumber = "BATCH-011", IsActive = true, RequiresPrescription = true, Category = "Antibiotics", DosageForm = "Tablet", Strength = "500mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 12, Name = "Diclofenac", NormalizedName = "diclofenac", GenericName = "Diclofenac", Description = "NSAID for pain and inflammation", Manufacturer = "MediPharm", Price = 520.00m, StockQuantity = 180, MinimumStockLevel = 45, ExpiryDate = new DateTime(2026, 5, 12), BatchNumber = "BATCH-012", IsActive = true, RequiresPrescription = true, Category = "Painkillers", DosageForm = "Tablet", Strength = "50mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 13, Name = "Fexofenadine", NormalizedName = "fexofenadine", GenericName = "Fexofenadine", Description = "Antihistamine for allergies", Manufacturer = "AllergyMed", Price = 480.00m, StockQuantity = 250, MinimumStockLevel = 55, ExpiryDate = new DateTime(2026, 9, 18), BatchNumber = "BATCH-013", IsActive = true, RequiresPrescription = false, Category = "Antihistamines", DosageForm = "Tablet", Strength = "120mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 14, Name = "Calcium Carbonate", NormalizedName = "calcium carbonate", GenericName = "Calcium Carbonate", Description = "Calcium supplement and antacid", Manufacturer = "VitaminsPlus", Price = 280.00m, StockQuantity = 400, MinimumStockLevel = 100, ExpiryDate = new DateTime(2027, 2, 28), BatchNumber = "BATCH-014", IsActive = true, RequiresPrescription = false, Category = "Supplements", DosageForm = "Tablet", Strength = "500mg", CreatedAt = new DateTime(2024, 1, 1) },
+                new Medication { Id = 15, Name = "Atorvastatin", NormalizedName = "atorvastatin", GenericName = "Atorvastatin", Description = "Cholesterol-lowering medication", Manufacturer = "CardioPharm", Price = 1100.00m, StockQuantity = 95, MinimumStockLevel = 25, ExpiryDate = new DateTime(2026, 11, 8), BatchNumber = "BATCH-015", IsActive = true, RequiresPrescription = true, Category = "Cardiovascular", DosageForm = "Tablet", Strength = "20mg", CreatedAt = new DateTime(2024, 1, 1) }
             );
 
             modelBuilder.Entity<MedicalReport>().HasData(
@@ -705,6 +716,30 @@ namespace eBolnicaAPI.Data
     public DbSet<MedicationStockHistory> MedicationStockHistories { get; set; }
     public DbSet<Prescription> Prescriptions { get; set; }
     public DbSet<PrescriptionItem> PrescriptionItems { get; set; }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        ApplyMedicationNormalizedNames();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        ApplyMedicationNormalizedNames();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void ApplyMedicationNormalizedNames()
+    {
+        foreach (var entry in ChangeTracker.Entries<Medication>()
+            .Where(e => e.State is EntityState.Added or EntityState.Modified))
+        {
+            if (entry.State == EntityState.Added || entry.Property(m => m.Name).IsModified)
+            {
+                entry.Entity.NormalizedName = Medication.NormalizeNameValue(entry.Entity.Name);
+            }
+        }
+    }
     }
 }
 
