@@ -15,84 +15,65 @@ namespace eBolnicaAPI.Services.Pharmacy.MedicationAiSummary
             Keep each value concise (1-3 sentences). This is informational inventory text, not medical advice.
             """;
 
+        /// <summary>
+        /// Scalar <see cref="Medication"/> fields included in the AI prompt, aligned with inventory summary needs.
+        /// Navigation properties and internal metadata are excluded.
+        /// </summary>
+        public static readonly IReadOnlyList<string> EntityFieldKeys =
+        [
+            "name",
+            "category",
+            "dosageForm",
+            "strength",
+            "description",
+            "stockQuantity",
+            "minimumStockLevel",
+            "expiryDate",
+            "requiresPrescription"
+        ];
+
         public static string BuildUserPrompt(Medication medication)
         {
-            var dosage = BuildDosageLabel(medication.DosageForm, medication.Strength);
-            var stockStatus = BuildStockStatus(medication.StockQuantity, medication.MinimumStockLevel);
-            var expiryStatus = BuildExpiryStatus(medication.ExpiryDate);
+            ArgumentNullException.ThrowIfNull(medication);
 
+            var fields = ReadEntityFields(medication);
             var builder = new StringBuilder();
-            builder.AppendLine("Medication record (use only these fields):");
-            builder.AppendLine($"name: {medication.Name}");
-            builder.AppendLine($"genericName: {ValueOrDash(medication.GenericName)}");
-            builder.AppendLine($"category: {ValueOrDash(medication.Category)}");
-            builder.AppendLine($"dosage: {dosage}");
-            builder.AppendLine($"description: {ValueOrDash(medication.Description)}");
-            builder.AppendLine($"stockQuantity: {medication.StockQuantity}");
-            builder.AppendLine($"minimumStockLevel: {medication.MinimumStockLevel}");
-            builder.AppendLine($"stockStatus: {stockStatus}");
-            builder.AppendLine($"expiryDate: {FormatDate(medication.ExpiryDate)}");
-            builder.AppendLine($"expiryStatus: {expiryStatus}");
-            builder.AppendLine($"requiresPrescription: {medication.RequiresPrescription}");
-            builder.AppendLine($"isActive: {medication.IsActive}");
+            builder.AppendLine("Medication record (use only these stored fields):");
+
+            foreach (var key in EntityFieldKeys)
+            {
+                builder.AppendLine($"{key}: {fields[key]}");
+            }
+
             builder.AppendLine();
             builder.AppendLine("Section guidance:");
-            builder.AppendLine("- overview: brief inventory-oriented summary from name, category, and dosage.");
+            builder.AppendLine("- overview: brief inventory summary from name, category, dosageForm, and strength.");
             builder.AppendLine("- usageNotes: paraphrase description only; if missing say no usage notes are stored.");
-            builder.AppendLine("- stockExpiryAlert: mention stockStatus and expiryStatus.");
-            builder.AppendLine("- prescriptionRequirement: state whether prescription is required.");
+            builder.AppendLine("- stockExpiryAlert: use stockQuantity, minimumStockLevel, and expiryDate only.");
+            builder.AppendLine("- prescriptionRequirement: use requiresPrescription only.");
 
             return builder.ToString().TrimEnd();
         }
 
-        public static string BuildDosageLabel(string? dosageForm, string? strength)
+        public static IReadOnlyDictionary<string, string> ReadEntityFields(Medication medication)
         {
-            var parts = new[] { dosageForm?.Trim(), strength?.Trim() }
-                .Where(part => !string.IsNullOrWhiteSpace(part))
-                .ToArray();
+            ArgumentNullException.ThrowIfNull(medication);
 
-            return parts.Length == 0 ? "Not recorded" : string.Join(" ", parts);
+            return new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["name"] = medication.Name.Trim(),
+                ["category"] = FormatOptional(medication.Category),
+                ["dosageForm"] = FormatOptional(medication.DosageForm),
+                ["strength"] = FormatOptional(medication.Strength),
+                ["description"] = FormatOptional(medication.Description),
+                ["stockQuantity"] = medication.StockQuantity.ToString(CultureInfo.InvariantCulture),
+                ["minimumStockLevel"] = medication.MinimumStockLevel.ToString(CultureInfo.InvariantCulture),
+                ["expiryDate"] = FormatDate(medication.ExpiryDate),
+                ["requiresPrescription"] = medication.RequiresPrescription.ToString(CultureInfo.InvariantCulture)
+            };
         }
 
-        public static string BuildStockStatus(int stockQuantity, int minimumStockLevel)
-        {
-            if (stockQuantity <= 0)
-            {
-                return "out of stock";
-            }
-
-            if (stockQuantity < minimumStockLevel)
-            {
-                return "low stock";
-            }
-
-            return "normal stock";
-        }
-
-        internal static string BuildExpiryStatus(DateTime? expiryDate)
-        {
-            if (!expiryDate.HasValue)
-            {
-                return "expiry date not recorded";
-            }
-
-            var today = DateTime.UtcNow.Date;
-            var expiry = expiryDate.Value.Date;
-
-            if (expiry < today)
-            {
-                return "expired";
-            }
-
-            if (expiry <= today.AddDays(30))
-            {
-                return "expiring within 30 days";
-            }
-
-            return "not expiring soon";
-        }
-
-        private static string ValueOrDash(string? value) =>
+        private static string FormatOptional(string? value) =>
             string.IsNullOrWhiteSpace(value) ? "Not recorded" : value.Trim();
 
         private static string FormatDate(DateTime? value) =>
