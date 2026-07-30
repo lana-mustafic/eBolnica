@@ -18,15 +18,110 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.lightbox-image-viewport {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  min-height: min(40vh, calc(100vh - 14rem));
+  max-height: min(60vh, calc(100vh - 14rem));
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  cursor: zoom-in;
+}
+
+.lightbox-image-viewport.is-pannable {
+  cursor: grab;
+}
+
+.lightbox-image-viewport.is-panning {
+  cursor: grabbing;
+}
+
+.lightbox-image-viewport.is-panning .lightbox-image {
+  transition: none;
 }
 
 .lightbox-image {
-  flex: 1 1 auto;
+  display: block;
   max-width: 100%;
-  max-height: min(60vh, calc(100vh - 14rem));
+  max-height: 100%;
+  width: auto;
+  height: auto;
   object-fit: contain;
+  margin: 0 auto;
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  transform-origin: center center;
+  transition: transform 0.15s ease-out;
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+.lightbox-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  width: 100%;
+  margin-bottom: 0.75rem;
+  padding-right: 3rem;
+}
+
+.lightbox-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.2s, border-color 0.2s, opacity 0.2s;
+}
+
+.lightbox-toolbar-btn:hover:not(:disabled),
+.lightbox-toolbar-btn:focus-visible:not(:disabled) {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.lightbox-toolbar-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.lightbox-toolbar-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.lightbox-toolbar-reset {
+  min-width: auto;
+}
+
+.lightbox-zoom-level {
+  min-width: 3.5rem;
+  text-align: center;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .lightbox-close {
@@ -201,8 +296,14 @@
     justify-content: center;
   }
 
-  .lightbox-image {
+  .lightbox-image-viewport {
+    min-height: min(32vh, calc(100vh - 16rem));
     max-height: min(50vh, calc(100vh - 16rem));
+  }
+
+  .lightbox-toolbar {
+    padding-right: 0;
+    margin-bottom: 0.5rem;
   }
 
   .lightbox-prev {
