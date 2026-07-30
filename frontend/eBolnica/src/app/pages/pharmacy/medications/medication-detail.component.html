@@ -43,6 +43,76 @@
       </div>
 
       <div class="info-section">
+        <section class="ai-summary-panel" aria-labelledby="ai-summary-title">
+          <div class="ai-summary-header">
+            <h3 id="ai-summary-title" class="ai-summary-title">AI Medication Summary</h3>
+            <p class="ai-summary-disclaimer" role="note">
+              <span class="ai-summary-disclaimer-label">AI-generated summary</span>
+              <span class="ai-summary-disclaimer-text">
+                Based on medication data stored in this application only. Not medical advice — verify against the record below.
+              </span>
+            </p>
+          </div>
+
+          <button
+            type="button"
+            class="btn btn-generate-summary"
+            (click)="onGenerateAiSummary()"
+            [disabled]="isGeneratingAiSummary"
+            [attr.aria-busy]="isGeneratingAiSummary">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"></path>
+              <path d="M5 19l1 3 1-3 3-1-3-1-1-3-1 3-3 1z"></path>
+              <path d="M19 13l.75 2.25L22 16l-2.25.75L19 19l-.75-2.25L16 16l2.25-.75L19 13z"></path>
+            </svg>
+            {{ isGeneratingAiSummary ? 'Generating...' : 'Generate AI Summary' }}
+          </button>
+
+          <p *ngIf="aiSummaryState === 'idle'" class="ai-summary-idle">
+            Generate a structured summary from this medication record.
+          </p>
+
+          <div *ngIf="aiSummaryState === 'loading'" class="ai-summary-status" role="status" aria-live="polite">
+            <span class="ai-summary-spinner" aria-hidden="true"></span>
+            <span>Generating summary from medication record...</span>
+          </div>
+
+          <div *ngIf="aiSummaryState === 'error'" class="ai-summary-error" role="alert">
+            <p class="ai-summary-error-message">{{ aiSummaryError }}</p>
+            <p class="ai-summary-error-hint">You can try again using the button above. The rest of this page remains available.</p>
+          </div>
+
+          <div *ngIf="aiSummaryState === 'success' && aiSummary" class="ai-summary-success" role="status" aria-live="polite">
+            Summary generated successfully.
+          </div>
+
+          <div *ngIf="aiSummaryState === 'success' && aiSummary" class="ai-summary-result" aria-label="AI-generated summary">
+            <p class="ai-summary-disclaimer ai-summary-disclaimer--result" role="note">
+              <span class="ai-summary-disclaimer-label">AI-generated summary</span>
+            </p>
+
+            <div class="ai-summary-section">
+              <h4 class="ai-summary-section-title">Overview</h4>
+              <p class="ai-summary-section-text">{{ aiSummary.overview }}</p>
+            </div>
+
+            <div class="ai-summary-section">
+              <h4 class="ai-summary-section-title">Usage notes</h4>
+              <p class="ai-summary-section-text">{{ aiSummary.usageNotes }}</p>
+            </div>
+
+            <div class="ai-summary-section">
+              <h4 class="ai-summary-section-title">Stock &amp; expiry</h4>
+              <p class="ai-summary-section-text">{{ aiSummary.stockExpiryAlert }}</p>
+            </div>
+
+            <div class="ai-summary-section">
+              <h4 class="ai-summary-section-title">Prescription requirement</h4>
+              <p class="ai-summary-section-text">{{ aiSummary.prescriptionRequirement }}</p>
+            </div>
+          </div>
+        </section>
+
         <div class="info-cards">
           <div class="info-card">
             <h3 class="card-title">Basic Information</h3>

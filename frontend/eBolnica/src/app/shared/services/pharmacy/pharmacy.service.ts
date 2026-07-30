@@ -1,12 +1,13 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpErrorResponse, HttpResponse } from '@angular/common/http';
-import { Observable, throwError, of, timer, forkJoin } from 'rxjs';
+import { Observable, throwError, of, timer, forkJoin, timeout, TimeoutError } from 'rxjs';
 import { catchError, tap, retry, retryWhen, delayWhen, take, concatMap, map } from 'rxjs/operators';
 import { normalizePagedResponse, normalizeInventoryResponse } from '../../utils/paged-response.util';
 import { normalizePaginationParams } from '../../utils/pagination-params.util';
 import { MedicationDto } from '../../../models/medication.dto';
 import { MedicationAutocompleteSuggestion } from '../../../models/medication-autocomplete.dto';
 import { MedicationImageDto } from '../../../models/medication-image.dto';
+import { MedicationAiSummaryDto } from '../../../models/medication-ai-summary.dto';
 import { MedicationCreateDto } from '../../../models/medication-create.dto';
 import { PharmacistDataDto } from '../../../models/pharmacist-data.dto';
 import { PrescriptionDto } from '../../../models/prescription.dto';
@@ -318,6 +319,28 @@ export class PharmacyService {
     return this.http.put<MedicationImageDto[]>(
       `${this.apiUrl}/medications/${medicationId}/images/reorder`,
       { imageIds }
+    );
+  }
+
+  /**
+   * Request an AI-generated summary via the backend proxy.
+   * LLM credentials stay server-side; this call only sends the medication id.
+   */
+  generateMedicationAiSummary(medicationId: number): Observable<MedicationAiSummaryDto> {
+    const requestTimeoutMs = 45_000;
+
+    return this.http.post<MedicationAiSummaryDto>(
+      `${this.apiUrl}/medications/${medicationId}/ai-summary`,
+      {}
+    ).pipe(
+      timeout(requestTimeoutMs),
+      catchError((error: unknown) => {
+        if (error instanceof TimeoutError) {
+          return throwError(() => ({ status: 504, name: 'TimeoutError' }));
+        }
+
+        return throwError(() => error);
+      })
     );
   }
 

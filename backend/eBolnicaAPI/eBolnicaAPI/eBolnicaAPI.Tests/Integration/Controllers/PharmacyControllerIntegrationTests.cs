@@ -2,11 +2,14 @@ using eBolnicaAPI.Data;
 using eBolnicaAPI.Models.DTOs;
 using eBolnicaAPI.Models.Entities;
 using eBolnicaAPI.Services.Pharmacy;
+using eBolnicaAPI.Services.Pharmacy.MedicationAiSummary;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
@@ -1270,7 +1273,79 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
 
         #endregion
 
+        #region GenerateMedicationAiSummary Integration Tests
+
+        [Fact]
+        public async Task GenerateMedicationAiSummary_ReturnsStructuredSummary()
+        {
+            var medication = await _context.Medications.FirstAsync(m => m.Name == "Ibuprofen");
+
+            var response = await _client.PostAsync(
+                $"/api/pharmacy/medications/{medication.Id}/ai-summary",
+                JsonContent.Create(new { }));
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            var summary = await response.Content.ReadFromJsonAsync<MedicationAiSummaryDto>();
+            Assert.NotNull(summary);
+            Assert.Equal("Test overview", summary.Overview);
+            Assert.Equal("Test usage notes", summary.UsageNotes);
+            Assert.Equal("Test stock alert", summary.StockExpiryAlert);
+            Assert.Equal("Test prescription info", summary.PrescriptionRequirement);
+            await AssertResponseDoesNotExposeSecrets(response);
+        }
+
+        [Fact]
+        public async Task GenerateMedicationAiSummary_UnknownMedication_ReturnsNotFoundWithoutSecrets()
+        {
+            var response = await _client.PostAsync(
+                "/api/pharmacy/medications/999999/ai-summary",
+                JsonContent.Create(new { }));
+
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+            await AssertResponseDoesNotExposeSecrets(response);
+        }
+
+        [Fact]
+        public async Task GenerateMedicationAiSummary_WhenServiceNotConfigured_ReturnsServiceUnavailable()
+        {
+            using var factory = _factory.WithWebHostBuilder(builder =>
+            {
+                builder.ConfigureAppConfiguration((_, config) =>
+                {
+                    config.AddInMemoryCollection(new Dictionary<string, string?>
+                    {
+                        ["MedicationAiSummary:Enabled"] = "true",
+                        ["MedicationAiSummary:ApiKey"] = string.Empty
+                    });
+                });
+            });
+
+            using var client = factory.CreateClient();
+            client.DefaultRequestHeaders.Add("Authorization", "Bearer test-token");
+
+            var medication = await _context.Medications.FirstAsync(m => m.Name == "Ibuprofen");
+            var response = await client.PostAsync(
+                $"/api/pharmacy/medications/{medication.Id}/ai-summary",
+                JsonContent.Create(new { }));
+
+            Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+            await AssertResponseDoesNotExposeSecrets(response);
+        }
+
+        #endregion
+
         #region Helper Methods
+
+        private static async Task AssertResponseDoesNotExposeSecrets(HttpResponseMessage response)
+        {
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.DoesNotContain("ApiKey", body, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("api-key", body, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Bearer ", body, StringComparison.Ordinal);
+            Assert.DoesNotContain("sk-", body, StringComparison.Ordinal);
+            Assert.False(response.Headers.Contains("api-key"));
+        }
 
         private static MedicationCreateDto CreateValidMedicationDto(string name) =>
             new()
@@ -1478,6 +1553,15 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
         {
             builder.UseEnvironment("Testing");
 
+            builder.ConfigureAppConfiguration((_, config) =>
+            {
+                config.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["MedicationAiSummary:Enabled"] = "true",
+                    ["MedicationAiSummary:ApiKey"] = "integration-test-key"
+                });
+            });
+
             builder.ConfigureServices(services =>
             {
                 services.AddAuthentication(options =>
@@ -1486,6 +1570,9 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
                         options.DefaultChallengeScheme = "Test";
                     })
                     .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("Test", _ => { });
+
+                services.RemoveAll<IMedicationAiSummaryClient>();
+                services.AddSingleton<IMedicationAiSummaryClient, TestMedicationAiSummaryClient>();
             });
         }
     }
