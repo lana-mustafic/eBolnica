@@ -48,6 +48,26 @@ export function buildMedicationWizardDraftStorageKey(ownerKey: string): string {
   return `${MEDICATION_WIZARD_DRAFT_STORAGE_PREFIX}:${ownerKey}`;
 }
 
+export type MedicationWizardDraftStatus = 'none' | 'valid' | 'expired';
+
+export interface MedicationWizardDraftEvaluation {
+  status: MedicationWizardDraftStatus;
+  draft: MedicationWizardDraft | null;
+}
+
+export function isMedicationWizardDraftExpired(
+  savedAt: string,
+  nowMs: number = Date.now(),
+  ttlMs: number = MEDICATION_WIZARD_DRAFT_TTL_MS
+): boolean {
+  const savedAtMs = Date.parse(savedAt);
+  if (Number.isNaN(savedAtMs)) {
+    return true;
+  }
+
+  return nowMs - savedAtMs > ttlMs;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -68,17 +88,26 @@ export class MedicationWizardDraftService {
   }
 
   load(): MedicationWizardDraft | null {
-    const draft = this.readDraftForCurrentOwner();
-    if (!draft) {
-      return null;
-    }
-
-    if (this.isDraftExpired(draft)) {
+    const evaluation = this.evaluateDraft();
+    if (evaluation.status === 'expired') {
       this.clear();
       return null;
     }
 
-    return draft;
+    return evaluation.draft;
+  }
+
+  evaluateDraft(): MedicationWizardDraftEvaluation {
+    const draft = this.readDraftForCurrentOwner();
+    if (!draft) {
+      return { status: 'none', draft: null };
+    }
+
+    if (this.isDraftExpired(draft)) {
+      return { status: 'expired', draft };
+    }
+
+    return { status: 'valid', draft };
   }
 
   clear(): void {
@@ -99,12 +128,7 @@ export class MedicationWizardDraftService {
   }
 
   isDraftExpired(draft: MedicationWizardDraft, nowMs: number = Date.now()): boolean {
-    const savedAtMs = Date.parse(draft.savedAt);
-    if (Number.isNaN(savedAtMs)) {
-      return true;
-    }
-
-    return nowMs - savedAtMs > MEDICATION_WIZARD_DRAFT_TTL_MS;
+    return isMedicationWizardDraftExpired(draft.savedAt, nowMs);
   }
 
   private readDraftForCurrentOwner(): MedicationWizardDraft | null {

@@ -45,7 +45,8 @@ describe('MedicationWizardComponent draft banner', () => {
       'load',
       'save',
       'clear',
-      'hasDraft'
+      'hasDraft',
+      'evaluateDraft'
     ]);
     confirmDialog = jasmine.createSpyObj<ConfirmDialogService>('ConfirmDialogService', ['confirm']);
     pharmacyService = jasmine.createSpyObj<PharmacyService>('PharmacyService', [
@@ -71,7 +72,7 @@ describe('MedicationWizardComponent draft banner', () => {
   });
 
   it('shows Continue draft and Discard draft banner when a draft exists on init', () => {
-    draftService.load.and.returnValue(draft);
+    draftService.evaluateDraft.and.returnValue({ status: 'valid', draft });
 
     fixture.detectChanges();
 
@@ -84,7 +85,7 @@ describe('MedicationWizardComponent draft banner', () => {
   });
 
   it('does not show draft banner when no draft exists on init', () => {
-    draftService.load.and.returnValue(null);
+    draftService.evaluateDraft.and.returnValue({ status: 'none', draft: null });
 
     fixture.detectChanges();
 
@@ -93,7 +94,7 @@ describe('MedicationWizardComponent draft banner', () => {
   });
 
   it('restores all saved fields and step when Continue draft is chosen', () => {
-    draftService.load.and.returnValue(draft);
+    draftService.evaluateDraft.and.returnValue({ status: 'valid', draft });
 
     fixture.detectChanges();
     component.continueDraft();
@@ -105,7 +106,7 @@ describe('MedicationWizardComponent draft banner', () => {
   });
 
   it('does not trigger autosave while restoring draft', () => {
-    draftService.load.and.returnValue(draft);
+    draftService.evaluateDraft.and.returnValue({ status: 'valid', draft });
 
     fixture.detectChanges();
     component.continueDraft();
@@ -114,7 +115,7 @@ describe('MedicationWizardComponent draft banner', () => {
   });
 
   it('clears draft and hides banner when Discard draft is confirmed', () => {
-    draftService.load.and.returnValue(draft);
+    draftService.evaluateDraft.and.returnValue({ status: 'valid', draft });
     confirmDialog.confirm.and.returnValue(of(true));
 
     fixture.detectChanges();
@@ -127,7 +128,7 @@ describe('MedicationWizardComponent draft banner', () => {
   });
 
   it('keeps draft banner visible when Discard draft is cancelled', () => {
-    draftService.load.and.returnValue(draft);
+    draftService.evaluateDraft.and.returnValue({ status: 'valid', draft });
     confirmDialog.confirm.and.returnValue(of(false));
 
     fixture.detectChanges();
@@ -136,6 +137,27 @@ describe('MedicationWizardComponent draft banner', () => {
 
     expect(draftService.clear).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('.draft-banner')).toBeTruthy();
+  });
+
+  it('prompts to discard stale drafts older than 7 days on init', () => {
+    draftService.evaluateDraft.and.returnValue({ status: 'expired', draft });
+
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.draft-banner')).toBeFalsy();
+    expect(confirmDialog.confirm).toHaveBeenCalledWith(jasmine.objectContaining({
+      title: 'Draft expired'
+    }));
+  });
+
+  it('clears stale draft after expired prompt is dismissed', () => {
+    draftService.evaluateDraft.and.returnValue({ status: 'expired', draft });
+    confirmDialog.confirm.and.returnValue(of(false));
+
+    fixture.detectChanges();
+
+    expect(draftService.clear).toHaveBeenCalled();
+    expect(component.showDraftBanner).toBeFalse();
   });
 });
 
@@ -152,7 +174,8 @@ describe('MedicationWizardComponent draft cleanup on submit', () => {
       'load',
       'save',
       'clear',
-      'hasDraft'
+      'hasDraft',
+      'evaluateDraft'
     ]);
     confirmDialog = jasmine.createSpyObj<ConfirmDialogService>('ConfirmDialogService', ['confirm']);
     pharmacyService = jasmine.createSpyObj<PharmacyService>('PharmacyService', [
@@ -160,7 +183,7 @@ describe('MedicationWizardComponent draft cleanup on submit', () => {
       'createMedication'
     ]);
 
-    draftService.load.and.returnValue(null);
+    draftService.evaluateDraft.and.returnValue({ status: 'none', draft: null });
     pharmacyService.checkMedicationNameAvailability.and.returnValue(of({ isAvailable: true }));
     confirmDialog.confirm.and.returnValue(of(false));
 

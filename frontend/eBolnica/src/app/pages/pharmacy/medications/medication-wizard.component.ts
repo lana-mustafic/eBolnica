@@ -181,14 +181,33 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   }
 
   private initializeDraftPrompt(): void {
-    const draft = this.draftService.load();
-    if (!draft) {
+    const evaluation = this.draftService.evaluateDraft();
+
+    if (evaluation.status === 'none') {
       this.draftPromptResolved = true;
       return;
     }
 
-    this.pendingDraft = draft;
+    if (evaluation.status === 'expired') {
+      this.promptExpiredDraftDiscard();
+      return;
+    }
+
+    this.pendingDraft = evaluation.draft;
     this.showDraftBanner = true;
+  }
+
+  private promptExpiredDraftDiscard(): void {
+    this.confirmDialog.confirm({
+      title: 'Draft expired',
+      message: 'Your saved medication draft is older than 7 days and has expired. It will be discarded so you can start fresh.',
+      confirmText: 'Discard draft',
+      cancelText: 'Close',
+      confirmColor: 'warn'
+    }).subscribe(() => {
+      this.draftService.clear();
+      this.draftPromptResolved = true;
+    });
   }
 
   private restoreDraft(draft: MedicationWizardDraft): void {

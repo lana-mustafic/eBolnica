@@ -3,6 +3,7 @@ import { AuthService } from '../auth.service';
 import {
   buildMedicationWizardDraftOwnerKey,
   buildMedicationWizardDraftStorageKey,
+  isMedicationWizardDraftExpired,
   MEDICATION_WIZARD_DRAFT_SESSION_KEY,
   MEDICATION_WIZARD_DRAFT_TTL_MS,
   MedicationWizardDraftService
@@ -163,5 +164,42 @@ describe('MedicationWizardDraftService', () => {
     expect(service.load()).toBeNull();
     expect(service.hasDraft()).toBeFalse();
     expect(storage[key]).toBeUndefined();
+  });
+
+  it('evaluateDraft marks drafts older than 7 days as expired', () => {
+    authService.getUserId.and.returnValue(pharmacistUserId);
+    const staleSavedAt = new Date(Date.now() - MEDICATION_WIZARD_DRAFT_TTL_MS - 1000).toISOString();
+    const key = service.getUserDraftStorageKey(pharmacistUserId);
+
+    storage[key] = JSON.stringify({
+      version: 1,
+      savedAt: staleSavedAt,
+      currentStep: 1,
+      formValue,
+      ownerKey: 'user:pharmacist-42'
+    });
+
+    const evaluation = service.evaluateDraft();
+
+    expect(evaluation.status).toBe('expired');
+    expect(evaluation.draft?.savedAt).toBe(staleSavedAt);
+  });
+
+  it('evaluateDraft keeps drafts within the 7 day TTL as valid', () => {
+    authService.getUserId.and.returnValue(pharmacistUserId);
+    service.save({ currentStep: 2, formValue });
+
+    const evaluation = service.evaluateDraft();
+
+    expect(evaluation.status).toBe('valid');
+    expect(evaluation.draft?.currentStep).toBe(2);
+  });
+
+  it('treats invalid savedAt timestamps as expired', () => {
+    const nowMs = Date.parse('2026-07-30T12:00:00.000Z');
+
+    expect(isMedicationWizardDraftExpired('not-a-date', nowMs)).toBeTrue();
+    expect(isMedicationWizardDraftExpired('2026-07-23T12:00:00.000Z', nowMs)).toBeFalse();
+    expect(isMedicationWizardDraftExpired('2026-07-23T11:59:59.999Z', nowMs)).toBeTrue();
   });
 });
