@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, inject, OnChanges, SimpleChanges, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ViewChild, inject, OnChanges, SimpleChanges, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { finalize } from 'rxjs';
 import { MedicationImageDto } from '../../../models/medication-image.dto';
@@ -19,6 +19,7 @@ import {
   beginMedicationImageUploadBatch,
   MEDICATION_IMAGE_UPLOAD_BATCH_IN_PROGRESS_MESSAGE
 } from './medication-image-upload-batch.util';
+import { buildPendingQueueCancelMessage } from './medication-image-pending-queue.util';
 
 const IMAGE_DELETE_ROLES = ['Pharmacist', 'Admin'] as const;
 
@@ -34,6 +35,9 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
   private authService = inject(AuthService);
   private notificationService = inject(NotificationService);
   private confirmDialog = inject(ConfirmDialogService);
+
+  @ViewChild(MedicationImageDropzoneComponent)
+  private imageDropzone?: MedicationImageDropzoneComponent;
 
   @Input({ required: true }) medicationId!: number;
   @Input() images: MedicationImageDto[] = [];
@@ -103,6 +107,7 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
     this.selectedIndex = index;
   }
 
+  /** Starts upload for files confirmed via Upload selected (not on drop/browse). */
   onDropzoneFilesSelected(files: File[]): void {
     if (files.length === 0 || this.isDeleting) return;
 
@@ -123,6 +128,23 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
   onDropzoneSelectionLimited(event: SelectionLimitedEvent): void {
     this.errorMessage =
       `Only ${event.maxFiles} files can be uploaded at once. ${event.provided} files were provided.`;
+  }
+
+  onPendingQueueCancelRequested(): void {
+    const pendingCount = this.imageDropzone?.pendingQueue.length ?? 0;
+    if (pendingCount === 0 || this.isUploading || this.isDeleting) return;
+
+    this.confirmDialog.confirm({
+      title: 'Clear pending images',
+      message: buildPendingQueueCancelMessage(pendingCount),
+      confirmText: 'Clear all',
+      cancelText: 'Keep images',
+      confirmColor: 'warn'
+    }).subscribe(confirmed => {
+      if (confirmed) {
+        this.imageDropzone?.clearPendingQueue();
+      }
+    });
   }
 
   private uploadFilesSequentially(files: File[]): void {
@@ -161,6 +183,7 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
       next: (result) => {
         if (result.uploaded.length > 0) {
           this.showUploadSuccess(result.uploaded.length);
+          this.imageDropzone?.clearPendingQueue();
         }
 
         if (result.errors.length > 0) {

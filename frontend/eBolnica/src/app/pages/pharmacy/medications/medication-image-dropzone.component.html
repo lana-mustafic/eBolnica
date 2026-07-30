@@ -1,59 +1,136 @@
-<div
-  #dropzone
-  class="image-dropzone"
-  [class.drag-over]="isDragOver"
-  [class.busy]="busy"
-  [class.disabled]="disabled || busy"
-  (click)="onDropzoneClick($event)"
-  (keydown)="onDropzoneKeydown($event)"
-  (dragenter)="onDragEnter($event)"
-  (dragover)="onDragOver($event)"
-  (dragleave)="onDragLeave($event)"
-  (drop)="onDrop($event)"
-  [attr.tabindex]="isInteractive ? 0 : -1"
-  role="button"
-  [attr.aria-disabled]="!isInteractive"
-  [attr.aria-busy]="busy"
-  aria-label="Upload medication images by drag and drop or browse files">
-  <input
-    #fileInput
-    [id]="fileInputId"
-    type="file"
-    class="image-dropzone-input"
-    [accept]="accept"
-    [multiple]="multiple"
-    [disabled]="!isInteractive"
-    (change)="onFileInputChange($event)"
-    aria-hidden="true"
-    tabindex="-1" />
+<div class="image-dropzone-shell">
+  <div
+    #dropzone
+    class="image-dropzone"
+    [class.drag-over]="isDragOver"
+    [class.busy]="busy"
+    [class.disabled]="disabled || busy"
+    (click)="onDropzoneClick($event)"
+    (keydown)="onDropzoneKeydown($event)"
+    (dragenter)="onDragEnter($event)"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)"
+    (drop)="onDrop($event)"
+    [attr.tabindex]="isInteractive ? 0 : -1"
+    role="button"
+    [attr.aria-disabled]="!isInteractive"
+    [attr.aria-busy]="busy"
+    aria-label="Upload medication images by drag and drop or browse files">
+    <input
+      #fileInput
+      [id]="fileInputId"
+      type="file"
+      class="image-dropzone-input"
+      [accept]="accept"
+      [multiple]="multiple"
+      [disabled]="!isInteractive"
+      (change)="onFileInputChange($event)"
+      aria-hidden="true"
+      tabindex="-1" />
 
-  <div class="image-dropzone-icon" aria-hidden="true">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-      <circle cx="8.5" cy="8.5" r="1.5"></circle>
-      <polyline points="21 15 16 10 5 21"></polyline>
-    </svg>
+    <div class="image-dropzone-icon" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+        <polyline points="21 15 16 10 5 21"></polyline>
+      </svg>
+    </div>
+
+    <p class="image-dropzone-title">{{ title }}</p>
+    <p class="image-dropzone-subtitle">{{ subtitle }}</p>
+    <p class="image-dropzone-hint">{{ displayHint }}</p>
+
+    @if (validationMessages.length > 0) {
+      <div class="image-dropzone-errors" role="alert" aria-live="polite">
+        @for (error of validationMessages; track error.fileName) {
+          <p class="image-dropzone-error">{{ error.fileName }}: {{ error.message }}</p>
+        }
+      </div>
+    }
+
+    <label
+      class="image-dropzone-browse-btn"
+      [attr.for]="browseInputId"
+      [attr.aria-disabled]="!isInteractive"
+      [attr.aria-label]="browseLabel"
+      (mousedown)="onBrowsePress($event)"
+      (click)="onBrowseClick($event)">
+      {{ browseLabel }}
+    </label>
   </div>
 
-  <p class="image-dropzone-title">{{ title }}</p>
-  <p class="image-dropzone-subtitle">{{ subtitle }}</p>
-  <p class="image-dropzone-hint">{{ displayHint }}</p>
-
-  @if (validationMessages.length > 0) {
-    <div class="image-dropzone-errors" role="alert" aria-live="polite">
-      @for (error of validationMessages; track error.fileName) {
-        <p class="image-dropzone-error">{{ error.fileName }}: {{ error.message }}</p>
+  @if (usePendingQueue && pendingQueue.length > 0) {
+    <ul class="image-dropzone-pending-list" role="list" aria-label="Pending image previews">
+      @for (item of pendingQueue; track item.id) {
+        <li
+          class="image-dropzone-pending-item"
+          [class.is-invalid]="item.status === 'invalid'"
+          [attr.aria-invalid]="item.status === 'invalid'">
+          <div class="image-dropzone-pending-thumb-wrap">
+            @if (item.previewUrl) {
+              <img
+                class="image-dropzone-pending-thumb"
+                [src]="item.previewUrl"
+                [alt]="item.fileName"
+                loading="lazy"
+                width="72"
+                height="72" />
+            } @else {
+              <div class="image-dropzone-pending-placeholder" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+            }
+            <button
+              type="button"
+              class="image-dropzone-pending-remove-btn"
+              (click)="onPendingRemoveClick($event, item.id)"
+              [disabled]="!isInteractive"
+              [attr.aria-label]="'Remove ' + item.fileName + ' from queue'">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+            @if (item.status === 'invalid') {
+              <span
+                class="image-dropzone-pending-error-badge"
+                [attr.title]="item.errorMessage"
+                [attr.aria-label]="item.errorMessage">
+                Invalid
+              </span>
+            }
+          </div>
+          <span
+            class="image-dropzone-pending-name"
+            [class.is-invalid]="item.status === 'invalid'"
+            [title]="item.status === 'invalid' ? item.errorMessage : item.fileName">
+            {{ item.fileName }}
+          </span>
+        </li>
       }
+    </ul>
+
+    <div class="image-dropzone-pending-actions">
+      <button
+        type="button"
+        class="image-dropzone-action-btn image-dropzone-action-upload"
+        (click)="onUploadSelectedClick($event)"
+        [disabled]="!canUploadSelected"
+        [attr.aria-label]="uploadSelectedLabel">
+        {{ uploadSelectedLabel }}
+      </button>
+      <button
+        type="button"
+        class="image-dropzone-action-btn image-dropzone-action-clear"
+        (click)="onClearAllClick($event)"
+        [disabled]="!isInteractive"
+        aria-label="Clear all pending images">
+        Clear all
+      </button>
     </div>
   }
-
-  <label
-    class="image-dropzone-browse-btn"
-    [attr.for]="browseInputId"
-    [attr.aria-disabled]="!isInteractive"
-    [attr.aria-label]="browseLabel"
-    (mousedown)="onBrowsePress($event)"
-    (click)="onBrowseClick($event)">
-    {{ browseLabel }}
-  </label>
 </div>

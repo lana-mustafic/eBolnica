@@ -57,98 +57,198 @@ describe('MedicationImageDropzoneComponent', () => {
     expect(input.accept).toBe(MEDICATION_IMAGE_ACCEPT);
     expect(input.multiple).toBeTrue();
     expect(component.maxFiles).toBe(MEDICATION_IMAGE_MAX_FILES);
+    expect(component.usePendingQueue).toBeTrue();
     expect(fixture.nativeElement.querySelector('.image-dropzone-hint')?.textContent)
       .toContain(`max ${MEDICATION_IMAGE_MAX_FILES} files`);
   });
 
-  it('emits filesSelected when files are chosen via input', () => {
-    spyOn(component.filesSelected, 'emit');
-    const file = createFile('photo.jpg');
-    const input = fixture.nativeElement.querySelector('.image-dropzone-input') as HTMLInputElement;
-
-    Object.defineProperty(input, 'files', {
-      configurable: true,
-      value: [file]
+  describe('confirm-first upload', () => {
+    beforeEach(() => {
+      spyOn(URL, 'createObjectURL').and.callFake((blob: Blob) => `blob:${(blob as File).name}`);
     });
-    input.dispatchEvent(new Event('change'));
 
-    expect(component.filesSelected.emit).toHaveBeenCalledWith([file]);
-    expect(input.value).toBe('');
-  });
+    it('does not start upload on drop until Upload selected is clicked', () => {
+      spyOn(component.filesSelected, 'emit');
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      const files = [createFile('a.jpg'), createFile('b.jpg')];
 
-  it('emits multiple files from file picker when multiple is enabled', () => {
-    spyOn(component.filesSelected, 'emit');
-    const files = [createFile('a.jpg'), createFile('b.jpg')];
-    const input = fixture.nativeElement.querySelector('.image-dropzone-input') as HTMLInputElement;
+      component.onDrop(dragEvent('drop', dropzone, { files }));
+      fixture.detectChanges();
 
-    Object.defineProperty(input, 'files', {
-      configurable: true,
-      value: files
+      expect(component.filesSelected.emit).not.toHaveBeenCalled();
+      expect(component.pendingQueue).toHaveSize(2);
+
+      const uploadButton = fixture.nativeElement.querySelector(
+        '.image-dropzone-action-upload'
+      ) as HTMLButtonElement;
+      uploadButton.click();
+
+      expect(component.filesSelected.emit).toHaveBeenCalledWith(files);
     });
-    input.dispatchEvent(new Event('change'));
 
-    expect(component.filesSelected.emit).toHaveBeenCalledWith(files);
-  });
+    it('does not start upload on browse until Upload selected is clicked', () => {
+      spyOn(component.filesSelected, 'emit');
+      const file = createFile('browse.jpg');
+      const input = fixture.nativeElement.querySelector('.image-dropzone-input') as HTMLInputElement;
 
-  it('limits multiple dropped files to maxFiles and emits selectionLimited', () => {
-    spyOn(component.filesSelected, 'emit');
-    spyOn(component.selectionLimited, 'emit');
-    const files = Array.from({ length: 7 }, (_, index) => createFile(`photo-${index + 1}.jpg`));
-    const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      Object.defineProperty(input, 'files', { configurable: true, value: [file] });
+      input.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
 
-    component.onDrop(dragEvent('drop', dropzone, { files }));
+      expect(component.filesSelected.emit).not.toHaveBeenCalled();
+      expect(component.pendingQueue).toHaveSize(1);
 
-    expect(component.filesSelected.emit).toHaveBeenCalledWith(files.slice(0, MEDICATION_IMAGE_MAX_FILES));
-    expect(component.selectionLimited.emit).toHaveBeenCalledWith({
-      selected: MEDICATION_IMAGE_MAX_FILES,
-      provided: 7,
-      maxFiles: MEDICATION_IMAGE_MAX_FILES
-    });
-  });
+      const uploadButton = fixture.nativeElement.querySelector(
+        '.image-dropzone-action-upload'
+      ) as HTMLButtonElement;
+      uploadButton.click();
 
-  it('selects only one file when multiple input is disabled', () => {
-    component.multiple = false;
-    fixture.detectChanges();
-    spyOn(component.filesSelected, 'emit');
-    spyOn(component.selectionLimited, 'emit');
-
-    const files = [createFile('a.jpg'), createFile('b.jpg')];
-    const input = fixture.nativeElement.querySelector('.image-dropzone-input') as HTMLInputElement;
-    expect(input.multiple).toBeFalse();
-
-    Object.defineProperty(input, 'files', { configurable: true, value: files });
-    input.dispatchEvent(new Event('change'));
-
-    expect(component.filesSelected.emit).toHaveBeenCalledWith([files[0]]);
-    expect(component.selectionLimited.emit).toHaveBeenCalledWith({
-      selected: 1,
-      provided: 2,
-      maxFiles: 1
+      expect(component.filesSelected.emit).toHaveBeenCalledWith([file]);
     });
   });
 
-  it('does not emit when file picker is cancelled', () => {
-    spyOn(component.filesSelected, 'emit');
-    const input = fixture.nativeElement.querySelector('.image-dropzone-input') as HTMLInputElement;
-
-    Object.defineProperty(input, 'files', {
-      configurable: true,
-      value: []
+  describe('immediate upload mode', () => {
+    beforeEach(() => {
+      component.usePendingQueue = false;
+      fixture.detectChanges();
     });
-    input.dispatchEvent(new Event('change'));
 
-    expect(component.filesSelected.emit).not.toHaveBeenCalled();
-  });
+    it('emits filesSelected when files are chosen via input', () => {
+      spyOn(component.filesSelected, 'emit');
+      const file = createFile('photo.jpg');
+      const input = fixture.nativeElement.querySelector('.image-dropzone-input') as HTMLInputElement;
 
-  it('emits filesSelected when files are dropped', () => {
-    spyOn(component.filesSelected, 'emit');
-    const file = createFile('dropped.png');
-    const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      Object.defineProperty(input, 'files', {
+        configurable: true,
+        value: [file]
+      });
+      input.dispatchEvent(new Event('change'));
 
-    component.onDrop(dragEvent('drop', dropzone, { files: [file] }));
+      expect(component.filesSelected.emit).toHaveBeenCalledWith([file]);
+      expect(input.value).toBe('');
+    });
 
-    expect(component.filesSelected.emit).toHaveBeenCalledWith([file]);
-    expect(component.isDragOver).toBeFalse();
+    it('emits multiple files from file picker when multiple is enabled', () => {
+      spyOn(component.filesSelected, 'emit');
+      const files = [createFile('a.jpg'), createFile('b.jpg')];
+      const input = fixture.nativeElement.querySelector('.image-dropzone-input') as HTMLInputElement;
+
+      Object.defineProperty(input, 'files', {
+        configurable: true,
+        value: files
+      });
+      input.dispatchEvent(new Event('change'));
+
+      expect(component.filesSelected.emit).toHaveBeenCalledWith(files);
+    });
+
+    it('limits multiple dropped files to maxFiles and emits selectionLimited', () => {
+      spyOn(component.filesSelected, 'emit');
+      spyOn(component.selectionLimited, 'emit');
+      const files = Array.from({ length: 7 }, (_, index) => createFile(`photo-${index + 1}.jpg`));
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+
+      component.onDrop(dragEvent('drop', dropzone, { files }));
+
+      expect(component.filesSelected.emit).toHaveBeenCalledWith(files.slice(0, MEDICATION_IMAGE_MAX_FILES));
+      expect(component.selectionLimited.emit).toHaveBeenCalledWith({
+        selected: MEDICATION_IMAGE_MAX_FILES,
+        provided: 7,
+        maxFiles: MEDICATION_IMAGE_MAX_FILES
+      });
+    });
+
+    it('selects only one file when multiple input is disabled', () => {
+      component.multiple = false;
+      fixture.detectChanges();
+      spyOn(component.filesSelected, 'emit');
+      spyOn(component.selectionLimited, 'emit');
+
+      const files = [createFile('a.jpg'), createFile('b.jpg')];
+      const input = fixture.nativeElement.querySelector('.image-dropzone-input') as HTMLInputElement;
+      expect(input.multiple).toBeFalse();
+
+      Object.defineProperty(input, 'files', { configurable: true, value: files });
+      input.dispatchEvent(new Event('change'));
+
+      expect(component.filesSelected.emit).toHaveBeenCalledWith([files[0]]);
+      expect(component.selectionLimited.emit).toHaveBeenCalledWith({
+        selected: 1,
+        provided: 2,
+        maxFiles: 1
+      });
+    });
+
+    it('does not emit when file picker is cancelled', () => {
+      spyOn(component.filesSelected, 'emit');
+      const input = fixture.nativeElement.querySelector('.image-dropzone-input') as HTMLInputElement;
+
+      Object.defineProperty(input, 'files', {
+        configurable: true,
+        value: []
+      });
+      input.dispatchEvent(new Event('change'));
+
+      expect(component.filesSelected.emit).not.toHaveBeenCalled();
+    });
+
+    it('emits filesSelected when files are dropped', () => {
+      spyOn(component.filesSelected, 'emit');
+      const file = createFile('dropped.png');
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+
+      component.onDrop(dragEvent('drop', dropzone, { files: [file] }));
+
+      expect(component.filesSelected.emit).toHaveBeenCalledWith([file]);
+      expect(component.isDragOver).toBeFalse();
+    });
+
+    it('allows selecting the same file twice via browse fallback', () => {
+      spyOn(component.filesSelected, 'emit');
+      const input = fixture.nativeElement.querySelector('.image-dropzone-input') as HTMLInputElement;
+      const file = createFile('repeat.jpg');
+
+      Object.defineProperty(input, 'files', { configurable: true, value: [file] });
+      input.dispatchEvent(new Event('change'));
+      Object.defineProperty(input, 'files', { configurable: true, value: [file] });
+      input.dispatchEvent(new Event('change'));
+
+      expect(component.filesSelected.emit).toHaveBeenCalledTimes(2);
+    });
+
+    it('rejects invalid files client-side and still emits valid ones', () => {
+      spyOn(component.filesSelected, 'emit');
+      spyOn(component.validationErrors, 'emit');
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      const valid = createFile('ok.jpg');
+      const invalid = createFile('bad.pdf', { type: 'application/pdf' });
+
+      component.onDrop(dragEvent('drop', dropzone, { files: [valid, invalid] }));
+      fixture.detectChanges();
+
+      expect(component.filesSelected.emit).toHaveBeenCalledWith([valid]);
+      expect(component.validationErrors.emit).toHaveBeenCalledWith([
+        { fileName: 'bad.pdf', message: 'Invalid file type. Allowed formats: JPG, PNG, WEBP.' }
+      ]);
+      expect(fixture.nativeElement.querySelector('.image-dropzone-errors')?.textContent)
+        .toContain('bad.pdf');
+    });
+
+    it('rejects files larger than 5MB with a clear message', () => {
+      spyOn(component.filesSelected, 'emit');
+      spyOn(component.validationErrors, 'emit');
+      const input = fixture.nativeElement.querySelector('.image-dropzone-input') as HTMLInputElement;
+      const tooLarge = createFile('large.jpg', { size: MEDICATION_IMAGE_MAX_FILE_SIZE_BYTES + 1 });
+
+      Object.defineProperty(input, 'files', { configurable: true, value: [tooLarge] });
+      input.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+
+      expect(component.filesSelected.emit).not.toHaveBeenCalled();
+      expect(component.validationErrors.emit).toHaveBeenCalledWith([
+        { fileName: 'large.jpg', message: 'File is too large. Maximum size is 5MB.' }
+      ]);
+    });
   });
 
   it('handles dragenter and dragover for file drags', () => {
@@ -302,50 +402,248 @@ describe('MedicationImageDropzoneComponent', () => {
     expect(fixture.nativeElement.querySelector('.image-dropzone-browse-btn').getAttribute('for')).toBeNull();
   });
 
-  it('allows selecting the same file twice via browse fallback', () => {
-    spyOn(component.filesSelected, 'emit');
-    const input = fixture.nativeElement.querySelector('.image-dropzone-input') as HTMLInputElement;
-    const file = createFile('repeat.jpg');
+  describe('pending queue mode', () => {
+    beforeEach(() => {
+      fixture.detectChanges();
+      spyOn(URL, 'createObjectURL').and.callFake((blob: Blob) => `blob:${(blob as File).name}`);
+    });
 
-    Object.defineProperty(input, 'files', { configurable: true, value: [file] });
-    input.dispatchEvent(new Event('change'));
-    Object.defineProperty(input, 'files', { configurable: true, value: [file] });
-    input.dispatchEvent(new Event('change'));
+    it('adds validated files to pending queue instead of emitting filesSelected', () => {
+      spyOn(component.filesSelected, 'emit');
+      spyOn(component.pendingQueueChange, 'emit');
+      const files = [createFile('a.jpg'), createFile('b.jpg')];
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
 
-    expect(component.filesSelected.emit).toHaveBeenCalledTimes(2);
-  });
+      component.onDrop(dragEvent('drop', dropzone, { files }));
+      fixture.detectChanges();
 
-  it('rejects invalid files client-side and still emits valid ones', () => {
-    spyOn(component.filesSelected, 'emit');
-    spyOn(component.validationErrors, 'emit');
-    const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
-    const valid = createFile('ok.jpg');
-    const invalid = createFile('bad.pdf', { type: 'application/pdf' });
+      expect(component.filesSelected.emit).not.toHaveBeenCalled();
+      expect(component.pendingQueue).toHaveSize(2);
+      expect(component.pendingQueue.every(item => item.status === 'valid')).toBeTrue();
+      expect(component.pendingQueueChange.emit).toHaveBeenCalledWith(component.pendingQueue);
 
-    component.onDrop(dragEvent('drop', dropzone, { files: [valid, invalid] }));
-    fixture.detectChanges();
+      const previews = fixture.nativeElement.querySelectorAll('.image-dropzone-pending-thumb') as NodeListOf<HTMLImageElement>;
+      expect(previews.length).toBe(2);
+      expect(previews[0].src).toContain('blob:a.jpg');
+      expect(previews[1].src).toContain('blob:b.jpg');
+    });
 
-    expect(component.filesSelected.emit).toHaveBeenCalledWith([valid]);
-    expect(component.validationErrors.emit).toHaveBeenCalledWith([
-      { fileName: 'bad.pdf', message: 'Invalid file type. Allowed formats: JPG, PNG, WEBP.' }
-    ]);
-    expect(fixture.nativeElement.querySelector('.image-dropzone-errors')?.textContent)
-      .toContain('bad.pdf');
-  });
+    it('keeps invalid files in pending queue with error state', () => {
+      spyOn(component.validationErrors, 'emit');
+      const valid = createFile('ok.jpg');
+      const invalid = createFile('bad.pdf', { type: 'application/pdf' });
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
 
-  it('rejects files larger than 5MB with a clear message', () => {
-    spyOn(component.filesSelected, 'emit');
-    spyOn(component.validationErrors, 'emit');
-    const input = fixture.nativeElement.querySelector('.image-dropzone-input') as HTMLInputElement;
-    const tooLarge = createFile('large.jpg', { size: MEDICATION_IMAGE_MAX_FILE_SIZE_BYTES + 1 });
+      component.onDrop(dragEvent('drop', dropzone, { files: [valid, invalid] }));
+      fixture.detectChanges();
 
-    Object.defineProperty(input, 'files', { configurable: true, value: [tooLarge] });
-    input.dispatchEvent(new Event('change'));
-    fixture.detectChanges();
+      expect(component.pendingQueue).toHaveSize(2);
+      expect(component.pendingQueue[0].status).toBe('valid');
+      expect(component.pendingQueue[1].status).toBe('invalid');
+      expect(component.pendingQueue[1].previewUrl).toBeNull();
+      expect(component.validationErrors.emit).toHaveBeenCalledWith([
+        { fileName: 'bad.pdf', message: 'Invalid file type. Allowed formats: JPG, PNG, WEBP.' }
+      ]);
 
-    expect(component.filesSelected.emit).not.toHaveBeenCalled();
-    expect(component.validationErrors.emit).toHaveBeenCalledWith([
-      { fileName: 'large.jpg', message: 'File is too large. Maximum size is 5MB.' }
-    ]);
+      const previews = fixture.nativeElement.querySelectorAll('.image-dropzone-pending-thumb');
+      const placeholders = fixture.nativeElement.querySelectorAll('.image-dropzone-pending-placeholder');
+      expect(previews.length).toBe(1);
+      expect(placeholders.length).toBe(1);
+
+      const invalidItem = fixture.nativeElement.querySelector(
+        '.image-dropzone-pending-item.is-invalid'
+      ) as HTMLElement;
+      const errorBadge = invalidItem.querySelector('.image-dropzone-pending-error-badge') as HTMLElement;
+      expect(errorBadge).not.toBeNull();
+      expect(errorBadge.textContent?.trim()).toBe('Invalid');
+      expect(errorBadge.getAttribute('aria-label')).toContain('Invalid file type');
+      expect(invalidItem.getAttribute('aria-invalid')).toBe('true');
+    });
+
+    it('shows error badge for oversized files and excludes them from upload', () => {
+      spyOn(component.filesSelected, 'emit');
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      const tooLarge = createFile('large.jpg', { size: MEDICATION_IMAGE_MAX_FILE_SIZE_BYTES + 1 });
+
+      component.onDrop(dragEvent('drop', dropzone, { files: [tooLarge] }));
+      fixture.detectChanges();
+
+      const errorBadge = fixture.nativeElement.querySelector(
+        '.image-dropzone-pending-error-badge'
+      ) as HTMLElement;
+      expect(errorBadge).not.toBeNull();
+      expect(errorBadge.getAttribute('title')).toContain('too large');
+
+      const uploadButton = fixture.nativeElement.querySelector(
+        '.image-dropzone-action-upload'
+      ) as HTMLButtonElement;
+      expect(uploadButton.disabled).toBeTrue();
+      uploadButton.click();
+      expect(component.filesSelected.emit).not.toHaveBeenCalled();
+    });
+
+    it('respects remaining queue capacity when adding more files', () => {
+      spyOn(component.selectionLimited, 'emit');
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      const firstBatch = Array.from({ length: 4 }, (_, index) => createFile(`first-${index + 1}.jpg`));
+      const secondBatch = Array.from({ length: 3 }, (_, index) => createFile(`second-${index + 1}.jpg`));
+
+      component.onDrop(dragEvent('drop', dropzone, { files: firstBatch }));
+      component.onDrop(dragEvent('drop', dropzone, { files: secondBatch }));
+
+      expect(component.pendingQueue).toHaveSize(MEDICATION_IMAGE_MAX_FILES);
+      expect(component.selectionLimited.emit).toHaveBeenCalledWith({
+        selected: 1,
+        provided: 3,
+        maxFiles: MEDICATION_IMAGE_MAX_FILES
+      });
+    });
+
+    it('removes pending file and revokes preview URL', () => {
+      spyOn(URL, 'revokeObjectURL');
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      component.onDrop(dragEvent('drop', dropzone, { files: [createFile('remove-me.jpg')] }));
+      const previewUrl = component.pendingQueue[0].previewUrl;
+
+      component.removePendingFile(component.pendingQueue[0].id);
+
+      expect(component.pendingQueue).toEqual([]);
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith(previewUrl);
+    });
+
+    it('removes pending preview via remove button click', () => {
+      spyOn(URL, 'revokeObjectURL');
+      spyOn(component.pendingQueueChange, 'emit');
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      component.onDrop(dragEvent('drop', dropzone, {
+        files: [createFile('keep.jpg'), createFile('remove.jpg')]
+      }));
+      fixture.detectChanges();
+
+      const removeButtons = fixture.nativeElement.querySelectorAll(
+        '.image-dropzone-pending-remove-btn'
+      ) as NodeListOf<HTMLButtonElement>;
+      expect(removeButtons.length).toBe(2);
+
+      removeButtons[1].click();
+      fixture.detectChanges();
+
+      expect(component.pendingQueue).toHaveSize(1);
+      expect(component.pendingQueue[0].fileName).toBe('keep.jpg');
+      expect(fixture.nativeElement.querySelectorAll('.image-dropzone-pending-item').length).toBe(1);
+      expect(component.pendingQueueChange.emit).toHaveBeenCalled();
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:remove.jpg');
+    });
+
+    it('does not remove pending preview while busy', () => {
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      component.onDrop(dragEvent('drop', dropzone, { files: [createFile('busy.jpg')] }));
+      component.busy = true;
+      fixture.detectChanges();
+
+      const removeButton = fixture.nativeElement.querySelector(
+        '.image-dropzone-pending-remove-btn'
+      ) as HTMLButtonElement;
+      expect(removeButton.disabled).toBeTrue();
+
+      removeButton.click();
+      fixture.detectChanges();
+
+      expect(component.pendingQueue).toHaveSize(1);
+    });
+
+    it('clears pending queue and revokes all preview URLs', () => {
+      spyOn(URL, 'revokeObjectURL');
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      component.onDrop(dragEvent('drop', dropzone, {
+        files: [createFile('a.jpg'), createFile('b.jpg')]
+      }));
+      const previewUrls = component.pendingQueue.map(item => item.previewUrl);
+
+      component.clearPendingQueue();
+
+      expect(component.pendingQueue).toEqual([]);
+      previewUrls.forEach(url => expect(URL.revokeObjectURL).toHaveBeenCalledWith(url));
+    });
+
+    it('shows upload selected count and emits only valid files', () => {
+      spyOn(component.filesSelected, 'emit');
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      const valid = createFile('ok.jpg');
+      const invalid = createFile('bad.pdf', { type: 'application/pdf' });
+
+      component.onDrop(dragEvent('drop', dropzone, { files: [valid, invalid] }));
+      fixture.detectChanges();
+
+      const uploadButton = fixture.nativeElement.querySelector(
+        '.image-dropzone-action-upload'
+      ) as HTMLButtonElement;
+      expect(uploadButton.textContent?.trim()).toBe('Upload selected (1)');
+
+      uploadButton.click();
+
+      expect(component.filesSelected.emit).toHaveBeenCalledWith([valid]);
+    });
+
+    it('disables upload selected when queue has no valid files', () => {
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      component.onDrop(dragEvent('drop', dropzone, {
+        files: [createFile('bad.pdf', { type: 'application/pdf' })]
+      }));
+      fixture.detectChanges();
+
+      const uploadButton = fixture.nativeElement.querySelector(
+        '.image-dropzone-action-upload'
+      ) as HTMLButtonElement;
+      expect(uploadButton.disabled).toBeTrue();
+      expect(uploadButton.textContent?.trim()).toBe('Upload selected (0)');
+    });
+
+    it('clears all pending previews via clear all button', () => {
+      spyOn(component.pendingQueueCancelRequested, 'emit');
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      component.onDrop(dragEvent('drop', dropzone, {
+        files: [createFile('a.jpg'), createFile('b.jpg')]
+      }));
+      fixture.detectChanges();
+
+      const clearButton = fixture.nativeElement.querySelector(
+        '.image-dropzone-action-clear'
+      ) as HTMLButtonElement;
+      clearButton.click();
+
+      expect(component.pendingQueueCancelRequested.emit).toHaveBeenCalled();
+      expect(component.pendingQueue).toHaveSize(2);
+    });
+
+    it('clears pending queue locally when clearPendingQueue is called', () => {
+      spyOn(URL, 'revokeObjectURL');
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      component.onDrop(dragEvent('drop', dropzone, {
+        files: [createFile('a.jpg'), createFile('b.jpg')]
+      }));
+      fixture.detectChanges();
+
+      component.clearPendingQueue();
+      fixture.detectChanges();
+
+      expect(component.pendingQueue).toEqual([]);
+      expect(fixture.nativeElement.querySelector('.image-dropzone-pending-list')).toBeNull();
+    });
+
+    it('revokes preview URLs and clears queue on destroy', () => {
+      spyOn(URL, 'createObjectURL').and.returnValues('blob:a', 'blob:b');
+      spyOn(URL, 'revokeObjectURL');
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      component.onDrop(dragEvent('drop', dropzone, {
+        files: [createFile('a.jpg'), createFile('b.jpg')]
+      }));
+
+      component.ngOnDestroy();
+
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:a');
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:b');
+      expect(component.pendingQueue).toEqual([]);
+    });
   });
 });
