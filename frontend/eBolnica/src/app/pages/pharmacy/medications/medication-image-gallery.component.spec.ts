@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { of } from 'rxjs';
 import { MedicationImageGalleryComponent } from './medication-image-gallery.component';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
@@ -110,5 +111,100 @@ describe('MedicationImageGalleryComponent metadata', () => {
 
     const helper = fixture.nativeElement.querySelector('.gallery-upload-helper');
     expect(helper?.textContent?.trim()).toBe('Images are automatically optimized on upload (max 1920×1920).');
+  });
+});
+
+describe('MedicationImageGalleryComponent reorder', () => {
+  let fixture: ComponentFixture<MedicationImageGalleryComponent>;
+  let component: MedicationImageGalleryComponent;
+
+  function createImage(id: number, sortOrder: number, isPrimary = false): MedicationImageDto {
+    return {
+      id,
+      medicationId: 10,
+      fileName: `image-${id}.jpg`,
+      imageUrl: `/uploads/medications/10/${id}.jpg`,
+      thumbnailUrl: `/uploads/medications/10/thumbnails/${id}.jpg`,
+      isPrimary,
+      sortOrder,
+      uploadedAt: '2026-07-30T10:00:00.000Z'
+    };
+  }
+
+  beforeEach(async () => {
+    const pharmacyService = jasmine.createSpyObj<PharmacyService>('PharmacyService', [
+      'resolveMedicationImageUrl',
+      'uploadMedicationImage',
+      'setPrimaryMedicationImage',
+      'deleteMedicationImage'
+    ]);
+    pharmacyService.resolveMedicationImageUrl.and.callFake((url: string) => `http://localhost:5000${url}`);
+
+    const authService = jasmine.createSpyObj<AuthService>('AuthService', ['getUserType']);
+    authService.getUserType.and.returnValue('Pharmacist');
+
+    const notificationService = jasmine.createSpyObj<NotificationService>('NotificationService', ['success']);
+    const confirmDialog = jasmine.createSpyObj<ConfirmDialogService>('ConfirmDialogService', ['confirm']);
+    confirmDialog.confirm.and.returnValue(of(false));
+
+    await TestBed.configureTestingModule({
+      imports: [MedicationImageGalleryComponent, NoopAnimationsModule],
+      providers: [
+        { provide: PharmacyService, useValue: pharmacyService },
+        { provide: AuthService, useValue: authService },
+        { provide: NotificationService, useValue: notificationService },
+        { provide: ConfirmDialogService, useValue: confirmDialog }
+      ]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(MedicationImageGalleryComponent);
+    component = fixture.componentInstance;
+    component.medicationId = 10;
+    component.images = [
+      createImage(1, 0, true),
+      createImage(2, 1),
+      createImage(3, 2)
+    ];
+  });
+
+  function createDropEvent(previousIndex: number, currentIndex: number): CdkDragDrop<MedicationImageDto[]> {
+    return {
+      previousIndex,
+      currentIndex,
+      item: {} as CdkDragDrop<MedicationImageDto[]>['item'],
+      container: {} as CdkDragDrop<MedicationImageDto[]>['container'],
+      previousContainer: {} as CdkDragDrop<MedicationImageDto[]>['previousContainer'],
+      isPointerOverContainer: true,
+      distance: { x: 0, y: 0 },
+      dropPoint: { x: 0, y: 0 },
+      event: {} as MouseEvent
+    };
+  }
+
+  it('shows reorder helper text when gallery has multiple images', () => {
+    fixture.detectChanges();
+
+    const helper = fixture.nativeElement.querySelector('.thumbnail-strip-helper');
+    expect(helper?.textContent?.trim()).toBe('Drag thumbnails to reorder.');
+  });
+
+  it('reorders thumbnails locally and updates sortOrder values', () => {
+    const emitted: MedicationImageDto[][] = [];
+    component.imagesChange.subscribe(images => emitted.push(images));
+
+    component.onThumbnailDrop(createDropEvent(2, 0));
+
+    expect(component.images.map(image => image.id)).toEqual([3, 1, 2]);
+    expect(component.images.map(image => image.sortOrder)).toEqual([0, 1, 2]);
+    expect(component.images.find(image => image.id === 1)?.isPrimary).toBeTrue();
+    expect(emitted).toHaveSize(1);
+  });
+
+  it('does not reorder when drag ends at the same position', () => {
+    const originalOrder = component.images.map(image => image.id);
+
+    component.onThumbnailDrop(createDropEvent(1, 1));
+
+    expect(component.images.map(image => image.id)).toEqual(originalOrder);
   });
 });

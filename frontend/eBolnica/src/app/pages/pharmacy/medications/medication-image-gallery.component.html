@@ -74,21 +74,36 @@
 
   <!-- Thumbnail Strip -->
   @if (images.length > 0) {
-    <div class="thumbnail-strip" role="listbox" aria-label="Image thumbnails">
+    @if (canReorderImages) {
+      <p class="thumbnail-strip-helper">Drag thumbnails to reorder.</p>
+    }
+
+    <div
+      class="thumbnail-strip"
+      cdkDropList
+      cdkDropListOrientation="horizontal"
+      [cdkDropListDisabled]="!canReorderImages"
+      (cdkDropListDropped)="onThumbnailDrop($event)"
+      role="listbox"
+      aria-label="Image thumbnails">
       @for (image of images; track image.id; let i = $index) {
         <div
           class="strip-thumbnail-wrapper"
+          cdkDrag
+          [cdkDragDisabled]="!canReorderImages"
           [class.removing]="isImageDeleting(image.id)">
           <button
             type="button"
             class="strip-thumbnail"
+            cdkDragHandle
             [class.active]="i === selectedIndex"
             [class.is-primary]="image.isPrimary"
+            [class.is-draggable]="canReorderImages"
             (click)="selectImage(i)"
             [disabled]="isDeleting"
             [attr.aria-selected]="i === selectedIndex"
             role="option"
-            [attr.aria-label]="'Image ' + (i + 1) + (image.isPrimary ? ', primary' : '')">
+            [attr.aria-label]="'Image ' + (i + 1) + (image.isPrimary ? ', primary' : '') + (canReorderImages ? ', draggable' : '')">
           <img
             [src]="resolveThumbnailUrl(image)"
             [alt]="medicationName + ' thumbnail ' + (i + 1)"

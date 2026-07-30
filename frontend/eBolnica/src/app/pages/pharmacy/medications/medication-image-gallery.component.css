@@ -207,6 +207,31 @@
   scrollbar-width: thin;
 }
 
+.thumbnail-strip-helper {
+  margin: 0 0 0.5rem;
+  color: #718096;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.strip-thumbnail-wrapper.cdk-drag-preview {
+  box-sizing: border-box;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.35);
+}
+
+.strip-thumbnail-wrapper.cdk-drag-placeholder {
+  opacity: 0.35;
+}
+
+.strip-thumbnail-wrapper.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.thumbnail-strip.cdk-drop-list-dragging .strip-thumbnail-wrapper:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
 .strip-thumbnail-wrapper {
   position: relative;
   flex-shrink: 0;
@@ -258,6 +283,14 @@
 .strip-delete-btn svg {
   width: 14px;
   height: 14px;
+}
+
+.strip-thumbnail.is-draggable {
+  cursor: grab;
+}
+
+.strip-thumbnail.is-draggable:active {
+  cursor: grabbing;
 }
 
 .strip-thumbnail {

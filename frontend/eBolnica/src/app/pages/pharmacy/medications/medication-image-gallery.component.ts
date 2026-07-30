@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, Output, ViewChild, inject, OnChanges, SimpleChanges, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { finalize } from 'rxjs';
 import { MedicationImageDto } from '../../../models/medication-image.dto';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
@@ -26,13 +27,14 @@ import {
   formatMedicationImageFileSize,
   hasMedicationImageMetadata
 } from './medication-image-metadata.util';
+import { moveMedicationImageInGallery } from './medication-image-gallery-reorder.util';
 
 const IMAGE_DELETE_ROLES = ['Pharmacist', 'Admin'] as const;
 
 @Component({
   selector: 'app-medication-image-gallery',
   standalone: true,
-  imports: [CommonModule, MedicationImageLightboxComponent, MedicationImageDropzoneComponent],
+  imports: [CommonModule, DragDropModule, MedicationImageLightboxComponent, MedicationImageDropzoneComponent],
   templateUrl: './medication-image-gallery.component.html',
   styleUrl: './medication-image-gallery.component.css'
 })
@@ -97,6 +99,13 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
     return image ? this.pharmacyService.resolveMedicationImageUrl(image.imageUrl) : null;
   }
 
+  get canReorderImages(): boolean {
+    return this.images.length >= 2
+      && !this.isDeleting
+      && !this.isUploading
+      && !this.isManaging;
+  }
+
   selectImage(index: number): void {
     if (index >= 0 && index < this.images.length) {
       this.selectedIndex = index;
@@ -115,6 +124,23 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
 
   onLightboxIndexChange(index: number): void {
     this.selectedIndex = index;
+  }
+
+  onThumbnailDrop(event: CdkDragDrop<MedicationImageDto[]>): void {
+    if (!this.canReorderImages || event.previousIndex === event.currentIndex) {
+      return;
+    }
+
+    const result = moveMedicationImageInGallery(
+      this.images,
+      event.previousIndex,
+      event.currentIndex,
+      this.selectedIndex
+    );
+
+    this.images = result.images;
+    this.selectedIndex = result.selectedIndex;
+    this.imagesChange.emit(this.images);
   }
 
   /** Starts upload for files confirmed via Upload selected (not on drop/browse). */
