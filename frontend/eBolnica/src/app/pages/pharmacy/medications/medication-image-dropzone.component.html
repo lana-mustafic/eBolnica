@@ -1,0 +1,59 @@
+<div
+  #dropzone
+  class="image-dropzone"
+  [class.drag-over]="isDragOver"
+  [class.busy]="busy"
+  [class.disabled]="disabled || busy"
+  (click)="onDropzoneClick($event)"
+  (keydown)="onDropzoneKeydown($event)"
+  (dragenter)="onDragEnter($event)"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave($event)"
+  (drop)="onDrop($event)"
+  [attr.tabindex]="isInteractive ? 0 : -1"
+  role="button"
+  [attr.aria-disabled]="!isInteractive"
+  [attr.aria-busy]="busy"
+  aria-label="Upload medication images by drag and drop or browse files">
+  <input
+    #fileInput
+    [id]="fileInputId"
+    type="file"
+    class="image-dropzone-input"
+    [accept]="accept"
+    [multiple]="multiple"
+    [disabled]="!isInteractive"
+    (change)="onFileInputChange($event)"
+    aria-hidden="true"
+    tabindex="-1" />
+
+  <div class="image-dropzone-icon" aria-hidden="true">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+      <circle cx="8.5" cy="8.5" r="1.5"></circle>
+      <polyline points="21 15 16 10 5 21"></polyline>
+    </svg>
+  </div>
+
+  <p class="image-dropzone-title">{{ title }}</p>
+  <p class="image-dropzone-subtitle">{{ subtitle }}</p>
+  <p class="image-dropzone-hint">{{ displayHint }}</p>
+
+  @if (validationMessages.length > 0) {
+    <div class="image-dropzone-errors" role="alert" aria-live="polite">
+      @for (error of validationMessages; track error.fileName) {
+        <p class="image-dropzone-error">{{ error.fileName }}: {{ error.message }}</p>
+      }
+    </div>
+  }
+
+  <label
+    class="image-dropzone-browse-btn"
+    [attr.for]="browseInputId"
+    [attr.aria-disabled]="!isInteractive"
+    [attr.aria-label]="browseLabel"
+    (mousedown)="onBrowsePress($event)"
+    (click)="onBrowseClick($event)">
+    {{ browseLabel }}
+  </label>
+</div>

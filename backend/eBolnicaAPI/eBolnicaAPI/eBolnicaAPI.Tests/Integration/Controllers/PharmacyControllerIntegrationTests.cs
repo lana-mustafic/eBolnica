@@ -19,6 +19,9 @@ using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
 namespace eBolnicaAPI.Tests.Integration.Controllers
@@ -1171,6 +1174,64 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
 
         #endregion
 
+        #region UploadMedicationImage Integration Tests
+
+        [Fact]
+        public async Task UploadMedicationImage_SequentialRequests_AllSucceedAndAccumulate()
+        {
+            var medication = await _context.Medications.FirstAsync(m => m.Name == "Penicillin");
+            var uploadUrl = $"/api/pharmacy/medications/{medication.Id}/images";
+            var uploaded = new List<MedicationImageDto>();
+
+            for (var i = 0; i < 3; i++)
+            {
+                using var content = CreateMedicationImageUploadContent($"image-{i + 1}.jpg");
+                var response = await _client.PostAsync(uploadUrl, content);
+
+                Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+                var image = await response.Content.ReadFromJsonAsync<MedicationImageDto>();
+                Assert.NotNull(image);
+                uploaded.Add(image);
+            }
+
+            Assert.Equal(3, uploaded.Count);
+            Assert.All(uploaded, img => Assert.Equal(medication.Id, img.MedicationId));
+            Assert.True(uploaded[0].IsPrimary);
+            Assert.False(uploaded[1].IsPrimary);
+            Assert.False(uploaded[2].IsPrimary);
+            Assert.Equal(new[] { 0, 1, 2 }, uploaded.Select(img => img.SortOrder).ToArray());
+            Assert.Equal(3, uploaded.Select(img => img.Id).Distinct().Count());
+
+            var listResponse = await _client.GetAsync(uploadUrl);
+            Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
+            var images = await listResponse.Content.ReadFromJsonAsync<List<MedicationImageDto>>();
+            Assert.NotNull(images);
+            Assert.Equal(3, images.Count);
+        }
+
+        [Fact]
+        public async Task UploadMedicationImage_SequentialRequests_AssignsDistinctStoredFiles()
+        {
+            var medication = await _context.Medications.FirstAsync(m => m.Name == "Aspirin");
+            var uploadUrl = $"/api/pharmacy/medications/{medication.Id}/images";
+            var imageUrls = new List<string>();
+
+            for (var i = 0; i < 2; i++)
+            {
+                using var content = CreateMedicationImageUploadContent($"batch-{i + 1}.jpg");
+                var response = await _client.PostAsync(uploadUrl, content);
+
+                Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+                var image = await response.Content.ReadFromJsonAsync<MedicationImageDto>();
+                Assert.NotNull(image);
+                imageUrls.Add(image.ImageUrl);
+            }
+
+            Assert.Equal(2, imageUrls.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        }
+
+        #endregion
+
         #region Helper Methods
 
         private static MedicationCreateDto CreateValidMedicationDto(string name) =>
@@ -1200,6 +1261,25 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
             var form = new MultipartFormDataContent();
             form.Add(fileContent, "file", fileName);
             return form;
+        }
+
+        private static MultipartFormDataContent CreateMedicationImageUploadContent(string fileName)
+        {
+            var bytes = CreateMinimalJpegBytes();
+            var fileContent = new ByteArrayContent(bytes);
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+
+            var form = new MultipartFormDataContent();
+            form.Add(fileContent, "file", fileName);
+            return form;
+        }
+
+        private static byte[] CreateMinimalJpegBytes()
+        {
+            using var image = new Image<Rgba32>(4, 4);
+            using var ms = new MemoryStream();
+            image.SaveAsJpeg(ms, new JpegEncoder());
+            return ms.ToArray();
         }
 
         private void SeedTestData()

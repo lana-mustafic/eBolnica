@@ -96,23 +96,38 @@
     </div>
   }
 
+  <!-- Upload Dropzone -->
+  <div class="gallery-upload">
+    @if (uploadFileStatuses.length > 0) {
+      <ul class="gallery-upload-status-list" role="status" aria-live="polite" aria-label="Image upload progress">
+        @for (item of uploadFileStatuses; track item.fileName) {
+          <li class="gallery-upload-status-item" [class]="'is-' + item.status">
+            @if (item.status === 'uploading') {
+              <span class="gallery-upload-spinner" aria-hidden="true"></span>
+            }
+            <span class="gallery-upload-filename">{{ item.fileName }}</span>
+            @if (item.status === 'uploading') {
+              <span class="gallery-upload-label">Uploading...</span>
+            } @else if (item.status === 'done') {
+              <span class="gallery-upload-label is-success">Uploaded</span>
+            } @else if (item.status === 'error') {
+              <span class="gallery-upload-label is-error">{{ item.message }}</span>
+            }
+          </li>
+        }
+      </ul>
+    }
+
+    <app-medication-image-dropzone
+      [busy]="isUploading"
+      [disabled]="isDeleting"
+      (filesSelected)="onDropzoneFilesSelected($event)"
+      (selectionLimited)="onDropzoneSelectionLimited($event)"
+      (uploadBlocked)="onUploadBlocked()" />
+  </div>
+
   <!-- Management Controls -->
   <div class="gallery-controls">
-    <label class="btn btn-upload" [class.disabled]="isUploading || isDeleting">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-        <polyline points="17 8 12 3 7 8"></polyline>
-        <line x1="12" y1="3" x2="12" y2="15"></line>
-      </svg>
-      {{ isUploading ? 'Uploading...' : 'Upload Image' }}
-      <input
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        (change)="onUpload($event)"
-        [disabled]="isUploading || isDeleting"
-        hidden />
-    </label>
-
     <button
       type="button"
       class="btn btn-secondary-action"

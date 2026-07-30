@@ -7,13 +7,25 @@ import { AuthService } from '../../../shared/services/auth.service';
 import { NotificationService } from '../../../shared/services/notification.service';
 import { ConfirmDialogService } from '../../../shared/services/confirm-dialog.service';
 import { MedicationImageLightboxComponent } from './medication-image-lightbox.component';
+import { MedicationImageDropzoneComponent } from './medication-image-dropzone.component';
+import { SelectionLimitedEvent } from './medication-image-dropzone-selection.util';
+import { uploadMedicationImagesSequentially } from './medication-image-upload.util';
+import {
+  createUploadFileStatuses,
+  markUploadFileStatus,
+  MedicationImageUploadFileStatus
+} from './medication-image-upload-status.util';
+import {
+  beginMedicationImageUploadBatch,
+  MEDICATION_IMAGE_UPLOAD_BATCH_IN_PROGRESS_MESSAGE
+} from './medication-image-upload-batch.util';
 
 const IMAGE_DELETE_ROLES = ['Pharmacist', 'Admin'] as const;
 
 @Component({
   selector: 'app-medication-image-gallery',
   standalone: true,
-  imports: [CommonModule, MedicationImageLightboxComponent],
+  imports: [CommonModule, MedicationImageLightboxComponent, MedicationImageDropzoneComponent],
   templateUrl: './medication-image-gallery.component.html',
   styleUrl: './medication-image-gallery.component.css'
 })
@@ -38,6 +50,7 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
   lightboxOpen = false;
   canDeleteImages = false;
   deletingImageId: number | null = null;
+  uploadFileStatuses: MedicationImageUploadFileStatus[] = [];
 
   private successTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -90,35 +103,90 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
     this.selectedIndex = index;
   }
 
-  onUpload(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
+  onDropzoneFilesSelected(files: File[]): void {
+    if (files.length === 0 || this.isDeleting) return;
+
+    const batch = beginMedicationImageUploadBatch(this.isUploading);
+    if (!batch.started) {
+      this.errorMessage = batch.message ?? MEDICATION_IMAGE_UPLOAD_BATCH_IN_PROGRESS_MESSAGE;
+      return;
+    }
 
     this.isUploading = true;
+    this.uploadFilesSequentially(files);
+  }
+
+  onUploadBlocked(): void {
+    this.errorMessage = MEDICATION_IMAGE_UPLOAD_BATCH_IN_PROGRESS_MESSAGE;
+  }
+
+  onDropzoneSelectionLimited(event: SelectionLimitedEvent): void {
+    this.errorMessage =
+      `Only ${event.maxFiles} files can be uploaded at once. ${event.provided} files were provided.`;
+  }
+
+  private uploadFilesSequentially(files: File[]): void {
+    this.uploadFileStatuses = createUploadFileStatuses(files);
     this.clearMessages();
 
-    this.pharmacyService.uploadMedicationImage(this.medicationId, file).pipe(
-      finalize(() => {
-        this.isUploading = false;
-        input.value = '';
-      })
-    ).subscribe({
-      next: (newImage) => {
-        this.images = [...this.images, newImage];
-        this.selectedIndex = this.images.length - 1;
-        this.imagesChange.emit(this.images);
-      },
-      error: (error) => {
-        if (error?.status === 403) {
-          this.errorMessage = error.error?.message || error.error || 'File failed security scan and was rejected.';
-        } else if (error?.error?.message) {
-          this.errorMessage = error.error.message;
-        } else {
-          this.errorMessage = 'Failed to upload image. Please try again.';
+    uploadMedicationImagesSequentially(
+      this.medicationId,
+      files,
+      (medicationId, file) => this.pharmacyService.uploadMedicationImage(medicationId, file),
+      {
+        onFileStart: (fileName) => {
+          this.uploadFileStatuses = markUploadFileStatus(this.uploadFileStatuses, fileName, 'uploading');
+        },
+        onFileComplete: (fileName, image) => {
+          this.uploadFileStatuses = markUploadFileStatus(this.uploadFileStatuses, fileName, 'done');
+          this.images = [...this.images, image];
+          this.selectedIndex = this.images.length - 1;
+          this.imagesChange.emit(this.images);
+        },
+        onFileError: (fileName, message) => {
+          this.uploadFileStatuses = markUploadFileStatus(
+            this.uploadFileStatuses,
+            fileName,
+            'error',
+            message
+          );
         }
       }
+    ).pipe(
+      finalize(() => {
+        this.isUploading = false;
+        this.uploadFileStatuses = [];
+      })
+    ).subscribe({
+      next: (result) => {
+        if (result.uploaded.length > 0) {
+          this.showUploadSuccess(result.uploaded.length);
+        }
+
+        if (result.errors.length > 0) {
+          this.errorMessage = result.errors
+            .map(error => `"${error.fileName}": ${error.message}`)
+            .join(' ');
+        }
+      },
+      error: () => {
+        this.errorMessage = 'Failed to upload images. Please try again.';
+      }
     });
+  }
+
+  private showUploadSuccess(count: number): void {
+    this.successMessage = count === 1
+      ? '1 image uploaded successfully.'
+      : `${count} images uploaded successfully.`;
+
+    if (this.successTimeout) {
+      clearTimeout(this.successTimeout);
+    }
+
+    this.successTimeout = setTimeout(() => {
+      this.successMessage = null;
+    }, 4000);
   }
 
   setPrimary(): void {

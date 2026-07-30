@@ -1,0 +1,129 @@
+.image-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 160px;
+  padding: 1.25rem 1.5rem;
+  border: 2px dashed #cbd5e0;
+  border-radius: 12px;
+  background: #f7fafc;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, opacity 0.2s;
+  text-align: center;
+}
+
+.image-dropzone:hover:not(.disabled),
+.image-dropzone:focus-visible:not(.disabled) {
+  border-color: #667eea;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
+  outline: none;
+}
+
+.image-dropzone.drag-over:not(.disabled) {
+  border-color: #667eea;
+  background: #eef2ff;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.image-dropzone.disabled,
+.image-dropzone.busy {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.image-dropzone-input {
+  display: none;
+}
+
+.image-dropzone-icon svg {
+  width: 40px;
+  height: 40px;
+  color: #667eea;
+}
+
+.image-dropzone-title {
+  margin: 0.5rem 0 0;
+  color: #2d3748;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.image-dropzone-subtitle {
+  margin: 0;
+  color: #718096;
+  font-size: 0.9rem;
+}
+
+.image-dropzone-hint {
+  margin: 0.25rem 0 0.75rem;
+  color: #a0aec0;
+  font-size: 0.8rem;
+}
+
+.image-dropzone-errors {
+  width: 100%;
+  margin: 0 0 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #fed7d7;
+  color: #c53030;
+  text-align: left;
+}
+
+.image-dropzone-error {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.image-dropzone-error + .image-dropzone-error {
+  margin-top: 0.35rem;
+}
+
+.image-dropzone-browse-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.625rem 1.25rem;
+  border: 1px solid #667eea;
+  border-radius: 8px;
+  background: white;
+  color: #667eea;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, opacity 0.2s;
+}
+
+.image-dropzone-browse-btn[aria-disabled='true'] {
+  opacity: 0.65;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.image-dropzone-browse-btn:hover:not([aria-disabled='true']),
+.image-dropzone-browse-btn:focus-visible:not([aria-disabled='true']) {
+  background: #667eea;
+  color: white;
+  outline: none;
+}
+
+.image-dropzone-browse-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .image-dropzone {
+    min-height: 140px;
+    padding: 1rem;
+  }
+
+  .image-dropzone-browse-btn {
+    width: 100%;
+  }
+}
