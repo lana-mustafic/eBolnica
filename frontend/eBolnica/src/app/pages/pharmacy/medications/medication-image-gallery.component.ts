@@ -7,13 +7,15 @@ import { AuthService } from '../../../shared/services/auth.service';
 import { NotificationService } from '../../../shared/services/notification.service';
 import { ConfirmDialogService } from '../../../shared/services/confirm-dialog.service';
 import { MedicationImageLightboxComponent } from './medication-image-lightbox.component';
+import { MedicationImageDropzoneComponent } from './medication-image-dropzone.component';
+import { SelectionLimitedEvent } from './medication-image-dropzone-selection.util';
 
 const IMAGE_DELETE_ROLES = ['Pharmacist', 'Admin'] as const;
 
 @Component({
   selector: 'app-medication-image-gallery',
   standalone: true,
-  imports: [CommonModule, MedicationImageLightboxComponent],
+  imports: [CommonModule, MedicationImageLightboxComponent, MedicationImageDropzoneComponent],
   templateUrl: './medication-image-gallery.component.html',
   styleUrl: './medication-image-gallery.component.css'
 })
@@ -90,35 +92,63 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
     this.selectedIndex = index;
   }
 
-  onUpload(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
+  onDropzoneFilesSelected(files: File[]): void {
+    if (files.length === 0 || this.isUploading || this.isDeleting) return;
+    this.uploadFilesSequentially(files);
+  }
 
+  onDropzoneSelectionLimited(event: SelectionLimitedEvent): void {
+    this.errorMessage =
+      `Only ${event.maxFiles} files can be uploaded at once. ${event.provided} files were provided.`;
+  }
+
+  private uploadFilesSequentially(files: File[]): void {
     this.isUploading = true;
     this.clearMessages();
 
-    this.pharmacyService.uploadMedicationImage(this.medicationId, file).pipe(
-      finalize(() => {
+    let index = 0;
+
+    const uploadNext = (): void => {
+      if (index >= files.length) {
         this.isUploading = false;
-        input.value = '';
-      })
-    ).subscribe({
-      next: (newImage) => {
-        this.images = [...this.images, newImage];
-        this.selectedIndex = this.images.length - 1;
-        this.imagesChange.emit(this.images);
-      },
-      error: (error) => {
-        if (error?.status === 403) {
-          this.errorMessage = error.error?.message || error.error || 'File failed security scan and was rejected.';
-        } else if (error?.error?.message) {
-          this.errorMessage = error.error.message;
-        } else {
-          this.errorMessage = 'Failed to upload image. Please try again.';
-        }
+        return;
       }
-    });
+
+      const file = files[index++];
+
+      this.pharmacyService.uploadMedicationImage(this.medicationId, file).subscribe({
+        next: (newImage) => {
+          this.images = [...this.images, newImage];
+          this.selectedIndex = this.images.length - 1;
+          this.imagesChange.emit(this.images);
+          uploadNext();
+        },
+        error: (error) => {
+          this.isUploading = false;
+          this.handleUploadError(error, file.name);
+        }
+      });
+    };
+
+    uploadNext();
+  }
+
+  private handleUploadError(
+    error: { status?: number; error?: { message?: string } | string },
+    fileName: string
+  ): void {
+    if (error?.status === 403) {
+      const message = typeof error.error === 'string' ? error.error : error.error?.message;
+      this.errorMessage = message || `"${fileName}" failed security scan and was rejected.`;
+      return;
+    }
+
+    if (typeof error.error === 'object' && error.error?.message) {
+      this.errorMessage = `"${fileName}": ${error.error.message}`;
+      return;
+    }
+
+    this.errorMessage = `Failed to upload "${fileName}". Please try again.`;
   }
 
   setPrimary(): void {

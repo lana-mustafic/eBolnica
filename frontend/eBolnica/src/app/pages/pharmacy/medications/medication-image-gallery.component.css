@@ -249,11 +249,18 @@
   border-radius: 4px;
 }
 
+.gallery-upload {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
 .gallery-controls {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  padding-top: 0.5rem;
+  padding-top: 1rem;
+  margin-top: 1rem;
   border-top: 1px solid #e2e8f0;
 }
 
