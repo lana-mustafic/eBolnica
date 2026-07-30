@@ -9,6 +9,7 @@ import { ConfirmDialogService } from '../../../shared/services/confirm-dialog.se
 import { MedicationImageLightboxComponent } from './medication-image-lightbox.component';
 import { MedicationImageDropzoneComponent } from './medication-image-dropzone.component';
 import { SelectionLimitedEvent } from './medication-image-dropzone-selection.util';
+import { uploadMedicationImagesSequentially } from './medication-image-upload.util';
 
 const IMAGE_DELETE_ROLES = ['Pharmacist', 'Admin'] as const;
 
@@ -106,49 +107,47 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
     this.isUploading = true;
     this.clearMessages();
 
-    let index = 0;
-
-    const uploadNext = (): void => {
-      if (index >= files.length) {
+    uploadMedicationImagesSequentially(
+      this.medicationId,
+      files,
+      (medicationId, file) => this.pharmacyService.uploadMedicationImage(medicationId, file)
+    ).pipe(
+      finalize(() => {
         this.isUploading = false;
-        return;
-      }
-
-      const file = files[index++];
-
-      this.pharmacyService.uploadMedicationImage(this.medicationId, file).subscribe({
-        next: (newImage) => {
-          this.images = [...this.images, newImage];
+      })
+    ).subscribe({
+      next: (result) => {
+        if (result.uploaded.length > 0) {
+          this.images = [...this.images, ...result.uploaded];
           this.selectedIndex = this.images.length - 1;
           this.imagesChange.emit(this.images);
-          uploadNext();
-        },
-        error: (error) => {
-          this.isUploading = false;
-          this.handleUploadError(error, file.name);
+          this.showUploadSuccess(result.uploaded.length);
         }
-      });
-    };
 
-    uploadNext();
+        if (result.errors.length > 0) {
+          this.errorMessage = result.errors
+            .map(error => `"${error.fileName}": ${error.message}`)
+            .join(' ');
+        }
+      },
+      error: () => {
+        this.errorMessage = 'Failed to upload images. Please try again.';
+      }
+    });
   }
 
-  private handleUploadError(
-    error: { status?: number; error?: { message?: string } | string },
-    fileName: string
-  ): void {
-    if (error?.status === 403) {
-      const message = typeof error.error === 'string' ? error.error : error.error?.message;
-      this.errorMessage = message || `"${fileName}" failed security scan and was rejected.`;
-      return;
+  private showUploadSuccess(count: number): void {
+    this.successMessage = count === 1
+      ? '1 image uploaded successfully.'
+      : `${count} images uploaded successfully.`;
+
+    if (this.successTimeout) {
+      clearTimeout(this.successTimeout);
     }
 
-    if (typeof error.error === 'object' && error.error?.message) {
-      this.errorMessage = `"${fileName}": ${error.error.message}`;
-      return;
-    }
-
-    this.errorMessage = `Failed to upload "${fileName}". Please try again.`;
+    this.successTimeout = setTimeout(() => {
+      this.successMessage = null;
+    }, 4000);
   }
 
   setPrimary(): void {
