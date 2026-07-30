@@ -20,6 +20,11 @@ import {
   MEDICATION_IMAGE_UPLOAD_BATCH_IN_PROGRESS_MESSAGE
 } from './medication-image-upload-batch.util';
 import { buildPendingQueueCancelMessage } from './medication-image-pending-queue.util';
+import {
+  formatMedicationImageDimensions,
+  formatMedicationImageFileSize,
+  hasMedicationImageMetadata
+} from './medication-image-metadata.util';
 
 const IMAGE_DELETE_ROLES = ['Pharmacist', 'Admin'] as const;
 
@@ -55,6 +60,10 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
   canDeleteImages = false;
   deletingImageId: number | null = null;
   uploadFileStatuses: MedicationImageUploadFileStatus[] = [];
+
+  readonly formatImageDimensions = formatMedicationImageDimensions;
+  readonly formatImageFileSize = formatMedicationImageFileSize;
+  readonly hasImageMetadata = hasMedicationImageMetadata;
 
   private successTimeout: ReturnType<typeof setTimeout> | null = null;
 

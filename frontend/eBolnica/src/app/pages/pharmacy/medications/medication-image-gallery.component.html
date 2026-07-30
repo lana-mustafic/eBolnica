@@ -54,6 +54,23 @@
     }
   </div>
 
+  @if (selectedImage && hasImageMetadata(selectedImage)) {
+    <dl class="image-metadata" aria-label="Selected image metadata">
+      @if (formatImageDimensions(selectedImage.width, selectedImage.height); as dimensions) {
+        <div class="image-metadata-item">
+          <dt>Dimensions</dt>
+          <dd>{{ dimensions }}</dd>
+        </div>
+      }
+      @if (formatImageFileSize(selectedImage.fileSizeBytes); as fileSize) {
+        <div class="image-metadata-item">
+          <dt>File size</dt>
+          <dd>{{ fileSize }}</dd>
+        </div>
+      }
+    </dl>
+  }
+
   <!-- Thumbnail Strip -->
   @if (images.length > 0) {
     <div class="thumbnail-strip" role="listbox" aria-label="Image thumbnails">
