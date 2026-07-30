@@ -5,6 +5,7 @@ import { catchError, tap, retry, retryWhen, delayWhen, take, concatMap, map } fr
 import { normalizePagedResponse, normalizeInventoryResponse } from '../../utils/paged-response.util';
 import { normalizePaginationParams } from '../../utils/pagination-params.util';
 import { MedicationDto } from '../../../models/medication.dto';
+import { MedicationAutocompleteSuggestion } from '../../../models/medication-autocomplete.dto';
 import { MedicationImageDto } from '../../../models/medication-image.dto';
 import { MedicationCreateDto } from '../../../models/medication-create.dto';
 import { PharmacistDataDto } from '../../../models/pharmacist-data.dto';
@@ -198,6 +199,23 @@ export class PharmacyService {
         map(response => ({ isAvailable: response.isAvailable })),
         catchError(() => of({ isAvailable: false, checkFailed: true }))
       );
+  }
+
+  /**
+   * Lightweight medication name suggestions for search autocomplete.
+   * Backend endpoint is wired in a follow-up task.
+   */
+  getMedicationAutocompleteSuggestions(
+    term: string,
+    _limit = 10
+  ): Observable<MedicationAutocompleteSuggestion[]> {
+    const trimmed = term?.trim() ?? '';
+
+    if (trimmed.length < 2) {
+      return of([]);
+    }
+
+    return of([]);
   }
 
   createMedication(medication: MedicationCreateDto): Observable<MedicationDto> {

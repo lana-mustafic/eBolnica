@@ -190,7 +190,7 @@
 
   <!-- Search and Filters -->
   <div class="search-filters-section">
-    <div class="search-box">
+    <div class="search-box" #searchBox>
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="8"></circle>
         <path d="m21 21-4.35-4.35"></path>
@@ -200,8 +200,15 @@
         placeholder="Search by name, description, category, manufacturer, or dosage..."
         [value]="searchTerm"
         (input)="onSearchChange($any($event.target).value)"
+        (focus)="onSearchFocus()"
+        (keydown)="onSearchKeydown($event)"
         class="search-input"
-        [class.searching]="isSearching">
+        [class.searching]="isSearching"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-controls="medication-autocomplete-list"
+        [attr.aria-expanded]="showAutocompleteDropdown"
+        [attr.aria-activedescendant]="autocompleteHighlightIndex >= 0 ? 'medication-autocomplete-option-' + autocompleteHighlightIndex : null">
       <!-- Loading indicator during search -->
       <div *ngIf="isSearching" class="search-loading">
         <svg class="spinner" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -212,12 +219,42 @@
       <button 
         *ngIf="searchTerm && !isSearching" 
         class="clear-search"
-        (click)="onSearchChange('')">
+        (click)="onSearchChange('')"
+        aria-label="Clear search">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
       </button>
+
+      <ul
+        *ngIf="showAutocompleteDropdown"
+        id="medication-autocomplete-list"
+        class="autocomplete-dropdown"
+        role="listbox"
+        aria-label="Medication suggestions">
+        <li *ngIf="isAutocompleteLoading" class="autocomplete-status" role="status">
+          Loading suggestions...
+        </li>
+        <li
+          *ngIf="!isAutocompleteLoading && autocompleteSuggestions.length === 0"
+          class="autocomplete-status autocomplete-empty"
+          role="status">
+          No medications found
+        </li>
+        <li
+          *ngFor="let suggestion of autocompleteSuggestions; let i = index"
+          [id]="'medication-autocomplete-option-' + i"
+          class="autocomplete-option"
+          role="option"
+          [class.highlighted]="i === autocompleteHighlightIndex"
+          [attr.aria-selected]="i === autocompleteHighlightIndex"
+          (mousedown)="selectAutocompleteSuggestion(suggestion); $event.preventDefault()"
+          (mouseenter)="autocompleteHighlightIndex = i">
+          <span class="autocomplete-option-name">{{ suggestion.name }}</span>
+          <span *ngIf="suggestion.category" class="autocomplete-option-meta">{{ suggestion.category }}</span>
+        </li>
+      </ul>
     </div>
 
     <div class="filters">
