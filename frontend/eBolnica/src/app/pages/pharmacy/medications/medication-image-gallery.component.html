@@ -122,7 +122,8 @@
       [busy]="isUploading"
       [disabled]="isDeleting"
       (filesSelected)="onDropzoneFilesSelected($event)"
-      (selectionLimited)="onDropzoneSelectionLimited($event)" />
+      (selectionLimited)="onDropzoneSelectionLimited($event)"
+      (uploadBlocked)="onUploadBlocked()" />
   </div>
 
   <!-- Management Controls -->

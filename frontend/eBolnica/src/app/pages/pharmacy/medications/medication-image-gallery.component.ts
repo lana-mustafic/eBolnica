@@ -15,6 +15,10 @@ import {
   markUploadFileStatus,
   MedicationImageUploadFileStatus
 } from './medication-image-upload-status.util';
+import {
+  beginMedicationImageUploadBatch,
+  MEDICATION_IMAGE_UPLOAD_BATCH_IN_PROGRESS_MESSAGE
+} from './medication-image-upload-batch.util';
 
 const IMAGE_DELETE_ROLES = ['Pharmacist', 'Admin'] as const;
 
@@ -100,8 +104,20 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
   }
 
   onDropzoneFilesSelected(files: File[]): void {
-    if (files.length === 0 || this.isUploading || this.isDeleting) return;
+    if (files.length === 0 || this.isDeleting) return;
+
+    const batch = beginMedicationImageUploadBatch(this.isUploading);
+    if (!batch.started) {
+      this.errorMessage = batch.message ?? MEDICATION_IMAGE_UPLOAD_BATCH_IN_PROGRESS_MESSAGE;
+      return;
+    }
+
+    this.isUploading = true;
     this.uploadFilesSequentially(files);
+  }
+
+  onUploadBlocked(): void {
+    this.errorMessage = MEDICATION_IMAGE_UPLOAD_BATCH_IN_PROGRESS_MESSAGE;
   }
 
   onDropzoneSelectionLimited(event: SelectionLimitedEvent): void {
@@ -110,7 +126,6 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
   }
 
   private uploadFilesSequentially(files: File[]): void {
-    this.isUploading = true;
     this.uploadFileStatuses = createUploadFileStatuses(files);
     this.clearMessages();
 

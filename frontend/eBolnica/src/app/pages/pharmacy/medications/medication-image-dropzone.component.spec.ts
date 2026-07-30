@@ -237,11 +237,13 @@ describe('MedicationImageDropzoneComponent', () => {
     component.busy = true;
     fixture.detectChanges();
     spyOn(component.filesSelected, 'emit');
+    spyOn(component.uploadBlocked, 'emit');
 
     const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
     component.onDrop(dragEvent('drop', dropzone, { files: [createFile('busy.jpg')] }));
 
     expect(component.filesSelected.emit).not.toHaveBeenCalled();
+    expect(component.uploadBlocked.emit).toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('.image-dropzone-browse-btn').textContent.trim()).toBe('Uploading...');
   });
 

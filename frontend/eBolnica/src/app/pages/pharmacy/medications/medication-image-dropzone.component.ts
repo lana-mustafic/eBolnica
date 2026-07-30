@@ -56,6 +56,7 @@ export class MedicationImageDropzoneComponent {
   @Output() filesSelected = new EventEmitter<File[]>();
   @Output() selectionLimited = new EventEmitter<SelectionLimitedEvent>();
   @Output() validationErrors = new EventEmitter<MedicationImageValidationError[]>();
+  @Output() uploadBlocked = new EventEmitter<void>();
 
   readonly fileInputId = createDropzoneFileInputId();
 
@@ -164,13 +165,23 @@ export class MedicationImageDropzoneComponent {
     event.stopPropagation();
     this.isDragOver = false;
 
-    if (!this.isInteractive || !hasFileDragPayload(event)) return;
+    if (!hasFileDragPayload(event)) return;
+
+    if (!this.isInteractive) {
+      if (this.busy) {
+        this.uploadBlocked.emit();
+      }
+      return;
+    }
 
     this.emitFiles(event.dataTransfer?.files);
   }
 
   onFileInputChange(event: Event): void {
     if (!this.isInteractive) {
+      if (this.busy) {
+        this.uploadBlocked.emit();
+      }
       this.prepareFileInput();
       return;
     }
@@ -198,9 +209,20 @@ export class MedicationImageDropzoneComponent {
       this.validationErrors.emit(errors);
     }
 
-    if (validFiles.length > 0) {
-      this.filesSelected.emit(validFiles);
+    if (validFiles.length === 0) {
+      this.prepareFileInput();
+      return;
     }
+
+    if (!this.isInteractive) {
+      if (this.busy) {
+        this.uploadBlocked.emit();
+      }
+      this.prepareFileInput();
+      return;
+    }
+
+    this.filesSelected.emit(validFiles);
 
     if (selection.wasLimited) {
       this.selectionLimited.emit(
