@@ -1,7 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
-import { of, throwError } from 'rxjs';
+import { HttpEvent, HttpEventType, HttpResponse } from '@angular/common/http';
+import { of, Subject, throwError } from 'rxjs';
 import { MedicationImageGalleryComponent } from './medication-image-gallery.component';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
 import { AuthService } from '../../../shared/services/auth.service';
@@ -248,5 +249,126 @@ describe('MedicationImageGalleryComponent reorder', () => {
     component.onThumbnailDrop(createDropEvent(1, 1));
 
     expect(component.images.map(image => image.id)).toEqual(originalOrder);
+  });
+});
+
+describe('MedicationImageGalleryComponent upload progress', () => {
+  let fixture: ComponentFixture<MedicationImageGalleryComponent>;
+  let component: MedicationImageGalleryComponent;
+  let pharmacyService: jasmine.SpyObj<PharmacyService>;
+
+  function createImage(id: number): MedicationImageDto {
+    return {
+      id,
+      medicationId: 10,
+      fileName: `image-${id}.jpg`,
+      imageUrl: `/uploads/medications/10/${id}.jpg`,
+      isPrimary: id === 1,
+      sortOrder: id - 1,
+      uploadedAt: '2026-07-30T10:00:00.000Z'
+    };
+  }
+
+  function createFile(name: string): File {
+    return new File(['image'], name, { type: 'image/jpeg' });
+  }
+
+  beforeEach(async () => {
+    pharmacyService = jasmine.createSpyObj<PharmacyService>('PharmacyService', [
+      'resolveMedicationImageUrl',
+      'uploadMedicationImage',
+      'getMedicationImages',
+      'setPrimaryMedicationImage',
+      'deleteMedicationImage',
+      'reorderMedicationImages'
+    ]);
+    pharmacyService.resolveMedicationImageUrl.and.callFake((url: string) => `http://localhost:5000${url}`);
+    pharmacyService.getMedicationImages.and.returnValue(of([]));
+
+    const authService = jasmine.createSpyObj<AuthService>('AuthService', ['getUserType']);
+    authService.getUserType.and.returnValue('Pharmacist');
+
+    const notificationService = jasmine.createSpyObj<NotificationService>('NotificationService', ['success']);
+    const confirmDialog = jasmine.createSpyObj<ConfirmDialogService>('ConfirmDialogService', ['confirm']);
+    confirmDialog.confirm.and.returnValue(of(false));
+
+    await TestBed.configureTestingModule({
+      imports: [MedicationImageGalleryComponent, NoopAnimationsModule],
+      providers: [
+        { provide: PharmacyService, useValue: pharmacyService },
+        { provide: AuthService, useValue: authService },
+        { provide: NotificationService, useValue: notificationService },
+        { provide: ConfirmDialogService, useValue: confirmDialog }
+      ]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(MedicationImageGalleryComponent);
+    component = fixture.componentInstance;
+    component.medicationId = 10;
+    component.images = [createImage(1)];
+  });
+
+  it('shows batch and per-file progress bars during upload', () => {
+    const upload$ = new Subject<HttpEvent<MedicationImageDto>>();
+    pharmacyService.uploadMedicationImage.and.returnValue(upload$.asObservable());
+
+    component.onDropzoneFilesSelected([createFile('new.jpg')]);
+    upload$.next({ type: HttpEventType.UploadProgress, loaded: 50, total: 100 } as HttpEvent<MedicationImageDto>);
+    fixture.detectChanges();
+
+    expect(component.isUploading).toBeTrue();
+    expect(component.batchUploadProgress).toBe(50);
+    expect(fixture.nativeElement.querySelector('.gallery-upload-batch-progress')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.gallery-upload-status-list')).toBeTruthy();
+
+    upload$.next(new HttpResponse({ body: createImage(2) }));
+    upload$.complete();
+    pharmacyService.getMedicationImages.and.returnValue(of([createImage(1), createImage(2)]));
+    fixture.detectChanges();
+  });
+
+  it('hides progress UI and refreshes gallery after successful upload', () => {
+    const refreshedImages = [createImage(1), createImage(2)];
+    pharmacyService.uploadMedicationImage.and.returnValue(of(
+      { type: HttpEventType.UploadProgress, loaded: 100, total: 100 } as HttpEvent<MedicationImageDto>,
+      new HttpResponse({ body: createImage(2) })
+    ));
+    pharmacyService.getMedicationImages.and.returnValue(of(refreshedImages));
+
+    component.onDropzoneFilesSelected([createFile('new.jpg')]);
+    fixture.detectChanges();
+    fixture.detectChanges();
+
+    expect(component.isUploading).toBeFalse();
+    expect(component.uploadFileStatuses).toEqual([]);
+    expect(component.batchUploadProgress).toBe(0);
+    expect(pharmacyService.getMedicationImages).toHaveBeenCalledWith(10);
+    expect(component.images).toEqual(refreshedImages);
+    expect(fixture.nativeElement.querySelector('.gallery-upload-batch-progress')).toBeFalsy();
+  });
+
+  it('keeps error progress visible and allows retry', () => {
+    pharmacyService.uploadMedicationImage.and.returnValues(
+      throwError(() => ({ status: 500 })),
+      of(
+        { type: HttpEventType.UploadProgress, loaded: 100, total: 100 } as HttpEvent<MedicationImageDto>,
+        new HttpResponse({ body: createImage(2) })
+      )
+    );
+    pharmacyService.getMedicationImages.and.returnValue(of([createImage(1), createImage(2)]));
+
+    component.onDropzoneFilesSelected([createFile('retry-me.jpg')]);
+    fixture.detectChanges();
+
+    expect(component.uploadFileStatuses.length).toBe(1);
+    expect(component.uploadFileStatuses[0].status).toBe('error');
+    expect(fixture.nativeElement.querySelector('.gallery-upload-retry-btn')).toBeTruthy();
+
+    component.retryFailedUpload('retry-me.jpg');
+    fixture.detectChanges();
+    fixture.detectChanges();
+
+    expect(pharmacyService.uploadMedicationImage).toHaveBeenCalledTimes(2);
+    expect(component.uploadFileStatuses).toEqual([]);
   });
 });

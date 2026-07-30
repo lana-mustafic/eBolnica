@@ -1,7 +1,9 @@
 import {
+  calculateBatchUploadProgress,
   createUploadFileStatuses,
   getActiveUploadFileName,
-  markUploadFileStatus
+  markUploadFileStatus,
+  updateUploadFileProgress
 } from './medication-image-upload-status.util';
 
 describe('medication-image-upload-status.util', () => {
@@ -27,7 +29,39 @@ describe('medication-image-upload-status.util', () => {
     expect(getActiveUploadFileName(uploading)).toBe('b.jpg');
     expect(uploading).toEqual([
       { fileName: 'a.jpg', status: 'pending' },
-      { fileName: 'b.jpg', status: 'uploading' }
+      { fileName: 'b.jpg', status: 'uploading', progressPercent: 0 }
     ]);
+  });
+
+  it('tracks per-file and batch upload progress', () => {
+    let statuses = markUploadFileStatus(
+      createUploadFileStatuses([
+        new File(['a'], 'a.jpg', { type: 'image/jpeg' }),
+        new File(['b'], 'b.jpg', { type: 'image/jpeg' })
+      ]),
+      'a.jpg',
+      'uploading'
+    );
+
+    statuses = updateUploadFileProgress(statuses, 'a.jpg', 50);
+    expect(statuses[0].status).toBe('uploading');
+    expect(calculateBatchUploadProgress(statuses)).toBe(25);
+
+    statuses = markUploadFileStatus(statuses, 'a.jpg', 'done');
+    statuses = markUploadFileStatus(statuses, 'b.jpg', 'uploading');
+    statuses = updateUploadFileProgress(statuses, 'b.jpg', 40);
+    expect(calculateBatchUploadProgress(statuses)).toBe(70);
+  });
+
+  it('clears error message when status moves out of error', () => {
+    const initial = markUploadFileStatus(
+      createUploadFileStatuses([new File(['a'], 'a.jpg', { type: 'image/jpeg' })]),
+      'a.jpg',
+      'error',
+      'Upload failed'
+    );
+
+    const pending = markUploadFileStatus(initial, 'a.jpg', 'pending');
+    expect(pending[0].message).toBeUndefined();
   });
 });

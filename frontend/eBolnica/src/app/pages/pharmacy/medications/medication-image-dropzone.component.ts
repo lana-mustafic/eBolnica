@@ -38,6 +38,10 @@ import {
   MedicationImageValidationError,
   partitionMedicationImageFiles
 } from './medication-image-validation.util';
+import {
+  getUploadStatusForFileName,
+  MedicationImageUploadFileStatus
+} from './medication-image-upload-status.util';
 
 export {
   MEDICATION_IMAGE_ACCEPT,
@@ -64,6 +68,8 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
   @Input() hint?: string;
   /** When true, files queue for preview and upload starts only after Upload selected. */
   @Input() usePendingQueue = true;
+  @Input() uploadBatchProgress: number | null = null;
+  @Input() uploadFileStatuses: MedicationImageUploadFileStatus[] = [];
 
   @Output() filesSelected = new EventEmitter<File[]>();
   @Output() pendingQueueChange = new EventEmitter<PendingMedicationImage[]>();
@@ -71,6 +77,7 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
   @Output() selectionLimited = new EventEmitter<SelectionLimitedEvent>();
   @Output() validationErrors = new EventEmitter<MedicationImageValidationError[]>();
   @Output() uploadBlocked = new EventEmitter<void>();
+  @Output() retryUploadRequested = new EventEmitter<string>();
 
   readonly fileInputId = createDropzoneFileInputId();
 
@@ -113,6 +120,10 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
 
     const fileLimit = this.multiple ? ` (max ${this.maxFiles} files)` : '';
     return `JPG, PNG, or WEBP up to ${MEDICATION_IMAGE_MAX_FILE_SIZE_LABEL} each${fileLimit}`;
+  }
+
+  getUploadStatus(fileName: string): MedicationImageUploadFileStatus | undefined {
+    return getUploadStatusForFileName(this.uploadFileStatuses, fileName);
   }
 
   onDropzoneClick(event: MouseEvent): void {
@@ -256,6 +267,17 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
     if (!this.isInteractive || this.pendingQueue.length === 0) return;
 
     this.pendingQueueCancelRequested.emit();
+  }
+
+  onRetryUploadClick(event: Event, fileName: string): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (this.busy || this.disabled) {
+      return;
+    }
+
+    this.retryUploadRequested.emit(fileName);
   }
 
   clearPendingQueue(): void {

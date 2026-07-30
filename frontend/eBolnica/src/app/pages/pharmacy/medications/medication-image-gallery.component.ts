@@ -12,9 +12,11 @@ import { MedicationImageDropzoneComponent } from './medication-image-dropzone.co
 import { SelectionLimitedEvent } from './medication-image-dropzone-selection.util';
 import { uploadMedicationImagesSequentially } from './medication-image-upload.util';
 import {
+  calculateBatchUploadProgress,
   createUploadFileStatuses,
   markUploadFileStatus,
-  MedicationImageUploadFileStatus
+  MedicationImageUploadFileStatus,
+  updateUploadFileProgress
 } from './medication-image-upload-status.util';
 import {
   beginMedicationImageUploadBatch,
@@ -71,12 +73,14 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
   canDeleteImages = false;
   deletingImageId: number | null = null;
   uploadFileStatuses: MedicationImageUploadFileStatus[] = [];
+  batchUploadProgress = 0;
 
   readonly formatImageDimensions = formatMedicationImageDimensions;
   readonly formatImageFileSize = formatMedicationImageFileSize;
   readonly hasImageMetadata = hasMedicationImageMetadata;
 
   private successTimeout: ReturnType<typeof setTimeout> | null = null;
+  private uploadFilesByName = new Map<string, File>();
 
   ngOnInit(): void {
     this.canDeleteImages = this.hasDeletePermission();
@@ -220,6 +224,27 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
     this.errorMessage = MEDICATION_IMAGE_UPLOAD_BATCH_IN_PROGRESS_MESSAGE;
   }
 
+  retryFailedUpload(fileName: string): void {
+    const file = this.uploadFilesByName.get(fileName);
+    if (!file || this.isUploading || this.isDeleting) {
+      return;
+    }
+
+    const batch = beginMedicationImageUploadBatch(this.isUploading);
+    if (!batch.started) {
+      this.errorMessage = batch.message ?? MEDICATION_IMAGE_UPLOAD_BATCH_IN_PROGRESS_MESSAGE;
+      return;
+    }
+
+    this.isUploading = true;
+    this.clearMessages();
+    this.uploadFilesSequentially([file], { preserveExistingStatuses: true });
+  }
+
+  onDropzoneRetryUpload(fileName: string): void {
+    this.retryFailedUpload(fileName);
+  }
+
   onDropzoneSelectionLimited(event: SelectionLimitedEvent): void {
     this.errorMessage =
       `Only ${event.maxFiles} files can be uploaded at once. ${event.provided} files were provided.`;
@@ -242,8 +267,23 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
     });
   }
 
-  private uploadFilesSequentially(files: File[]): void {
-    this.uploadFileStatuses = createUploadFileStatuses(files);
+  private uploadFilesSequentially(
+    files: File[],
+    options?: { preserveExistingStatuses?: boolean }
+  ): void {
+    files.forEach(file => this.uploadFilesByName.set(file.name, file));
+
+    if (!options?.preserveExistingStatuses) {
+      this.uploadFileStatuses = createUploadFileStatuses(files);
+      this.batchUploadProgress = 0;
+    } else {
+      this.uploadFileStatuses = files.reduce(
+        (statuses, file) => markUploadFileStatus(statuses, file.name, 'pending'),
+        this.uploadFileStatuses
+      );
+      this.batchUploadProgress = calculateBatchUploadProgress(this.uploadFileStatuses);
+    }
+
     this.clearMessages();
 
     uploadMedicationImagesSequentially(
@@ -253,9 +293,19 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
       {
         onFileStart: (fileName) => {
           this.uploadFileStatuses = markUploadFileStatus(this.uploadFileStatuses, fileName, 'uploading');
+          this.batchUploadProgress = calculateBatchUploadProgress(this.uploadFileStatuses);
+        },
+        onFileProgress: (fileName, progressPercent) => {
+          this.uploadFileStatuses = updateUploadFileProgress(
+            this.uploadFileStatuses,
+            fileName,
+            progressPercent
+          );
+          this.batchUploadProgress = calculateBatchUploadProgress(this.uploadFileStatuses);
         },
         onFileComplete: (fileName, image) => {
           this.uploadFileStatuses = markUploadFileStatus(this.uploadFileStatuses, fileName, 'done');
+          this.batchUploadProgress = calculateBatchUploadProgress(this.uploadFileStatuses);
           this.images = [...this.images, image];
           this.selectedIndex = this.images.length - 1;
           this.imagesChange.emit(this.images);
@@ -267,18 +317,24 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
             'error',
             message
           );
+          this.batchUploadProgress = calculateBatchUploadProgress(this.uploadFileStatuses);
         }
       }
     ).pipe(
       finalize(() => {
         this.isUploading = false;
-        this.uploadFileStatuses = [];
+        const hasErrors = this.uploadFileStatuses.some(item => item.status === 'error');
+        if (!hasErrors) {
+          this.uploadFileStatuses = [];
+          this.batchUploadProgress = 0;
+        }
       })
     ).subscribe({
       next: (result) => {
         if (result.uploaded.length > 0) {
           this.showUploadSuccess(result.uploaded);
           this.imageDropzone?.clearPendingQueue();
+          this.refreshGalleryImages();
         }
 
         if (result.errors.length > 0) {
@@ -303,6 +359,22 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
     this.successTimeout = setTimeout(() => {
       this.successMessage = null;
     }, 4000);
+  }
+
+  private refreshGalleryImages(): void {
+    this.pharmacyService.getMedicationImages(this.medicationId).subscribe({
+      next: (images) => {
+        const selectedImageId = this.selectedImage?.id;
+        const selectedIndex = selectedImageId == null
+          ? Math.max(0, images.length - 1)
+          : images.findIndex(image => image.id === selectedImageId);
+
+        this.applyGalleryImages(
+          images,
+          selectedIndex >= 0 ? selectedIndex : Math.max(0, images.length - 1)
+        );
+      }
+    });
   }
 
   setPrimary(): void {

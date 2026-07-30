@@ -1,3 +1,4 @@
+import { HttpEvent, HttpEventType, HttpResponse } from '@angular/common/http';
 import { of, throwError } from 'rxjs';
 import { MedicationImageDto } from '../../../models/medication-image.dto';
 import {
@@ -24,17 +25,43 @@ describe('medication-image-upload.util', () => {
     return new File(['image'], name, { type: 'image/jpeg' });
   }
 
+  function createUploadResponse(name: string, id: number) {
+    return of(new HttpResponse({
+      body: createImage(name, id)
+    }));
+  }
+
   it('uploads each file sequentially via uploadMedicationImage', (done) => {
     const files = [createFile('a.jpg'), createFile('b.jpg')];
     const calls: string[] = [];
 
     uploadMedicationImagesSequentially(medicationId, files, (_id, file) => {
       calls.push(file.name);
-      return of(createImage(file.name, calls.length));
+      return createUploadResponse(file.name, calls.length);
     }).subscribe(result => {
       expect(calls).toEqual(['a.jpg', 'b.jpg']);
       expect(result.uploaded.map(image => image.fileName)).toEqual(['a.jpg', 'b.jpg']);
       expect(result.errors).toEqual([]);
+      done();
+    });
+  });
+
+  it('reports upload progress from HttpEvent stream', (done) => {
+    const files = [createFile('a.jpg')];
+    const progressUpdates: number[] = [];
+
+    uploadMedicationImagesSequentially(
+      medicationId,
+      files,
+      () => of(
+        { type: HttpEventType.UploadProgress, loaded: 40, total: 100 } as HttpEvent<MedicationImageDto>,
+        new HttpResponse({ body: createImage('a.jpg', 1) })
+      ),
+      {
+        onFileProgress: (_fileName, progressPercent) => progressUpdates.push(progressPercent)
+      }
+    ).subscribe(() => {
+      expect(progressUpdates).toEqual([40, 100]);
       done();
     });
   });
@@ -51,7 +78,7 @@ describe('medication-image-upload.util', () => {
       if (file.name === 'bad.jpg') {
         return throwError(() => ({ status: 400, error: { message: 'Invalid image content.' } }));
       }
-      return of(createImage(file.name, 2));
+      return createUploadResponse(file.name, 2);
     },
       {
         onFileStart: (fileName) => started.push(fileName),

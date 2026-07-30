@@ -4,6 +4,7 @@ export interface MedicationImageUploadFileStatus {
   fileName: string;
   status: MedicationImageUploadFileStatusState;
   message?: string;
+  progressPercent?: number;
 }
 
 export function createUploadFileStatuses(files: File[]): MedicationImageUploadFileStatus[] {
@@ -19,15 +20,76 @@ export function markUploadFileStatus(
   status: MedicationImageUploadFileStatusState,
   message?: string
 ): MedicationImageUploadFileStatus[] {
+  return statuses.map(item => {
+    if (item.fileName !== fileName) {
+      return item;
+    }
+
+    const progressPercent =
+      status === 'done'
+        ? 100
+        : status === 'uploading'
+          ? 0
+          : item.progressPercent;
+
+    return {
+      ...item,
+      status,
+      message: status === 'error' ? (message ?? item.message) : undefined,
+      progressPercent
+    };
+  });
+}
+
+export function updateUploadFileProgress(
+  statuses: MedicationImageUploadFileStatus[],
+  fileName: string,
+  progressPercent: number
+): MedicationImageUploadFileStatus[] {
+  const clamped = Math.min(100, Math.max(0, progressPercent));
+
   return statuses.map(item =>
     item.fileName === fileName
-      ? { ...item, status, message: message ?? item.message }
+      ? { ...item, status: 'uploading', progressPercent: clamped }
       : item
   );
+}
+
+export function calculateBatchUploadProgress(
+  statuses: MedicationImageUploadFileStatus[]
+): number {
+  if (statuses.length === 0) {
+    return 0;
+  }
+
+  const total = statuses.reduce((sum, item) => {
+    if (item.status === 'done') {
+      return sum + 100;
+    }
+
+    return sum + (item.progressPercent ?? 0);
+  }, 0);
+
+  return Math.round(total / statuses.length);
+}
+
+export function getUploadStatusForFileName(
+  statuses: MedicationImageUploadFileStatus[],
+  fileName: string
+): MedicationImageUploadFileStatus | undefined {
+  return statuses.find(item => item.fileName === fileName);
 }
 
 export function getActiveUploadFileName(
   statuses: MedicationImageUploadFileStatus[]
 ): string | null {
   return statuses.find(item => item.status === 'uploading')?.fileName ?? null;
+}
+
+export function getFailedUploadFileNames(
+  statuses: MedicationImageUploadFileStatus[]
+): string[] {
+  return statuses
+    .filter(item => item.status === 'error')
+    .map(item => item.fileName);
 }

@@ -134,20 +134,65 @@
   <div class="gallery-upload">
     <p class="gallery-upload-helper">Images are automatically optimized on upload (max 1920×1920).</p>
 
-    @if (uploadFileStatuses.length > 0) {
+    @if (isUploading && uploadFileStatuses.length > 0) {
+      <div
+        class="gallery-upload-batch-progress"
+        role="progressbar"
+        [attr.aria-valuemin]="0"
+        [attr.aria-valuemax]="100"
+        [attr.aria-valuenow]="batchUploadProgress"
+        aria-label="Overall upload progress">
+        <div class="gallery-upload-batch-header">
+          <span>Uploading images...</span>
+          <span class="gallery-upload-batch-percent">{{ batchUploadProgress }}%</span>
+        </div>
+        <div class="upload-progress-bar">
+          <div class="upload-progress-fill" [style.width.%]="batchUploadProgress"></div>
+        </div>
+      </div>
+
       <ul class="gallery-upload-status-list" role="status" aria-live="polite" aria-label="Image upload progress">
         @for (item of uploadFileStatuses; track item.fileName) {
           <li class="gallery-upload-status-item" [class]="'is-' + item.status">
-            @if (item.status === 'uploading') {
-              <span class="gallery-upload-spinner" aria-hidden="true"></span>
+            <div class="gallery-upload-status-main">
+              <span class="gallery-upload-filename">{{ item.fileName }}</span>
+              @if (item.status === 'uploading' || item.status === 'done') {
+                <span class="gallery-upload-percent">{{ item.progressPercent ?? 0 }}%</span>
+              } @else if (item.status === 'error') {
+                <span class="gallery-upload-label is-error">{{ item.message }}</span>
+              }
+            </div>
+
+            @if (item.status === 'uploading' || item.status === 'done' || item.status === 'error') {
+              <div
+                class="upload-progress-bar gallery-upload-file-progress"
+                [class.is-complete]="item.status === 'done'"
+                [class.is-error]="item.status === 'error'"
+                role="progressbar"
+                [attr.aria-valuemin]="0"
+                [attr.aria-valuemax]="100"
+                [attr.aria-valuenow]="item.progressPercent ?? 0"
+                [attr.aria-label]="'Upload progress for ' + item.fileName">
+                <div
+                  class="upload-progress-fill"
+                  [style.width.%]="item.status === 'error' ? (item.progressPercent ?? 0) : (item.progressPercent ?? 0)">
+                </div>
+              </div>
             }
-            <span class="gallery-upload-filename">{{ item.fileName }}</span>
+
             @if (item.status === 'uploading') {
               <span class="gallery-upload-label">Uploading...</span>
             } @else if (item.status === 'done') {
               <span class="gallery-upload-label is-success">Uploaded</span>
             } @else if (item.status === 'error') {
-              <span class="gallery-upload-label is-error">{{ item.message }}</span>
+              <button
+                type="button"
+                class="gallery-upload-retry-btn"
+                (click)="retryFailedUpload(item.fileName)"
+                [disabled]="isUploading || isDeleting"
+                [attr.aria-label]="'Retry upload for ' + item.fileName">
+                Retry upload
+              </button>
             }
           </li>
         }
@@ -158,10 +203,13 @@
       [usePendingQueue]="true"
       [busy]="isUploading"
       [disabled]="isDeleting"
+      [uploadBatchProgress]="isUploading ? batchUploadProgress : null"
+      [uploadFileStatuses]="uploadFileStatuses"
       (filesSelected)="onDropzoneFilesSelected($event)"
       (pendingQueueCancelRequested)="onPendingQueueCancelRequested()"
       (selectionLimited)="onDropzoneSelectionLimited($event)"
-      (uploadBlocked)="onUploadBlocked()" />
+      (uploadBlocked)="onUploadBlocked()"
+      (retryUploadRequested)="onDropzoneRetryUpload($event)" />
   </div>
 
   <!-- Management Controls -->
