@@ -92,7 +92,7 @@ describe('MedicationWizardComponent draft banner', () => {
     expect(component.showDraftBanner).toBeFalse();
   });
 
-  it('restores draft and hides banner when Continue draft is chosen', () => {
+  it('restores all saved fields and step when Continue draft is chosen', () => {
     draftService.load.and.returnValue(draft);
 
     fixture.detectChanges();
@@ -101,8 +101,16 @@ describe('MedicationWizardComponent draft banner', () => {
 
     expect(fixture.nativeElement.querySelector('.draft-banner')).toBeFalsy();
     expect(component.currentStep).toBe(2);
-    expect(component.wizardForm.get('name')?.value).toBe('Draft Med');
-    expect(component.wizardForm.get('category')?.value).toBe('Antibiotics');
+    expect(component.wizardForm.getRawValue()).toEqual(draft.formValue);
+  });
+
+  it('does not trigger autosave while restoring draft', () => {
+    draftService.load.and.returnValue(draft);
+
+    fixture.detectChanges();
+    component.continueDraft();
+
+    expect(draftService.save).not.toHaveBeenCalled();
   });
 
   it('clears draft and hides banner when Discard draft is confirmed', () => {

@@ -22,10 +22,10 @@ import { finalize, Subscription } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 import { MedicationWizardDraftService, MedicationWizardDraft } from '../../../shared/services/pharmacy/medication-wizard-draft.service';
 import {
+  buildMedicationWizardDraftRestoreState,
   buildMedicationWizardDraftSavePayload,
   MEDICATION_WIZARD_AUTOSAVE_DEBOUNCE_MS,
-  MEDICATION_WIZARD_FORM_FIELD_KEYS,
-  normalizeMedicationWizardStepIndex
+  pickMedicationWizardDraftFormPatch
 } from './medication-wizard-autosave.util';
 
 @Component({
@@ -138,9 +138,7 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const draft = this.pendingDraft;
-    this.wizardForm.patchValue(draft.formValue, { emitEvent: false });
-    this.currentStep = normalizeMedicationWizardStepIndex(draft.currentStep, this.totalSteps);
+    this.restoreDraft(this.pendingDraft);
     this.showDraftBanner = false;
     this.draftPromptResolved = true;
     this.pendingDraft = null;
@@ -190,6 +188,17 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
 
     this.pendingDraft = draft;
     this.showDraftBanner = true;
+  }
+
+  private restoreDraft(draft: MedicationWizardDraft): void {
+    const { currentStep, formValue } = buildMedicationWizardDraftRestoreState(draft, this.totalSteps);
+
+    this.wizardForm.patchValue(pickMedicationWizardDraftFormPatch(formValue), { emitEvent: false });
+    this.currentStep = currentStep;
+    this.errorMessage = null;
+    this.wizardForm.updateValueAndValidity({ emitEvent: false });
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   ngOnDestroy(): void {

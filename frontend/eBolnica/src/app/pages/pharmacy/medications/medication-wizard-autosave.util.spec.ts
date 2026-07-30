@@ -1,7 +1,9 @@
 import {
+  buildMedicationWizardDraftRestoreState,
   buildMedicationWizardDraftSavePayload,
   MEDICATION_WIZARD_FORM_FIELD_KEYS,
   normalizeMedicationWizardStepIndex,
+  pickMedicationWizardDraftFormPatch,
   toMedicationWizardDraftFormValue
 } from './medication-wizard-autosave.util';
 
@@ -39,5 +41,22 @@ describe('medication-wizard-autosave.util', () => {
     expect(normalizeMedicationWizardStepIndex(0, 3)).toBe(1);
     expect(normalizeMedicationWizardStepIndex(99, 3)).toBe(3);
     expect(buildMedicationWizardDraftSavePayload(5, rawFormValue, 3).currentStep).toBe(3);
+  });
+
+  it('builds restore state with normalized step and all wizard fields', () => {
+    const restoreState = buildMedicationWizardDraftRestoreState(
+      { currentStep: 5, formValue: rawFormValue },
+      3
+    );
+
+    expect(restoreState.currentStep).toBe(3);
+    expect(restoreState.formValue).toEqual(rawFormValue);
+    expect(Object.keys(restoreState.formValue).sort()).toEqual([...MEDICATION_WIZARD_FORM_FIELD_KEYS].sort());
+  });
+
+  it('picks explicit form patch keys for draft restore', () => {
+    expect(pickMedicationWizardDraftFormPatch(rawFormValue)).toEqual(rawFormValue);
+    expect(Object.keys(pickMedicationWizardDraftFormPatch(rawFormValue)).sort())
+      .toEqual([...MEDICATION_WIZARD_FORM_FIELD_KEYS].sort());
   });
 });

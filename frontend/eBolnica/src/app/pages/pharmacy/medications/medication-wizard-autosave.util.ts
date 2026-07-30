@@ -1,4 +1,5 @@
 import {
+  MedicationWizardDraft,
   MedicationWizardDraftFormValue,
   MedicationWizardDraftSavePayload
 } from '../../../shared/services/pharmacy/medication-wizard-draft.service';
@@ -60,4 +61,31 @@ export function buildMedicationWizardDraftSavePayload(
     currentStep: normalizeMedicationWizardStepIndex(currentStep, totalSteps),
     formValue: toMedicationWizardDraftFormValue(rawFormValue)
   };
+}
+
+export interface MedicationWizardDraftRestoreState {
+  currentStep: number;
+  formValue: MedicationWizardDraftFormValue;
+}
+
+export function buildMedicationWizardDraftRestoreState(
+  draft: Pick<MedicationWizardDraft, 'currentStep' | 'formValue'>,
+  totalSteps: number
+): MedicationWizardDraftRestoreState {
+  return {
+    currentStep: normalizeMedicationWizardStepIndex(draft.currentStep, totalSteps),
+    formValue: toMedicationWizardDraftFormValue(draft.formValue)
+  };
+}
+
+export function pickMedicationWizardDraftFormPatch(
+  formValue: MedicationWizardDraftFormValue
+): Record<(typeof MEDICATION_WIZARD_FORM_FIELD_KEYS)[number], unknown> {
+  const patch = {} as Record<(typeof MEDICATION_WIZARD_FORM_FIELD_KEYS)[number], unknown>;
+
+  for (const key of MEDICATION_WIZARD_FORM_FIELD_KEYS) {
+    patch[key] = formValue[key];
+  }
+
+  return patch;
 }
