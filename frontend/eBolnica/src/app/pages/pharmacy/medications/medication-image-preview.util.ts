@@ -8,3 +8,12 @@ export function revokeMedicationImagePreviewUrl(previewUrl: string | null | unde
   if (!previewUrl) return;
   URL.revokeObjectURL(previewUrl);
 }
+
+/** Revokes multiple blob preview URLs. Ignores null entries. */
+export function revokeMedicationImagePreviewUrls(
+  previewUrls: ReadonlyArray<string | null | undefined>
+): void {
+  for (const previewUrl of previewUrls) {
+    revokeMedicationImagePreviewUrl(previewUrl);
+  }
+}

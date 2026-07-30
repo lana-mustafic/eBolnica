@@ -1,6 +1,7 @@
 import {
   createMedicationImagePreviewUrl,
-  revokeMedicationImagePreviewUrl
+  revokeMedicationImagePreviewUrl,
+  revokeMedicationImagePreviewUrls
 } from './medication-image-preview.util';
 
 describe('medication-image-preview.util', () => {
@@ -33,5 +34,15 @@ describe('medication-image-preview.util', () => {
     revokeMedicationImagePreviewUrl(undefined);
 
     expect(revokeSpy).not.toHaveBeenCalled();
+  });
+
+  it('revokes multiple preview URLs in one cleanup pass', () => {
+    const revokeSpy = spyOn(URL, 'revokeObjectURL');
+
+    revokeMedicationImagePreviewUrls(['blob:a', null, 'blob:b', undefined]);
+
+    expect(revokeSpy).toHaveBeenCalledWith('blob:a');
+    expect(revokeSpy).toHaveBeenCalledWith('blob:b');
+    expect(revokeSpy).toHaveBeenCalledTimes(2);
   });
 });

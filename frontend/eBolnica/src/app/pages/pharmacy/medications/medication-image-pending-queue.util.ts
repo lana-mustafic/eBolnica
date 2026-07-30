@@ -87,6 +87,7 @@ export function clearPendingMedicationImageQueue(): PendingMedicationImage[] {
 
 export function revokePendingMedicationImagePreview(item: PendingMedicationImage): void {
   revokeMedicationImagePreviewUrl(item.previewUrl);
+  item.previewUrl = null;
 }
 
 export function revokePendingMedicationImagePreviews(items: PendingMedicationImage[]): void {

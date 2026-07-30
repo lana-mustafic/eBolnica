@@ -7,6 +7,7 @@ import {
   getUploadablePendingFiles,
   hasUploadablePendingFiles,
   removePendingMedicationImage,
+  revokePendingMedicationImagePreview,
   revokePendingMedicationImagePreviews
 } from './medication-image-pending-queue.util';
 import { MEDICATION_IMAGE_MAX_FILE_SIZE_BYTES } from './medication-image-validation.util';
@@ -105,7 +106,20 @@ describe('medication-image-pending-queue.util', () => {
 
     expect(result.queue).toEqual([]);
     expect(result.removed?.fileName).toBe('remove-me.jpg');
+    expect(result.removed?.previewUrl).toBeNull();
     expect(revokeSpy).toHaveBeenCalledWith('blob:remove-me');
+  });
+
+  it('does not double-revoke preview URLs when cleanup runs twice', () => {
+    spyOn(URL, 'createObjectURL').and.returnValue('blob:once');
+    const revokeSpy = spyRevokeObjectUrl();
+    const item = createPendingMedicationImage(createFile('once.jpg'));
+
+    revokePendingMedicationImagePreview(item);
+    revokePendingMedicationImagePreview(item);
+
+    expect(revokeSpy).toHaveBeenCalledTimes(1);
+    expect(item.previewUrl).toBeNull();
   });
 
   it('revokes all preview URLs when clearing the queue', () => {

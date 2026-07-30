@@ -30,8 +30,7 @@ import {
   getUploadablePendingFiles,
   hasUploadablePendingFiles,
   PendingMedicationImage,
-  removePendingMedicationImage,
-  revokePendingMedicationImagePreviews
+  removePendingMedicationImage
 } from './medication-image-pending-queue.util';
 import {
   MEDICATION_IMAGE_ACCEPT,
@@ -265,7 +264,7 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    revokePendingMedicationImagePreviews(this.pendingQueue);
+    this.pendingQueue = cancelPendingMedicationImageQueue(this.pendingQueue);
   }
 
   private prepareFileInput(): void {

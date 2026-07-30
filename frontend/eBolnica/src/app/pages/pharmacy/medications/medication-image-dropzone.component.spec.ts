@@ -547,5 +547,20 @@ describe('MedicationImageDropzoneComponent', () => {
       expect(component.pendingQueue).toEqual([]);
       expect(fixture.nativeElement.querySelector('.image-dropzone-pending-list')).toBeNull();
     });
+
+    it('revokes preview URLs and clears queue on destroy', () => {
+      spyOn(URL, 'createObjectURL').and.returnValues('blob:a', 'blob:b');
+      spyOn(URL, 'revokeObjectURL');
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      component.onDrop(dragEvent('drop', dropzone, {
+        files: [createFile('a.jpg'), createFile('b.jpg')]
+      }));
+
+      component.ngOnDestroy();
+
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:a');
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:b');
+      expect(component.pendingQueue).toEqual([]);
+    });
   });
 });
