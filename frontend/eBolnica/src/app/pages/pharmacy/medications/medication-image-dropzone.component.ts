@@ -213,6 +213,15 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
     this.pendingQueueChange.emit(this.pendingQueue);
   }
 
+  onPendingRemoveClick(event: Event, id: string): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!this.isInteractive) return;
+
+    this.removePendingFile(id);
+  }
+
   clearPendingQueue(): void {
     revokePendingMedicationImagePreviews(this.pendingQueue);
     this.pendingQueue = clearPendingMedicationImageQueue();

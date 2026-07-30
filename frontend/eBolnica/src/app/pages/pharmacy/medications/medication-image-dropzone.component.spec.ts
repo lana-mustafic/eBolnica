@@ -428,6 +428,47 @@ describe('MedicationImageDropzoneComponent', () => {
       expect(URL.revokeObjectURL).toHaveBeenCalledWith(previewUrl);
     });
 
+    it('removes pending preview via remove button click', () => {
+      spyOn(URL, 'revokeObjectURL');
+      spyOn(component.pendingQueueChange, 'emit');
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      component.onDrop(dragEvent('drop', dropzone, {
+        files: [createFile('keep.jpg'), createFile('remove.jpg')]
+      }));
+      fixture.detectChanges();
+
+      const removeButtons = fixture.nativeElement.querySelectorAll(
+        '.image-dropzone-pending-remove-btn'
+      ) as NodeListOf<HTMLButtonElement>;
+      expect(removeButtons.length).toBe(2);
+
+      removeButtons[1].click();
+      fixture.detectChanges();
+
+      expect(component.pendingQueue).toHaveSize(1);
+      expect(component.pendingQueue[0].fileName).toBe('keep.jpg');
+      expect(fixture.nativeElement.querySelectorAll('.image-dropzone-pending-item').length).toBe(1);
+      expect(component.pendingQueueChange.emit).toHaveBeenCalled();
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:remove.jpg');
+    });
+
+    it('does not remove pending preview while busy', () => {
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      component.onDrop(dragEvent('drop', dropzone, { files: [createFile('busy.jpg')] }));
+      component.busy = true;
+      fixture.detectChanges();
+
+      const removeButton = fixture.nativeElement.querySelector(
+        '.image-dropzone-pending-remove-btn'
+      ) as HTMLButtonElement;
+      expect(removeButton.disabled).toBeTrue();
+
+      removeButton.click();
+      fixture.detectChanges();
+
+      expect(component.pendingQueue).toHaveSize(1);
+    });
+
     it('clears pending queue and revokes all preview URLs', () => {
       spyOn(URL, 'revokeObjectURL');
       const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;

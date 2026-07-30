@@ -152,6 +152,7 @@
 }
 
 .image-dropzone-pending-thumb-wrap {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -160,7 +161,45 @@
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   background: #fff;
-  overflow: hidden;
+  overflow: visible;
+}
+
+.image-dropzone-pending-remove-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #f56565;
+  color: white;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, background 0.2s;
+}
+
+.image-dropzone-pending-item:hover .image-dropzone-pending-remove-btn,
+.image-dropzone-pending-remove-btn:focus-visible {
+  opacity: 1;
+}
+
+.image-dropzone-pending-remove-btn:hover:not(:disabled) {
+  background: #e53e3e;
+}
+
+.image-dropzone-pending-remove-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.image-dropzone-pending-remove-btn svg {
+  width: 14px;
+  height: 14px;
 }
 
 .image-dropzone-pending-thumb {
@@ -168,6 +207,7 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  border-radius: 7px;
 }
 
 .image-dropzone-pending-placeholder {
@@ -178,6 +218,8 @@
   height: 100%;
   color: #a0aec0;
   background: #f7fafc;
+  border-radius: 7px;
+  overflow: hidden;
 }
 
 .image-dropzone-pending-placeholder svg {
@@ -199,4 +241,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@media (max-width: 768px), (hover: none), (pointer: coarse) {
+  .image-dropzone-pending-remove-btn {
+    opacity: 1;
+  }
 }
