@@ -18,18 +18,24 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .lightbox-image-viewport {
+  position: relative;
   flex: 1 1 auto;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
+  min-width: 0;
+  min-height: min(40vh, calc(100vh - 14rem));
   max-height: min(60vh, calc(100vh - 14rem));
   overflow: hidden;
   touch-action: none;
   user-select: none;
+  cursor: zoom-in;
 }
 
 .lightbox-image-viewport.is-pannable {
@@ -45,15 +51,20 @@
 }
 
 .lightbox-image {
+  display: block;
   max-width: 100%;
-  max-height: min(60vh, calc(100vh - 14rem));
+  max-height: 100%;
+  width: auto;
+  height: auto;
   object-fit: contain;
+  margin: 0 auto;
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   transform-origin: center center;
   transition: transform 0.15s ease-out;
   -webkit-user-drag: none;
   user-select: none;
+  pointer-events: none;
 }
 
 .lightbox-toolbar {
@@ -285,8 +296,8 @@
     justify-content: center;
   }
 
-  .lightbox-image-viewport,
-  .lightbox-image {
+  .lightbox-image-viewport {
+    min-height: min(32vh, calc(100vh - 16rem));
     max-height: min(50vh, calc(100vh - 16rem));
   }
 
