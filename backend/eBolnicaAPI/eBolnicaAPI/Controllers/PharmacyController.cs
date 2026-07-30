@@ -3,6 +3,7 @@ using eBolnicaAPI.Models.DTOs;
 using eBolnicaAPI.Models.Entities;
 using eBolnicaAPI.Services;
 using eBolnicaAPI.Services.Pharmacy;
+using eBolnicaAPI.Services.Pharmacy.MedicationAiSummary;
 using eBolnicaAPI.Services.Pharmacy.MedicationImages;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -28,6 +29,7 @@ namespace eBolnicaAPI.Controllers
         private readonly IPdfReportService _pdfReportService;
         private readonly IPharmacyAnalyticsService _analyticsService;
         private readonly IMedicationImageService _medicationImageService;
+        private readonly IMedicationAiSummaryService _medicationAiSummaryService;
         private readonly IMedicationCsvExportService _medicationCsvExportService;
         private readonly IMedicationCsvImportService _medicationCsvImportService;
         private readonly IMedicationImportDuplicateChecker _medicationDuplicateChecker;
@@ -43,6 +45,7 @@ namespace eBolnicaAPI.Controllers
             IPdfReportService pdfReportService,
             IPharmacyAnalyticsService analyticsService,
             IMedicationImageService medicationImageService,
+            IMedicationAiSummaryService medicationAiSummaryService,
             IMedicationCsvExportService medicationCsvExportService,
             IMedicationCsvImportService medicationCsvImportService,
             IMedicationImportDuplicateChecker medicationDuplicateChecker,
@@ -57,6 +60,7 @@ namespace eBolnicaAPI.Controllers
             _pdfReportService = pdfReportService;
             _analyticsService = analyticsService;
             _medicationImageService = medicationImageService;
+            _medicationAiSummaryService = medicationAiSummaryService;
             _medicationCsvExportService = medicationCsvExportService;
             _medicationCsvImportService = medicationCsvImportService;
             _medicationDuplicateChecker = medicationDuplicateChecker;
@@ -526,6 +530,39 @@ namespace eBolnicaAPI.Controllers
             catch (MedicationImageValidationException ex)
             {
                 return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Generate a structured AI summary for a medication using stored inventory fields only.
+        /// </summary>
+        /// <param name="id">Medication identifier</param>
+        /// <param name="cancellationToken">Request cancellation token</param>
+        /// <response code="200">Returns the AI-generated summary</response>
+        /// <response code="404">Medication not found</response>
+        /// <response code="503">AI summary service unavailable</response>
+        [HttpPost("medications/{id}/ai-summary")]
+        [Authorize(Roles = "Pharmacist")]
+        [ProducesResponseType(typeof(MedicationAiSummaryDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+        public async Task<ActionResult<MedicationAiSummaryDto>> GenerateMedicationAiSummary(
+            int id,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var summary = await _medicationAiSummaryService.GenerateSummaryAsync(id, cancellationToken);
+                return Ok(summary);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound("Medication not found");
+            }
+            catch (MedicationAiSummaryUnavailableException ex)
+            {
+                _logger.LogWarning(ex, "AI summary unavailable for MedicationId={MedicationId}", id);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, ex.Message);
             }
         }
 
