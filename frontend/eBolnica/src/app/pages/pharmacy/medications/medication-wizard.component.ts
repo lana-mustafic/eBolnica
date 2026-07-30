@@ -20,7 +20,7 @@ import {
 } from '../../../shared/utils/medication-field-error.util';
 import { finalize, Subscription } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
-import { MedicationWizardDraftService } from '../../../shared/services/pharmacy/medication-wizard-draft.service';
+import { MedicationWizardDraftService, MedicationWizardDraft } from '../../../shared/services/pharmacy/medication-wizard-draft.service';
 import {
   buildMedicationWizardDraftSavePayload,
   MEDICATION_WIZARD_AUTOSAVE_DEBOUNCE_MS,
@@ -56,8 +56,11 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   totalSteps: number = 3;
   isLoading: boolean = false;
   errorMessage: string | null = null;
+  showDraftBanner: boolean = false;
+  pendingDraft: MedicationWizardDraft | null = null;
 
   private autosaveSubscription?: Subscription;
+  private draftPromptResolved: boolean = false;
 
   // Common categories and dosage forms
   categories: string[] = [
@@ -123,13 +126,76 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.initializeDraftPrompt();
+
     this.autosaveSubscription = this.wizardForm.valueChanges.pipe(
       debounceTime(MEDICATION_WIZARD_AUTOSAVE_DEBOUNCE_MS)
     ).subscribe(() => this.persistDraft());
   }
 
+  continueDraft(): void {
+    if (!this.pendingDraft) {
+      return;
+    }
+
+    const draft = this.pendingDraft;
+    this.wizardForm.patchValue(draft.formValue, { emitEvent: false });
+    this.currentStep = normalizeMedicationWizardStepIndex(draft.currentStep, this.totalSteps);
+    this.showDraftBanner = false;
+    this.draftPromptResolved = true;
+    this.pendingDraft = null;
+  }
+
+  discardDraft(): void {
+    this.confirmDialog.confirm({
+      title: 'Discard draft',
+      message: 'Are you sure you want to discard your saved draft? This cannot be undone.',
+      confirmText: 'Discard draft',
+      cancelText: 'Keep draft',
+      confirmColor: 'warn'
+    }).subscribe(confirmed => {
+      if (!confirmed) {
+        return;
+      }
+
+      this.draftService.clear();
+      this.pendingDraft = null;
+      this.showDraftBanner = false;
+      this.draftPromptResolved = true;
+    });
+  }
+
+  getDraftSavedAtLabel(): string | null {
+    if (!this.pendingDraft?.savedAt) {
+      return null;
+    }
+
+    const savedAt = new Date(this.pendingDraft.savedAt);
+    if (Number.isNaN(savedAt.getTime())) {
+      return null;
+    }
+
+    return savedAt.toLocaleString(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    });
+  }
+
+  private initializeDraftPrompt(): void {
+    const draft = this.draftService.load();
+    if (!draft) {
+      this.draftPromptResolved = true;
+      return;
+    }
+
+    this.pendingDraft = draft;
+    this.showDraftBanner = true;
+  }
+
   ngOnDestroy(): void {
-    this.persistDraft();
+    if (this.draftPromptResolved) {
+      this.persistDraft();
+    }
     this.autosaveSubscription?.unsubscribe();
   }
 
@@ -354,7 +420,7 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   }
 
   private persistDraft(): void {
-    if (this.isLoading) {
+    if (this.isLoading || !this.draftPromptResolved) {
       return;
     }
 

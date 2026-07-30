@@ -4,6 +4,43 @@
     <p class="subtitle">Complete the form in 3 simple steps</p>
   </div>
 
+  <!-- Draft Recovery Banner -->
+  <div
+    *ngIf="showDraftBanner"
+    class="draft-banner"
+    role="region"
+    aria-label="Saved draft available">
+    <div class="draft-banner-icon" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="12" y1="18" x2="12" y2="12"></line>
+        <line x1="9" y1="15" x2="15" y2="15"></line>
+      </svg>
+    </div>
+    <div class="draft-banner-content">
+      <p class="draft-banner-title">You have a saved draft</p>
+      <p class="draft-banner-message">
+        Continue where you left off or discard the draft to start fresh.
+        <span *ngIf="getDraftSavedAtLabel() as savedAt">Last saved {{ savedAt }}.</span>
+      </p>
+    </div>
+    <div class="draft-banner-actions">
+      <button
+        type="button"
+        class="btn btn-secondary btn-draft"
+        (click)="continueDraft()">
+        Continue draft
+      </button>
+      <button
+        type="button"
+        class="btn btn-draft-discard"
+        (click)="discardDraft()">
+        Discard draft
+      </button>
+    </div>
+  </div>
+
   <!-- Error Message -->
   <div class="error-message" *ngIf="errorMessage">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
