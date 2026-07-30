@@ -42,8 +42,7 @@ namespace eBolnicaAPI.Services
             var images = await _context.MedicationImages
                 .AsNoTracking()
                 .Where(i => i.MedicationId == medicationId)
-                .OrderByDescending(i => i.IsPrimary)
-                .ThenBy(i => i.SortOrder)
+                .OrderBy(i => i.SortOrder)
                 .ToListAsync();
 
             return images.Select(MapToDto).ToList();
@@ -192,6 +191,53 @@ namespace eBolnicaAPI.Services
             }
 
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<List<MedicationImageDto>> ReorderImagesAsync(int medicationId, IReadOnlyList<int> imageIds)
+        {
+            await GetMedicationOrThrow(medicationId);
+
+            if (imageIds == null || imageIds.Count == 0)
+            {
+                throw new MedicationImageValidationException("At least one image id is required to reorder.");
+            }
+
+            if (imageIds.Count != imageIds.Distinct().Count())
+            {
+                throw new MedicationImageValidationException("Image order cannot contain duplicate image ids.");
+            }
+
+            var images = await _context.MedicationImages
+                .Where(i => i.MedicationId == medicationId)
+                .ToListAsync();
+
+            if (images.Count == 0)
+            {
+                throw new MedicationImageValidationException("Medication has no images to reorder.");
+            }
+
+            if (imageIds.Count != images.Count)
+            {
+                throw new MedicationImageValidationException("Image order must include every medication image exactly once.");
+            }
+
+            var imageLookup = images.ToDictionary(i => i.Id);
+
+            for (var index = 0; index < imageIds.Count; index++)
+            {
+                if (!imageLookup.TryGetValue(imageIds[index], out var image))
+                {
+                    throw new MedicationImageValidationException("Image order contains invalid image ids for this medication.");
+                }
+
+                image.SortOrder = index;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return imageIds
+                .Select(id => MapToDto(imageLookup[id]))
+                .ToList();
         }
 
         public async Task<string?> GetPrimaryImageUrlAsync(int medicationId)

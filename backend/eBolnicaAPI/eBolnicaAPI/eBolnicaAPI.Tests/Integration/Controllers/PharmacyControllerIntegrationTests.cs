@@ -1230,6 +1230,44 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
             Assert.Equal(2, imageUrls.Distinct(StringComparer.OrdinalIgnoreCase).Count());
         }
 
+        [Fact]
+        public async Task ReorderMedicationImages_UpdatesSortOrderAndPreservesPrimary()
+        {
+            var medication = await _context.Medications.FirstAsync(m => m.Name == "Ibuprofen");
+            var uploadUrl = $"/api/pharmacy/medications/{medication.Id}/images";
+            var uploaded = new List<MedicationImageDto>();
+
+            for (var i = 0; i < 3; i++)
+            {
+                using var content = CreateMedicationImageUploadContent($"reorder-{i + 1}.jpg");
+                var response = await _client.PostAsync(uploadUrl, content);
+                Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+                var image = await response.Content.ReadFromJsonAsync<MedicationImageDto>();
+                Assert.NotNull(image);
+                uploaded.Add(image);
+            }
+
+            var primaryId = uploaded.Single(image => image.IsPrimary).Id;
+            var reorderedIds = new[] { uploaded[2].Id, uploaded[0].Id, uploaded[1].Id };
+
+            var reorderResponse = await _client.PutAsJsonAsync(
+                $"/api/pharmacy/medications/{medication.Id}/images/order",
+                new { imageIds = reorderedIds });
+
+            Assert.Equal(HttpStatusCode.OK, reorderResponse.StatusCode);
+            var reordered = await reorderResponse.Content.ReadFromJsonAsync<List<MedicationImageDto>>();
+            Assert.NotNull(reordered);
+            Assert.Equal(reorderedIds, reordered.Select(image => image.Id).ToArray());
+            Assert.Equal(new[] { 0, 1, 2 }, reordered.Select(image => image.SortOrder).ToArray());
+            Assert.True(reordered.Single(image => image.Id == primaryId).IsPrimary);
+
+            var listResponse = await _client.GetAsync(uploadUrl);
+            var persisted = await listResponse.Content.ReadFromJsonAsync<List<MedicationImageDto>>();
+            Assert.NotNull(persisted);
+            Assert.Equal(reorderedIds, persisted.Select(image => image.Id).ToArray());
+        }
+
         #endregion
 
         #region Helper Methods

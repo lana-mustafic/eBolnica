@@ -497,6 +497,38 @@ namespace eBolnicaAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Reorder medication gallery images by the provided image id sequence.
+        /// </summary>
+        [HttpPut("medications/{id}/images/order")]
+        [Authorize(Roles = "Pharmacist,Admin")]
+        [ProducesResponseType(typeof(IEnumerable<MedicationImageDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<IEnumerable<MedicationImageDto>>> ReorderMedicationImages(
+            int id,
+            [FromBody] MedicationImageReorderRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                var images = await _medicationImageService.ReorderImagesAsync(id, request.ImageIds);
+                return Ok(images);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound("Medication not found");
+            }
+            catch (MedicationImageValidationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpPost("medications")]
         [Authorize(Roles = "Pharmacist,Admin")]
         [ProducesResponseType(typeof(MedicationDto), StatusCodes.Status201Created)]
