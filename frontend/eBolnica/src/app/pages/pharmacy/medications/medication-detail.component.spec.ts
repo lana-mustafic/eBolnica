@@ -61,6 +61,8 @@ describe('MedicationDetailComponent AI summary states', () => {
 
   it('starts in idle AI summary state', () => {
     expect(component.aiSummaryState).toBe('idle');
+    expect(fixture.nativeElement.querySelector('.ai-summary-disclaimer-label')?.textContent?.trim())
+      .toBe('AI-generated summary');
   });
 
   it('shows loading state while summary is generating', () => {
@@ -80,6 +82,8 @@ describe('MedicationDetailComponent AI summary states', () => {
     expect(component.aiSummary).toEqual(summary);
     expect(fixture.nativeElement.querySelector('.ai-summary-success')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('.ai-summary-result')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.ai-summary-disclaimer-label')?.textContent?.trim())
+      .toBe('AI-generated summary');
   });
 
   it('shows friendly error state when summary generation fails', () => {

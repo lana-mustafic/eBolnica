@@ -233,10 +233,38 @@
 }
 
 .ai-summary-disclaimer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.625rem;
   margin: 0;
   color: #718096;
   font-size: 0.85rem;
   line-height: 1.5;
+}
+
+.ai-summary-disclaimer-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: #ebf4ff;
+  border: 1px solid #bee3f8;
+  color: #434190;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ai-summary-disclaimer-text {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.ai-summary-disclaimer--result {
+  margin-bottom: 0.875rem;
 }
 
 .btn-generate-summary {
@@ -323,15 +351,6 @@
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid #e2e8f0;
-}
-
-.ai-summary-label {
-  margin: 0 0 0.875rem;
-  color: #667eea;
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .ai-summary-section + .ai-summary-section {

@@ -46,9 +46,11 @@
         <section class="ai-summary-panel" aria-labelledby="ai-summary-title">
           <div class="ai-summary-header">
             <h3 id="ai-summary-title" class="ai-summary-title">AI Medication Summary</h3>
-            <p class="ai-summary-disclaimer">
-              Summaries are AI-generated from medication data stored in this application only.
-              They are not medical advice and may omit details — verify against the record below.
+            <p class="ai-summary-disclaimer" role="note">
+              <span class="ai-summary-disclaimer-label">AI-generated summary</span>
+              <span class="ai-summary-disclaimer-text">
+                Based on medication data stored in this application only. Not medical advice — verify against the record below.
+              </span>
             </p>
           </div>
 
@@ -84,7 +86,9 @@
           </div>
 
           <div *ngIf="aiSummaryState === 'success' && aiSummary" class="ai-summary-result" aria-label="AI-generated summary">
-            <p class="ai-summary-label">AI-generated summary</p>
+            <p class="ai-summary-disclaimer ai-summary-disclaimer--result" role="note">
+              <span class="ai-summary-disclaimer-label">AI-generated summary</span>
+            </p>
 
             <div class="ai-summary-section">
               <h4 class="ai-summary-section-title">Overview</h4>
