@@ -31,7 +31,9 @@ import {
   buildMedicationImageReorderPayload,
   createMedicationImageGalleryReorderSnapshot,
   getMedicationImageReorderErrorMessage,
-  moveMedicationImageInGallery
+  MedicationImageGalleryReorderSnapshot,
+  moveMedicationImageInGallery,
+  restoreMedicationImageGalleryReorderSnapshot
 } from './medication-image-gallery-reorder.util';
 
 const IMAGE_DELETE_ROLES = ['Pharmacist', 'Admin'] as const;
@@ -167,10 +169,18 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
         );
       },
       error: (error) => {
-        this.applyGalleryImages(snapshot.images, snapshot.selectedIndex);
-        this.errorMessage = getMedicationImageReorderErrorMessage(error);
+        this.rollbackGalleryReorder(snapshot, error);
       }
     });
+  }
+
+  private rollbackGalleryReorder(
+    snapshot: MedicationImageGalleryReorderSnapshot,
+    error: { status?: number; error?: { message?: string } | string }
+  ): void {
+    const restored = restoreMedicationImageGalleryReorderSnapshot(snapshot);
+    this.applyGalleryImages(restored.images, restored.selectedIndex);
+    this.errorMessage = getMedicationImageReorderErrorMessage(error);
   }
 
   private applyGalleryImages(images: MedicationImageDto[], selectedIndex: number): void {

@@ -214,12 +214,32 @@ describe('MedicationImageGalleryComponent reorder', () => {
     pharmacyService.reorderMedicationImages.and.returnValue(
       throwError(() => ({ status: 500 }))
     );
+    const emitted: MedicationImageDto[][] = [];
+    component.imagesChange.subscribe(images => emitted.push(images));
 
     component.onThumbnailDrop(createDropEvent(2, 0));
 
     expect(component.images.map(image => image.id)).toEqual([1, 2, 3]);
+    expect(component.images.map(image => image.sortOrder)).toEqual([0, 1, 2]);
+    expect(component.selectedIndex).toBe(0);
+    expect(component.images.find(image => image.id === 1)?.isPrimary).toBeTrue();
+    expect(emitted[0].map(image => image.id)).toEqual([3, 1, 2]);
+    expect(emitted[emitted.length - 1].map(image => image.id)).toEqual([1, 2, 3]);
     expect(component.errorMessage).toContain('restored to its previous order');
     expect(component.isReordering).toBeFalse();
+  });
+
+  it('restores previous selection when reorder API fails after moving selected thumbnail', () => {
+    pharmacyService.reorderMedicationImages.and.returnValue(
+      throwError(() => ({ status: 400, error: 'Invalid image order.' }))
+    );
+
+    component.selectedIndex = 1;
+    component.onThumbnailDrop(createDropEvent(1, 0));
+
+    expect(component.images.map(image => image.id)).toEqual([1, 2, 3]);
+    expect(component.selectedIndex).toBe(1);
+    expect(component.errorMessage).toContain('Invalid image order.');
   });
 
   it('does not reorder when drag ends at the same position', () => {

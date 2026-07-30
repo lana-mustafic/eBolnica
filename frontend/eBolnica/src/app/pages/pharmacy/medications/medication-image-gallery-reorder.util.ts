@@ -21,6 +21,16 @@ export function createMedicationImageGalleryReorderSnapshot(
   };
 }
 
+/** Restores gallery order and selection from a snapshot captured before reorder. */
+export function restoreMedicationImageGalleryReorderSnapshot(
+  snapshot: MedicationImageGalleryReorderSnapshot
+): MedicationImageGalleryReorderResult {
+  return {
+    images: snapshot.images.map(image => ({ ...image })),
+    selectedIndex: snapshot.selectedIndex
+  };
+}
+
 /** Builds the ordered image id payload expected by the reorder API. */
 export function buildMedicationImageReorderPayload(images: MedicationImageDto[]): number[] {
   return images.map(image => image.id);
@@ -38,6 +48,10 @@ export function getMedicationImageReorderErrorMessage(
 
   if (error?.status === 404) {
     return 'One or more images no longer exist. The gallery has been restored to its previous order.';
+  }
+
+  if (error?.status === 403) {
+    return 'You do not have permission to reorder medication images. The gallery has been restored to its previous order.';
   }
 
   return 'Failed to save image order. The gallery has been restored to its previous order.';

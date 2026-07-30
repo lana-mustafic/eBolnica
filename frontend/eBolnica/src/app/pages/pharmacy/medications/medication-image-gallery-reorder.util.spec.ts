@@ -3,7 +3,8 @@ import {
   buildMedicationImageReorderPayload,
   createMedicationImageGalleryReorderSnapshot,
   getMedicationImageReorderErrorMessage,
-  moveMedicationImageInGallery
+  moveMedicationImageInGallery,
+  restoreMedicationImageGalleryReorderSnapshot
 } from './medication-image-gallery-reorder.util';
 
 describe('medication-image-gallery-reorder.util', () => {
@@ -65,6 +66,19 @@ describe('medication-image-gallery-reorder.util', () => {
 
     expect(snapshot.images[0].sortOrder).toBe(0);
     expect(snapshot.selectedIndex).toBe(1);
+  });
+
+  it('restores gallery order and selection from snapshot', () => {
+    const snapshot = createMedicationImageGalleryReorderSnapshot(
+      [createImage(1, 0, true), createImage(2, 1), createImage(3, 2)],
+      2
+    );
+    const restored = restoreMedicationImageGalleryReorderSnapshot(snapshot);
+
+    expect(restored.images.map(image => image.id)).toEqual([1, 2, 3]);
+    expect(restored.images.map(image => image.sortOrder)).toEqual([0, 1, 2]);
+    expect(restored.images.find(image => image.id === 1)?.isPrimary).toBeTrue();
+    expect(restored.selectedIndex).toBe(2);
   });
 
   it('builds ordered image id payload for reorder API', () => {
