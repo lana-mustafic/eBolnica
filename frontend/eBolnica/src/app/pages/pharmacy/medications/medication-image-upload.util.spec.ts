@@ -72,6 +72,8 @@ describe('medication-image-upload.util', () => {
   it('builds clear upload error messages', () => {
     expect(getMedicationImageUploadErrorMessage({ status: 403, error: 'Rejected' }, 'scan.jpg'))
       .toBe('Rejected');
+    expect(getMedicationImageUploadErrorMessage({ status: 400, error: 'Uploaded image content is corrupted or unsupported.' }, 'bad.jpg'))
+      .toBe('Uploaded image content is corrupted or unsupported.');
     expect(getMedicationImageUploadErrorMessage({ status: 500 }, 'x.jpg'))
       .toBe('Failed to upload "x.jpg". Please try again.');
   });

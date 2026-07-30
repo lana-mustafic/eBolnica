@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
 
 namespace eBolnicaAPI.Services
 {
@@ -66,55 +67,71 @@ namespace eBolnicaAPI.Services
             var originalImageInfo = await Image.IdentifyAsync(uploadStream);
             uploadStream.Position = 0;
 
-            using var optimizedImage = await _imageOptimizer.OptimizeAsync(uploadStream, extension);
-            var optimizedBytes = optimizedImage.Length;
-            var bytesSaved = MedicationImageUploadLog.CalculateBytesSaved(originalBytes, optimizedBytes);
-            var storedImage = await _storageService.SaveAsync(
-                medicationId,
-                optimizedImage.Content,
-                optimizedImage.Extension);
-
-            var existingCount = await _context.MedicationImages.CountAsync(i => i.MedicationId == medicationId);
-            var isPrimary = existingCount == 0;
-
-            var image = new MedicationImage
+            ProcessedImageResult optimizedImage;
+            try
             {
-                MedicationId = medicationId,
-                FileName = sanitizedFileName,
-                RelativeUrl = storedImage.RelativeUrl,
-                ThumbnailRelativeUrl = storedImage.ThumbnailRelativeUrl,
-                IsPrimary = isPrimary,
-                SortOrder = existingCount,
-                UploadedAt = DateTime.UtcNow,
-                FileSizeBytes = optimizedImage.Length,
-                Width = optimizedImage.Width,
-                Height = optimizedImage.Height
-            };
-
-            _context.MedicationImages.Add(image);
-
-            if (isPrimary)
+                optimizedImage = await _imageOptimizer.OptimizeAsync(uploadStream, extension);
+            }
+            catch (UnknownImageFormatException)
             {
-                medication.ImageUrl = GetListDisplayUrl(image);
+                throw new MedicationImageValidationException("Uploaded file is not a valid image.");
+            }
+            catch (InvalidImageContentException)
+            {
+                throw new MedicationImageValidationException("Uploaded image content is corrupted or unsupported.");
             }
 
-            await _context.SaveChangesAsync();
+            using (optimizedImage)
+            {
+                var optimizedBytes = optimizedImage.Length;
+                var bytesSaved = MedicationImageUploadLog.CalculateBytesSaved(originalBytes, optimizedBytes);
+                var storedImage = await _storageService.SaveAsync(
+                    medicationId,
+                    optimizedImage.Content,
+                    optimizedImage.Extension);
 
-            _logger.LogInformation(
-                "Medication image uploaded. MedicationId={MedicationId}, FileName={FileName}, OriginalBytes={OriginalBytes}, OptimizedBytes={OptimizedBytes}, BytesSaved={BytesSaved}, OriginalWidth={OriginalWidth}, OriginalHeight={OriginalHeight}, OptimizedWidth={OptimizedWidth}, OptimizedHeight={OptimizedHeight}, ImageUrl={ImageUrl}, ThumbnailUrl={ThumbnailUrl}",
-                medicationId,
-                sanitizedFileName,
-                originalBytes,
-                optimizedBytes,
-                bytesSaved,
-                originalImageInfo?.Width,
-                originalImageInfo?.Height,
-                optimizedImage.Width,
-                optimizedImage.Height,
-                storedImage.RelativeUrl,
-                storedImage.ThumbnailRelativeUrl);
+                var existingCount = await _context.MedicationImages.CountAsync(i => i.MedicationId == medicationId);
+                var isPrimary = existingCount == 0;
 
-            return MapToDto(image);
+                var image = new MedicationImage
+                {
+                    MedicationId = medicationId,
+                    FileName = sanitizedFileName,
+                    RelativeUrl = storedImage.RelativeUrl,
+                    ThumbnailRelativeUrl = storedImage.ThumbnailRelativeUrl,
+                    IsPrimary = isPrimary,
+                    SortOrder = existingCount,
+                    UploadedAt = DateTime.UtcNow,
+                    FileSizeBytes = optimizedImage.Length,
+                    Width = optimizedImage.Width,
+                    Height = optimizedImage.Height
+                };
+
+                _context.MedicationImages.Add(image);
+
+                if (isPrimary)
+                {
+                    medication.ImageUrl = GetListDisplayUrl(image);
+                }
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation(
+                    "Medication image uploaded. MedicationId={MedicationId}, FileName={FileName}, OriginalBytes={OriginalBytes}, OptimizedBytes={OptimizedBytes}, BytesSaved={BytesSaved}, OriginalWidth={OriginalWidth}, OriginalHeight={OriginalHeight}, OptimizedWidth={OptimizedWidth}, OptimizedHeight={OptimizedHeight}, ImageUrl={ImageUrl}, ThumbnailUrl={ThumbnailUrl}",
+                    medicationId,
+                    sanitizedFileName,
+                    originalBytes,
+                    optimizedBytes,
+                    bytesSaved,
+                    originalImageInfo?.Width,
+                    originalImageInfo?.Height,
+                    optimizedImage.Width,
+                    optimizedImage.Height,
+                    storedImage.RelativeUrl,
+                    storedImage.ThumbnailRelativeUrl);
+
+                return MapToDto(image);
+            }
         }
 
         public async Task SetPrimaryImageAsync(int medicationId, int imageId)

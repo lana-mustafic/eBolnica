@@ -21,6 +21,7 @@ import {
 } from './medication-image-upload-batch.util';
 import { buildPendingQueueCancelMessage } from './medication-image-pending-queue.util';
 import {
+  buildMedicationImageUploadSuccessMessage,
   formatMedicationImageDimensions,
   formatMedicationImageFileSize,
   hasMedicationImageMetadata
@@ -191,7 +192,7 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
     ).subscribe({
       next: (result) => {
         if (result.uploaded.length > 0) {
-          this.showUploadSuccess(result.uploaded.length);
+          this.showUploadSuccess(result.uploaded);
           this.imageDropzone?.clearPendingQueue();
         }
 
@@ -207,10 +208,8 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
     });
   }
 
-  private showUploadSuccess(count: number): void {
-    this.successMessage = count === 1
-      ? '1 image uploaded successfully.'
-      : `${count} images uploaded successfully.`;
+  private showUploadSuccess(uploaded: MedicationImageDto[]): void {
+    this.successMessage = buildMedicationImageUploadSuccessMessage(uploaded);
 
     if (this.successTimeout) {
       clearTimeout(this.successTimeout);

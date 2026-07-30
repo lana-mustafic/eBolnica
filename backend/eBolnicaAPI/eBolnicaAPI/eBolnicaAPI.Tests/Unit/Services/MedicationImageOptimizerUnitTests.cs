@@ -83,6 +83,25 @@ namespace eBolnicaAPI.Tests.Unit.Services
             Assert.Equal(600, result.Height);
         }
 
+        [Fact]
+        public async Task OptimizeAsync_StripsMetadataWhenConfigured()
+        {
+            var optimizer = CreateOptimizer(new MedicationImageUploadSettings
+            {
+                MaxWidth = 1920,
+                MaxHeight = 1920,
+                StripMetadata = true
+            });
+
+            await using var input = await CreateJpegStreamAsync(800, 600);
+            using var result = await optimizer.OptimizeAsync(input, ".jpg");
+
+            result.Content.Position = 0;
+            using var outputImage = await Image.LoadAsync(result.Content);
+            Assert.Null(outputImage.Metadata.ExifProfile);
+            Assert.Null(outputImage.Metadata.IccProfile);
+        }
+
         private static MedicationImageOptimizer CreateOptimizer(MedicationImageUploadSettings settings)
         {
             return new MedicationImageOptimizer(Options.Create(settings));

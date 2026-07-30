@@ -83,10 +83,23 @@ namespace eBolnicaAPI.Tests.Unit.Services
             Assert.Contains("OriginalWidth=4000", logMessage);
             Assert.Contains("OriginalHeight=3000", logMessage);
             Assert.Contains("OptimizedWidth=1920", logMessage);
-            Assert.Contains("OptimizedHeight=1440", logMessage);
-        }
+        Assert.Contains("OptimizedHeight=1440", logMessage);
+    }
 
-        public void Dispose()
+    [Fact]
+    public async Task UploadImageAsync_CorruptJpeg_ThrowsSecurityException()
+    {
+        var service = CreateService();
+        var corruptBytes = new byte[] { 0xFF, 0xD8, 0xFF, 0x00, 0x00, 0x00 };
+        var file = CreateFormFile(corruptBytes, "corrupt.jpg");
+
+        var exception = await Assert.ThrowsAsync<MedicationImageSecurityException>(
+            () => service.UploadImageAsync(7, file));
+
+        Assert.Contains("unsupported or malformed image format", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public void Dispose()
         {
             _context.Dispose();
 

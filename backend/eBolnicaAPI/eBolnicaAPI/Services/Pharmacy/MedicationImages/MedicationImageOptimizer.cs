@@ -36,6 +36,11 @@ namespace eBolnicaAPI.Services.Pharmacy.MedicationImages
                 }));
             }
 
+            if (_settings.StripMetadata)
+            {
+                StripImageMetadata(image);
+            }
+
             var output = new MemoryStream();
             var normalizedExtension = extension.ToLowerInvariant();
 
@@ -73,6 +78,14 @@ namespace eBolnicaAPI.Services.Pharmacy.MedicationImages
             };
 
             return new ProcessedImageResult(output, normalizedExtension, contentType, image.Width, image.Height);
+        }
+
+        private static void StripImageMetadata(Image image)
+        {
+            image.Metadata.ExifProfile = null;
+            image.Metadata.IccProfile = null;
+            image.Metadata.XmpProfile = null;
+            image.Metadata.IptcProfile = null;
         }
     }
 }

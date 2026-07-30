@@ -63,10 +63,11 @@ describe('MedicationImageGalleryComponent metadata', () => {
 
     const metadata = fixture.nativeElement.querySelector('.image-metadata');
     expect(metadata).toBeTruthy();
-    expect(metadata.textContent).toContain('Dimensions');
+    expect(metadata.textContent).toContain('Stored dimensions');
     expect(metadata.textContent).toContain('1920 × 1080 px');
-    expect(metadata.textContent).toContain('File size');
+    expect(metadata.textContent).toContain('Stored file size');
     expect(metadata.textContent).toContain('256.0 KB');
+    expect(metadata.textContent).toContain('Stored optimized image');
   });
 
   it('hides metadata panel when DTO has no metadata fields', () => {
@@ -108,6 +109,6 @@ describe('MedicationImageGalleryComponent metadata', () => {
     fixture.detectChanges();
 
     const helper = fixture.nativeElement.querySelector('.gallery-upload-helper');
-    expect(helper?.textContent?.trim()).toBe('Images are automatically optimized on upload');
+    expect(helper?.textContent?.trim()).toBe('Images are automatically optimized on upload (max 1920×1920).');
   });
 });

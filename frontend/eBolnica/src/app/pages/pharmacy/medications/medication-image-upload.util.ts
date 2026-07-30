@@ -32,8 +32,19 @@ export function getMedicationImageUploadErrorMessage(
     return message || `"${fileName}" failed security scan and was rejected.`;
   }
 
+  if (error?.status === 400) {
+    const message = typeof error.error === 'string' ? error.error : error.error?.message;
+    if (message) {
+      return message;
+    }
+  }
+
   if (typeof error.error === 'object' && error.error?.message) {
     return error.error.message;
+  }
+
+  if (typeof error.error === 'string' && error.error.trim()) {
+    return error.error;
   }
 
   return `Failed to upload "${fileName}". Please try again.`;

@@ -44,3 +44,34 @@ export function hasMedicationImageMetadata(
   return formatMedicationImageFileSize(image.fileSizeBytes) !== null
     || formatMedicationImageDimensions(image.width, image.height) !== null;
 }
+
+export function buildMedicationImageStoredMetadataSummary(
+  image: Pick<MedicationImageDto, 'fileSizeBytes' | 'width' | 'height'>
+): string | null {
+  const parts = [
+    formatMedicationImageDimensions(image.width, image.height),
+    formatMedicationImageFileSize(image.fileSizeBytes)
+  ].filter((part): part is string => part !== null);
+
+  return parts.length > 0 ? parts.join(', ') : null;
+}
+
+export function buildMedicationImageUploadSuccessMessage(
+  uploaded: Pick<MedicationImageDto, 'fileSizeBytes' | 'width' | 'height'>[]
+): string {
+  if (uploaded.length === 0) {
+    return '';
+  }
+
+  if (uploaded.length === 1) {
+    const summary = buildMedicationImageStoredMetadataSummary(uploaded[0]);
+    return summary
+      ? `1 image uploaded successfully. Stored as ${summary}.`
+      : '1 image uploaded successfully.';
+  }
+
+  const lastSummary = buildMedicationImageStoredMetadataSummary(uploaded[uploaded.length - 1]);
+  return lastSummary
+    ? `${uploaded.length} images uploaded successfully. Latest stored as ${lastSummary}.`
+    : `${uploaded.length} images uploaded successfully.`;
+}
