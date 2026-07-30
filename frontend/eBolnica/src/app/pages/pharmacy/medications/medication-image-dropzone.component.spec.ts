@@ -348,4 +348,86 @@ describe('MedicationImageDropzoneComponent', () => {
       { fileName: 'large.jpg', message: 'File is too large. Maximum size is 5MB.' }
     ]);
   });
+
+  describe('pending queue mode', () => {
+    beforeEach(() => {
+      component.usePendingQueue = true;
+      fixture.detectChanges();
+      spyOn(URL, 'createObjectURL').and.callFake((blob: Blob) => `blob:${(blob as File).name}`);
+    });
+
+    it('adds validated files to pending queue instead of emitting filesSelected', () => {
+      spyOn(component.filesSelected, 'emit');
+      spyOn(component.pendingQueueChange, 'emit');
+      const files = [createFile('a.jpg'), createFile('b.jpg')];
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+
+      component.onDrop(dragEvent('drop', dropzone, { files }));
+
+      expect(component.filesSelected.emit).not.toHaveBeenCalled();
+      expect(component.pendingQueue).toHaveSize(2);
+      expect(component.pendingQueue.every(item => item.status === 'valid')).toBeTrue();
+      expect(component.pendingQueueChange.emit).toHaveBeenCalledWith(component.pendingQueue);
+    });
+
+    it('keeps invalid files in pending queue with error state', () => {
+      spyOn(component.validationErrors, 'emit');
+      const valid = createFile('ok.jpg');
+      const invalid = createFile('bad.pdf', { type: 'application/pdf' });
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+
+      component.onDrop(dragEvent('drop', dropzone, { files: [valid, invalid] }));
+
+      expect(component.pendingQueue).toHaveSize(2);
+      expect(component.pendingQueue[0].status).toBe('valid');
+      expect(component.pendingQueue[1].status).toBe('invalid');
+      expect(component.pendingQueue[1].previewUrl).toBeNull();
+      expect(component.validationErrors.emit).toHaveBeenCalledWith([
+        { fileName: 'bad.pdf', message: 'Invalid file type. Allowed formats: JPG, PNG, WEBP.' }
+      ]);
+    });
+
+    it('respects remaining queue capacity when adding more files', () => {
+      spyOn(component.selectionLimited, 'emit');
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      const firstBatch = Array.from({ length: 4 }, (_, index) => createFile(`first-${index + 1}.jpg`));
+      const secondBatch = Array.from({ length: 3 }, (_, index) => createFile(`second-${index + 1}.jpg`));
+
+      component.onDrop(dragEvent('drop', dropzone, { files: firstBatch }));
+      component.onDrop(dragEvent('drop', dropzone, { files: secondBatch }));
+
+      expect(component.pendingQueue).toHaveSize(MEDICATION_IMAGE_MAX_FILES);
+      expect(component.selectionLimited.emit).toHaveBeenCalledWith({
+        selected: 1,
+        provided: 3,
+        maxFiles: MEDICATION_IMAGE_MAX_FILES
+      });
+    });
+
+    it('removes pending file and revokes preview URL', () => {
+      spyOn(URL, 'revokeObjectURL');
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      component.onDrop(dragEvent('drop', dropzone, { files: [createFile('remove-me.jpg')] }));
+      const previewUrl = component.pendingQueue[0].previewUrl;
+
+      component.removePendingFile(component.pendingQueue[0].id);
+
+      expect(component.pendingQueue).toEqual([]);
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith(previewUrl);
+    });
+
+    it('clears pending queue and revokes all preview URLs', () => {
+      spyOn(URL, 'revokeObjectURL');
+      const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+      component.onDrop(dragEvent('drop', dropzone, {
+        files: [createFile('a.jpg'), createFile('b.jpg')]
+      }));
+      const previewUrls = component.pendingQueue.map(item => item.previewUrl);
+
+      component.clearPendingQueue();
+
+      expect(component.pendingQueue).toEqual([]);
+      previewUrls.forEach(url => expect(URL.revokeObjectURL).toHaveBeenCalledWith(url));
+    });
+  });
 });
