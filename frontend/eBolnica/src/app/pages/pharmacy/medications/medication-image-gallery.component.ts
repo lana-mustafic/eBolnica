@@ -20,6 +20,12 @@ import {
   MEDICATION_IMAGE_UPLOAD_BATCH_IN_PROGRESS_MESSAGE
 } from './medication-image-upload-batch.util';
 import { buildPendingQueueCancelMessage } from './medication-image-pending-queue.util';
+import {
+  buildMedicationImageUploadSuccessMessage,
+  formatMedicationImageDimensions,
+  formatMedicationImageFileSize,
+  hasMedicationImageMetadata
+} from './medication-image-metadata.util';
 
 const IMAGE_DELETE_ROLES = ['Pharmacist', 'Admin'] as const;
 
@@ -55,6 +61,10 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
   canDeleteImages = false;
   deletingImageId: number | null = null;
   uploadFileStatuses: MedicationImageUploadFileStatus[] = [];
+
+  readonly formatImageDimensions = formatMedicationImageDimensions;
+  readonly formatImageFileSize = formatMedicationImageFileSize;
+  readonly hasImageMetadata = hasMedicationImageMetadata;
 
   private successTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -182,7 +192,7 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
     ).subscribe({
       next: (result) => {
         if (result.uploaded.length > 0) {
-          this.showUploadSuccess(result.uploaded.length);
+          this.showUploadSuccess(result.uploaded);
           this.imageDropzone?.clearPendingQueue();
         }
 
@@ -198,10 +208,8 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit {
     });
   }
 
-  private showUploadSuccess(count: number): void {
-    this.successMessage = count === 1
-      ? '1 image uploaded successfully.'
-      : `${count} images uploaded successfully.`;
+  private showUploadSuccess(uploaded: MedicationImageDto[]): void {
+    this.successMessage = buildMedicationImageUploadSuccessMessage(uploaded);
 
     if (this.successTimeout) {
       clearTimeout(this.successTimeout);

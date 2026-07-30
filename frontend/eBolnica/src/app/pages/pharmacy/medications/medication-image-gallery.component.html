@@ -54,6 +54,24 @@
     }
   </div>
 
+  @if (selectedImage && hasImageMetadata(selectedImage)) {
+    <dl class="image-metadata" aria-label="Selected image metadata">
+      <p class="image-metadata-caption">Stored optimized image</p>
+      @if (formatImageDimensions(selectedImage.width, selectedImage.height); as dimensions) {
+        <div class="image-metadata-item">
+          <dt>Stored dimensions</dt>
+          <dd>{{ dimensions }}</dd>
+        </div>
+      }
+      @if (formatImageFileSize(selectedImage.fileSizeBytes); as fileSize) {
+        <div class="image-metadata-item">
+          <dt>Stored file size</dt>
+          <dd>{{ fileSize }}</dd>
+        </div>
+      }
+    </dl>
+  }
+
   <!-- Thumbnail Strip -->
   @if (images.length > 0) {
     <div class="thumbnail-strip" role="listbox" aria-label="Image thumbnails">
@@ -98,6 +116,8 @@
 
   <!-- Upload Dropzone -->
   <div class="gallery-upload">
+    <p class="gallery-upload-helper">Images are automatically optimized on upload (max 1920×1920).</p>
+
     @if (uploadFileStatuses.length > 0) {
       <ul class="gallery-upload-status-list" role="status" aria-live="polite" aria-label="Image upload progress">
         @for (item of uploadFileStatuses; track item.fileName) {
