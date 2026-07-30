@@ -36,6 +36,10 @@ import {
   AnalyticsDateRange
 } from '../../../models/analytics.dto';
 import { MedicationNameAvailabilityResult } from '../../validators/medication-name-async.validator';
+import {
+  MEDICATION_AUTOCOMPLETE_MAX_SUGGESTIONS,
+  MEDICATION_AUTOCOMPLETE_MIN_LENGTH
+} from '../../utils/medication-autocomplete-search.util';
 
 /** API response for GET /medications/check-name */
 export interface MedicationNameAvailabilityDto {
@@ -202,19 +206,21 @@ export class PharmacyService {
   }
 
   /**
-   * Lightweight medication name suggestions for search autocomplete.
+   * Fetch medication autocomplete suggestions for the search dropdown.
+   * @param term Search query (minimum 2 trimmed characters)
+   * @param limit Maximum suggestions to return (1-10, default 10)
    */
-  getMedicationAutocompleteSuggestions(
+  getMedicationAutocomplete(
     term: string,
-    limit = 10
+    limit = MEDICATION_AUTOCOMPLETE_MAX_SUGGESTIONS
   ): Observable<MedicationAutocompleteSuggestion[]> {
     const trimmed = term?.trim() ?? '';
 
-    if (trimmed.length < 2) {
+    if (trimmed.length < MEDICATION_AUTOCOMPLETE_MIN_LENGTH) {
       return of([]);
     }
 
-    const cappedLimit = Math.min(Math.max(limit, 1), 10);
+    const cappedLimit = Math.min(Math.max(limit, 1), MEDICATION_AUTOCOMPLETE_MAX_SUGGESTIONS);
     const params = new HttpParams()
       .set('q', trimmed)
       .set('limit', cappedLimit.toString());

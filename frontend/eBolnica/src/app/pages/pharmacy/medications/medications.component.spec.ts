@@ -23,10 +23,10 @@ describe('MedicationsComponent autocomplete selection', () => {
   beforeEach(async () => {
     pharmacyService = jasmine.createSpyObj('PharmacyService', [
       'getMedicationsWithFilters',
-      'getMedicationAutocompleteSuggestions'
+      'getMedicationAutocomplete'
     ]);
     pharmacyService.getMedicationsWithFilters.and.returnValue(of(emptyPagedResponse));
-    pharmacyService.getMedicationAutocompleteSuggestions.and.returnValue(of([]));
+    pharmacyService.getMedicationAutocomplete.and.returnValue(of([]));
 
     await TestBed.configureTestingModule({
       imports: [MedicationsComponent],
@@ -81,7 +81,7 @@ describe('MedicationsComponent autocomplete keyboard navigation', () => {
   beforeEach(async () => {
     pharmacyService = jasmine.createSpyObj('PharmacyService', [
       'getMedicationsWithFilters',
-      'getMedicationAutocompleteSuggestions'
+      'getMedicationAutocomplete'
     ]);
     pharmacyService.getMedicationsWithFilters.and.returnValue(of({
       items: [],
@@ -92,7 +92,7 @@ describe('MedicationsComponent autocomplete keyboard navigation', () => {
       hasNext: false,
       hasPrevious: false
     }));
-    pharmacyService.getMedicationAutocompleteSuggestions.and.returnValue(of([]));
+    pharmacyService.getMedicationAutocomplete.and.returnValue(of([]));
 
     await TestBed.configureTestingModule({
       imports: [MedicationsComponent],

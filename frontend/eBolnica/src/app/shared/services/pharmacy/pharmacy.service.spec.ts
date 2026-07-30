@@ -286,7 +286,7 @@ describe('PharmacyService checkMedicationNameAvailability', () => {
   });
 });
 
-describe('PharmacyService getMedicationAutocompleteSuggestions', () => {
+describe('PharmacyService getMedicationAutocomplete', () => {
   let service: PharmacyService;
   let httpMock: HttpTestingController;
 
@@ -307,7 +307,7 @@ describe('PharmacyService getMedicationAutocompleteSuggestions', () => {
   it('returns empty array without HTTP call for short queries', () => {
     let result: unknown;
 
-    service.getMedicationAutocompleteSuggestions('a').subscribe(r => {
+    service.getMedicationAutocomplete('a').subscribe(r => {
       result = r;
     });
 
@@ -318,7 +318,7 @@ describe('PharmacyService getMedicationAutocompleteSuggestions', () => {
   it('calls autocomplete endpoint with trimmed query and limit', () => {
     let result: unknown;
 
-    service.getMedicationAutocompleteSuggestions('  asp  ', 10).subscribe(r => {
+    service.getMedicationAutocomplete('  asp  ', 10).subscribe(r => {
       result = r;
     });
 
@@ -338,7 +338,7 @@ describe('PharmacyService getMedicationAutocompleteSuggestions', () => {
   });
 
   it('caps limit to 10 suggestions', () => {
-    service.getMedicationAutocompleteSuggestions('med', 25).subscribe();
+    service.getMedicationAutocomplete('med', 25).subscribe();
 
     const req = httpMock.expectOne(
       request => request.url.endsWith('/api/pharmacy/medications/autocomplete')

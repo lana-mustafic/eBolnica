@@ -136,7 +136,7 @@ export class MedicationsComponent implements OnInit, OnDestroy {
 
     createMedicationAutocompleteSearch$(
       this.autocompleteSubject.asObservable(),
-      (term, limit) => this.pharmacyService.getMedicationAutocompleteSuggestions(term, limit)
+      (term, limit) => this.pharmacyService.getMedicationAutocomplete(term, limit)
     ).pipe(
       takeUntil(this.destroy$)
     ).subscribe(result => {
