@@ -17,6 +17,7 @@
   aria-label="Upload medication images by drag and drop or browse files">
   <input
     #fileInput
+    [id]="fileInputId"
     type="file"
     class="image-dropzone-input"
     [accept]="accept"
@@ -38,11 +39,13 @@
   <p class="image-dropzone-subtitle">{{ subtitle }}</p>
   <p class="image-dropzone-hint">{{ hint }}</p>
 
-  <button
-    type="button"
+  <label
     class="image-dropzone-browse-btn"
-    (click)="onBrowseClick($event)"
-    [disabled]="!isInteractive">
+    [attr.for]="browseInputId"
+    [attr.aria-disabled]="!isInteractive"
+    [attr.aria-label]="browseLabel"
+    (mousedown)="onBrowsePress($event)"
+    (click)="onBrowseClick($event)">
     {{ browseLabel }}
-  </button>
+  </label>
 </div>

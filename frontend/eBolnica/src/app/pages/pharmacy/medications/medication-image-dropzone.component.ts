@@ -13,6 +13,11 @@ import {
   hasFileDragPayload,
   shouldClearDragOver
 } from './medication-image-dropzone-drag.util';
+import {
+  createDropzoneFileInputId,
+  filesFromInput,
+  resetNativeFileInput
+} from './medication-image-dropzone-file-picker.util';
 
 /** Accepted MIME types for medication image uploads. */
 export const MEDICATION_IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp';
@@ -44,6 +49,8 @@ export class MedicationImageDropzoneComponent {
 
   @Output() filesSelected = new EventEmitter<File[]>();
 
+  readonly fileInputId = createDropzoneFileInputId();
+
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
 
   isDragOver = false;
@@ -56,13 +63,17 @@ export class MedicationImageDropzoneComponent {
     return this.busy ? 'Uploading...' : 'Browse files';
   }
 
+  get browseInputId(): string | null {
+    return this.isInteractive ? this.fileInputId : null;
+  }
+
   onDropzoneClick(event: MouseEvent): void {
     if (!this.isInteractive) return;
 
     const target = event.target as HTMLElement;
     if (target.closest('.image-dropzone-browse-btn')) return;
 
-    this.openFilePicker();
+    this.browseFiles(event);
   }
 
   onDropzoneKeydown(event: KeyboardEvent): void {
@@ -70,14 +81,31 @@ export class MedicationImageDropzoneComponent {
 
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      this.openFilePicker();
+      this.browseFiles();
     }
+  }
+
+  onBrowsePress(event: MouseEvent): void {
+    if (!this.isInteractive) {
+      event.preventDefault();
+      return;
+    }
+
+    this.prepareFileInput();
   }
 
   onBrowseClick(event: MouseEvent): void {
     event.stopPropagation();
+  }
+
+  browseFiles(event?: Event): void {
+    event?.preventDefault();
+    event?.stopPropagation();
+
     if (!this.isInteractive) return;
-    this.openFilePicker();
+
+    this.prepareFileInput();
+    this.fileInput?.nativeElement.click();
   }
 
   onDragEnter(event: DragEvent): void {
@@ -124,30 +152,24 @@ export class MedicationImageDropzoneComponent {
   }
 
   onFileInputChange(event: Event): void {
+    if (!this.isInteractive) {
+      this.prepareFileInput();
+      return;
+    }
+
     const input = event.target as HTMLInputElement;
     this.emitFiles(input.files);
   }
 
-  openFilePicker(): void {
-    this.fileInput?.nativeElement.click();
+  private prepareFileInput(): void {
+    resetNativeFileInput(this.fileInput?.nativeElement);
   }
 
   private emitFiles(fileList: FileList | null | undefined): void {
-    const files = this.collectFiles(fileList);
+    const files = filesFromInput(fileList);
     if (files.length === 0) return;
 
     this.filesSelected.emit(files);
-    this.resetFileInput();
-  }
-
-  private collectFiles(fileList: FileList | null | undefined): File[] {
-    if (!fileList?.length) return [];
-    return Array.from(fileList);
-  }
-
-  private resetFileInput(): void {
-    if (this.fileInput?.nativeElement) {
-      this.fileInput.nativeElement.value = '';
-    }
+    this.prepareFileInput();
   }
 }

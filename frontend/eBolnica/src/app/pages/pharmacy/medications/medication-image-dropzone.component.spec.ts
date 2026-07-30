@@ -62,6 +62,34 @@ describe('MedicationImageDropzoneComponent', () => {
     input.dispatchEvent(new Event('change'));
 
     expect(component.filesSelected.emit).toHaveBeenCalledWith([file]);
+    expect(input.value).toBe('');
+  });
+
+  it('emits multiple files from file picker when multiple is enabled', () => {
+    spyOn(component.filesSelected, 'emit');
+    const files = [createFile('a.jpg'), createFile('b.jpg')];
+    const input = fixture.nativeElement.querySelector('.image-dropzone-input') as HTMLInputElement;
+
+    Object.defineProperty(input, 'files', {
+      configurable: true,
+      value: files
+    });
+    input.dispatchEvent(new Event('change'));
+
+    expect(component.filesSelected.emit).toHaveBeenCalledWith(files);
+  });
+
+  it('does not emit when file picker is cancelled', () => {
+    spyOn(component.filesSelected, 'emit');
+    const input = fixture.nativeElement.querySelector('.image-dropzone-input') as HTMLInputElement;
+
+    Object.defineProperty(input, 'files', {
+      configurable: true,
+      value: []
+    });
+    input.dispatchEvent(new Event('change'));
+
+    expect(component.filesSelected.emit).not.toHaveBeenCalled();
   });
 
   it('emits filesSelected when files are dropped', () => {
@@ -169,13 +197,71 @@ describe('MedicationImageDropzoneComponent', () => {
     expect(fixture.nativeElement.querySelector('.image-dropzone-browse-btn').textContent.trim()).toBe('Uploading...');
   });
 
-  it('opens file picker from browse button', () => {
+  it('opens file picker from browse label via native for attribute', () => {
+    const input = fixture.nativeElement.querySelector('.image-dropzone-input') as HTMLInputElement;
+    const browseLabel = fixture.nativeElement.querySelector('.image-dropzone-browse-btn') as HTMLLabelElement;
+
+    expect(browseLabel.getAttribute('for')).toBe(component.fileInputId);
+    expect(input.id).toBe(component.fileInputId);
+  });
+
+  it('browseFiles resets input and programmatically opens picker', () => {
+    const input = fixture.nativeElement.querySelector('.image-dropzone-input') as HTMLInputElement;
+    input.value = 'C:\\fakepath\\old.jpg';
+    spyOn(input, 'click');
+
+    component.browseFiles();
+
+    expect(input.value).toBe('');
+    expect(input.click).toHaveBeenCalled();
+  });
+
+  it('opens file picker when dropzone is clicked', () => {
+    spyOn(component, 'browseFiles');
+    const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
+
+    dropzone.click();
+
+    expect(component.browseFiles).toHaveBeenCalled();
+  });
+
+  it('opens file picker from keyboard on dropzone', () => {
+    spyOn(component, 'browseFiles');
+    const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+    spyOn(event, 'preventDefault');
+
+    component.onDropzoneKeydown(event);
+
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(component.browseFiles).toHaveBeenCalled();
+  });
+
+  it('does not open file picker while disabled or busy', () => {
     const input = fixture.nativeElement.querySelector('.image-dropzone-input') as HTMLInputElement;
     spyOn(input, 'click');
 
-    const browseButton = fixture.nativeElement.querySelector('.image-dropzone-browse-btn') as HTMLButtonElement;
-    browseButton.click();
+    component.disabled = true;
+    component.browseFiles();
+    expect(input.click).not.toHaveBeenCalled();
 
-    expect(input.click).toHaveBeenCalled();
+    component.disabled = false;
+    component.busy = true;
+    fixture.detectChanges();
+    component.browseFiles();
+    expect(input.click).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('.image-dropzone-browse-btn').getAttribute('for')).toBeNull();
+  });
+
+  it('allows selecting the same file twice via browse fallback', () => {
+    spyOn(component.filesSelected, 'emit');
+    const input = fixture.nativeElement.querySelector('.image-dropzone-input') as HTMLInputElement;
+    const file = createFile('repeat.jpg');
+
+    Object.defineProperty(input, 'files', { configurable: true, value: [file] });
+    input.dispatchEvent(new Event('change'));
+    Object.defineProperty(input, 'files', { configurable: true, value: [file] });
+    input.dispatchEvent(new Event('change'));
+
+    expect(component.filesSelected.emit).toHaveBeenCalledTimes(2);
   });
 });
