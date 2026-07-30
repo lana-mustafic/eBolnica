@@ -4,7 +4,8 @@ import {
   MEDICATION_AUTOCOMPLETE_DEBOUNCE_MS,
   MEDICATION_AUTOCOMPLETE_MIN_LENGTH,
   createMedicationAutocompleteSearch$,
-  resolveMedicationAutocompleteSelection
+  resolveMedicationAutocompleteSelection,
+  shouldShowMedicationAutocompleteEmptyState
 } from './medication-autocomplete-search.util';
 
 describe('createMedicationAutocompleteSearch$', () => {
@@ -115,5 +116,33 @@ describe('resolveMedicationAutocompleteSelection', () => {
 
   it('returns null for blank suggestion names', () => {
     expect(resolveMedicationAutocompleteSelection({ id: 1, name: '   ' })).toBeNull();
+  });
+});
+
+describe('shouldShowMedicationAutocompleteEmptyState', () => {
+  it('shows empty state only after a completed search with no matches', () => {
+    expect(shouldShowMedicationAutocompleteEmptyState({
+      showDropdown: true,
+      isLoading: false,
+      suggestionsCount: 0
+    })).toBeTrue();
+
+    expect(shouldShowMedicationAutocompleteEmptyState({
+      showDropdown: true,
+      isLoading: true,
+      suggestionsCount: 0
+    })).toBeFalse();
+
+    expect(shouldShowMedicationAutocompleteEmptyState({
+      showDropdown: true,
+      isLoading: false,
+      suggestionsCount: 2
+    })).toBeFalse();
+
+    expect(shouldShowMedicationAutocompleteEmptyState({
+      showDropdown: false,
+      isLoading: false,
+      suggestionsCount: 0
+    })).toBeFalse();
   });
 });

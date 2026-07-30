@@ -23,8 +23,10 @@ import {
 } from '../../../shared/utils/medication-csv.util';
 import {
   createMedicationAutocompleteSearch$,
+  MEDICATION_AUTOCOMPLETE_EMPTY_MESSAGE,
   MEDICATION_AUTOCOMPLETE_MIN_LENGTH,
-  resolveMedicationAutocompleteSelection
+  resolveMedicationAutocompleteSelection,
+  shouldShowMedicationAutocompleteEmptyState
 } from '../../../shared/utils/medication-autocomplete-search.util';
 import { handleMedicationAutocompleteKeydown } from '../../../shared/utils/medication-autocomplete-keyboard.util';
 
@@ -71,6 +73,15 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   autocompleteHighlightIndex = -1;
   isAutocompleteLoading = false;
   readonly autocompleteMinLength = MEDICATION_AUTOCOMPLETE_MIN_LENGTH;
+  readonly autocompleteEmptyMessage = MEDICATION_AUTOCOMPLETE_EMPTY_MESSAGE;
+
+  get showAutocompleteEmptyState(): boolean {
+    return shouldShowMedicationAutocompleteEmptyState({
+      showDropdown: this.showAutocompleteDropdown,
+      isLoading: this.isAutocompleteLoading,
+      suggestionsCount: this.autocompleteSuggestions.length
+    });
+  }
 
   // Filters (UI state)
   selectedCategory: string = '';

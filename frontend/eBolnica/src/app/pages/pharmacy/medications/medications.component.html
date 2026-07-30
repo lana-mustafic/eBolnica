@@ -238,10 +238,11 @@
           Loading suggestions...
         </li>
         <li
-          *ngIf="!isAutocompleteLoading && autocompleteSuggestions.length === 0"
+          *ngIf="showAutocompleteEmptyState"
           class="autocomplete-status autocomplete-empty"
-          role="status">
-          No medications found
+          role="status"
+          aria-live="polite">
+          {{ autocompleteEmptyMessage }}
         </li>
         <li
           *ngFor="let suggestion of autocompleteSuggestions; let i = index"

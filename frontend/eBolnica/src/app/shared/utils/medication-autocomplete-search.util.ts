@@ -11,6 +11,24 @@ export const MEDICATION_AUTOCOMPLETE_MIN_LENGTH = 2;
 /** Maximum suggestions returned to the dropdown. */
 export const MEDICATION_AUTOCOMPLETE_MAX_SUGGESTIONS = 10;
 
+/** Empty-state copy when autocomplete returns no matches. */
+export const MEDICATION_AUTOCOMPLETE_EMPTY_MESSAGE = 'No medications found';
+
+export interface MedicationAutocompleteDropdownViewState {
+  showDropdown: boolean;
+  isLoading: boolean;
+  suggestionsCount: number;
+}
+
+/**
+ * True when the dropdown should show the empty-state message.
+ */
+export function shouldShowMedicationAutocompleteEmptyState(
+  state: MedicationAutocompleteDropdownViewState
+): boolean {
+  return state.showDropdown && !state.isLoading && state.suggestionsCount === 0;
+}
+
 export type MedicationAutocompleteFetchFn = (
   term: string,
   limit: number

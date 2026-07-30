@@ -404,6 +404,7 @@
 
 .autocomplete-empty {
   font-style: italic;
+  text-align: center;
 }
 
 .autocomplete-option {

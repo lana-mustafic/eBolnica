@@ -143,4 +143,24 @@ describe('MedicationsComponent autocomplete keyboard navigation', () => {
     expect(component.showAutocompleteDropdown).toBeFalse();
     expect(component.autocompleteHighlightIndex).toBe(-1);
   });
+
+  it('shows empty state when autocomplete returns no matches', () => {
+    component.isAutocompleteLoading = false;
+    component.autocompleteSuggestions = [];
+    fixture.detectChanges();
+
+    const empty = fixture.nativeElement.querySelector('.autocomplete-empty') as HTMLElement;
+
+    expect(empty).toBeTruthy();
+    expect(empty.textContent?.trim()).toBe('No medications found');
+  });
+
+  it('hides empty state while autocomplete is loading', () => {
+    component.isAutocompleteLoading = true;
+    component.autocompleteSuggestions = [];
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.autocomplete-empty')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Loading suggestions...');
+  });
 });
