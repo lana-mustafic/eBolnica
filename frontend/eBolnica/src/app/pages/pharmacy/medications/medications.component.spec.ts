@@ -67,3 +67,80 @@ describe('MedicationsComponent autocomplete selection', () => {
     expect(updateSpy).not.toHaveBeenCalled();
   });
 });
+
+describe('MedicationsComponent autocomplete keyboard navigation', () => {
+  let component: MedicationsComponent;
+  let fixture: ComponentFixture<MedicationsComponent>;
+  let pharmacyService: jasmine.SpyObj<PharmacyService>;
+
+  const suggestions = [
+    { id: 1, name: 'Aspirin', category: 'painkiller' },
+    { id: 2, name: 'Amoxicillin', category: 'antibiotics' }
+  ];
+
+  beforeEach(async () => {
+    pharmacyService = jasmine.createSpyObj('PharmacyService', [
+      'getMedicationsWithFilters',
+      'getMedicationAutocompleteSuggestions'
+    ]);
+    pharmacyService.getMedicationsWithFilters.and.returnValue(of({
+      items: [],
+      totalCount: 0,
+      totalPages: 0,
+      currentPage: 1,
+      pageSize: 10,
+      hasNext: false,
+      hasPrevious: false
+    }));
+    pharmacyService.getMedicationAutocompleteSuggestions.and.returnValue(of([]));
+
+    await TestBed.configureTestingModule({
+      imports: [MedicationsComponent],
+      providers: [
+        PharmacyFilterService,
+        { provide: PharmacyService, useValue: pharmacyService }
+      ]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(MedicationsComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.showAutocompleteDropdown = true;
+    component.autocompleteSuggestions = suggestions;
+    component.autocompleteHighlightIndex = -1;
+  });
+
+  function keydown(key: string): KeyboardEvent {
+    const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+    spyOn(event, 'preventDefault');
+    spyOn(event, 'stopPropagation');
+    component.onSearchKeydown(event);
+    return event;
+  }
+
+  it('highlights the first suggestion on ArrowDown', () => {
+    keydown('ArrowDown');
+
+    expect(component.autocompleteHighlightIndex).toBe(0);
+  });
+
+  it('selects highlighted suggestion on Enter', () => {
+    component.autocompleteHighlightIndex = 1;
+    spyOn(component, 'selectAutocompleteSuggestion');
+
+    keydown('Enter');
+
+    expect(component.selectAutocompleteSuggestion).toHaveBeenCalledWith(suggestions[1]);
+  });
+
+  it('closes dropdown on Escape without selecting', () => {
+    component.autocompleteHighlightIndex = 0;
+    const event = keydown('Escape');
+
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(event.stopPropagation).toHaveBeenCalled();
+    expect(component.showAutocompleteDropdown).toBeFalse();
+    expect(component.autocompleteHighlightIndex).toBe(-1);
+  });
+});

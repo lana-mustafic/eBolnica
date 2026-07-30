@@ -26,6 +26,7 @@ import {
   MEDICATION_AUTOCOMPLETE_MIN_LENGTH,
   resolveMedicationAutocompleteSelection
 } from '../../../shared/utils/medication-autocomplete-search.util';
+import { handleMedicationAutocompleteKeydown } from '../../../shared/utils/medication-autocomplete-keyboard.util';
 
 /** Debounce delay for medication search input before combining with other filters */
 const MEDICATION_SEARCH_DEBOUNCE_MS = 300;
@@ -40,6 +41,7 @@ const MEDICATION_SEARCH_DEBOUNCE_MS = 300;
 export class MedicationsComponent implements OnInit, OnDestroy {
   @ViewChild('csvFileInput') csvFileInput?: ElementRef<HTMLInputElement>;
   @ViewChild('searchBox') searchBox?: ElementRef<HTMLElement>;
+  @ViewChild('autocompleteList') autocompleteList?: ElementRef<HTMLUListElement>;
 
   protected pharmacyService = inject(PharmacyService);
   protected filterService = inject(PharmacyFilterService);
@@ -371,28 +373,25 @@ export class MedicationsComponent implements OnInit, OnDestroy {
   }
 
   onSearchKeydown(event: KeyboardEvent): void {
-    if (!this.showAutocompleteDropdown) {
-      return;
-    }
+    const result = handleMedicationAutocompleteKeydown(event.key, {
+      showDropdown: this.showAutocompleteDropdown,
+      suggestionsCount: this.autocompleteSuggestions.length,
+      highlightIndex: this.autocompleteHighlightIndex
+    });
 
-    switch (event.key) {
-      case 'ArrowDown':
+    switch (result.action.type) {
+      case 'moveHighlight':
         event.preventDefault();
-        this.moveAutocompleteHighlight(1);
+        this.autocompleteHighlightIndex = result.action.nextIndex;
+        this.scrollHighlightedSuggestionIntoView();
         break;
-      case 'ArrowUp':
+      case 'selectHighlighted':
         event.preventDefault();
-        this.moveAutocompleteHighlight(-1);
+        this.selectAutocompleteSuggestion(
+          this.autocompleteSuggestions[result.action.index]
+        );
         break;
-      case 'Enter':
-        if (this.autocompleteHighlightIndex >= 0) {
-          event.preventDefault();
-          this.selectAutocompleteSuggestion(
-            this.autocompleteSuggestions[this.autocompleteHighlightIndex]
-          );
-        }
-        break;
-      case 'Escape':
+      case 'closeDropdown':
         event.preventDefault();
         event.stopPropagation();
         this.closeAutocompleteDropdown();
@@ -440,23 +439,17 @@ export class MedicationsComponent implements OnInit, OnDestroy {
     this.closeAutocompleteDropdown();
   }
 
-  private moveAutocompleteHighlight(delta: number): void {
-    if (this.autocompleteSuggestions.length === 0) {
-      this.autocompleteHighlightIndex = -1;
+  private scrollHighlightedSuggestionIntoView(): void {
+    if (this.autocompleteHighlightIndex < 0) {
       return;
     }
 
-    const maxIndex = this.autocompleteSuggestions.length - 1;
-
-    if (this.autocompleteHighlightIndex < 0 && delta > 0) {
-      this.autocompleteHighlightIndex = 0;
-      return;
-    }
-
-    this.autocompleteHighlightIndex = Math.min(
-      maxIndex,
-      Math.max(-1, this.autocompleteHighlightIndex + delta)
+    const optionId = `medication-autocomplete-option-${this.autocompleteHighlightIndex}`;
+    const option = this.autocompleteList?.nativeElement.querySelector(
+      `#${optionId}`
     );
+
+    option?.scrollIntoView({ block: 'nearest' });
   }
 
   onCategoryChange(category: string): void {
@@ -564,8 +557,8 @@ export class MedicationsComponent implements OnInit, OnDestroy {
       this.clearFilters();
     }
     
-    // Escape key to clear filters when active
-    if (event.key === 'Escape' && hasActiveFilters && 
+    // Escape key to clear filters when active (autocomplete Escape is handled on the search input)
+    if (event.key === 'Escape' && hasActiveFilters && !this.showAutocompleteDropdown &&
         !(event.target instanceof HTMLInputElement && (event.target as HTMLInputElement).type === 'text')) {
       // Don't clear if user is typing in an input field
       const target = event.target as HTMLElement;
