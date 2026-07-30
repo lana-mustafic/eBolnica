@@ -363,11 +363,17 @@ describe('MedicationImageDropzoneComponent', () => {
       const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
 
       component.onDrop(dragEvent('drop', dropzone, { files }));
+      fixture.detectChanges();
 
       expect(component.filesSelected.emit).not.toHaveBeenCalled();
       expect(component.pendingQueue).toHaveSize(2);
       expect(component.pendingQueue.every(item => item.status === 'valid')).toBeTrue();
       expect(component.pendingQueueChange.emit).toHaveBeenCalledWith(component.pendingQueue);
+
+      const previews = fixture.nativeElement.querySelectorAll('.image-dropzone-pending-thumb') as NodeListOf<HTMLImageElement>;
+      expect(previews.length).toBe(2);
+      expect(previews[0].src).toContain('blob:a.jpg');
+      expect(previews[1].src).toContain('blob:b.jpg');
     });
 
     it('keeps invalid files in pending queue with error state', () => {
@@ -377,6 +383,7 @@ describe('MedicationImageDropzoneComponent', () => {
       const dropzone = fixture.nativeElement.querySelector('.image-dropzone') as HTMLElement;
 
       component.onDrop(dragEvent('drop', dropzone, { files: [valid, invalid] }));
+      fixture.detectChanges();
 
       expect(component.pendingQueue).toHaveSize(2);
       expect(component.pendingQueue[0].status).toBe('valid');
@@ -385,6 +392,11 @@ describe('MedicationImageDropzoneComponent', () => {
       expect(component.validationErrors.emit).toHaveBeenCalledWith([
         { fileName: 'bad.pdf', message: 'Invalid file type. Allowed formats: JPG, PNG, WEBP.' }
       ]);
+
+      const previews = fixture.nativeElement.querySelectorAll('.image-dropzone-pending-thumb');
+      const placeholders = fixture.nativeElement.querySelectorAll('.image-dropzone-pending-placeholder');
+      expect(previews.length).toBe(1);
+      expect(placeholders.length).toBe(1);
     });
 
     it('respects remaining queue capacity when adding more files', () => {

@@ -1,4 +1,8 @@
 import { validateMedicationImageFile } from './medication-image-validation.util';
+import {
+  createMedicationImagePreviewUrl,
+  revokeMedicationImagePreviewUrl
+} from './medication-image-preview.util';
 
 export type PendingMedicationImageStatus = 'valid' | 'invalid';
 
@@ -40,7 +44,7 @@ export function createPendingMedicationImage(file: File): PendingMedicationImage
     fileName: file.name,
     status,
     errorMessage: errorMessage ?? undefined,
-    previewUrl: status === 'valid' ? URL.createObjectURL(file) : null
+    previewUrl: status === 'valid' ? createMedicationImagePreviewUrl(file) : null
   };
 }
 
@@ -82,9 +86,7 @@ export function clearPendingMedicationImageQueue(): PendingMedicationImage[] {
 }
 
 export function revokePendingMedicationImagePreview(item: PendingMedicationImage): void {
-  if (item.previewUrl) {
-    URL.revokeObjectURL(item.previewUrl);
-  }
+  revokeMedicationImagePreviewUrl(item.previewUrl);
 }
 
 export function revokePendingMedicationImagePreviews(items: PendingMedicationImage[]): void {
