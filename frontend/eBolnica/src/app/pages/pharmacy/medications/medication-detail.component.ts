@@ -4,6 +4,7 @@ import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
 import { MedicationDto } from '../../../models/medication.dto';
 import { MedicationImageDto } from '../../../models/medication-image.dto';
+import { MedicationAiSummaryDto } from '../../../models/medication-ai-summary.dto';
 import { MedicationImageGalleryComponent } from './medication-image-gallery.component';
 import { finalize } from 'rxjs';
 
@@ -24,6 +25,10 @@ export class MedicationDetailComponent implements OnInit {
   isLoading = false;
   errorMessage: string | null = null;
   medicationId: number | null = null;
+
+  isGeneratingAiSummary = false;
+  aiSummaryError: string | null = null;
+  aiSummary: MedicationAiSummaryDto | null = null;
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
@@ -118,5 +123,13 @@ export class MedicationDetailComponent implements OnInit {
     if (this.medicationId) {
       this.router.navigate(['/pharmacy/medications', this.medicationId, 'edit']);
     }
+  }
+
+  onGenerateAiSummary(): void {
+    if (!this.medicationId || this.isGeneratingAiSummary) {
+      return;
+    }
+
+    this.aiSummaryError = null;
   }
 }
