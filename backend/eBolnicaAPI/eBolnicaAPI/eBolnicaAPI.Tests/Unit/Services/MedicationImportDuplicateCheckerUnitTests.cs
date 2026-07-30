@@ -109,6 +109,27 @@ namespace eBolnicaAPI.Tests.Unit.Services
             await Assert.ThrowsAsync<ArgumentException>(() => _checker.IsNameAvailableAsync("   "));
         }
 
+        [Fact]
+        public void FindDuplicateNormalizedNames_ReturnsEmptyForUniqueNames()
+        {
+            var duplicates = MedicationImportDuplicateChecker.FindDuplicateNormalizedNames(new[]
+            {
+                "Paracetamol",
+                "Ibuprofen",
+                "Aspirin"
+            });
+
+            Assert.Empty(duplicates);
+        }
+
+        [Fact]
+        public async Task FindExistingDuplicateNamesAsync_ReturnsEmptyForUniqueSeedRow()
+        {
+            var duplicates = await _checker.FindExistingDuplicateNamesAsync();
+
+            Assert.Empty(duplicates);
+        }
+
         public void Dispose()
         {
             _context.Dispose();

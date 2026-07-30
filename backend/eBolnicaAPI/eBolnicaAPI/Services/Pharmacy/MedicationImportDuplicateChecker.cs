@@ -30,6 +30,12 @@ namespace eBolnicaAPI.Services.Pharmacy
             string name,
             int? excludeMedicationId = null,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Returns normalized medication names that appear more than once in the database.
+        /// </summary>
+        Task<IReadOnlyList<string>> FindExistingDuplicateNamesAsync(
+            CancellationToken cancellationToken = default);
     }
 
     public class MedicationImportDuplicateChecker : IMedicationImportDuplicateChecker
@@ -43,6 +49,18 @@ namespace eBolnicaAPI.Services.Pharmacy
 
         public static string NormalizeName(string name) =>
             name.Trim().ToLowerInvariant();
+
+        /// <summary>
+        /// Finds normalized names that appear more than once (case-insensitive, trimmed).
+        /// </summary>
+        public static IReadOnlyList<string> FindDuplicateNormalizedNames(IEnumerable<string> names) =>
+            names
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .GroupBy(NormalizeName, StringComparer.Ordinal)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key)
+                .OrderBy(name => name, StringComparer.Ordinal)
+                .ToList();
 
         public async Task<HashSet<string>> LoadExistingNormalizedNamesAsync(CancellationToken cancellationToken = default)
         {
@@ -124,6 +142,17 @@ namespace eBolnicaAPI.Services.Pharmacy
                 .AnyAsync(m => m.Name.ToLower() == normalizedName, cancellationToken);
 
             return !nameTaken;
+        }
+
+        public async Task<IReadOnlyList<string>> FindExistingDuplicateNamesAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var names = await _context.Medications
+                .AsNoTracking()
+                .Select(m => m.Name)
+                .ToListAsync(cancellationToken);
+
+            return FindDuplicateNormalizedNames(names);
         }
 
         private static MedicationImportRowErrorDto CreateRowError(int rowNumber, string name, string reason) =>

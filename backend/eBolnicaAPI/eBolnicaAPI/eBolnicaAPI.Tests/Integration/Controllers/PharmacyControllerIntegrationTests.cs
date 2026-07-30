@@ -1,6 +1,7 @@
 using eBolnicaAPI.Data;
 using eBolnicaAPI.Models.DTOs;
 using eBolnicaAPI.Models.Entities;
+using eBolnicaAPI.Services.Pharmacy;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -1117,6 +1118,15 @@ namespace eBolnicaAPI.Tests.Integration.Controllers
             var body = await response.Content.ReadFromJsonAsync<DuplicateNameErrorResponse>();
             Assert.NotNull(body);
             Assert.Equal("Medication name already exists", body!.Message);
+        }
+
+        [Fact]
+        public async Task SeedTestData_HasNoDuplicateMedicationNames()
+        {
+            var checker = new MedicationImportDuplicateChecker(_context);
+            var duplicates = await checker.FindExistingDuplicateNamesAsync();
+
+            Assert.Empty(duplicates);
         }
 
         #endregion
