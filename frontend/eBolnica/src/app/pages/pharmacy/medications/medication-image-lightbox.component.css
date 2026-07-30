@@ -27,6 +27,65 @@
   object-fit: contain;
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  transform-origin: center center;
+  transition: transform 0.15s ease-out;
+}
+
+.lightbox-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  width: 100%;
+  margin-bottom: 0.75rem;
+  padding-right: 3rem;
+}
+
+.lightbox-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.2s, border-color 0.2s, opacity 0.2s;
+}
+
+.lightbox-toolbar-btn:hover:not(:disabled),
+.lightbox-toolbar-btn:focus-visible:not(:disabled) {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.lightbox-toolbar-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.lightbox-toolbar-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.lightbox-toolbar-reset {
+  min-width: auto;
+}
+
+.lightbox-zoom-level {
+  min-width: 3.5rem;
+  text-align: center;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .lightbox-close {
@@ -203,6 +262,11 @@
 
   .lightbox-image {
     max-height: min(50vh, calc(100vh - 16rem));
+  }
+
+  .lightbox-toolbar {
+    padding-right: 0;
+    margin-bottom: 0.5rem;
   }
 
   .lightbox-prev {
