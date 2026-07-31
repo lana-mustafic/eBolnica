@@ -185,37 +185,66 @@ namespace eBolnicaAPI.Services
                     throw new ArgumentException($"Date range cannot exceed {maxDateRange.Days} days");
                 }
 
-                // Optimized query: Aggregate revenue from PrescriptionItems for accurate calculation
-                // Only include completed/dispensed prescriptions
-                var monthlyRevenueQuery = from prescription in _context.Prescriptions.AsNoTracking()
-                                         join prescriptionItem in _context.PrescriptionItems.AsNoTracking()
-                                             on prescription.Id equals prescriptionItem.PrescriptionId
-                                         where prescription.Status == "Dispensed"
-                                             && prescription.DispensedDate.HasValue
-                                             && prescription.DispensedDate.Value >= start
-                                             && prescription.DispensedDate.Value <= end
-                                         group new
-                                         {
-                                             prescription.DispensedDate!.Value,
-                                             prescriptionItem.TotalPrice, // Use TotalPrice (Quantity * UnitPrice)
-                                             prescription.Id
-                                         } by new
-                                         {
-                                             Year = prescription.DispensedDate.Value.Year,
-                                             Month = prescription.DispensedDate.Value.Month
-                                         } into g
-                                         select new MonthlyRevenueItem
-                                         {
-                                             YearMonth = $"{g.Key.Year}-{g.Key.Month:D2}",
-                                             Month = new DateTime(g.Key.Year, g.Key.Month, 1).ToString("MMMM yyyy", CultureInfo.InvariantCulture),
-                                             MonthShort = new DateTime(g.Key.Year, g.Key.Month, 1).ToString("MMM", CultureInfo.InvariantCulture),
-                                             Revenue = g.Sum(x => x.TotalPrice),
-                                             PrescriptionCount = g.Select(x => x.Id).Distinct().Count()
-                                         };
-
-                var monthlyData = await monthlyRevenueQuery
-                    .OrderBy(m => m.YearMonth)
+                // Aggregate in SQL with translatable expressions only; format labels in memory.
+                var revenueByMonth = await (
+                    from prescriptionItem in _context.PrescriptionItems.AsNoTracking()
+                    join prescription in _context.Prescriptions.AsNoTracking()
+                        on prescriptionItem.PrescriptionId equals prescription.Id
+                    where prescription.Status == "Dispensed"
+                        && prescription.DispensedDate.HasValue
+                        && prescription.DispensedDate.Value >= start
+                        && prescription.DispensedDate.Value <= end
+                    group prescriptionItem by new
+                    {
+                        Year = prescription.DispensedDate!.Value.Year,
+                        Month = prescription.DispensedDate!.Value.Month
+                    } into g
+                    select new
+                    {
+                        g.Key.Year,
+                        g.Key.Month,
+                        Revenue = g.Sum(x => x.TotalPrice)
+                    })
                     .ToListAsync();
+
+                var prescriptionCountsByMonth = await (
+                    from prescription in _context.Prescriptions.AsNoTracking()
+                    where prescription.Status == "Dispensed"
+                        && prescription.DispensedDate.HasValue
+                        && prescription.DispensedDate.Value >= start
+                        && prescription.DispensedDate.Value <= end
+                    group prescription by new
+                    {
+                        Year = prescription.DispensedDate!.Value.Year,
+                        Month = prescription.DispensedDate!.Value.Month
+                    } into g
+                    select new
+                    {
+                        g.Key.Year,
+                        g.Key.Month,
+                        PrescriptionCount = g.Count()
+                    })
+                    .ToListAsync();
+
+                var monthlyData = revenueByMonth
+                    .Select(row =>
+                    {
+                        var monthStart = new DateTime(row.Year, row.Month, 1);
+                        var prescriptionCount = prescriptionCountsByMonth
+                            .FirstOrDefault(c => c.Year == row.Year && c.Month == row.Month)
+                            ?.PrescriptionCount ?? 0;
+
+                        return new MonthlyRevenueItem
+                        {
+                            YearMonth = $"{row.Year}-{row.Month:D2}",
+                            Month = monthStart.ToString("MMMM yyyy", CultureInfo.InvariantCulture),
+                            MonthShort = monthStart.ToString("MMM", CultureInfo.InvariantCulture),
+                            Revenue = row.Revenue,
+                            PrescriptionCount = prescriptionCount
+                        };
+                    })
+                    .OrderBy(m => m.YearMonth)
+                    .ToList();
 
                 // Fill in missing months with zero revenue
                 var allMonths = new List<MonthlyRevenueItem>();
@@ -676,6 +705,7 @@ namespace eBolnicaAPI.Services
             }
 
             return new MemoryCacheEntryOptions()
+                .SetSize(1)
                 .SetAbsoluteExpiration(TimeSpan.FromMinutes(CacheExpirationMinutes))
                 .AddExpirationToken(new CancellationChangeToken(invalidationToken));
         }

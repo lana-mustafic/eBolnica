@@ -64,10 +64,10 @@ export class RevenueBarChartComponent implements OnInit, OnChanges, OnDestroy {
   @Input() useCache: boolean = true;
   
   /** Custom bar color (default: pharmacy blue #3b82f6) */
-  @Input() barColor: string = '#3b82f6';
+  @Input() barColor: string = '#0f766e';
   
   /** Custom bar hover color */
-  @Input() barHoverColor: string = '#2563eb';
+  @Input() barHoverColor: string = '#0d9488';
 
   // Output events
   /** Emitted when chart data is loaded successfully */

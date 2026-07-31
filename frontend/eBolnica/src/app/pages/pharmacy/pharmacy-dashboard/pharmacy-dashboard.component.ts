@@ -10,6 +10,7 @@ import { PrescriptionDto } from '../../../models/prescription.dto';
 import { RevenueBarChartComponent } from '../../../features/pharmacy/analytics/components/revenue-bar-chart/revenue-bar-chart.component';
 import { CategoriesPieChartComponent } from '../../../features/pharmacy/analytics/components/categories-pie-chart/categories-pie-chart.component';
 import { StockTrendsLineChartComponent } from '../../../features/pharmacy/analytics/components/stock-trends-line-chart/stock-trends-line-chart.component';
+import { PharmacyShellComponent } from '../pharmacy-shell/pharmacy-shell.component';
 
 type AnalyticsSource = 'summary' | 'revenue' | 'categories' | 'stock';
 
@@ -34,7 +35,8 @@ const ANALYTICS_SOURCE_LABELS: Record<AnalyticsSource, string> = {
     CommonModule,
     RevenueBarChartComponent,
     CategoriesPieChartComponent,
-    StockTrendsLineChartComponent
+    StockTrendsLineChartComponent,
+    PharmacyShellComponent
   ],
   standalone: true,
   templateUrl: './pharmacy-dashboard.component.html',

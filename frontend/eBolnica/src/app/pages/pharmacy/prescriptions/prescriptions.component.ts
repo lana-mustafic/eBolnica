@@ -8,6 +8,7 @@ import { NotificationService } from '../../../shared/services/notification.servi
 import { FilterSummaryComponent } from '../../../shared/components/filter-summary/filter-summary.component';
 import { ActiveFiltersComponent } from '../../../shared/components/active-filters/active-filters.component';
 import { SortStatusComponent } from '../../../shared/components/sort-status/sort-status.component';
+import { PharmacyShellComponent } from '../pharmacy-shell/pharmacy-shell.component';
 import { PrescriptionDto } from '../../../models/prescription.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { PagedResponse } from '../../../models/paged-response.dto';
@@ -18,7 +19,7 @@ import { getPageRangeEnd, getPageRangeStart } from '../../../shared/utils/paged-
 @Component({
   selector: 'app-prescriptions',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, FilterSummaryComponent, ActiveFiltersComponent, SortStatusComponent],
+  imports: [CommonModule, FormsModule, RouterModule, FilterSummaryComponent, ActiveFiltersComponent, SortStatusComponent, PharmacyShellComponent],
   templateUrl: './prescriptions.component.html',
   styleUrl: './prescriptions.component.css'
 })

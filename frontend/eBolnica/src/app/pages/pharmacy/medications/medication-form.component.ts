@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
+import { PharmacyShellComponent } from '../pharmacy-shell/pharmacy-shell.component';
 import { finalize } from 'rxjs';
 import { PharmacyService } from '../../../shared/services/pharmacy/pharmacy.service';
 import { MedicationDto } from '../../../models/medication.dto';
@@ -19,7 +20,7 @@ import { dateInputToIsoString } from '../../../shared/utils/date-only.util';
 @Component({
   selector: 'app-medication-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, PharmacyShellComponent],
   templateUrl: './medication-form.component.html',
   styleUrl: './medication-form.component.css'
 })

@@ -6,6 +6,7 @@ import { MedicationDto } from '../../../models/medication.dto';
 import { MedicationImageDto } from '../../../models/medication-image.dto';
 import { MedicationAiSummaryDto } from '../../../models/medication-ai-summary.dto';
 import { MedicationImageGalleryComponent } from './medication-image-gallery.component';
+import { PharmacyShellComponent } from '../pharmacy-shell/pharmacy-shell.component';
 import {
   getMedicationAiSummaryErrorMessage,
   resolveMedicationAiSummaryState,
@@ -16,7 +17,7 @@ import { finalize } from 'rxjs';
 @Component({
   selector: 'app-medication-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, MedicationImageGalleryComponent],
+  imports: [CommonModule, RouterModule, MedicationImageGalleryComponent, PharmacyShellComponent],
   templateUrl: './medication-detail.component.html',
   styleUrl: './medication-detail.component.css'
 })

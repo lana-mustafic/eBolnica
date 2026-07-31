@@ -9,6 +9,7 @@ import { PrescriptionDispenseDto } from '../../../models/prescription-dispense.d
 import { PharmacistDataDto } from '../../../models/pharmacist-data.dto';
 import { finalize, forkJoin } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { PharmacyShellComponent } from '../pharmacy-shell/pharmacy-shell.component';
 
 interface StockIssue {
   medicationName: string;
@@ -26,7 +27,7 @@ interface ValidationResult {
 @Component({
   selector: 'app-prescription-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, PharmacyShellComponent],
   templateUrl: './prescription-detail.component.html',
   styleUrl: './prescription-detail.component.css'
 })

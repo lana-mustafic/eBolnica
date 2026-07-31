@@ -9,6 +9,7 @@ import { ActiveFiltersComponent } from '../../../shared/components/active-filter
 import { SortStatusComponent } from '../../../shared/components/sort-status/sort-status.component';
 import { MedicationThumbnailComponent } from './medication-thumbnail.component';
 import { MedicationImportSummaryComponent } from './medication-import-summary.component';
+import { PharmacyShellComponent } from '../pharmacy-shell/pharmacy-shell.component';
 import { MedicationDto } from '../../../models/medication.dto';
 import { MedicationAutocompleteSuggestion } from '../../../models/medication-autocomplete.dto';
 import { MedicationImportSummary } from '../../../models/medication-import.dto';
@@ -36,7 +37,7 @@ const MEDICATION_SEARCH_DEBOUNCE_MS = 300;
 @Component({
   selector: 'app-medications',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, FilterSummaryComponent, ActiveFiltersComponent, SortStatusComponent, MedicationThumbnailComponent, MedicationImportSummaryComponent],
+  imports: [CommonModule, FormsModule, RouterModule, FilterSummaryComponent, ActiveFiltersComponent, SortStatusComponent, MedicationThumbnailComponent, MedicationImportSummaryComponent, PharmacyShellComponent],
   templateUrl: './medications.component.html',
   styleUrl: './medications.component.css'
 })

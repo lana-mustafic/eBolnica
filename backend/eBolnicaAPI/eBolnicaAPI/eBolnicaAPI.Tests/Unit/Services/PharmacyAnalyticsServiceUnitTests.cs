@@ -25,7 +25,7 @@ namespace eBolnicaAPI.Tests.Unit.Services
 
             _service = new PharmacyAnalyticsService(
                 _context,
-                new MemoryCache(new MemoryCacheOptions()),
+                new MemoryCache(new MemoryCacheOptions { SizeLimit = 1024 }),
                 NullLogger<PharmacyAnalyticsService>.Instance);
 
             SeedDashboardMetricsData();
@@ -61,6 +61,53 @@ namespace eBolnicaAPI.Tests.Unit.Services
             Assert.Equal(1, summary.ExpiringSoon);
             Assert.Equal(1, summary.ExpiredMedications);
             Assert.Equal(1825m, summary.InventoryValue);
+        }
+
+        [Fact]
+        public async Task GetMonthlyRevenueAsync_ReturnsAggregatedDispensedRevenueByMonth()
+        {
+            var now = DateTime.UtcNow;
+            var medication = _context.Medications.First();
+
+            _context.Prescriptions.Add(new Prescription
+            {
+                PrescriptionNumber = "RX-TEST-1",
+                MedicalReportId = 1,
+                PatientId = 1,
+                DoctorId = 1,
+                Status = "Dispensed",
+                PrescribedDate = now.AddMonths(-1),
+                DispensedDate = now.AddMonths(-1),
+                TotalAmount = 150m,
+                PrescriptionItems = new List<PrescriptionItem>
+                {
+                    new PrescriptionItem
+                    {
+                        MedicationId = medication.Id,
+                        Quantity = 2,
+                        UnitPrice = 50m,
+                        TotalPrice = 100m
+                    },
+                    new PrescriptionItem
+                    {
+                        MedicationId = medication.Id,
+                        Quantity = 1,
+                        UnitPrice = 50m,
+                        TotalPrice = 50m
+                    }
+                }
+            });
+
+            _context.SaveChanges();
+
+            var end = now;
+            var start = now.AddMonths(-3);
+
+            var result = await _service.GetMonthlyRevenueAsync(start, end, 3);
+
+            Assert.NotEmpty(result.Data);
+            Assert.Contains(result.Data, item => item.Revenue == 150m && item.PrescriptionCount == 1);
+            Assert.Equal(150m, result.TotalRevenue);
         }
 
         [Fact]

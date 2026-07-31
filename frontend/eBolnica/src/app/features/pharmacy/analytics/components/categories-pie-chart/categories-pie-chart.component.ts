@@ -213,7 +213,7 @@ export class CategoriesPieChartComponent implements OnInit, OnChanges, OnDestroy
 
   // Pharmacy design system color palette (public for template access)
   readonly colorPalette: string[] = [
-    '#3b82f6', // Pharmacy blue
+    '#0f766e', // Pharmacy teal
     '#10b981', // Green
     '#f59e0b', // Amber
     '#ef4444', // Red

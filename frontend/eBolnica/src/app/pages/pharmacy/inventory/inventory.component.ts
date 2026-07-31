@@ -8,6 +8,7 @@ import { NotificationService } from '../../../shared/services/notification.servi
 import { FilterSummaryComponent } from '../../../shared/components/filter-summary/filter-summary.component';
 import { ActiveFiltersComponent } from '../../../shared/components/active-filters/active-filters.component';
 import { SortStatusComponent } from '../../../shared/components/sort-status/sort-status.component';
+import { PharmacyShellComponent } from '../pharmacy-shell/pharmacy-shell.component';
 import { MedicationDto } from '../../../models/medication.dto';
 import { PharmacyFilters } from '../../../models/pharmacy-filters.model';
 import { InventoryResponse } from '../../../models/inventory-response.dto';
@@ -29,7 +30,7 @@ type ExpiryStatus = 'good' | 'warning' | 'critical' | 'expired';
 @Component({
   selector: 'app-inventory',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, FilterSummaryComponent, ActiveFiltersComponent, SortStatusComponent],
+  imports: [CommonModule, FormsModule, RouterModule, FilterSummaryComponent, ActiveFiltersComponent, SortStatusComponent, PharmacyShellComponent],
   templateUrl: './inventory.component.html',
   styleUrl: './inventory.component.css'
 })

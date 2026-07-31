@@ -28,6 +28,7 @@ import {
   MEDICATION_WIZARD_AUTOSAVE_DEBOUNCE_MS,
   pickMedicationWizardDraftFormPatch
 } from './medication-wizard-autosave.util';
+import { PharmacyShellComponent } from '../pharmacy-shell/pharmacy-shell.component';
 
 @Component({
   selector: 'app-medication-wizard',
@@ -40,7 +41,8 @@ import {
     MatInputModule,
     MatSelectModule,
     MatCheckboxModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    PharmacyShellComponent
   ],
   templateUrl: './medication-wizard.component.html',
   styleUrl: './medication-wizard.component.css'
