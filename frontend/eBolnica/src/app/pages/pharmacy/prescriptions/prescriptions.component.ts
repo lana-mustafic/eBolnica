@@ -14,11 +14,12 @@ import { PagedResponse } from '../../../models/paged-response.dto';
 import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil, catchError, of, EMPTY } from 'rxjs';
 import { TABLE_DEFAULT_SORTS, mapPrescriptionSortColumn } from '../../../constants/sort.constants';
 import { getPageRangeEnd, getPageRangeStart } from '../../../shared/utils/paged-response.util';
+import { PharmacyShellComponent } from '../pharmacy-shell/pharmacy-shell.component';
 
 @Component({
   selector: 'app-prescriptions',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, FilterSummaryComponent, ActiveFiltersComponent, SortStatusComponent],
+  imports: [CommonModule, FormsModule, RouterModule, FilterSummaryComponent, ActiveFiltersComponent, SortStatusComponent, PharmacyShellComponent],
   templateUrl: './prescriptions.component.html',
   styleUrl: './prescriptions.component.css'
 })

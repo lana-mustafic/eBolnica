@@ -1,8 +1,32 @@
+@import '../pharmacy-design-system.css';
+
 .prescription-detail-container {
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
+  padding: 0;
+  max-width: none;
+  margin: 0;
 }
+
+.info-card,
+.dispense-panel,
+.items-table-container {
+  border-radius: var(--ph-radius-lg);
+  box-shadow: var(--ph-shadow-sm);
+}
+
+.btn-dispense {
+  background: linear-gradient(135deg, var(--ph-success) 0%, #10b981 100%);
+}
+
+.stock-warning,
+.stock-critical {
+  border-radius: var(--ph-radius-md);
+}
+
+.spinner { border-top-color: var(--ph-primary); }
+
+.status-badge.status-pending { background: var(--ph-warning-bg); color: var(--ph-warning); }
+.status-badge.status-dispensed { background: var(--ph-success-bg); color: var(--ph-success); }
+
 
 .back-button {
   display: inline-flex;

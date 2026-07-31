@@ -1,8 +1,68 @@
+@import '../pharmacy-design-system.css';
+
 .medications-container {
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
+  padding: 0;
+  max-width: none;
+  margin: 0;
 }
+
+.header-section {
+  border-bottom: none;
+  margin-bottom: var(--ph-space-5);
+  padding-bottom: 0;
+}
+
+.header-left h2,
+.pharmacy-page-title {
+  margin: 0;
+}
+
+.btn-primary,
+.btn-export,
+.btn-import {
+  border-radius: var(--ph-radius-md);
+  font-weight: 600;
+  transition: transform var(--ph-transition), box-shadow var(--ph-transition);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--ph-primary) 0%, var(--ph-primary-hover) 100%) !important;
+  box-shadow: var(--ph-shadow-primary);
+}
+
+.filters-section,
+.medications-table-container,
+.table-container {
+  border-radius: var(--ph-radius-lg);
+  border-color: var(--ph-border);
+  box-shadow: var(--ph-shadow-sm);
+}
+
+.status-badge.in-stock,
+.stock-in-stock {
+  background: var(--ph-success-bg);
+  color: var(--ph-stock-in);
+  border: 1px solid var(--ph-success-border);
+}
+
+.status-badge.low-stock,
+.stock-low {
+  background: var(--ph-warning-bg);
+  color: var(--ph-stock-low);
+  border: 1px solid var(--ph-warning-border);
+}
+
+.status-badge.out-of-stock,
+.stock-out {
+  background: var(--ph-danger-bg);
+  color: var(--ph-stock-out);
+  border: 1px solid var(--ph-danger-border);
+}
+
+.spinner {
+  border-top-color: var(--ph-primary);
+}
+
 
 .header-section {
   display: flex;

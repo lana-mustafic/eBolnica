@@ -1,8 +1,11 @@
+@import '../pharmacy-design-system.css';
+
 .image-gallery {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: var(--ph-surface);
+  border-radius: var(--ph-radius-lg);
+  padding: var(--ph-space-6);
+  box-shadow: var(--ph-shadow-sm);
+  border: 1px solid var(--ph-border);
 }
 
 .gallery-title {
@@ -631,4 +634,27 @@
   .strip-delete-btn {
     opacity: 1;
   }
+}
+
+/* Design system overrides */
+.gallery-title {
+  color: var(--ph-text);
+}
+
+.main-image-container {
+  border-radius: var(--ph-radius-md);
+  border: 1px solid var(--ph-border);
+}
+
+.thumbnail-item.is-selected {
+  border-color: var(--ph-primary);
+  box-shadow: 0 0 0 2px var(--ph-primary-light);
+}
+
+.primary-badge {
+  background: var(--ph-primary);
+}
+
+.upload-progress-fill {
+  background: linear-gradient(90deg, var(--ph-primary) 0%, #14b8a6 100%);
 }

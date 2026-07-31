@@ -1,8 +1,35 @@
+@import '../pharmacy-design-system.css';
+
 .prescriptions-container {
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
+  padding: 0;
+  max-width: none;
+  margin: 0;
 }
+
+.header-section {
+  border-bottom: none;
+  margin-bottom: var(--ph-space-5);
+}
+
+.status-tab.active {
+  border-color: var(--ph-primary);
+  color: var(--ph-primary);
+  background: var(--ph-primary-muted);
+}
+
+.status-badge.status-pending { background: var(--ph-warning-bg); color: var(--ph-warning); }
+.status-badge.status-approved { background: var(--ph-info-bg); color: var(--ph-info); }
+.status-badge.status-dispensed { background: var(--ph-success-bg); color: var(--ph-success); }
+.status-badge.status-cancelled { background: var(--ph-bg); color: var(--ph-text-muted); }
+
+.spinner { border-top-color: var(--ph-primary); }
+
+.table-container,
+.prescriptions-table-container {
+  border-radius: var(--ph-radius-lg);
+  box-shadow: var(--ph-shadow-sm);
+}
+
 
 .header-section {
   margin-bottom: 2rem;

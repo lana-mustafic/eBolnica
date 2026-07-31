@@ -22,6 +22,7 @@ import { formatLocalDateParam } from '../../../shared/utils/date-only.util';
 import { getPageRangeEnd, getPageRangeStart } from '../../../shared/utils/paged-response.util';
 import { buildInventoryExportCsv, getInventoryExportFilename } from '../../../shared/utils/inventory-csv.util';
 import { downloadCsv } from '../../../shared/utils/csv.util';
+import { PharmacyShellComponent } from '../pharmacy-shell/pharmacy-shell.component';
 
 type StockStatus = 'adequate' | 'low' | 'critical' | 'out-of-stock';
 type ExpiryStatus = 'good' | 'warning' | 'critical' | 'expired';
@@ -29,7 +30,7 @@ type ExpiryStatus = 'good' | 'warning' | 'critical' | 'expired';
 @Component({
   selector: 'app-inventory',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, FilterSummaryComponent, ActiveFiltersComponent, SortStatusComponent],
+  imports: [CommonModule, FormsModule, RouterModule, FilterSummaryComponent, ActiveFiltersComponent, SortStatusComponent, PharmacyShellComponent],
   templateUrl: './inventory.component.html',
   styleUrl: './inventory.component.css'
 })

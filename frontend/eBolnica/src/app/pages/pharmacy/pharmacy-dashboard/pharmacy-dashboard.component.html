@@ -1,252 +1,155 @@
-<div class="dashboard-container">
-  <header class="dashboard-header">
-    <div class="header-content">
-      <div class="user-info">
-        <span class="user-greeting">Welcome, {{ authService.userLoggedInfo() }}</span>
-      </div>
-      <button class="btn btn-logout" (click)="authService.logout()">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-          <polyline points="16 17 21 12 16 7"></polyline>
-          <line x1="21" y1="12" x2="9" y2="12"></line>
-        </svg>
-        Logout
-      </button>
-    </div>
-  </header>
-
-  <nav class="dashboard-nav">
-    <a routerLink="/pharmacy/medications" 
-       routerLinkActive="active" 
-       [routerLinkActiveOptions]="{exact: false}"
-       class="nav-link">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-        <circle cx="12" cy="10" r="3"></circle>
-      </svg>
-      <span>Medications</span>
-    </a>
-    <a routerLink="/pharmacy/prescriptions" 
-       routerLinkActive="active" 
-       [routerLinkActiveOptions]="{exact: false}"
-       class="nav-link">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-        <polyline points="14 2 14 8 20 8"></polyline>
-        <line x1="16" y1="13" x2="8" y2="13"></line>
-        <line x1="16" y1="17" x2="8" y2="17"></line>
-        <polyline points="10 9 9 9 8 9"></polyline>
-      </svg>
-      <span>Prescriptions</span>
-    </a>
-    <a routerLink="/pharmacy/inventory" 
-       routerLinkActive="active" 
-       [routerLinkActiveOptions]="{exact: false}"
-       class="nav-link">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-        <line x1="3" y1="9" x2="21" y2="9"></line>
-        <line x1="9" y1="21" x2="9" y2="9"></line>
-      </svg>
-      <span>Inventory</span>
-    </a>
-  </nav>
-
-  <main class="dashboard-content">
-    <!-- Loading State -->
-    <div *ngIf="isLoading" class="loading-container">
-      <div class="spinner"></div>
+<app-pharmacy-shell>
+  @if (isLoading) {
+    <div class="pharmacy-loading" role="status" aria-live="polite">
+      <div class="pharmacy-spinner" aria-hidden="true"></div>
       <p>Loading dashboard data...</p>
     </div>
-
-    <!-- Error State -->
-    <div *ngIf="errorMessage && !isLoading" class="error-message">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  } @else if (errorMessage) {
+    <div class="pharmacy-alert pharmacy-alert-error" role="alert">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <circle cx="12" cy="12" r="10"></circle>
         <line x1="12" y1="8" x2="12" y2="12"></line>
         <line x1="12" y1="16" x2="12.01" y2="16"></line>
       </svg>
-      <p>{{ errorMessage }}</p>
-      <button class="btn btn-retry" (click)="loadDashboardData()">Retry</button>
+      <div>
+        <p>{{ errorMessage }}</p>
+        <button type="button" class="pharmacy-btn pharmacy-btn-secondary pharmacy-btn-sm" (click)="loadDashboardData()">Retry</button>
+      </div>
     </div>
+  } @else {
+    <div class="dashboard-main">
+      <header class="pharmacy-page-header">
+        <div>
+          <h1 class="pharmacy-page-title">Dashboard Overview</h1>
+          <p class="pharmacy-page-subtitle">Real-time pharmacy metrics and analytics</p>
+        </div>
+      </header>
 
-    <!-- Dashboard Content -->
-    <div *ngIf="!isLoading && !errorMessage" class="dashboard-main">
-      <!-- Metrics Cards -->
-      <section class="metrics-section">
-        <h2 class="section-title">Dashboard Overview</h2>
-        <div class="metrics-grid">
-          <!-- Total Medications Card -->
-          <div class="metric-card">
-            <div class="metric-icon primary">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
+      <section class="metrics-section" aria-labelledby="kpi-heading">
+        <h2 id="kpi-heading" class="visually-hidden">Key metrics</h2>
+        <div class="pharmacy-kpi-grid">
+          <article class="pharmacy-kpi-card">
+            <div class="pharmacy-kpi-icon primary" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.5 20.5 12 22l1.5-1.5"></path>
+                <path d="M12 11v11"></path>
+                <path d="M7 11h10"></path>
+                <path d="M12 2a7 7 0 0 0-4 12.7V11a4 4 0 1 1 8 0v3.7A7 7 0 0 0 12 2z"></path>
               </svg>
             </div>
-            <div class="metric-content">
-              <h3 class="metric-label">Total Medications</h3>
-              <p class="metric-value">{{ totalMedications }}</p>
+            <div>
+              <p class="pharmacy-kpi-label">Total Medications</p>
+              <p class="pharmacy-kpi-value">{{ totalMedications }}</p>
             </div>
-          </div>
+          </article>
 
-          <!-- Pending Prescriptions Card -->
-          <div class="metric-card">
-            <div class="metric-icon accent">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <article class="pharmacy-kpi-card">
+            <div class="pharmacy-kpi-icon accent" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                 <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
               </svg>
             </div>
-            <div class="metric-content">
-              <h3 class="metric-label">Pending Prescriptions</h3>
-              <p class="metric-value">{{ pendingPrescriptions }}</p>
+            <div>
+              <p class="pharmacy-kpi-label">Pending Prescriptions</p>
+              <p class="pharmacy-kpi-value">{{ pendingPrescriptions }}</p>
             </div>
-          </div>
+          </article>
 
-          <!-- Low Stock Alerts Card -->
-          <div class="metric-card alert">
-            <div class="metric-icon warning">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <article class="pharmacy-kpi-card kpi-alert">
+            <div class="pharmacy-kpi-icon warning" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
                 <line x1="12" y1="9" x2="12" y2="13"></line>
-                <line x1="12" y1="17" x2="12.01" y2="17"></line>
               </svg>
             </div>
-            <div class="metric-content">
-              <h3 class="metric-label">Low Stock Alerts</h3>
-              <p class="metric-value">{{ lowStockAlerts }}</p>
+            <div>
+              <p class="pharmacy-kpi-label">Low Stock Alerts</p>
+              <p class="pharmacy-kpi-value">{{ lowStockAlerts }}</p>
             </div>
-          </div>
+          </article>
 
-          <!-- Expiring Soon Card -->
-          <div class="metric-card">
-            <div class="metric-icon danger">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <article class="pharmacy-kpi-card">
+            <div class="pharmacy-kpi-icon warning" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"></circle>
                 <polyline points="12 6 12 12 16 14"></polyline>
               </svg>
             </div>
-            <div class="metric-content">
-              <h3 class="metric-label">Expiring Soon</h3>
-              <p class="metric-value">{{ expiringSoon }}</p>
+            <div>
+              <p class="pharmacy-kpi-label">Expiring Soon</p>
+              <p class="pharmacy-kpi-value">{{ expiringSoon }}</p>
             </div>
-          </div>
+          </article>
 
-          <!-- Expired Medications Card -->
-          <div class="metric-card alert">
-            <div class="metric-icon danger">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <article class="pharmacy-kpi-card kpi-alert">
+            <div class="pharmacy-kpi-icon danger" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="15" y1="9" x2="9" y2="15"></line>
                 <line x1="9" y1="9" x2="15" y2="15"></line>
               </svg>
             </div>
-            <div class="metric-content">
-              <h3 class="metric-label">Expired</h3>
-              <p class="metric-value">{{ expiredMedications }}</p>
+            <div>
+              <p class="pharmacy-kpi-label">Expired</p>
+              <p class="pharmacy-kpi-value">{{ expiredMedications }}</p>
             </div>
-          </div>
+          </article>
 
-          <!-- Inventory Value Card -->
-          <div class="metric-card">
-            <div class="metric-icon primary">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <article class="pharmacy-kpi-card">
+            <div class="pharmacy-kpi-icon primary" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="1" x2="12" y2="23"></line>
                 <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
               </svg>
             </div>
-            <div class="metric-content">
-              <h3 class="metric-label">Inventory Value</h3>
-              <p class="metric-value">{{ inventoryValue | currency:'USD':'symbol':'1.0-0' }}</p>
+            <div>
+              <p class="pharmacy-kpi-label">Inventory Value</p>
+              <p class="pharmacy-kpi-value">{{ inventoryValue | currency:'USD':'symbol':'1.0-0' }}</p>
             </div>
-          </div>
+          </article>
         </div>
       </section>
 
-      <!-- Quick Access Buttons -->
-      <section class="quick-access-section">
-        <h2 class="section-title">Quick Access</h2>
+      <section class="quick-access-section" aria-labelledby="quick-access-heading">
+        <h2 id="quick-access-heading" class="pharmacy-section-title">Quick Access</h2>
         <div class="quick-links-grid">
-          <!-- Manage Medications -->
-          <button 
-            class="quick-link-btn quick-link-primary"
-            (click)="navigateToRoute('/pharmacy/medications')">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-              <circle cx="12" cy="10" r="3"></circle>
-            </svg>
-            <span>Manage Medications</span>
+          <button type="button" class="quick-link-btn quick-link-primary" (click)="navigateToRoute('/pharmacy/medications')">
+            Manage Medications
           </button>
-
-          <!-- View Prescriptions -->
-          <button 
-            class="quick-link-btn quick-link-accent"
-            (click)="navigateToRoute('/pharmacy/prescriptions')">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-            </svg>
-            <span>View Prescriptions</span>
+          <button type="button" class="quick-link-btn quick-link-accent" (click)="navigateToRoute('/pharmacy/prescriptions')">
+            View Prescriptions
           </button>
-
-          <!-- Check Inventory -->
-          <button 
-            class="quick-link-btn quick-link-warn"
-            (click)="navigateToRoute('/pharmacy/inventory')">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="3" y1="9" x2="21" y2="9"></line>
-              <line x1="9" y1="21" x2="9" y2="9"></line>
-            </svg>
-            <span>Check Inventory</span>
+          <button type="button" class="quick-link-btn quick-link-warn" (click)="navigateToRoute('/pharmacy/inventory')">
+            Check Inventory
           </button>
-
-          <!-- Add Medication -->
-          <button 
-            class="quick-link-btn quick-link-success"
-            (click)="navigateToRoute('/pharmacy/medications/wizard')">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="16"></line>
-              <line x1="8" y1="12" x2="16" y2="12"></line>
-            </svg>
-            <span>Add Medication</span>
+          <button type="button" class="quick-link-btn quick-link-success" (click)="navigateToRoute('/pharmacy/medications/wizard')">
+            Add Medication
           </button>
         </div>
       </section>
 
-      <!-- Analytics Charts Section -->
-      <section class="analytics-section">
-        <h2 class="section-title">Analytics & Insights</h2>
+      <section class="analytics-section" aria-labelledby="analytics-heading">
+        <h2 id="analytics-heading" class="pharmacy-section-title">Analytics &amp; Insights</h2>
 
-        <div
-          *ngIf="hasAnalyticsErrors"
-          class="analytics-error-banner"
-          role="alert"
-          aria-live="polite">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-            <line x1="12" y1="9" x2="12" y2="13"></line>
-            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-          </svg>
-          <div class="analytics-error-content">
-            <p class="analytics-error-title">Analytics unavailable</p>
-            <p class="analytics-error-message">{{ analyticsErrorMessage }}</p>
+        @if (hasAnalyticsErrors) {
+          <div class="pharmacy-alert pharmacy-alert-warning analytics-error-banner" role="alert">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            </svg>
+            <div class="analytics-error-content">
+              <p class="analytics-error-title">Analytics unavailable</p>
+              <p class="analytics-error-message">{{ analyticsErrorMessage }}</p>
+            </div>
+            <button type="button" class="pharmacy-btn pharmacy-btn-secondary pharmacy-btn-sm" (click)="retryAnalytics()">
+              Retry analytics
+            </button>
           </div>
-          <button class="btn-retry analytics-retry-btn" type="button" (click)="retryAnalytics()">
-            Retry analytics
-          </button>
-        </div>
-        
+        }
+
         <div class="charts-grid">
-          <!-- Revenue Bar Chart -->
-          <div class="chart-card">
-            <app-revenue-bar-chart 
+          <div class="chart-card pharmacy-card">
+            <app-revenue-bar-chart
               [title]="'Monthly Revenue Overview'"
               [period]="'last12months'"
               [height]="350"
@@ -254,10 +157,8 @@
               (dataLoaded)="onAnalyticsLoaded('revenue')">
             </app-revenue-bar-chart>
           </div>
-
-          <!-- Categories Pie Chart -->
-          <div class="chart-card">
-            <app-categories-pie-chart 
+          <div class="chart-card pharmacy-card">
+            <app-categories-pie-chart
               [title]="'Medication Categories Distribution'"
               [chartType]="'doughnut'"
               [maxCategories]="8"
@@ -266,10 +167,8 @@
               (dataLoaded)="onAnalyticsLoaded('categories')">
             </app-categories-pie-chart>
           </div>
-
-          <!-- Current stock levels chart -->
-          <div class="chart-card chart-card-full">
-            <app-stock-trends-line-chart 
+          <div class="chart-card chart-card-full pharmacy-card">
+            <app-stock-trends-line-chart
               [days]="30"
               [showThresholds]="true"
               [height]="350"
@@ -280,52 +179,53 @@
         </div>
       </section>
 
-      <!-- Recent Prescriptions -->
-      <section class="recent-prescriptions-section">
+      <section class="recent-prescriptions-section pharmacy-card" aria-labelledby="recent-rx-heading">
         <div class="section-header">
-          <h2 class="section-title">Pending Prescriptions</h2>
-          <a routerLink="/pharmacy/prescriptions" class="view-all-link">View All</a>
-        </div>
-        
-        <div *ngIf="recentPrescriptions.length === 0" class="empty-state">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-          </svg>
-          <p>No pending prescriptions</p>
+          <h2 id="recent-rx-heading" class="pharmacy-section-title">Pending Prescriptions</h2>
+          <a routerLink="/pharmacy/prescriptions" class="view-all-link">View all</a>
         </div>
 
-        <div *ngIf="recentPrescriptions.length > 0" class="prescriptions-table-container">
-          <table class="prescriptions-table">
-            <thead>
-              <tr>
-                <th>Prescription #</th>
-                <th>Patient</th>
-                <th>Doctor</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let prescription of recentPrescriptions" (click)="navigateToPrescription(prescription.id)" class="table-row-clickable">
-                <td>{{ prescription.prescriptionNumber }}</td>
-                <td>{{ getPatientName(prescription) }}</td>
-                <td>{{ getDoctorName(prescription) }}</td>
-                <td>{{ formatDate(prescription.prescribedDate) }}</td>
-                <td>
-                  <span class="status-badge status-pending">{{ prescription.status }}</span>
-                </td>
-                <td>
-                  <button class="btn-view" (click)="navigateToPrescription(prescription.id); $event.stopPropagation()">
-                    View Details
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        @if (recentPrescriptions.length === 0) {
+          <div class="pharmacy-empty">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            </svg>
+            <p>No pending prescriptions</p>
+          </div>
+        } @else {
+          <div class="pharmacy-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Prescription #</th>
+                  <th>Patient</th>
+                  <th>Doctor</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (prescription of recentPrescriptions; track prescription.id) {
+                  <tr class="row-clickable" (click)="navigateToPrescription(prescription.id)">
+                    <td>{{ prescription.prescriptionNumber }}</td>
+                    <td>{{ getPatientName(prescription) }}</td>
+                    <td>{{ getDoctorName(prescription) }}</td>
+                    <td>{{ formatDate(prescription.prescribedDate) }}</td>
+                    <td><span class="pharmacy-badge pharmacy-badge-pending">{{ prescription.status }}</span></td>
+                    <td>
+                      <button type="button" class="pharmacy-btn pharmacy-btn-ghost pharmacy-btn-sm"
+                        (click)="navigateToPrescription(prescription.id); $event.stopPropagation()">
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
       </section>
     </div>
-  </main>
-</div>
+  }
+</app-pharmacy-shell>

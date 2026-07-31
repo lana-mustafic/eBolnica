@@ -1,20 +1,23 @@
+@import '../../../../../pages/pharmacy/pharmacy-design-system.css';
+
 /**
  * Revenue Bar Chart Component Styles
  * Follows pharmacy design system with responsive design
  */
 
 .revenue-chart-container {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  padding: 1.5rem;
+  background: var(--ph-surface);
+  border-radius: var(--ph-radius-lg);
+  box-shadow: var(--ph-shadow-sm);
+  border: 1px solid var(--ph-border);
+  padding: var(--ph-space-6);
   min-height: 300px;
   display: flex;
   flex-direction: column;
-  transition: box-shadow 0.3s ease;
+  transition: box-shadow var(--ph-transition);
 
   &:hover {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    box-shadow: var(--ph-shadow-md);
   }
 }
 

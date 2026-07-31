@@ -1,8 +1,56 @@
+@import '../pharmacy-design-system.css';
+
 .inventory-container {
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
+  padding: 0;
+  max-width: none;
+  margin: 0;
 }
+
+.header-section {
+  border-bottom: none;
+  margin-bottom: var(--ph-space-5);
+}
+
+.spinner,
+.spinner-icon {
+  border-top-color: var(--ph-primary);
+}
+
+.alert-banner,
+.summary-card {
+  border-radius: var(--ph-radius-lg);
+  box-shadow: var(--ph-shadow-sm);
+}
+
+.stock-badge.adequate,
+.stock-adequate {
+  background: var(--ph-success-bg);
+  color: var(--ph-stock-in);
+}
+
+.stock-badge.low,
+.stock-low {
+  background: var(--ph-warning-bg);
+  color: var(--ph-stock-low);
+}
+
+.stock-badge.critical,
+.stock-critical {
+  background: #fff7ed;
+  color: var(--ph-stock-critical);
+}
+
+.stock-badge.out,
+.stock-out-of-stock {
+  background: var(--ph-danger-bg);
+  color: var(--ph-stock-out);
+}
+
+.expiry-good { color: var(--ph-success); }
+.expiry-warning { color: var(--ph-expiry-soon); }
+.expiry-critical { color: var(--ph-stock-critical); }
+.expiry-expired { color: var(--ph-expiry-expired); }
+
 
 .header-section {
   display: flex;

@@ -1,7 +1,11 @@
+<app-pharmacy-shell>
 <div class="inventory-container">
-  <div class="header-section">
-    <h2>Inventory Management</h2>
-    <div class="action-buttons">
+  <header class="pharmacy-page-header header-section">
+    <div>
+      <h1 class="pharmacy-page-title">Inventory Management</h1>
+      <p class="pharmacy-page-subtitle">Monitor stock levels, expiry dates, and alerts</p>
+    </div>
+    <div class="pharmacy-page-actions action-buttons">
       <button class="btn btn-export" (click)="exportToCSV()" [disabled]="isLoading || inventoryItems.length === 0">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -82,7 +86,7 @@
         Button is disabled when no data is available.
       </div>
     </div>
-  </div>
+  </header>
 
   <!-- Messages -->
   <div class="message success" *ngIf="clearSuccessMessage">
@@ -470,3 +474,4 @@
     </div>
   </div>
 </div>
+</app-pharmacy-shell>

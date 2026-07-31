@@ -1,16 +1,16 @@
+@import '../pharmacy-design-system.css';
+
 .import-summary {
-  margin-top: 1.25rem;
-  padding: 1.25rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  background: #fff;
+  margin-top: var(--ph-space-5);
+  padding: var(--ph-space-5);
+  border: 1px solid var(--ph-border);
+  border-radius: var(--ph-radius-lg);
+  background: var(--ph-surface);
+  box-shadow: var(--ph-shadow-sm);
 }
 
 .import-summary-header h4 {
-  margin: 0 0 0.25rem;
-  color: #2d3748;
-  font-size: 1rem;
-  font-weight: 700;
+  color: var(--ph-text);
 }
 
 .import-summary-subtitle {

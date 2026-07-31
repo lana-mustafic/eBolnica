@@ -15,11 +15,12 @@ import {
   isMedicationNameCheckUnavailable
 } from '../../../shared/utils/medication-field-error.util';
 import { dateInputToIsoString } from '../../../shared/utils/date-only.util';
+import { PharmacyShellComponent } from '../pharmacy-shell/pharmacy-shell.component';
 
 @Component({
   selector: 'app-medication-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, PharmacyShellComponent],
   templateUrl: './medication-form.component.html',
   styleUrl: './medication-form.component.css'
 })

@@ -1,8 +1,32 @@
+@import '../pharmacy-design-system.css';
+
 .form-container {
-  padding: 2rem;
-  max-width: 900px;
-  margin: 0 auto;
+  padding: 0;
+  max-width: none;
+  margin: 0;
 }
+
+.form-card {
+  border-radius: var(--ph-radius-xl);
+  box-shadow: var(--ph-shadow-md);
+  border: 1px solid var(--ph-border);
+}
+
+.form-header h2 {
+  color: var(--ph-text);
+}
+
+.btn-submit {
+  background: linear-gradient(135deg, var(--ph-primary) 0%, var(--ph-primary-hover) 100%);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--ph-primary);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
+}
+
 
 .form-card {
   background: white;

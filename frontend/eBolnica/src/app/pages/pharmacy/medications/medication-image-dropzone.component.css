@@ -1,3 +1,5 @@
+@import '../pharmacy-design-system.css';
+
 .image-dropzone-shell {
   display: flex;
   flex-direction: column;
@@ -450,4 +452,38 @@
   .image-dropzone-action-btn {
     width: 100%;
   }
+}
+
+/* Design system overrides */
+.image-dropzone {
+  border-color: var(--ph-border-strong);
+  background: var(--ph-bg-subtle);
+  border-radius: var(--ph-radius-lg);
+  transition: border-color var(--ph-transition), background var(--ph-transition), box-shadow var(--ph-transition);
+}
+
+.image-dropzone.drag-over {
+  border-color: var(--ph-primary);
+  background: var(--ph-primary-muted);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
+}
+
+.image-dropzone-title {
+  color: var(--ph-text);
+}
+
+.image-dropzone-browse-btn,
+.image-dropzone-action-upload {
+  background: linear-gradient(135deg, var(--ph-primary) 0%, var(--ph-primary-hover) 100%);
+  color: white;
+  border-radius: var(--ph-radius-md);
+}
+
+.image-dropzone-pending-item {
+  border-radius: var(--ph-radius-md);
+  border: 1px solid var(--ph-border);
+}
+
+.upload-progress-fill {
+  background: linear-gradient(90deg, var(--ph-primary) 0%, #14b8a6 100%);
 }
