@@ -1,27 +1,36 @@
 export type MedicationImageUploadFileStatusState = 'pending' | 'uploading' | 'done' | 'error';
 
+export interface MedicationImageUploadEntry {
+  file: File;
+  uploadKey: string;
+}
+
 export interface MedicationImageUploadFileStatus {
+  uploadKey: string;
   fileName: string;
   status: MedicationImageUploadFileStatusState;
   message?: string;
   progressPercent?: number;
 }
 
-export function createUploadFileStatuses(files: File[]): MedicationImageUploadFileStatus[] {
-  return files.map(file => ({
-    fileName: file.name,
+export function createUploadFileStatuses(
+  entries: MedicationImageUploadEntry[]
+): MedicationImageUploadFileStatus[] {
+  return entries.map(entry => ({
+    uploadKey: entry.uploadKey,
+    fileName: entry.file.name,
     status: 'pending'
   }));
 }
 
 export function markUploadFileStatus(
   statuses: MedicationImageUploadFileStatus[],
-  fileName: string,
+  uploadKey: string,
   status: MedicationImageUploadFileStatusState,
   message?: string
 ): MedicationImageUploadFileStatus[] {
   return statuses.map(item => {
-    if (item.fileName !== fileName) {
+    if (item.uploadKey !== uploadKey) {
       return item;
     }
 
@@ -43,13 +52,13 @@ export function markUploadFileStatus(
 
 export function updateUploadFileProgress(
   statuses: MedicationImageUploadFileStatus[],
-  fileName: string,
+  uploadKey: string,
   progressPercent: number
 ): MedicationImageUploadFileStatus[] {
   const clamped = Math.min(100, Math.max(0, progressPercent));
 
   return statuses.map(item =>
-    item.fileName === fileName
+    item.uploadKey === uploadKey
       ? { ...item, status: 'uploading', progressPercent: clamped }
       : item
   );
@@ -135,6 +144,14 @@ export function shouldShowBatchUploadProgress(totalFiles: number): boolean {
   return totalFiles > 1;
 }
 
+export function getUploadStatusForUploadKey(
+  statuses: MedicationImageUploadFileStatus[],
+  uploadKey: string
+): MedicationImageUploadFileStatus | undefined {
+  return statuses.find(item => item.uploadKey === uploadKey);
+}
+
+/** @deprecated Prefer getUploadStatusForUploadKey — fileName is not unique within a batch. */
 export function getUploadStatusForFileName(
   statuses: MedicationImageUploadFileStatus[],
   fileName: string

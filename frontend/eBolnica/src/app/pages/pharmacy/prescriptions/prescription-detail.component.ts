@@ -8,6 +8,7 @@ import { MedicationDto } from '../../../models/medication.dto';
 import { PrescriptionDispenseDto } from '../../../models/prescription-dispense.dto';
 import { PharmacistDataDto } from '../../../models/pharmacist-data.dto';
 import { finalize, forkJoin } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 interface StockIssue {
   medicationName: string;
@@ -61,19 +62,14 @@ export class PrescriptionDetailComponent implements OnInit {
 
     forkJoin({
       prescription: this.pharmacyService.getPrescriptionById(this.prescriptionId),
-      medications: this.pharmacyService.getAllMedications({
-        isActive: true,
-        page: 1,
-        pageSize: 1000
-      }),
       pharmacistData: this.pharmacyService.getPharmacistData()
     }).pipe(
       finalize(() => this.isLoading = false)
     ).subscribe({
       next: (data) => {
         this.prescription = data.prescription;
-        this.medications = data.medications.items || [];
         this.pharmacistData = data.pharmacistData;
+        this.loadMedicationStockForPrescription();
       },
       error: (error) => {
         this.errorMessage = 'Failed to load prescription details. Please try again.';
@@ -278,5 +274,26 @@ export class PrescriptionDetailComponent implements OnInit {
 
   onBack(): void {
     this.router.navigate(['/pharmacy/prescriptions']);
+  }
+
+  private loadMedicationStockForPrescription(): void {
+    if (!this.prescription?.prescriptionItems?.length) {
+      this.medications = [];
+      return;
+    }
+
+    const uniqueIds = [...new Set(this.prescription.prescriptionItems.map(item => item.medicationId))];
+    forkJoin(
+      uniqueIds.map(id => this.pharmacyService.getMedicationById(id))
+    ).pipe(
+      map(meds => meds.filter((med): med is MedicationDto => !!med))
+    ).subscribe({
+      next: meds => {
+        this.medications = meds;
+      },
+      error: () => {
+        this.medications = [];
+      }
+    });
   }
 }

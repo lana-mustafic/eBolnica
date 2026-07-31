@@ -30,7 +30,6 @@ namespace eBolnicaAPI.Models.DTOs
         /// <summary>
         /// Sort order: 'asc' or 'desc' (default: 'desc')
         /// </summary>
-        [RegularExpression("asc|desc", ErrorMessage = "SortOrder must be 'asc' or 'desc'")]
         public string? SortOrder { get; set; } = "desc";
 
         // Common filters
@@ -139,6 +138,21 @@ namespace eBolnicaAPI.Models.DTOs
                 yield return new ValidationResult(
                     "ExpiryAfter cannot be after ExpiryBefore",
                     new[] { nameof(ExpiryAfter), nameof(ExpiryBefore) });
+            }
+
+            if (!string.IsNullOrWhiteSpace(SortOrder))
+            {
+                var normalizedSortOrder = SortOrder.Trim().ToLowerInvariant();
+                if (normalizedSortOrder is not ("asc" or "desc"))
+                {
+                    yield return new ValidationResult(
+                        "SortOrder must be 'asc' or 'desc'",
+                        new[] { nameof(SortOrder) });
+                }
+                else
+                {
+                    SortOrder = normalizedSortOrder;
+                }
             }
         }
     }

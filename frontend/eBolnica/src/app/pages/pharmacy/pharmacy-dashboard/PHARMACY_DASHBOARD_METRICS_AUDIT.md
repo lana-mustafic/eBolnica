@@ -8,9 +8,9 @@
 
 ## Executive summary
 
-`pharmacy-dashboard.component.ts` does **not** contain literal hardcoded metric numbers (no `totalMedications = 42` style values). Metrics are initialized to `0` and computed in `calculateMetrics()` from API list responses.
+`pharmacy-dashboard.component.ts` loads top metric cards from `GET /api/pharmacy/analytics/dashboard-stats` via `PharmacyService.getDashboardStats()`. Metrics are no longer derived from capped paginated list responses.
 
-However, the dashboard **does not use analytics or inventory summary endpoints**. Top cards are derived client-side from paginated list APIs, which can produce **inaccurate counts** and diverge from backend/inventory logic. Chart components load independently and can show **silent mock data** via `PharmacyService` fallbacks when analytics APIs fail (outside this file, but affects the same page).
+Chart child components still load analytics endpoints independently and may show incomplete data when those APIs fail (see component `analyticsFailures` banner).
 
 ---
 
@@ -18,26 +18,17 @@ However, the dashboard **does not use analytics or inventory summary endpoints**
 
 | Metric | Source in code | Hardcoded? | Risk |
 |--------|----------------|------------|------|
-| `totalMedications` | `medications.filter(m => m.isActive).length` after `getAllMedications()` | No literal | **High** — capped by `pageSize: 1000`; not `totalCount` from API |
-| `pendingPrescriptions` | `prescriptions.filter(p => p.status === 'Pending').length` | No literal | **Medium** — depends on default prescription pagination |
-| `lowStockAlerts` | `stockQuantity < minimumStockLevel` on loaded medications | No literal | **High** — partial list + differs from inventory stock-status buckets |
-| `expiringSoon` | Active meds with expiry in next 30 days (client date math) | No literal | **Medium** — partial list; no **expired** count (AC mentions both) |
+| `totalMedications` | `dashboard-stats` API | No literal | **Low** — server-side aggregate |
+| `pendingPrescriptions` | `dashboard-stats` API | No literal | **Low** |
+| `lowStockAlerts` | `dashboard-stats` API | No literal | **Low** |
+| `expiringSoon` / `expiredMedications` | `dashboard-stats` API | No literal | **Low** |
+| `inventoryValue` | `dashboard-stats` API | No literal | **Low** |
 
 ### Data loading (`loadDashboardData`)
 
-```typescript
-forkJoin({
-  medications: this.pharmacyService.getAllMedications({ isActive: true, page: 1, pageSize: 1000 }),
-  prescriptions: this.pharmacyService.getPrescriptions()
-})
-```
+Dashboard stats come from the analytics endpoint; recent prescriptions still load from the prescriptions list API for the sidebar/table section.
 
-**Findings:**
-
-1. **Not using** `GET /api/pharmacy/analytics/dashboard-stats` (exists on backend).
-2. **Not using** `PharmacyService.getDashboardStats()` (exists on FE, unused by dashboard).
-3. **Not using** inventory `totalCount` / alert counts from `GET /api/pharmacy/inventory`.
-4. On API failure, dashboard shows **explicit error** + retry — **good** (no mock substitution in component).
+**Remaining note:** chart widgets use separate analytics calls — failures are surfaced via `hasAnalyticsErrors`, not silent mock substitution in the dashboard component itself.
 5. Charts are **not** part of `forkJoin` — they load in child components with separate error/loading state.
 
 ---

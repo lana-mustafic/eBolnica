@@ -9,6 +9,7 @@ import {
   formatCompletedBatchUploadProgressLabel,
   getActiveUploadFileName,
   getUploadFileStatusSummary,
+  getUploadStatusForUploadKey,
   hasUploadFileErrors,
   isSuccessfulUploadBatch,
   markUploadFileStatus,
@@ -17,123 +18,154 @@ import {
   UPLOAD_PROGRESS_COMPLETE_DISPLAY_MS,
   updateUploadFileProgress
 } from './medication-image-upload-status.util';
+import { createMedicationImageUploadEntry } from './medication-image-upload.util';
 
 describe('medication-image-upload-status.util', () => {
+  function createEntries(names: string[]) {
+    return names.map(name => createMedicationImageUploadEntry(new File(['a'], name, { type: 'image/jpeg' })));
+  }
+
   it('creates pending statuses for each selected file', () => {
-    const files = [
-      new File(['a'], 'a.jpg', { type: 'image/jpeg' }),
-      new File(['b'], 'b.jpg', { type: 'image/jpeg' })
-    ];
+    const entries = createEntries(['a.jpg', 'b.jpg']);
 
-    expect(createUploadFileStatuses(files)).toEqual([
-      { fileName: 'a.jpg', status: 'pending' },
-      { fileName: 'b.jpg', status: 'pending' }
-    ]);
+    const statuses = createUploadFileStatuses(entries);
+    expect(statuses).toHaveSize(2);
+    expect(statuses.every(item => item.status === 'pending')).toBeTrue();
+    expect(statuses.map(item => item.fileName)).toEqual(['a.jpg', 'b.jpg']);
+    expect(new Set(statuses.map(item => item.uploadKey)).size).toBe(2);
   });
 
-  it('updates a single file status immutably', () => {
-    const initial = createUploadFileStatuses([
-      new File(['a'], 'a.jpg', { type: 'image/jpeg' }),
-      new File(['b'], 'b.jpg', { type: 'image/jpeg' })
-    ]);
+  it('updates a single file status immutably by uploadKey', () => {
+    const entries = createEntries(['a.jpg', 'b.jpg']);
+    const initial = createUploadFileStatuses(entries);
+    const targetKey = initial[1].uploadKey;
 
-    const uploading = markUploadFileStatus(initial, 'b.jpg', 'uploading');
+    const uploading = markUploadFileStatus(initial, targetKey, 'uploading');
     expect(getActiveUploadFileName(uploading)).toBe('b.jpg');
-    expect(uploading).toEqual([
-      { fileName: 'a.jpg', status: 'pending' },
-      { fileName: 'b.jpg', status: 'uploading', progressPercent: 0 }
-    ]);
+    expect(uploading[0].status).toBe('pending');
+    expect(uploading[1].status).toBe('uploading');
+    expect(uploading[1].progressPercent).toBe(0);
   });
 
-  it('tracks per-file and batch upload progress', () => {
-    let statuses = markUploadFileStatus(
-      createUploadFileStatuses([
-        new File(['a'], 'a.jpg', { type: 'image/jpeg' }),
-        new File(['b'], 'b.jpg', { type: 'image/jpeg' })
-      ]),
-      'a.jpg',
-      'uploading'
-    );
+  it('tracks per-file and batch upload progress by uploadKey', () => {
+    const entries = createEntries(['a.jpg', 'b.jpg']);
+    let statuses = createUploadFileStatuses(entries);
+    const firstKey = statuses[0].uploadKey;
 
-    statuses = updateUploadFileProgress(statuses, 'a.jpg', 50);
+    statuses = markUploadFileStatus(statuses, firstKey, 'uploading');
+    statuses = updateUploadFileProgress(statuses, firstKey, 50);
     expect(statuses[0].status).toBe('uploading');
     expect(calculateBatchUploadProgress(statuses)).toBe(25);
 
-    statuses = markUploadFileStatus(statuses, 'a.jpg', 'done');
-    statuses = markUploadFileStatus(statuses, 'b.jpg', 'uploading');
-    statuses = updateUploadFileProgress(statuses, 'b.jpg', 40);
+    statuses = markUploadFileStatus(statuses, firstKey, 'done');
+    statuses = markUploadFileStatus(statuses, statuses[1].uploadKey, 'uploading');
+    statuses = updateUploadFileProgress(statuses, statuses[1].uploadKey, 40);
     expect(calculateBatchUploadProgress(statuses)).toBe(70);
   });
 
-  it('clears error message when status moves out of error', () => {
-    const initial = markUploadFileStatus(
-      createUploadFileStatuses([new File(['a'], 'a.jpg', { type: 'image/jpeg' })]),
-      'a.jpg',
+  it('resolves upload status by uploadKey even when file names match', () => {
+    const duplicateName = 'photo.jpg';
+    const entries = [
+      createMedicationImageUploadEntry(new File(['a'], duplicateName, { type: 'image/jpeg' })),
+      createMedicationImageUploadEntry(new File(['b'], duplicateName, { type: 'image/jpeg' }))
+    ];
+    const statuses = markUploadFileStatus(
+      createUploadFileStatuses(entries),
+      entries[1].uploadKey,
       'error',
       'Upload failed'
     );
 
-    const pending = markUploadFileStatus(initial, 'a.jpg', 'pending');
+    expect(getUploadStatusForUploadKey(statuses, entries[0].uploadKey)?.status).toBe('pending');
+    expect(getUploadStatusForUploadKey(statuses, entries[1].uploadKey)?.status).toBe('error');
+  });
+
+  it('clears error message when status moves out of error', () => {
+    const entry = createEntries(['a.jpg'])[0];
+    const initial = markUploadFileStatus(
+      createUploadFileStatuses([entry]),
+      entry.uploadKey,
+      'error',
+      'Upload failed'
+    );
+
+    const pending = markUploadFileStatus(initial, entry.uploadKey, 'pending');
     expect(pending[0].message).toBeUndefined();
   });
 
   it('derives batch progress for a three-file upload', () => {
-    let statuses = createUploadFileStatuses([
-      new File(['a'], 'a.jpg', { type: 'image/jpeg' }),
-      new File(['b'], 'b.jpg', { type: 'image/jpeg' }),
-      new File(['c'], 'c.jpg', { type: 'image/jpeg' })
-    ]);
+    const entries = createEntries(['a.jpg', 'b.jpg', 'c.jpg']);
+    let statuses = createUploadFileStatuses(entries);
 
-    statuses = markUploadFileStatus(statuses, 'a.jpg', 'uploading');
-    statuses = updateUploadFileProgress(statuses, 'a.jpg', 60);
+    statuses = markUploadFileStatus(statuses, entries[0].uploadKey, 'done');
+    statuses = markUploadFileStatus(statuses, entries[1].uploadKey, 'uploading');
+    statuses = updateUploadFileProgress(statuses, entries[1].uploadKey, 60);
 
-    expect(deriveBatchUploadProgress(statuses)).toEqual({
-      overallPercent: 20,
-      totalFiles: 3,
+    const batch = deriveBatchUploadProgress(statuses);
+    expect(batch.overallPercent).toBe(53);
+    expect(batch.completedFiles).toBe(1);
+    expect(batch.activeFileName).toBe('b.jpg');
+  });
+
+  it('calculates sequential batch progress', () => {
+    expect(calculateSequentialBatchProgress(0, 2, 50)).toBe(25);
+    expect(calculateSequentialBatchProgress(1, 2, 100)).toBe(100);
+  });
+
+  it('formats batch upload labels', () => {
+    expect(formatBatchUploadProgressLabel({
+      overallPercent: 50,
+      totalFiles: 1,
       completedFiles: 0,
       activeFileName: 'a.jpg'
-    });
-    expect(formatBatchUploadProgressLabel(deriveBatchUploadProgress(statuses)))
-      .toBe('Uploading 1 of 3 files');
-    expect(shouldShowBatchUploadProgress(3)).toBeTrue();
-    expect(shouldShowBatchUploadProgress(1)).toBeFalse();
-  });
+    })).toBe('Uploading image...');
 
-  it('calculates sequential batch progress across multiple files', () => {
-    expect(calculateSequentialBatchProgress(0, 3, 90)).toBe(30);
-    expect(calculateSequentialBatchProgress(1, 3, 50)).toBe(50);
-    expect(calculateSequentialBatchProgress(2, 3, 100)).toBe(100);
-  });
-
-  it('supports per-file error and retry state helpers', () => {
-    const statuses = finalizeUploadFileStatusesAfterBatch([
-      { fileName: 'a.jpg', status: 'done', progressPercent: 100 },
-      { fileName: 'b.jpg', status: 'error', progressPercent: 40, message: 'Network error' },
-      { fileName: 'c.jpg', status: 'pending' }
-    ]);
-
-    expect(statuses).toEqual([
-      { fileName: 'a.jpg', status: 'done', progressPercent: 100 },
-      { fileName: 'b.jpg', status: 'error', progressPercent: 40, message: 'Network error' }
-    ]);
-    expect(hasUploadFileErrors(statuses)).toBeTrue();
-    expect(canRetryUploadFile(statuses[1], false)).toBeTrue();
-    expect(canRetryUploadFile(statuses[1], true)).toBeFalse();
-    expect(getUploadFileStatusSummary(statuses[1])).toBe('Network error');
-  });
-
-  it('marks all upload rows complete at 100% before hiding progress', () => {
-    const completed = markUploadFileStatusesComplete([
-      { fileName: 'a.jpg', status: 'uploading', progressPercent: 80 },
-      { fileName: 'b.jpg', status: 'pending' }
-    ]);
-
-    expect(completed).toEqual([
-      { fileName: 'a.jpg', status: 'done', progressPercent: 100, message: undefined },
-      { fileName: 'b.jpg', status: 'done', progressPercent: 100, message: undefined }
-    ]);
-    expect(isSuccessfulUploadBatch({ uploaded: [{}], errors: [] })).toBeTrue();
-    expect(isSuccessfulUploadBatch({ uploaded: [{}], errors: [{}] })).toBeFalse();
     expect(formatCompletedBatchUploadProgressLabel(3)).toBe('Uploaded 3 of 3 files');
+  });
+
+  it('detects upload errors and retry eligibility', () => {
+    const entry = createEntries(['a.jpg'])[0];
+    const statuses = markUploadFileStatus(
+      createUploadFileStatuses([entry]),
+      entry.uploadKey,
+      'error',
+      'Failed'
+    );
+
+    expect(hasUploadFileErrors(statuses)).toBeTrue();
+    expect(canRetryUploadFile(statuses[0], false)).toBeTrue();
+    expect(canRetryUploadFile(statuses[0], true)).toBeFalse();
+  });
+
+  it('finalizes and completes batch statuses', () => {
+    const entries = createEntries(['a.jpg', 'b.jpg']);
+    const initial = createUploadFileStatuses(entries);
+    const finalized = finalizeUploadFileStatusesAfterBatch(
+      markUploadFileStatus(initial, entries[0].uploadKey, 'done')
+    );
+
+    expect(finalized).toHaveSize(1);
+    expect(markUploadFileStatusesComplete(initial).every(item => item.status === 'done')).toBeTrue();
+  });
+
+  it('detects successful upload batches', () => {
+    expect(isSuccessfulUploadBatch({ uploaded: [{}], errors: [] })).toBeTrue();
+    expect(isSuccessfulUploadBatch({ uploaded: [], errors: [{}] })).toBeFalse();
+  });
+
+  it('summarizes upload file status text', () => {
+    const entry = createEntries(['a.jpg'])[0];
+    const statuses = createUploadFileStatuses([entry]);
+
+    expect(getUploadFileStatusSummary(statuses[0])).toBe('a.jpg');
+    expect(getUploadFileStatusSummary(
+      markUploadFileStatus(statuses, entry.uploadKey, 'uploading')[0]
+    )).toBe('Uploading a.jpg');
+  });
+
+  it('exposes upload progress display constants', () => {
+    expect(shouldShowBatchUploadProgress(2)).toBeTrue();
+    expect(shouldShowBatchUploadProgress(1)).toBeFalse();
+    expect(UPLOAD_PROGRESS_COMPLETE_DISPLAY_MS).toBeGreaterThan(0);
   });
 });

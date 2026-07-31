@@ -48,10 +48,19 @@ namespace eBolnicaAPI.Services
             return images.Select(MapToDto).ToList();
         }
 
+        private const int MaxImagesPerMedication = 5;
+
         public async Task<MedicationImageDto> UploadImageAsync(int medicationId, IFormFile file)
         {
-            var medication = await GetMedicationOrThrow(medicationId);
+            var medication = await GetMedicationOrThrow(medicationId, requireActive: true);
             _fileValidator.ValidateUpload(file);
+
+            var existingCount = await _context.MedicationImages.CountAsync(i => i.MedicationId == medicationId);
+            if (existingCount >= MaxImagesPerMedication)
+            {
+                throw new MedicationImageValidationException(
+                    $"A medication can have at most {MaxImagesPerMedication} images.");
+            }
 
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
             var sanitizedFileName = _fileValidator.SanitizeOriginalFileName(file.FileName);
@@ -84,52 +93,64 @@ namespace eBolnicaAPI.Services
             {
                 var optimizedBytes = optimizedImage.Length;
                 var bytesSaved = MedicationImageUploadLog.CalculateBytesSaved(originalBytes, optimizedBytes);
-                var storedImage = await _storageService.SaveAsync(
-                    medicationId,
-                    optimizedImage.Content,
-                    optimizedImage.Extension);
-
-                var existingCount = await _context.MedicationImages.CountAsync(i => i.MedicationId == medicationId);
-                var isPrimary = existingCount == 0;
-
-                var image = new MedicationImage
+                StoredMedicationImageResult? storedImage = null;
+                try
                 {
-                    MedicationId = medicationId,
-                    FileName = sanitizedFileName,
-                    RelativeUrl = storedImage.RelativeUrl,
-                    ThumbnailRelativeUrl = storedImage.ThumbnailRelativeUrl,
-                    IsPrimary = isPrimary,
-                    SortOrder = existingCount,
-                    UploadedAt = DateTime.UtcNow,
-                    FileSizeBytes = optimizedImage.Length,
-                    Width = optimizedImage.Width,
-                    Height = optimizedImage.Height
-                };
+                    storedImage = await _storageService.SaveAsync(
+                        medicationId,
+                        optimizedImage.Content,
+                        optimizedImage.Extension);
 
-                _context.MedicationImages.Add(image);
+                    var isPrimary = existingCount == 0;
 
-                if (isPrimary)
-                {
-                    medication.ImageUrl = GetListDisplayUrl(image);
+                    var image = new MedicationImage
+                    {
+                        MedicationId = medicationId,
+                        FileName = sanitizedFileName,
+                        RelativeUrl = storedImage.RelativeUrl,
+                        ThumbnailRelativeUrl = storedImage.ThumbnailRelativeUrl,
+                        IsPrimary = isPrimary,
+                        SortOrder = existingCount,
+                        UploadedAt = DateTime.UtcNow,
+                        FileSizeBytes = optimizedImage.Length,
+                        Width = optimizedImage.Width,
+                        Height = optimizedImage.Height
+                    };
+
+                    _context.MedicationImages.Add(image);
+
+                    if (isPrimary)
+                    {
+                        medication.ImageUrl = GetListDisplayUrl(image);
+                    }
+
+                    await _context.SaveChangesAsync();
+
+                    _logger.LogInformation(
+                        "Medication image uploaded. MedicationId={MedicationId}, FileName={FileName}, OriginalBytes={OriginalBytes}, OptimizedBytes={OptimizedBytes}, BytesSaved={BytesSaved}, OriginalWidth={OriginalWidth}, OriginalHeight={OriginalHeight}, OptimizedWidth={OptimizedWidth}, OptimizedHeight={OptimizedHeight}, ImageUrl={ImageUrl}, ThumbnailUrl={ThumbnailUrl}",
+                        medicationId,
+                        sanitizedFileName,
+                        originalBytes,
+                        optimizedBytes,
+                        bytesSaved,
+                        originalImageInfo?.Width,
+                        originalImageInfo?.Height,
+                        optimizedImage.Width,
+                        optimizedImage.Height,
+                        storedImage.RelativeUrl,
+                        storedImage.ThumbnailRelativeUrl);
+
+                    return MapToDto(image);
                 }
+                catch
+                {
+                    if (storedImage != null)
+                    {
+                        _storageService.Delete(storedImage.RelativeUrl, storedImage.ThumbnailRelativeUrl);
+                    }
 
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation(
-                    "Medication image uploaded. MedicationId={MedicationId}, FileName={FileName}, OriginalBytes={OriginalBytes}, OptimizedBytes={OptimizedBytes}, BytesSaved={BytesSaved}, OriginalWidth={OriginalWidth}, OriginalHeight={OriginalHeight}, OptimizedWidth={OptimizedWidth}, OptimizedHeight={OptimizedHeight}, ImageUrl={ImageUrl}, ThumbnailUrl={ThumbnailUrl}",
-                    medicationId,
-                    sanitizedFileName,
-                    originalBytes,
-                    optimizedBytes,
-                    bytesSaved,
-                    originalImageInfo?.Width,
-                    originalImageInfo?.Height,
-                    optimizedImage.Width,
-                    optimizedImage.Height,
-                    storedImage.RelativeUrl,
-                    storedImage.ThumbnailRelativeUrl);
-
-                return MapToDto(image);
+                    throw;
+                }
             }
         }
 
@@ -198,6 +219,28 @@ namespace eBolnicaAPI.Services
             await _context.SaveChangesAsync();
         }
 
+        public async Task DeleteAllImagesForMedicationAsync(int medicationId)
+        {
+            var medication = await _context.Medications.FindAsync(medicationId);
+            if (medication == null)
+            {
+                return;
+            }
+
+            var images = await _context.MedicationImages
+                .Where(i => i.MedicationId == medicationId)
+                .ToListAsync();
+
+            foreach (var image in images)
+            {
+                _storageService.Delete(image.RelativeUrl, image.ThumbnailRelativeUrl);
+                _context.MedicationImages.Remove(image);
+            }
+
+            medication.ImageUrl = null;
+            await _context.SaveChangesAsync();
+        }
+
         public async Task<List<MedicationImageDto>> ReorderImagesAsync(int medicationId, IReadOnlyList<int> imageIds)
         {
             await GetMedicationOrThrow(medicationId);
@@ -251,12 +294,17 @@ namespace eBolnicaAPI.Services
                 .FirstOrDefaultAsync();
         }
 
-        private async Task<Medication> GetMedicationOrThrow(int medicationId)
+        private async Task<Medication> GetMedicationOrThrow(int medicationId, bool requireActive = false)
         {
             var medication = await _context.Medications.FindAsync(medicationId);
             if (medication == null)
             {
                 throw new KeyNotFoundException("Medication not found");
+            }
+
+            if (requireActive && !medication.IsActive)
+            {
+                throw new KeyNotFoundException("Medication not found or inactive");
             }
 
             return medication;

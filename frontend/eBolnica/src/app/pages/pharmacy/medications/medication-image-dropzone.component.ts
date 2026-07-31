@@ -27,7 +27,7 @@ import {
 import {
   addFilesToPendingQueue,
   cancelPendingMedicationImageQueue,
-  getUploadablePendingFiles,
+  getUploadablePendingEntries,
   hasUploadablePendingFiles,
   PendingMedicationImage,
   removePendingMedicationImage
@@ -39,9 +39,11 @@ import {
   partitionMedicationImageFiles
 } from './medication-image-validation.util';
 import {
-  getUploadStatusForFileName,
+  getUploadStatusForUploadKey,
+  MedicationImageUploadEntry,
   MedicationImageUploadFileStatus
 } from './medication-image-upload-status.util';
+import { createMedicationImageUploadEntry } from './medication-image-upload.util';
 
 export {
   MEDICATION_IMAGE_ACCEPT,
@@ -72,7 +74,7 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
   @Input() uploadBatchLabel: string | null = null;
   @Input() uploadFileStatuses: MedicationImageUploadFileStatus[] = [];
 
-  @Output() filesSelected = new EventEmitter<File[]>();
+  @Output() filesSelected = new EventEmitter<MedicationImageUploadEntry[]>();
   @Output() pendingQueueChange = new EventEmitter<PendingMedicationImage[]>();
   @Output() pendingQueueCancelRequested = new EventEmitter<void>();
   @Output() selectionLimited = new EventEmitter<SelectionLimitedEvent>();
@@ -93,7 +95,7 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
   }
 
   get uploadablePendingCount(): number {
-    return getUploadablePendingFiles(this.pendingQueue).length;
+    return getUploadablePendingEntries(this.pendingQueue).length;
   }
 
   get canUploadSelected(): boolean {
@@ -123,8 +125,8 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
     return `JPG, PNG, or WEBP up to ${MEDICATION_IMAGE_MAX_FILE_SIZE_LABEL} each${fileLimit}`;
   }
 
-  getUploadStatus(fileName: string): MedicationImageUploadFileStatus | undefined {
-    return getUploadStatusForFileName(this.uploadFileStatuses, fileName);
+  getUploadStatus(uploadKey: string): MedicationImageUploadFileStatus | undefined {
+    return getUploadStatusForUploadKey(this.uploadFileStatuses, uploadKey);
   }
 
   onDropzoneClick(event: MouseEvent): void {
@@ -255,10 +257,10 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
 
     if (!this.canUploadSelected) return;
 
-    const files = getUploadablePendingFiles(this.pendingQueue);
-    if (files.length === 0) return;
+    const entries = getUploadablePendingEntries(this.pendingQueue);
+    if (entries.length === 0) return;
 
-    this.filesSelected.emit(files);
+    this.filesSelected.emit(entries);
   }
 
   onClearAllClick(event: Event): void {
@@ -270,7 +272,7 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
     this.pendingQueueCancelRequested.emit();
   }
 
-  onRetryUploadClick(event: Event, fileName: string): void {
+  onRetryUploadClick(event: Event, uploadKey: string): void {
     event.preventDefault();
     event.stopPropagation();
 
@@ -278,7 +280,7 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
       return;
     }
 
-    this.retryUploadRequested.emit(fileName);
+    this.retryUploadRequested.emit(uploadKey);
   }
 
   clearPendingQueue(): void {
@@ -295,8 +297,8 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
     }
   }
 
-  canRetryUpload(fileName: string): boolean {
-    const status = this.getUploadStatus(fileName);
+  canRetryUpload(uploadKey: string): boolean {
+    const status = this.getUploadStatus(uploadKey);
     return !!status && status.status === 'error' && !this.busy && !this.disabled;
   }
 
@@ -345,7 +347,7 @@ export class MedicationImageDropzoneComponent implements OnDestroy {
       return;
     }
 
-    this.filesSelected.emit(validFiles);
+    this.filesSelected.emit(validFiles.map(file => createMedicationImageUploadEntry(file)));
 
     if (selection.wasLimited) {
       this.selectionLimited.emit(

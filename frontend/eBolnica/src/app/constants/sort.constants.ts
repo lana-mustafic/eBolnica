@@ -60,3 +60,19 @@ export const INVENTORY_SORT_DISPLAY_NAMES: Record<string, string> = {
 export function mapInventorySortColumn(column: string): string {
   return INVENTORY_SORT_COLUMN_MAP[column] ?? column;
 }
+
+/** Maps prescriptions UI sort keys to backend sortBy field names. */
+export const PRESCRIPTION_SORT_COLUMN_MAP: Record<string, string> = {
+  date: 'prescribedDate',
+  prescribedDate: 'prescribedDate',
+  number: 'prescriptionNumber',
+  prescriptionNumber: 'prescriptionNumber',
+  amount: 'totalAmount',
+  totalAmount: 'totalAmount',
+  status: 'status',
+  createdAt: 'createdAt'
+};
+
+export function mapPrescriptionSortColumn(column: string): string {
+  return PRESCRIPTION_SORT_COLUMN_MAP[column] ?? column;
+}

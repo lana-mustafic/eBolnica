@@ -10,7 +10,7 @@ import { ConfirmDialogService } from '../../../shared/services/confirm-dialog.se
 import { MedicationImageLightboxComponent } from './medication-image-lightbox.component';
 import { MedicationImageDropzoneComponent } from './medication-image-dropzone.component';
 import { SelectionLimitedEvent } from './medication-image-dropzone-selection.util';
-import { uploadMedicationImagesSequentially, MedicationImageUploadBatchResult } from './medication-image-upload.util';
+import { uploadMedicationImagesSequentially, MedicationImageUploadBatchResult, MedicationImageUploadEntry } from './medication-image-upload.util';
 import {
   createUploadFileStatuses,
   deriveBatchUploadProgress,
@@ -105,7 +105,7 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit, OnDes
 
   private successTimeout: ReturnType<typeof setTimeout> | null = null;
   private uploadProgressHideTimeout: ReturnType<typeof setTimeout> | null = null;
-  private uploadFilesByName = new Map<string, File>();
+  private uploadFilesByKey = new Map<string, File>();
 
   ngOnInit(): void {
     this.canDeleteImages = this.hasDeletePermission();
@@ -242,8 +242,8 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit, OnDes
   }
 
   /** Starts upload for files confirmed via Upload selected (not on drop/browse). */
-  onDropzoneFilesSelected(files: File[]): void {
-    if (files.length === 0 || this.isDeleting) return;
+  onDropzoneFilesSelected(entries: MedicationImageUploadEntry[]): void {
+    if (entries.length === 0 || this.isDeleting) return;
 
     const batch = beginMedicationImageUploadBatch(this.isUploading);
     if (!batch.started) {
@@ -252,15 +252,15 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit, OnDes
     }
 
     this.isUploading = true;
-    this.uploadFilesSequentially(files);
+    this.uploadFilesSequentially(entries);
   }
 
   onUploadBlocked(): void {
     this.errorMessage = MEDICATION_IMAGE_UPLOAD_BATCH_IN_PROGRESS_MESSAGE;
   }
 
-  retryFailedUpload(fileName: string): void {
-    const file = this.uploadFilesByName.get(fileName);
+  retryFailedUpload(uploadKey: string): void {
+    const file = this.uploadFilesByKey.get(uploadKey);
     if (!file || this.isUploading || this.isDeleting) {
       return;
     }
@@ -273,11 +273,11 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit, OnDes
 
     this.isUploading = true;
     this.clearMessages();
-    this.uploadFilesSequentially([file], { preserveExistingStatuses: true });
+    this.uploadFilesSequentially([{ file, uploadKey }], { preserveExistingStatuses: true });
   }
 
-  onDropzoneRetryUpload(fileName: string): void {
-    this.retryFailedUpload(fileName);
+  onDropzoneRetryUpload(uploadKey: string): void {
+    this.retryFailedUpload(uploadKey);
   }
 
   onDropzoneSelectionLimited(event: SelectionLimitedEvent): void {
@@ -303,16 +303,16 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit, OnDes
   }
 
   private uploadFilesSequentially(
-    files: File[],
+    entries: MedicationImageUploadEntry[],
     options?: { preserveExistingStatuses?: boolean }
   ): void {
-    files.forEach(file => this.uploadFilesByName.set(file.name, file));
+    entries.forEach(entry => this.uploadFilesByKey.set(entry.uploadKey, entry.file));
 
     if (!options?.preserveExistingStatuses) {
-      this.uploadFileStatuses = createUploadFileStatuses(files);
+      this.uploadFileStatuses = createUploadFileStatuses(entries);
     } else {
-      this.uploadFileStatuses = files.reduce(
-        (statuses, file) => markUploadFileStatus(statuses, file.name, 'pending'),
+      this.uploadFileStatuses = entries.reduce(
+        (statuses, entry) => markUploadFileStatus(statuses, entry.uploadKey, 'pending'),
         this.uploadFileStatuses
       );
     }
@@ -322,32 +322,29 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit, OnDes
 
     uploadMedicationImagesSequentially(
       this.medicationId,
-      files,
+      entries,
       (medicationId, file) => this.pharmacyService.uploadMedicationImage(medicationId, file),
       {
-        onFileStart: (fileName) => {
-          this.uploadFileStatuses = markUploadFileStatus(this.uploadFileStatuses, fileName, 'uploading');
+        onFileStart: (uploadKey) => {
+          this.uploadFileStatuses = markUploadFileStatus(this.uploadFileStatuses, uploadKey, 'uploading');
           this.syncBatchUploadProgress();
         },
-        onFileProgress: (fileName, progressPercent) => {
+        onFileProgress: (uploadKey, _fileName, progressPercent) => {
           this.uploadFileStatuses = updateUploadFileProgress(
             this.uploadFileStatuses,
-            fileName,
+            uploadKey,
             progressPercent
           );
           this.syncBatchUploadProgress();
         },
-        onFileComplete: (fileName, image) => {
-          this.uploadFileStatuses = markUploadFileStatus(this.uploadFileStatuses, fileName, 'done');
+        onFileComplete: (uploadKey) => {
+          this.uploadFileStatuses = markUploadFileStatus(this.uploadFileStatuses, uploadKey, 'done');
           this.syncBatchUploadProgress();
-          this.images = [...this.images, image];
-          this.selectedIndex = this.images.length - 1;
-          this.imagesChange.emit(this.images);
         },
-        onFileError: (fileName, message) => {
+        onFileError: (uploadKey, _fileName, message) => {
           this.uploadFileStatuses = markUploadFileStatus(
             this.uploadFileStatuses,
-            fileName,
+            uploadKey,
             'error',
             message
           );
@@ -379,7 +376,7 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit, OnDes
     }
 
     if (result.uploaded.length > 0) {
-      this.removeUploadedPendingFiles(result.uploaded);
+      this.removeUploadedPendingFiles();
       this.refreshGalleryImages();
       this.showUploadSuccess(result.uploaded);
     }
@@ -428,29 +425,46 @@ export class MedicationImageGalleryComponent implements OnChanges, OnInit, OnDes
     }, 4000);
   }
 
-  private removeUploadedPendingFiles(uploaded: MedicationImageDto[]): void {
-    const fileNames = uploaded
-      .map(image => image.fileName?.trim())
-      .filter((fileName): fileName is string => !!fileName);
+  private removeUploadedPendingFiles(): void {
+    const completedKeys = this.uploadFileStatuses
+      .filter(status => status.status === 'done')
+      .map(status => status.uploadKey);
 
-    if (fileNames.length > 0) {
-      this.imageDropzone?.removePendingFilesByName(fileNames);
+    for (const uploadKey of completedKeys) {
+      this.imageDropzone?.removePendingFile(uploadKey);
     }
   }
 
   private refreshGalleryImages(): void {
     this.pharmacyService.getMedicationImages(this.medicationId).subscribe({
       next: (images) => {
+        const dedupedImages = this.dedupeImagesById(images);
         const selectedImageId = this.selectedImage?.id;
         const selectedIndex = selectedImageId == null
-          ? Math.max(0, images.length - 1)
-          : images.findIndex(image => image.id === selectedImageId);
+          ? Math.max(0, dedupedImages.length - 1)
+          : dedupedImages.findIndex(image => image.id === selectedImageId);
 
         this.applyGalleryImages(
-          images,
-          selectedIndex >= 0 ? selectedIndex : Math.max(0, images.length - 1)
+          dedupedImages,
+          selectedIndex >= 0 ? selectedIndex : Math.max(0, dedupedImages.length - 1)
         );
+      },
+      error: () => {
+        this.errorMessage = 'Images uploaded, but the gallery could not be refreshed. Reload the page if thumbnails look out of date.';
       }
+    });
+  }
+
+  private dedupeImagesById(images: MedicationImageDto[]): MedicationImageDto[] {
+    const seen = new Set<number>();
+
+    return images.filter(image => {
+      if (seen.has(image.id)) {
+        return false;
+      }
+
+      seen.add(image.id);
+      return true;
     });
   }
 

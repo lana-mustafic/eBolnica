@@ -2,7 +2,19 @@ import { MedicationDto } from '../../models/medication.dto';
 import { PagedResponse } from '../../models/paged-response.dto';
 import { InventoryResponse } from '../../models/inventory-response.dto';
 
-type RawPagedResponse<T> = Partial<PagedResponse<T>> & Record<string, unknown>;
+type RawPagedResponse<T> = Partial<PagedResponse<T>> & {
+  Items?: T[];
+  TotalCount?: number;
+  PageSize?: number;
+  CurrentPage?: number;
+  TotalPages?: number;
+  HasNext?: boolean;
+  HasPrevious?: boolean;
+  LowStockAlerts?: T[];
+  ExpiryAlerts?: T[];
+  lowStockAlerts?: T[];
+  expiryAlerts?: T[];
+};
 
 /**
  * Normalizes API pagination metadata to the frontend PagedResponse shape.
@@ -12,18 +24,18 @@ export function normalizePagedResponse<T>(
   raw: RawPagedResponse<T> | null | undefined,
   defaultPageSize = 10
 ): PagedResponse<T> {
-  const items = (raw?.items ?? raw?.['Items'] ?? []) as T[];
-  const totalCount = toNumber(raw?.totalCount ?? raw?.['TotalCount'], 0);
-  const pageSize = Math.max(1, toNumber(raw?.pageSize ?? raw?.['PageSize'], defaultPageSize));
-  const currentPage = Math.max(1, toNumber(raw?.currentPage ?? raw?.['CurrentPage'], 1));
+  const items = (raw?.items ?? raw?.Items ?? []) as T[];
+  const totalCount = toNumber(raw?.totalCount ?? raw?.TotalCount, 0);
+  const pageSize = Math.max(1, toNumber(raw?.pageSize ?? raw?.PageSize, defaultPageSize));
+  const currentPage = Math.max(1, toNumber(raw?.currentPage ?? raw?.CurrentPage, 1));
 
-  let totalPages = toNumber(raw?.totalPages ?? raw?.['TotalPages'], -1);
+  let totalPages = toNumber(raw?.totalPages ?? raw?.TotalPages, -1);
   if (totalPages < 0) {
     totalPages = pageSize > 0 ? Math.ceil(totalCount / pageSize) : 0;
   }
 
-  const hasNext = raw?.hasNext ?? raw?.['HasNext'];
-  const hasPrevious = raw?.hasPrevious ?? raw?.['HasPrevious'];
+  const hasNext = raw?.hasNext ?? raw?.HasNext;
+  const hasPrevious = raw?.hasPrevious ?? raw?.HasPrevious;
 
   return {
     items,
@@ -48,8 +60,8 @@ export function normalizeInventoryResponse(
 
   return {
     ...paged,
-    lowStockAlerts: (raw?.lowStockAlerts ?? raw?.['LowStockAlerts'] ?? []) as MedicationDto[],
-    expiryAlerts: (raw?.expiryAlerts ?? raw?.['ExpiryAlerts'] ?? []) as MedicationDto[]
+    lowStockAlerts: (raw?.lowStockAlerts ?? raw?.LowStockAlerts ?? []) as MedicationDto[],
+    expiryAlerts: (raw?.expiryAlerts ?? raw?.ExpiryAlerts ?? []) as MedicationDto[]
   };
 }
 

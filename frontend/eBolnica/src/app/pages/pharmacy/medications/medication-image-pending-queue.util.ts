@@ -1,3 +1,4 @@
+import { MedicationImageUploadEntry } from './medication-image-upload-status.util';
 import { validateMedicationImageFile } from './medication-image-validation.util';
 import {
   createMedicationImagePreviewUrl,
@@ -98,6 +99,12 @@ export function revokePendingMedicationImagePreviews(items: PendingMedicationIma
 
 export function getUploadablePendingFiles(queue: PendingMedicationImage[]): File[] {
   return queue.filter(item => item.status === 'valid').map(item => item.file);
+}
+
+export function getUploadablePendingEntries(queue: PendingMedicationImage[]): MedicationImageUploadEntry[] {
+  return queue
+    .filter(item => item.status === 'valid')
+    .map(item => ({ file: item.file, uploadKey: item.id }));
 }
 
 export function hasUploadablePendingFiles(queue: PendingMedicationImage[]): boolean {

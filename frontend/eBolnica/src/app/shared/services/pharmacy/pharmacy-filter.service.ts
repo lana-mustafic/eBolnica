@@ -2,10 +2,10 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ActiveFilter, PharmacyFilters } from '../../../models/pharmacy-filters.model';
+import { PharmacyFilterContext } from './pharmacy-filter-context.model';
 
 /**
- * Service to manage unified filter state for Pharmacy module
- * Handles filter combination with AND logic
+ * Manages isolated filter state per pharmacy list page (medications, inventory, prescriptions).
  */
 @Injectable({
   providedIn: 'root'
@@ -13,35 +13,34 @@ import { ActiveFilter, PharmacyFilters } from '../../../models/pharmacy-filters.
 export class PharmacyFilterService {
   private static readonly PAGINATION_KEYS = new Set<keyof PharmacyFilters>(['pageNumber', 'pageSize']);
 
-  private filters$ = new BehaviorSubject<PharmacyFilters>({
-    pageNumber: 1,
-    pageSize: 10
-  });
+  private readonly filtersByContext = new Map<PharmacyFilterContext, BehaviorSubject<PharmacyFilters>>();
 
-  /**
-   * Get current filter state as observable
-   * Debounced to prevent excessive updates
-   */
-  getFilters$(): Observable<PharmacyFilters> {
-    return this.filters$.pipe(
+  private getContextSubject(context: PharmacyFilterContext): BehaviorSubject<PharmacyFilters> {
+    let subject = this.filtersByContext.get(context);
+    if (!subject) {
+      subject = new BehaviorSubject<PharmacyFilters>({
+        pageNumber: 1,
+        pageSize: 10
+      });
+      this.filtersByContext.set(context, subject);
+    }
+    return subject;
+  }
+
+  getFilters$(context: PharmacyFilterContext): Observable<PharmacyFilters> {
+    return this.getContextSubject(context).pipe(
       debounceTime(200),
       distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b))
     );
   }
 
-  /**
-   * Get current filter state synchronously
-   */
-  getFilters(): PharmacyFilters {
-    return this.filters$.value;
+  getFilters(context: PharmacyFilterContext): PharmacyFilters {
+    return this.getContextSubject(context).value;
   }
 
-  /**
-   * Update filters with partial updates
-   * Automatically resets pageNumber to 1 when filters change
-   */
-  updateFilters(updates: Partial<PharmacyFilters>): void {
-    const current = this.filters$.value;
+  updateFilters(context: PharmacyFilterContext, updates: Partial<PharmacyFilters>): void {
+    const subject = this.getContextSubject(context);
+    const current = subject.value;
 
     const hasNonPaginationChange = Object.keys(updates).some(key => {
       const filterKey = key as keyof PharmacyFilters;
@@ -63,34 +62,22 @@ export class PharmacyFilterService {
     };
 
     this.cleanFilters(merged);
-
-    this.filters$.next(merged);
+    subject.next(merged);
   }
 
-  /**
-   * Update server-side sort parameters and reset to page 1.
-   */
-  updateSort(sortBy: string, sortOrder: 'asc' | 'desc'): void {
-    this.updateFilters({ sortBy, sortOrder });
+  updateSort(context: PharmacyFilterContext, sortBy: string, sortOrder: 'asc' | 'desc'): void {
+    this.updateFilters(context, { sortBy, sortOrder });
   }
 
-  /**
-   * Returns current sort params stored in filter state.
-   */
-  getSortParams(): Pick<PharmacyFilters, 'sortBy' | 'sortOrder'> {
-    const { sortBy, sortOrder } = this.filters$.value;
+  getSortParams(context: PharmacyFilterContext): Pick<PharmacyFilters, 'sortBy' | 'sortOrder'> {
+    const { sortBy, sortOrder } = this.getContextSubject(context).value;
     return { sortBy, sortOrder };
   }
 
-  /**
-   * Clear all filters and reset to defaults
-   * Resets all filter properties to undefined/null except pagination defaults
-   */
-  clearFilters(): void {
+  clearFilters(context: PharmacyFilterContext): void {
     const defaultState: PharmacyFilters = {
       pageNumber: 1,
       pageSize: 10,
-      // Explicitly set all other properties to undefined
       searchTerm: undefined,
       category: undefined,
       status: undefined,
@@ -110,57 +97,46 @@ export class PharmacyFilterService {
       sortBy: undefined,
       sortOrder: undefined
     };
-    
-    this.filters$.next(defaultState);
+
+    this.getContextSubject(context).next(defaultState);
   }
 
-  /**
-   * Clear all filters (alias for clearFilters for consistency)
-   */
-  clearAllFilters(): void {
-    this.clearFilters();
+  clearAllFilters(context: PharmacyFilterContext): void {
+    this.clearFilters(context);
   }
 
-  /**
-   * Clear specific filter by key
-   */
-  clearFilter(key: keyof PharmacyFilters): void {
-    const current = this.filters$.value;
+  clearFilter(context: PharmacyFilterContext, key: keyof PharmacyFilters): void {
+    const subject = this.getContextSubject(context);
+    const current = subject.value;
     const updated = { ...current };
-    
-    // Don't clear pagination or pageSize
+
     if (key !== 'pageNumber' && key !== 'pageSize') {
       delete updated[key];
-      updated.pageNumber = 1; // Reset to first page
+      updated.pageNumber = 1;
     }
-    
-    this.filters$.next(updated);
+
+    subject.next(updated);
   }
 
-  /**
-   * Sync pagination metadata returned by the backend (authoritative source).
-   */
-  syncPaginationFromResponse(pageNumber: number, pageSize: number): void {
-    const current = this.filters$.value;
+  syncPaginationFromResponse(context: PharmacyFilterContext, pageNumber: number, pageSize: number): void {
+    const subject = this.getContextSubject(context);
+    const current = subject.value;
 
     if (current.pageNumber === pageNumber && current.pageSize === pageSize) {
       return;
     }
 
-    this.filters$.next({
+    subject.next({
       ...current,
       pageNumber,
       pageSize
     });
   }
 
-  /**
-   * Get count of active filters (excluding pagination)
-   */
-  getActiveFilterCount(): number {
-    const filters = this.filters$.value;
+  getActiveFilterCount(context: PharmacyFilterContext): number {
+    const filters = this.getContextSubject(context).value;
     let count = 0;
-    
+
     if (filters.searchTerm?.trim()) count++;
     if (filters.category) count++;
     if (filters.status) count++;
@@ -174,27 +150,21 @@ export class PharmacyFilterService {
     if (filters.prescriptionStatus) count++;
     if (filters.urgency) count++;
     if (filters.supplier) count++;
-    
+
     return count;
   }
 
-  /**
-   * Clear a filter using the badge key emitted by ActiveFiltersComponent.
-   */
-  clearFilterByBadgeKey(key: string): void {
+  clearFilterByBadgeKey(context: PharmacyFilterContext, key: string): void {
     if (key === 'priceRange') {
-      this.updateFilters({ minPrice: undefined, maxPrice: undefined });
+      this.updateFilters(context, { minPrice: undefined, maxPrice: undefined });
       return;
     }
 
-    this.clearFilter(key as keyof PharmacyFilters);
+    this.clearFilter(context, key as keyof PharmacyFilters);
   }
 
-  /**
-   * Get list of active filters for display
-   */
-  getActiveFilters(): ActiveFilter[] {
-    const filters = this.filters$.value;
+  getActiveFilters(context: PharmacyFilterContext): ActiveFilter[] {
+    const filters = this.getContextSubject(context).value;
     const active: ActiveFilter[] = [];
 
     if (filters.searchTerm?.trim()) {
@@ -346,9 +316,6 @@ export class PharmacyFilterService {
     }).format(amount);
   }
 
-  /**
-   * Remove null, undefined, and empty string values from filters
-   */
   private cleanFilters(filters: PharmacyFilters): void {
     Object.keys(filters).forEach(key => {
       const value = filters[key as keyof PharmacyFilters];

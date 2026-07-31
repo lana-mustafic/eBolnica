@@ -19,6 +19,7 @@ import {
   isMedicationNameCheckUnavailable
 } from '../../../shared/utils/medication-field-error.util';
 import { finalize, Subscription } from 'rxjs';
+import { dateInputToIsoString } from '../../../shared/utils/date-only.util';
 import { debounceTime } from 'rxjs/operators';
 import { MedicationWizardDraftService, MedicationWizardDraft } from '../../../shared/services/pharmacy/medication-wizard-draft.service';
 import {
@@ -339,7 +340,7 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
         price: formValue.price,
         stockQuantity: formValue.stockQuantity,
         minimumStockLevel: formValue.minimumStockLevel,
-        expiryDate: new Date(formValue.expiryDate).toISOString(),
+        expiryDate: dateInputToIsoString(formValue.expiryDate),
         batchNumber: formValue.batchNumber || undefined,
         requiresPrescription: formValue.requiresPrescription ?? true,
         isActive: formValue.isActive ?? true,
@@ -396,7 +397,7 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   cancel(): void {
     this.confirmDialog.confirm({
       title: 'Cancel wizard',
-      message: 'Are you sure you want to cancel? All entered data will be lost.',
+      message: 'Leave the wizard? Your progress is saved as a draft and you can continue later.',
       confirmText: 'Leave',
       cancelText: 'Stay',
       confirmColor: 'warn'

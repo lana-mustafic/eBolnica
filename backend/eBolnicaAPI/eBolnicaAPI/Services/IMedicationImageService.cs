@@ -14,6 +14,8 @@ namespace eBolnicaAPI.Services
 
         Task<List<MedicationImageDto>> ReorderImagesAsync(int medicationId, IReadOnlyList<int> imageIds);
 
+        Task DeleteAllImagesForMedicationAsync(int medicationId);
+
         Task<string?> GetPrimaryImageUrlAsync(int medicationId);
     }
 }

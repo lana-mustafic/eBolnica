@@ -2,6 +2,8 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpErrorResponse, HttpResponse, HttpEvent } from '@angular/common/http';
 import { Observable, throwError, of, timer, forkJoin, timeout, TimeoutError } from 'rxjs';
 import { catchError, tap, retry, retryWhen, delayWhen, take, concatMap, map } from 'rxjs/operators';
+import { environment } from '../../../../environments/environment';
+import { AuthService } from '../auth.service';
 import { normalizePagedResponse, normalizeInventoryResponse } from '../../utils/paged-response.util';
 import { normalizePaginationParams } from '../../utils/pagination-params.util';
 import { MedicationDto } from '../../../models/medication.dto';
@@ -101,8 +103,9 @@ export interface InventoryFilterParams {
 })
 export class PharmacyService {
 
-  private apiUrl = 'http://localhost:5004/api/pharmacy';
+  private apiUrl = `${environment.apiUrl}/pharmacy`;
   private http = inject(HttpClient);
+  private authService = inject(AuthService);
 
   /**
    * Resolves a medication primary image URL for display.
@@ -119,7 +122,14 @@ export class PharmacyService {
     }
 
     const apiOrigin = this.apiUrl.replace(/\/api\/pharmacy\/?$/, '');
-    return trimmed.startsWith('/') ? `${apiOrigin}${trimmed}` : `${apiOrigin}/${trimmed}`;
+    const baseUrl = trimmed.startsWith('/') ? `${apiOrigin}${trimmed}` : `${apiOrigin}/${trimmed}`;
+    const token = this.authService.getToken();
+    if (!token || !baseUrl.includes('/uploads/medications/')) {
+      return baseUrl;
+    }
+
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    return `${baseUrl}${separator}access_token=${encodeURIComponent(token)}`;
   }
 
   // Medications CRUD
@@ -170,7 +180,9 @@ export class PharmacyService {
       params = params.set('isActive', filters.isActive.toString());
     }
     
-    return this.http.get<PagedResponse<MedicationDto>>(`${this.apiUrl}/medications`, { params });
+    return this.http.get<PagedResponse<MedicationDto>>(`${this.apiUrl}/medications`, { params }).pipe(
+      map(response => normalizePagedResponse<MedicationDto>(response, pageSize))
+    );
   }
 
   getMedicationById(id: number): Observable<MedicationDto> {
@@ -262,6 +274,18 @@ export class PharmacyService {
       buildMedicationExportCsv(medications),
       getMedicationExportFilename()
     );
+  }
+
+  /**
+   * Export all medications matching filters via backend CSV endpoint.
+   */
+  exportMedicationsCsvFromFilters(filters: PharmacyFilters): Observable<HttpResponse<Blob>> {
+    const params = this.buildMedicationQueryParams(filters);
+    return this.http.get(`${this.apiUrl}/medications/export/csv`, {
+      params,
+      responseType: 'blob',
+      observe: 'response'
+    });
   }
 
   /**
@@ -831,7 +855,7 @@ export class PharmacyService {
    * @param filters Filter parameters for generating meaningful filename
    * @returns File name and size for notification
    */
-  private handlePdfDownload(response: HttpResponse<Blob>, defaultFileName: string, filters?: PharmacyFilters): { fileName: string; fileSize: number } {
+  private handlePdfDownload(response: HttpResponse<Blob>, defaultFileName: string, filters?: PharmacyFilters): { fileName: string; fileSize: number; exportedRowCount?: number } {
     // Validate response type is PDF
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.includes('application/pdf')) {
@@ -881,10 +905,14 @@ export class PharmacyService {
 
     console.log('[PharmacyService] PDF downloaded:', fileName);
 
+    const rowCountHeader = response.headers.get('X-Export-Row-Count');
+    const exportedRowCount = rowCountHeader != null ? Number.parseInt(rowCountHeader, 10) : undefined;
+
     // Return file info for notification
     return {
       fileName: fileName,
-      fileSize: blob.size
+      fileSize: blob.size,
+      exportedRowCount: Number.isFinite(exportedRowCount) ? exportedRowCount : undefined
     };
   }
 

@@ -68,10 +68,10 @@
     <div class="sort-controls">
       <label>Sort by:</label>
       <select [(ngModel)]="sortBy" (ngModelChange)="onSortChange(sortBy)">
-        <option value="date">Date</option>
-        <option value="number">Prescription Number</option>
+        <option value="prescribedDate">Date</option>
+        <option value="prescriptionNumber">Prescription Number</option>
         <option value="status">Status</option>
-        <option value="amount">Total Amount</option>
+        <option value="totalAmount">Total Amount</option>
       </select>
       <button class="sort-order-btn" (click)="onSortChange(sortBy)">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class.asc]="sortOrder === 'asc'">
@@ -158,7 +158,7 @@
 
   <!-- Filter Summary and Active Filters -->
   <app-filter-summary
-    [filters]="filterService.getFilters()"
+    [filters]="filterService.getFilters(filterContext)"
     [totalCount]="totalCount"
     [totalPages]="totalPages"
     [currentPage]="currentPage"
@@ -169,7 +169,7 @@
   </app-filter-summary>
 
   <app-active-filters
-    [filters]="filterService.getFilters()"
+    [filters]="filterService.getFilters(filterContext)"
     [activeFilters]="activeFilters"
     (removeFilter)="removeFilter($event)">
   </app-active-filters>

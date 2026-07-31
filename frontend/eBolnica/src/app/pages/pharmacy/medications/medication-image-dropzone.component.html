@@ -80,7 +80,7 @@
   @if (usePendingQueue && pendingQueue.length > 0) {
     <ul class="image-dropzone-pending-list" role="list" aria-label="Pending image previews">
       @for (item of pendingQueue; track item.id) {
-        @let uploadStatus = getUploadStatus(item.fileName);
+        @let uploadStatus = getUploadStatus(item.id);
         <li
           class="image-dropzone-pending-item"
           [class.is-invalid]="item.status === 'invalid'"
@@ -127,8 +127,8 @@
             } @else if (uploadStatus?.status === 'error') {
               <span
                 class="image-dropzone-pending-error-badge is-upload-failed"
-                [attr.title]="uploadStatus.message"
-                [attr.aria-label]="uploadStatus.message">
+                [attr.title]="uploadStatus?.message"
+                [attr.aria-label]="uploadStatus?.message">
                 Failed
               </span>
             }
@@ -168,8 +168,8 @@
               <button
                 type="button"
                 class="image-dropzone-pending-retry-btn"
-                (click)="onRetryUploadClick($event, item.fileName)"
-                [disabled]="!canRetryUpload(item.fileName)"
+                (click)="onRetryUploadClick($event, item.id)"
+                [disabled]="!canRetryUpload(item.id)"
                 [attr.aria-label]="'Retry upload for ' + item.fileName">
                 Retry
               </button>
