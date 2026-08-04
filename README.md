@@ -8,18 +8,18 @@ Hospital information system migrated to the RS1 Clean Architecture template (CQR
 |-------|--------|
 | Backend | .NET, ASP.NET Core, EF Core, MediatR, FluentValidation, JWT |
 | Frontend | Angular 21, Angular Material, ngx-translate |
-| Database | SQL Server (local dev: `MarketDB` on `.\SQLEXPRESS`) |
+| Database | SQL Server (local dev: `eBolnicaDB` on `.\SQLEXPRESS`) |
 
 ## Project structure
 
 ```
 eBolnica/
 ├── backend/                 # Clean Architecture (.NET solution)
-│   ├── Market.API/          # HTTP API, Swagger
-│   ├── Market.Application/  # CQRS commands & queries
-│   ├── Market.Domain/       # Entities
-│   ├── Market.Infrastructure/
-│   └── rs1_backend-2025-26.sln
+│   ├── eBolnica.API/          # HTTP API, Swagger
+│   ├── eBolnica.Application/  # CQRS commands & queries
+│   ├── eBolnica.Domain/       # Entities
+│   ├── eBolnica.Infrastructure/
+│   └── eBolnica.sln
 ├── frontend/                # Angular SPA
 ├── MIGRATION_MAP.md         # Migration notes (legacy → new architecture)
 ├── db-backups/              # Database backups
@@ -28,7 +28,7 @@ eBolnica/
 
 ## Prerequisites
 
-- [.NET SDK](https://dotnet.microsoft.com/download) (version required by `backend/Market.API/Market.API.csproj`)
+- [.NET SDK](https://dotnet.microsoft.com/download) (version required by `backend/eBolnica.API/eBolnica.API.csproj`)
 - [Node.js](https://nodejs.org/) + npm (see `frontend/package.json` → `packageManager`)
 - SQL Server Express (or compatible instance)
 
@@ -36,31 +36,31 @@ eBolnica/
 
 ### 1. Database
 
-Connection string (Development): `backend/Market.API/appsettings.Development.json`
+Connection string (Development): `backend/eBolnica.API/appsettings.Development.json`
 
 ```
-Server=.\SQLEXPRESS;Database=MarketDB;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true
+Server=.\SQLEXPRESS;Database=eBolnicaDB;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true
 ```
 
 Apply migrations and seed demo data:
 
 ```bash
-cd backend/Market.API
+cd backend/eBolnica.API
 export ASPNETCORE_ENVIRONMENT=Development   # Git Bash
-dotnet ef database update --project ../Market.Infrastructure
+dotnet ef database update --project ../eBolnica.Infrastructure
 ```
 
 On Windows PowerShell:
 
 ```powershell
 $env:ASPNETCORE_ENVIRONMENT = "Development"
-dotnet ef database update --project ../Market.Infrastructure
+dotnet ef database update --project ../eBolnica.Infrastructure
 ```
 
 ### 2. Backend API
 
 ```bash
-cd backend/Market.API
+cd backend/eBolnica.API
 export ASPNETCORE_ENVIRONMENT=Development
 dotnet run
 ```
@@ -85,7 +85,7 @@ Seeded on first run (Development). Passwords are case-sensitive.
 
 | Role | Email | Password | Route after login |
 |------|-------|----------|-------------------|
-| Admin | admin@market.local | Admin123! | `/admin` |
+| Admin | admin@ebolnica.local | Admin123! | `/admin` |
 | Doctor | doctor@ebolnica.local | Doctor123! | `/doctor` |
 | Patient | patient@ebolnica.local | Patient123! | `/patient` |
 | Pharmacist | pharmacist@ebolnica.local | Pharmacist123! | `/pharmacy` |
@@ -94,7 +94,7 @@ Seeded on first run (Development). Passwords are case-sensitive.
 
 ```bash
 # Backend
-dotnet build backend/rs1_backend-2025-26.sln -c Release
+dotnet build backend/eBolnica.sln -c Release
 
 # Frontend
 cd frontend

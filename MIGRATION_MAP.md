@@ -26,7 +26,7 @@
 | Stari | Novi (CQRS modul) |
 |-------|-------------------|
 | **BE** `AccountsController`: patient/doctor registration, login | `Modules/Auth/Commands/RegisterPatient`, `RegisterDoctor`, `Login` |
-| **Entity** `AppUser` (+ Doctor/Patient/Pharmacist 1:1) | `MarketUserEntity` → prilagoditi na `AppUser` + profile entitete |
+| **Entity** `AppUser` (+ Doctor/Patient/Pharmacist 1:1) | `eBolnicaUserEntity` → prilagoditi na `AppUser` + profile entitete |
 | **DTO** `UserLoginDto`, `PatientRegistrationDto`, `DoctorRegistrationDto` | Command/Query DTOs + Validators |
 | **FE** `login/`, `patient-registration/`, `doctor-registration/` | `modules/auth/` lazy, `api-services/auth/` |
 | **JWT** localStorage `jwtToken`, role iz `UserType` | Auth interceptor + refresh, policies po roli |
@@ -163,7 +163,7 @@
 
 ```bash
 # Backend
-cd backend/Market.API
+cd backend/eBolnica.API
 export ASPNETCORE_ENVIRONMENT=Development   # Git Bash
 dotnet run
 
@@ -172,7 +172,7 @@ cd frontend
 npm start
 ```
 
-**Lokalna baza:** `appsettings.Development.json` → `Server=.\SQLEXPRESS; Database=MarketDB`
+**Lokalna baza:** `appsettings.Development.json` → `Server=.\SQLEXPRESS; Database=eBolnicaDB`
 
 ### Production build
 
@@ -185,7 +185,7 @@ cd frontend && npm run build     # FE production (default config)
 
 | Uloga | Email | Lozinka | Ruta |
 |-------|-------|---------|------|
-| Admin | admin@market.local | Admin123! | /admin |
+| Admin | admin@ebolnica.local | Admin123! | /admin |
 | Doktor | doctor@ebolnica.local | Doctor123! | /doctor |
 | Pacijent | patient@ebolnica.local | Patient123! | /patient |
 | Farmaceut | pharmacist@ebolnica.local | Pharmacist123! | /pharmacy |
@@ -202,7 +202,7 @@ cd frontend && npm run build     # FE production (default config)
 
 | Pitanje | Odluka | Obrazloženje |
 |---------|--------|--------------|
-| Namespace `Market.*` vs `eBolnica.*` | **Zadržati `Market.*`** | Mehanički rename 5+ projekata usred migracije = visok rizik, nula poslovne vrijednosti. RS1 template ostaje referenca. Branding je već eBolnica u UI. Rename kasnije u zasebnom PR-u ako treba. |
+| Namespace `Market.*` vs `eBolnica.*` | **Preimenovano u `eBolnica.*`** | Namespace, projekti, entiteti i solution su preimenovani (2026-08). |
 | Fakture modul | **Ukloniti** | Demo iz template-a, nije dio bolničkog domena. |
 | Dostavljači modul | **Ukloniti** | Isti razlog — template demo bez backend logike. |
 | Demo korisnici (manager/employee) | **Ukloniti iz seedera** | Ostaje samo admin + swagger/test dummy — manje konfuzije s eBolnica rolama. |
@@ -211,7 +211,7 @@ cd frontend && npm run build     # FE production (default config)
 
 ## Tehnički dug (očekivano)
 
-- Rename `Market.*` → `eBolnica.*` (namespace) — **odgođeno**, nije prioritet
+- ~~Rename `Market.*` → `eBolnica.*` (namespace)~~ — **urađeno**
 - Identity model razlike (UserType vs legacy role flags) — UserType je primarni
 - PharmacyController ~2000 linija → ~15 CQRS slice-ova
 - FE standalone → NgModule konverzija za sve komponente
