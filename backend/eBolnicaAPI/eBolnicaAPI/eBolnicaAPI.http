@@ -1,6 +1,0 @@
-@eBolnicaAPI_HostAddress = http://localhost:5004
-
-GET {{eBolnicaAPI_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
