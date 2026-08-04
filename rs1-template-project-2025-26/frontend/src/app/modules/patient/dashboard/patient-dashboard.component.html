@@ -1,0 +1,131 @@
+<div class="page-header">
+
+  <h1>Moj dashboard</h1>
+
+</div>
+
+
+
+@if (isLoading) {
+
+  <app-fit-table-skeleton [rows]="4" [columns]="2"></app-fit-table-skeleton>
+
+}
+
+
+
+@if (profile) {
+
+  <div class="cards-grid">
+
+    <mat-card>
+
+      <mat-card-header>
+
+        <mat-card-title>Osnovni podaci</mat-card-title>
+
+      </mat-card-header>
+
+      <mat-card-content>
+
+        <div class="info-grid">
+
+          <div><strong>Ime:</strong> {{ profile.firstName }}</div>
+
+          <div><strong>Prezime:</strong> {{ profile.lastName }}</div>
+
+          <div><strong>Email:</strong> {{ profile.email }}</div>
+
+          <div><strong>ID pacijenta:</strong> {{ profile.id }}</div>
+
+          <div><strong>Broj kartona:</strong> {{ profile.recordNumber || '-' }}</div>
+
+          <div><strong>Status registracije:</strong> {{ profile.registrationStatus }}</div>
+
+        </div>
+
+      </mat-card-content>
+
+    </mat-card>
+
+
+
+    <mat-card>
+
+      <mat-card-header>
+
+        <mat-card-title>Medicinski podaci</mat-card-title>
+
+      </mat-card-header>
+
+      <mat-card-content>
+
+        <div class="info-grid">
+
+          <div><strong>Datum rođenja:</strong> {{ profile.dateOfBirth ? (profile.dateOfBirth | date:'dd.MM.yyyy') : '-' }}</div>
+
+          <div><strong>Spol:</strong> {{ profile.gender || '-' }}</div>
+
+          <div><strong>Krvna grupa:</strong> {{ profile.bloodType || '-' }}</div>
+
+          <div><strong>Hospitalizovan:</strong> {{ profile.isAdmitted ? 'Da' : 'Ne' }}</div>
+
+        </div>
+
+      </mat-card-content>
+
+    </mat-card>
+
+
+
+    <mat-card>
+
+      <mat-card-header>
+
+        <mat-card-title>Kontakt</mat-card-title>
+
+      </mat-card-header>
+
+      <mat-card-content>
+
+        <div class="info-grid">
+
+          <div><strong>Telefon:</strong> {{ profile.phoneNumber || '-' }}</div>
+
+          <div><strong>Adresa:</strong> {{ profile.address || '-' }}</div>
+
+        </div>
+
+      </mat-card-content>
+
+    </mat-card>
+
+
+
+    <mat-card>
+
+      <mat-card-header>
+
+        <mat-card-title>Dodijeljeni doktor</mat-card-title>
+
+      </mat-card-header>
+
+      <mat-card-content>
+
+        <div class="info-grid">
+
+          <div><strong>Doktor:</strong> {{ doctorName }}</div>
+
+          <div><strong>Specijalizacija:</strong> {{ profile.doctorSpecialization || '-' }}</div>
+
+        </div>
+
+      </mat-card-content>
+
+    </mat-card>
+
+  </div>
+
+}
+
+

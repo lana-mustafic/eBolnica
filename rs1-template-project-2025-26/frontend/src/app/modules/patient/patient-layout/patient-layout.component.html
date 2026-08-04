@@ -1,0 +1,81 @@
+<mat-sidenav-container class="sidenav-container">
+
+  <mat-sidenav mode="side" opened class="sidenav">
+
+    <div class="sidebar-header">
+
+      <div class="user-info">
+
+        <div class="user-avatar">
+
+          <mat-icon>person</mat-icon>
+
+        </div>
+
+        <div class="user-details">
+
+          <div class="user-email">{{ auth.currentUser()?.email }}</div>
+
+          <div class="user-role">
+
+            <mat-chip class="role-chip patient">
+
+              <mat-icon>health_and_safety</mat-icon>
+
+              Pacijent
+
+            </mat-chip>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+
+    <mat-nav-list>
+
+      <div class="nav-section-title">eBolnica Pacijent</div>
+
+
+
+      <a mat-list-item routerLink="/patient/dashboard" routerLinkActive="active">
+
+        <mat-icon matListItemIcon>dashboard</mat-icon>
+
+        <span matListItemTitle>Dashboard</span>
+
+      </a>
+
+
+
+      <mat-divider></mat-divider>
+
+
+
+      <a mat-list-item routerLink="/auth/logout" class="logout-item">
+
+        <mat-icon matListItemIcon>logout</mat-icon>
+
+        <span matListItemTitle>Odjava</span>
+
+      </a>
+
+    </mat-nav-list>
+
+  </mat-sidenav>
+
+
+
+  <mat-sidenav-content class="main-content">
+
+    <router-outlet></router-outlet>
+
+  </mat-sidenav-content>
+
+</mat-sidenav-container>
+
+

@@ -1,0 +1,46 @@
+<div class="auth-container">
+  <div class="auth-background">
+    <div class="bg-shape shape-1"></div>
+    <div class="bg-shape shape-2"></div>
+    <div class="bg-shape shape-3"></div>
+  </div>
+
+  <div class="auth-content">
+    <div class="auth-brand">
+      <mat-icon class="brand-icon">local_hospital</mat-icon>
+      <h1 class="brand-name">eBolnica</h1>
+      <p class="brand-tagline">Odaberite tip registracije</p>
+    </div>
+
+    <mat-card class="auth-card mat-elevation-z8">
+      <mat-card-header>
+        <mat-card-title>Registracija</mat-card-title>
+        <mat-card-subtitle>Kreirajte nalog kao pacijent ili doktor</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content class="register-options">
+        <a mat-raised-button color="primary" routerLink="/auth/register/patient" class="option-button">
+          <mat-icon>person</mat-icon>
+          Registracija pacijenta
+        </a>
+
+        <a mat-raised-button color="accent" routerLink="/auth/register/doctor" class="option-button">
+          <mat-icon>medical_services</mat-icon>
+          Registracija doktora
+        </a>
+
+        <div class="register-prompt">
+          <span>Već imate nalog?</span>
+          <a routerLink="/auth/login" class="register-link">Prijavite se</a>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <div class="auth-footer">
+      <a routerLink="/" class="back-link">
+        <mat-icon>arrow_back</mat-icon>
+        Nazad na početnu
+      </a>
+    </div>
+  </div>
+</div>

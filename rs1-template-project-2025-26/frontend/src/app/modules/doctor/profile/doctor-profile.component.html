@@ -1,0 +1,27 @@
+<div class="page-header">
+  <h1>Moj profil</h1>
+  <button mat-raised-button color="primary" (click)="openEditDialog()" [disabled]="!doctor">
+    Uredi profil
+  </button>
+</div>
+
+@if (isLoading) {
+  <app-fit-table-skeleton [rows]="4" [columns]="2"></app-fit-table-skeleton>
+}
+
+@if (doctor) {
+  <mat-card>
+    <mat-card-content>
+      <div class="profile-grid">
+        <div><strong>Ime:</strong> {{ doctor.firstName }}</div>
+        <div><strong>Prezime:</strong> {{ doctor.lastName }}</div>
+        <div><strong>Email:</strong> {{ doctor.email }}</div>
+        <div><strong>Telefon:</strong> {{ doctor.phoneNumber }}</div>
+        <div><strong>Specijalizacija:</strong> {{ doctor.specialization || '-' }}</div>
+        <div><strong>Broj licence:</strong> {{ doctor.licenseNumber }}</div>
+        <div><strong>Datum rođenja:</strong> {{ doctor.birthDate ? (doctor.birthDate | date:'dd.MM.yyyy') : '-' }}</div>
+        <div><strong>Adresa:</strong> {{ doctor.address }}</div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+}

@@ -1,0 +1,43 @@
+<h2 mat-dialog-title>Uredi profil</h2>
+
+<mat-dialog-content [formGroup]="form">
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Ime</mat-label>
+    <input matInput formControlName="firstName" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Prezime</mat-label>
+    <input matInput formControlName="lastName" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Telefon</mat-label>
+    <input matInput formControlName="phoneNumber" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Specijalizacija</mat-label>
+    <input matInput formControlName="specialization" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Adresa</mat-label>
+    <input matInput formControlName="address" />
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Odustani</button>
+  <button mat-raised-button color="primary" (click)="save()" [disabled]="form.invalid || isSaving">
+    Sačuvaj
+  </button>
+</mat-dialog-actions>
+
+<style>
+  .full-width {
+    width: 100%;
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+</style>

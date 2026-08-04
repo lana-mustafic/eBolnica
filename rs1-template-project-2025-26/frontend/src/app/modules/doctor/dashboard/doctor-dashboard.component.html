@@ -1,0 +1,82 @@
+<div class="page-header">
+  <h1>Doctor Dashboard</h1>
+  <span class="updated-at">Ažurirano: {{ lastUpdated | date:'dd.MM.yyyy HH:mm' }}</span>
+</div>
+
+@if (isLoading && !stats) {
+  <app-fit-table-skeleton [rows]="2" [columns]="4"></app-fit-table-skeleton>
+}
+
+@if (stats) {
+  <div class="stats-grid">
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-label">Ukupno pacijenata</div>
+        <div class="stat-value">{{ stats.totalPatients }}</div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-label">Izvještaji ovaj mjesec</div>
+        <div class="stat-value">{{ stats.reportsThisMonth }}</div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-label">Izvještaji danas</div>
+        <div class="stat-value">{{ stats.reportsToday }}</div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-label">Prosj. izvještaja/pacijent</div>
+        <div class="stat-value">{{ stats.avgReportsPerPatient | number:'1.1-1' }}</div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <div class="details-grid">
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Mjesečni trend (6 mjeseci)</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        @if (stats.monthlyReportTrend.length === 0) {
+          <p class="empty">Nema podataka.</p>
+        } @else {
+          <ul class="trend-list">
+            @for (item of stats.monthlyReportTrend; track item.month) {
+              <li>
+                <span>{{ item.month }}</span>
+                <strong>{{ item.count }}</strong>
+              </li>
+            }
+          </ul>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Distribucija krvnih grupa</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        @if (stats.bloodTypeDistribution.length === 0) {
+          <p class="empty">Nema podataka.</p>
+        } @else {
+          <ul class="trend-list">
+            @for (item of stats.bloodTypeDistribution; track item.bloodType) {
+              <li>
+                <span>{{ item.bloodType }}</span>
+                <strong>{{ item.count }}</strong>
+              </li>
+            }
+          </ul>
+        }
+      </mat-card-content>
+    </mat-card>
+  </div>
+}
