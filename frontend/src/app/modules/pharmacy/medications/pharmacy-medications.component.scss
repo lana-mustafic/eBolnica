@@ -99,6 +99,11 @@
   width: 100%;
 }
 
+.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
 .sub {
   font-size: 0.8125rem;
   color: #64748b;

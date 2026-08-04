@@ -40,19 +40,25 @@
     <mat-card-content>
       <table mat-table [dataSource]="items" class="inventory-table">
         <ng-container matColumnDef="name">
-          <th mat-header-cell *matHeaderCellDef>Naziv</th>
+          <th mat-header-cell *matHeaderCellDef (click)="onSort('name')" class="sortable">
+            Naziv{{ sortIndicator('name') }}
+          </th>
           <td mat-cell *matCellDef="let m">{{ m.name }}</td>
         </ng-container>
         <ng-container matColumnDef="stock">
-          <th mat-header-cell *matHeaderCellDef>Zaliha</th>
+          <th mat-header-cell *matHeaderCellDef (click)="onSort('stockQuantity')" class="sortable">
+            Zaliha{{ sortIndicator('stockQuantity') }}
+          </th>
           <td mat-cell *matCellDef="let m">{{ m.stockQuantity }}</td>
         </ng-container>
         <ng-container matColumnDef="expiry">
-          <th mat-header-cell *matHeaderCellDef>Rok</th>
+          <th mat-header-cell *matHeaderCellDef (click)="onSort('expiryDate')" class="sortable">
+            Rok{{ sortIndicator('expiryDate') }}
+          </th>
           <td mat-cell *matCellDef="let m">{{ m.expiryDate ? (m.expiryDate | date:'dd.MM.yyyy') : '-' }}</td>
         </ng-container>
-        <tr mat-header-row *matHeaderRowDef="['name','stock','expiry']"></tr>
-        <tr mat-row *matRowDef="let row; columns: ['name','stock','expiry']"></tr>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
       </table>
 
       @if (totalPages > 1) {

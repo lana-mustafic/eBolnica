@@ -6,7 +6,19 @@
 <mat-stepper [linear]="false" [selectedIndex]="step - 1">
   <mat-step label="Osnovno">
     <div [formGroup]="form" class="step-body">
-      <mat-form-field appearance="outline"><mat-label>Naziv</mat-label><input matInput formControlName="name" /></mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Naziv</mat-label>
+        <input matInput formControlName="name" />
+        @if (nameControl?.pending) {
+          <mat-hint>Provjera naziva...</mat-hint>
+        }
+        @if (nameControl?.hasError('medicationNameExists') && nameControl?.touched) {
+          <mat-error>Naziv već postoji</mat-error>
+        }
+        @if (nameControl?.hasError('medicationNameCheckUnavailable') && nameControl?.touched) {
+          <mat-error>Provjera naziva nije dostupna. Pokušajte ponovo.</mat-error>
+        }
+      </mat-form-field>
       <mat-form-field appearance="outline"><mat-label>Generički naziv</mat-label><input matInput formControlName="genericName" /></mat-form-field>
       <mat-form-field appearance="outline">
         <mat-label>Kategorija</mat-label>
@@ -53,6 +65,6 @@
   @if (step > 1) { <button mat-button (click)="back()">Nazad</button> }
   @if (step < 3) { <button mat-raised-button color="primary" (click)="next()">Dalje</button> }
   @if (step === 3) {
-    <button mat-raised-button color="primary" (click)="submit()" [disabled]="isSaving">Sačuvaj</button>
+    <button mat-raised-button color="primary" (click)="submit()" [disabled]="isSaving || form.invalid || form.pending">Sačuvaj</button>
   }
 </div>

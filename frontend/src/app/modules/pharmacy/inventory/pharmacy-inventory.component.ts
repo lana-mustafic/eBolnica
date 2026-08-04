@@ -19,13 +19,25 @@ export class PharmacyInventoryComponent implements OnInit {
   currentPage = 1;
   totalPages = 0;
 
+  sortBy = 'name';
+  sortOrder: 'asc' | 'desc' = 'asc';
+
+  displayedColumns = ['name', 'stock', 'expiry'];
+
   ngOnInit(): void {
     this.load();
   }
 
   load(): void {
     this.isLoading = true;
-    this.pharmacyApi.getInventory({ pageNumber: this.currentPage, pageSize: 10, sortBy: 'name', sortOrder: 'asc' }).subscribe({
+    this.pharmacyApi
+      .getInventory({
+        pageNumber: this.currentPage,
+        pageSize: 10,
+        sortBy: this.sortBy,
+        sortOrder: this.sortOrder,
+      })
+      .subscribe({
       next: (res) => {
         this.items = res.items;
         this.lowStockAlerts = res.lowStockAlerts;
@@ -45,5 +57,21 @@ export class PharmacyInventoryComponent implements OnInit {
     if (page < 1 || page > this.totalPages) return;
     this.currentPage = page;
     this.load();
+  }
+
+  onSort(column: string): void {
+    if (this.sortBy === column) {
+      this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortBy = column;
+      this.sortOrder = 'asc';
+    }
+    this.currentPage = 1;
+    this.load();
+  }
+
+  sortIndicator(column: string): string {
+    if (this.sortBy !== column) return '';
+    return this.sortOrder === 'asc' ? ' ▲' : ' ▼';
   }
 }

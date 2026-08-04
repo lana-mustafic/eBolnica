@@ -1,9 +1,15 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { map } from 'rxjs';
 import { PharmacyApiService } from '../../../../api-services/pharmacy/pharmacy-api.service';
 import { MedicationImageDto, MedicationUpsertCommand } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../../core/services/toaster.service';
+import { medicationNameAsyncValidator } from '../../../shared/validators/medication-name-async.validator';
+import {
+  extractMedicationImageUploadResponse,
+  getHttpUploadProgressPercent,
+} from '../utils/medication-image-upload-progress.util';
 
 @Component({
   selector: 'app-medication-form',
@@ -22,9 +28,9 @@ export class MedicationFormComponent implements OnInit {
   medicationId: number | null = null;
   isLoading = false;
   isSaving = false;
-  nameTaken = false;
   images: MedicationImageDto[] = [];
   isUploadingImage = false;
+  uploadProgress = 0;
 
   categories = [
     'Analgesics',
@@ -41,7 +47,19 @@ export class MedicationFormComponent implements OnInit {
   dosageForms = ['Tablet', 'Capsule', 'Liquid', 'Injection', 'Cream', 'Drops', 'Other'];
 
   form = this.fb.group({
-    name: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
+    name: [
+      '',
+      [Validators.required, Validators.minLength(3), Validators.maxLength(100)],
+      [
+        medicationNameAsyncValidator(
+          (name, excludeId) =>
+            this.pharmacyApi.checkName(name, excludeId).pipe(
+              map((res) => ({ isAvailable: res.isAvailable }))
+            ),
+          { excludeId: () => this.medicationId ?? undefined }
+        ),
+      ],
+    ],
     genericName: [''],
     description: [''],
     manufacturer: [''],
@@ -98,19 +116,12 @@ export class MedicationFormComponent implements OnInit {
     });
   }
 
-  checkNameAvailability(): void {
-    const name = this.form.get('name')?.value?.trim();
-    if (!name || name.length < 3) return;
-
-    this.pharmacyApi.checkName(name, this.medicationId ?? undefined).subscribe({
-      next: (res) => {
-        this.nameTaken = !res.isAvailable;
-      },
-    });
+  get nameControl() {
+    return this.form.get('name');
   }
 
   submit(): void {
-    if (this.form.invalid || this.nameTaken) {
+    if (this.form.invalid || this.form.pending) {
       this.form.markAllAsTouched();
       return;
     }
@@ -167,14 +178,25 @@ export class MedicationFormComponent implements OnInit {
     if (!file || !this.medicationId) return;
 
     this.isUploadingImage = true;
+    this.uploadProgress = 0;
     this.pharmacyApi.uploadImage(this.medicationId, file).subscribe({
-      next: () => {
-        this.isUploadingImage = false;
-        this.toaster.success('Slika uploadovana.');
-        this.loadImages(this.medicationId!);
+      next: (httpEvent) => {
+        const progress = getHttpUploadProgressPercent(httpEvent);
+        if (progress != null) {
+          this.uploadProgress = progress;
+        }
+
+        const uploaded = extractMedicationImageUploadResponse(httpEvent);
+        if (uploaded) {
+          this.isUploadingImage = false;
+          this.uploadProgress = 0;
+          this.toaster.success('Slika uploadovana.');
+          this.loadImages(this.medicationId!);
+        }
       },
       error: () => {
         this.isUploadingImage = false;
+        this.uploadProgress = 0;
         this.toaster.error('Greška pri uploadu slike.');
       },
     });

@@ -1,9 +1,11 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { map } from 'rxjs';
 import { PharmacyApiService } from '../../../../api-services/pharmacy/pharmacy-api.service';
 import { MedicationUpsertCommand } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../../core/services/toaster.service';
+import { medicationNameAsyncValidator } from '../../../shared/validators/medication-name-async.validator';
 
 @Component({
   selector: 'app-medication-wizard',
@@ -24,7 +26,15 @@ export class MedicationWizardComponent {
   dosageForms = ['Tablet', 'Capsule', 'Liquid', 'Injection'];
 
   form = this.fb.group({
-    name: ['', [Validators.required, Validators.minLength(3)]],
+    name: [
+      '',
+      [Validators.required, Validators.minLength(3)],
+      [
+        medicationNameAsyncValidator((name, excludeId) =>
+          this.pharmacyApi.checkName(name, excludeId).pipe(map((res) => ({ isAvailable: res.isAvailable })))
+        ),
+      ],
+    ],
     genericName: [''],
     category: ['', Validators.required],
     manufacturer: [''],
@@ -50,8 +60,12 @@ export class MedicationWizardComponent {
     if (this.step > 1) this.step--;
   }
 
+  get nameControl() {
+    return this.form.get('name');
+  }
+
   submit(): void {
-    if (this.form.invalid) {
+    if (this.form.invalid || this.form.pending) {
       this.form.markAllAsTouched();
       return;
     }
@@ -95,7 +109,10 @@ export class MedicationWizardComponent {
     let ok = true;
     for (const f of fields) {
       const c = this.form.get(f);
-      if (c && c.invalid) {
+      if (c?.pending) {
+        ok = false;
+      }
+      if (c?.invalid) {
         c.markAsTouched();
         ok = false;
       }

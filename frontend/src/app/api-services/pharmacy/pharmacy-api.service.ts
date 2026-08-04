@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpParams, HttpResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -110,10 +110,14 @@ export class PharmacyApiService {
     return this.http.get<MedicationImageDto[]>(`${this.baseUrl}/medications/${medicationId}/images`);
   }
 
-  uploadImage(medicationId: number, file: File): Observable<MedicationImageDto> {
+  uploadImage(medicationId: number, file: File): Observable<HttpEvent<MedicationImageDto>> {
     const formData = new FormData();
     formData.append('file', file);
-    return this.http.post<MedicationImageDto>(`${this.baseUrl}/medications/${medicationId}/images`, formData);
+    return this.http.post<MedicationImageDto>(
+      `${this.baseUrl}/medications/${medicationId}/images`,
+      formData,
+      { reportProgress: true, observe: 'events' }
+    );
   }
 
   deleteImage(medicationId: number, imageId: number): Observable<void> {
