@@ -35,6 +35,9 @@ export class PharmacyMedicationsComponent implements OnInit {
   selectedStockStatus = '';
   showInactive = false;
 
+  sortBy = 'createdAt';
+  sortOrder: 'asc' | 'desc' = 'desc';
+
   autocompleteSuggestions: MedicationAutocompleteSuggestion[] = [];
   showAutocomplete = false;
   importSummary: MedicationImportResult | null = null;
@@ -96,9 +99,25 @@ export class PharmacyMedicationsComponent implements OnInit {
       includeInactive: this.showInactive,
       pageNumber: this.currentPage,
       pageSize: this.pageSize,
-      sortBy: 'createdAt',
-      sortOrder: 'desc' as const,
+      sortBy: this.sortBy,
+      sortOrder: this.sortOrder,
     };
+  }
+
+  onSort(column: string): void {
+    if (this.sortBy === column) {
+      this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortBy = column;
+      this.sortOrder = 'asc';
+    }
+    this.currentPage = 1;
+    this.loadMedications();
+  }
+
+  sortIndicator(column: string): string {
+    if (this.sortBy !== column) return '';
+    return this.sortOrder === 'asc' ? ' ▲' : ' ▼';
   }
 
   onSearchInput(): void {

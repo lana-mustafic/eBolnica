@@ -25,6 +25,11 @@
   width: 100%;
 }
 
+.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
 .pagination {
   display: flex;
   gap: 1rem;

@@ -6,6 +6,10 @@ import { PharmacyApiService } from '../../../../api-services/pharmacy/pharmacy-a
 import { MedicationImageDto, MedicationUpsertCommand } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../../core/services/toaster.service';
 import { medicationNameAsyncValidator } from '../../../shared/validators/medication-name-async.validator';
+import {
+  extractMedicationImageUploadResponse,
+  getHttpUploadProgressPercent,
+} from '../utils/medication-image-upload-progress.util';
 
 @Component({
   selector: 'app-medication-form',
@@ -26,6 +30,7 @@ export class MedicationFormComponent implements OnInit {
   isSaving = false;
   images: MedicationImageDto[] = [];
   isUploadingImage = false;
+  uploadProgress = 0;
 
   categories = [
     'Analgesics',
@@ -173,14 +178,25 @@ export class MedicationFormComponent implements OnInit {
     if (!file || !this.medicationId) return;
 
     this.isUploadingImage = true;
+    this.uploadProgress = 0;
     this.pharmacyApi.uploadImage(this.medicationId, file).subscribe({
-      next: () => {
-        this.isUploadingImage = false;
-        this.toaster.success('Slika uploadovana.');
-        this.loadImages(this.medicationId!);
+      next: (httpEvent) => {
+        const progress = getHttpUploadProgressPercent(httpEvent);
+        if (progress != null) {
+          this.uploadProgress = progress;
+        }
+
+        const uploaded = extractMedicationImageUploadResponse(httpEvent);
+        if (uploaded) {
+          this.isUploadingImage = false;
+          this.uploadProgress = 0;
+          this.toaster.success('Slika uploadovana.');
+          this.loadImages(this.medicationId!);
+        }
       },
       error: () => {
         this.isUploadingImage = false;
+        this.uploadProgress = 0;
         this.toaster.error('Greška pri uploadu slike.');
       },
     });

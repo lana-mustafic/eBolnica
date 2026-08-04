@@ -112,6 +112,12 @@
       <mat-card-header><mat-card-title>Slike lijeka</mat-card-title></mat-card-header>
       <mat-card-content>
         <input type="file" accept="image/jpeg,image/png,image/webp" (change)="onImageSelected($event)" [disabled]="isUploadingImage" />
+        @if (isUploadingImage) {
+          <div class="upload-progress">
+            <mat-progress-bar mode="determinate" [value]="uploadProgress"></mat-progress-bar>
+            <span>{{ uploadProgress }}%</span>
+          </div>
+        }
         <div class="image-grid">
           @for (img of images; track img.id) {
             <div class="image-item" [class.primary]="img.isPrimary">
