@@ -11,9 +11,21 @@
       <div class="form-grid">
         <mat-form-field appearance="outline">
           <mat-label>Naziv *</mat-label>
-          <input matInput formControlName="name" (blur)="checkNameAvailability()" />
-          @if (nameTaken) {
+          <input matInput formControlName="name" />
+          @if (nameControl?.pending) {
+            <mat-hint>Provjera naziva...</mat-hint>
+          }
+          @if (nameControl?.hasError('required') && nameControl?.touched) {
+            <mat-error>Naziv je obavezan</mat-error>
+          }
+          @if (nameControl?.hasError('minlength') && nameControl?.touched) {
+            <mat-error>Naziv mora imati najmanje 3 karaktera</mat-error>
+          }
+          @if (nameControl?.hasError('medicationNameExists') && nameControl?.touched) {
             <mat-error>Naziv već postoji</mat-error>
+          }
+          @if (nameControl?.hasError('medicationNameCheckUnavailable') && nameControl?.touched) {
+            <mat-error>Provjera naziva nije dostupna. Pokušajte ponovo.</mat-error>
           }
         </mat-form-field>
 
@@ -88,7 +100,7 @@
       </div>
 
       <div class="actions">
-        <button mat-raised-button color="primary" (click)="submit()" [disabled]="form.invalid || isSaving || nameTaken">
+        <button mat-raised-button color="primary" (click)="submit()" [disabled]="form.invalid || form.pending || isSaving">
           Sačuvaj
         </button>
       </div>
