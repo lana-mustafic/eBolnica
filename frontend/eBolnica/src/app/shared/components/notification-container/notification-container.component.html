@@ -1,0 +1,8 @@
+<div class="notification-container position-bottom-right">
+  <app-notification-toast
+    *ngFor="let notification of notifications"
+    [notification]="notification"
+    (dismiss)="onDismiss(notification)"
+    (action)="onAction(notification)">
+  </app-notification-toast>
+</div>

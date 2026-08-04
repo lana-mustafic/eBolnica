@@ -1,0 +1,62 @@
+using Market.Application.Modules.Pharmacy.Medications;
+using Market.Application.Modules.Pharmacy.Medications.Commands.UpdateMedication;
+using Market.Domain.Entities.Pharmacy;
+
+public sealed class UpdateMedicationCommandHandler(IAppDbContext ctx, IPharmacyAnalyticsService analytics)
+    : IRequestHandler<UpdateMedicationCommand, MedicationDto>
+{
+    public async Task<MedicationDto> Handle(UpdateMedicationCommand request, CancellationToken ct)
+    {
+        var medication = await ctx.Medications
+            .FirstOrDefaultAsync(m => m.Id == request.Id && !m.IsDeleted, ct);
+
+        if (medication is null || (!medication.IsActive && !request.IsActive))
+            throw new MarketNotFoundException("Medication not found.");
+
+        var normalized = MedicationEntity.NormalizeName(request.Name);
+        if (await ctx.Medications.AnyAsync(
+                m => !m.IsDeleted && m.NormalizedName == normalized && m.Id != request.Id, ct))
+            throw new MarketConflictException("A medication with this name already exists.");
+
+        medication.Name = request.Name.Trim();
+        medication.NormalizedName = normalized;
+        medication.GenericName = request.GenericName?.Trim();
+        medication.Description = request.Description?.Trim();
+        medication.Manufacturer = request.Manufacturer?.Trim();
+        medication.Price = request.Price;
+        medication.StockQuantity = request.StockQuantity;
+        medication.MinimumStockLevel = request.MinimumStockLevel;
+        medication.ExpiryDate = request.ExpiryDate;
+        medication.BatchNumber = request.BatchNumber?.Trim();
+        medication.IsActive = request.IsActive;
+        medication.RequiresPrescription = request.RequiresPrescription;
+        medication.Category = request.Category.Trim();
+        medication.DosageForm = request.DosageForm?.Trim();
+        medication.Strength = request.Strength?.Trim();
+        medication.ModifiedAtUtc = DateTime.UtcNow;
+
+        await ctx.SaveChangesAsync(ct);
+
+        analytics.InvalidateAnalyticsCache();
+        return new MedicationDto
+        {
+            Id = medication.Id,
+            Name = medication.Name,
+            GenericName = medication.GenericName,
+            Description = medication.Description,
+            Manufacturer = medication.Manufacturer,
+            Price = medication.Price,
+            StockQuantity = medication.StockQuantity,
+            MinimumStockLevel = medication.MinimumStockLevel,
+            ExpiryDate = medication.ExpiryDate,
+            BatchNumber = medication.BatchNumber,
+            IsActive = medication.IsActive,
+            RequiresPrescription = medication.RequiresPrescription,
+            Category = medication.Category,
+            DosageForm = medication.DosageForm,
+            Strength = medication.Strength,
+            CreatedAt = medication.CreatedAtUtc,
+            UpdatedAt = medication.ModifiedAtUtc
+        };
+    }
+}

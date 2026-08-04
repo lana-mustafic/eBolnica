@@ -1,0 +1,107 @@
+<div class="auth-container">
+  <div class="auth-background">
+    <div class="bg-shape shape-1"></div>
+    <div class="bg-shape shape-2"></div>
+    <div class="bg-shape shape-3"></div>
+  </div>
+
+  <div class="auth-content">
+    <div class="auth-brand">
+      <mat-icon class="brand-icon">medical_services</mat-icon>
+      <h1 class="brand-name">eBolnica</h1>
+      <p class="brand-tagline">Registracija doktora</p>
+    </div>
+
+    <mat-card class="auth-card mat-elevation-z8">
+      <mat-card-header>
+        <mat-card-title>Novi doktor</mat-card-title>
+        <mat-card-subtitle>Popunite profesionalne podatke</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div *ngIf="errorMessage" class="error-message">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ errorMessage }}</span>
+        </div>
+
+        <div *ngIf="successMessage" class="success-message">
+          <mat-icon>check_circle</mat-icon>
+          <span>{{ successMessage }}</span>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()">
+          <div class="form-row-2">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Ime</mat-label>
+              <input matInput formControlName="firstName" />
+              <mat-error>Ime je obavezno</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Prezime</mat-label>
+              <input matInput formControlName="lastName" />
+              <mat-error>Prezime je obavezno</mat-error>
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Broj licence</mat-label>
+            <input matInput formControlName="licenseNumber" />
+            <mat-error>Broj licence je obavezan</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Email</mat-label>
+            <input matInput type="email" formControlName="email" autocomplete="email" />
+            <mat-error>Unesite validan email</mat-error>
+          </mat-form-field>
+
+          <div class="form-row-2">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Datum rođenja</mat-label>
+              <input matInput type="date" formControlName="dateOfBirth" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Spol</mat-label>
+              <mat-select formControlName="gender">
+                <mat-option value="">—</mat-option>
+                <mat-option value="Male">Muški</mat-option>
+                <mat-option value="Female">Ženski</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Lozinka</mat-label>
+            <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password" />
+            <button mat-icon-button matSuffix type="button" (click)="hidePassword = !hidePassword">
+              <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            <mat-error>Minimum 6 karaktera</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Potvrda lozinke</mat-label>
+            <input matInput type="password" formControlName="confirmPassword" />
+            <mat-error *ngIf="form.get('confirmPassword')?.hasError('passwordMismatch')">
+              Lozinke se ne podudaraju
+            </mat-error>
+          </mat-form-field>
+
+          <div class="actions">
+            <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || isLoading">
+              Registruj se kao doktor
+            </button>
+          </div>
+        </form>
+
+        <div class="register-prompt">
+          <a routerLink="/auth/register">Nazad na izbor</a>
+          ·
+          <a routerLink="/auth/login">Prijava</a>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

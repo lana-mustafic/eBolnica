@@ -1,0 +1,285 @@
+<app-pharmacy-shell>
+<div class="wizard-container">
+  <div class="wizard-header">
+    <h2>Add New Medication</h2>
+    <p class="subtitle">Complete the form in 3 simple steps</p>
+  </div>
+
+  <!-- Draft Recovery Banner -->
+  <div
+    *ngIf="showDraftBanner"
+    class="draft-banner"
+    role="region"
+    aria-label="Saved draft available">
+    <div class="draft-banner-icon" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="12" y1="18" x2="12" y2="12"></line>
+        <line x1="9" y1="15" x2="15" y2="15"></line>
+      </svg>
+    </div>
+    <div class="draft-banner-content">
+      <p class="draft-banner-title">You have a saved draft</p>
+      <p class="draft-banner-message">
+        Continue where you left off or discard the draft to start fresh.
+        <span *ngIf="getDraftSavedAtLabel() as savedAt">Last saved {{ savedAt }}.</span>
+      </p>
+    </div>
+    <div class="draft-banner-actions">
+      <button
+        type="button"
+        class="btn btn-secondary btn-draft"
+        (click)="continueDraft()">
+        Continue draft
+      </button>
+      <button
+        type="button"
+        class="btn btn-draft-discard"
+        (click)="discardDraft()">
+        Discard draft
+      </button>
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  <div class="error-message" *ngIf="errorMessage">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <span>{{ errorMessage }}</span>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="progress-container">
+    <div class="progress-bar">
+      <div class="progress-fill" [style.width.%]="getProgressPercentage()"></div>
+    </div>
+    <div class="progress-text">{{ currentStep }} of {{ totalSteps }} steps</div>
+    <div class="progress-step-title" aria-live="polite">{{ getStepTitle(currentStep) }}</div>
+  </div>
+
+  <!-- Step Indicators -->
+  <div class="step-indicators" role="tablist" aria-label="Medication wizard steps">
+    <div 
+      *ngFor="let step of [1, 2, 3]" 
+      class="step-indicator"
+      [class.active]="currentStep === step"
+      [class.completed]="isStepCompleted(step) && currentStep !== step"
+      [attr.role]="'tab'"
+      [attr.aria-selected]="currentStep === step"
+      [attr.aria-label]="'Step ' + step + ': ' + getStepTitle(step)"
+      [attr.tabindex]="currentStep === step ? 0 : -1"
+      (click)="goToStep(step)"
+      (keydown.enter)="goToStep(step)"
+      (keydown.space)="$event.preventDefault(); goToStep(step)">
+      <div class="step-number">
+        <svg *ngIf="isStepCompleted(step) && currentStep !== step" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span *ngIf="!isStepCompleted(step) || currentStep === step">{{ step }}</span>
+      </div>
+      <div class="step-label">{{ getStepTitle(step) }}</div>
+    </div>
+  </div>
+
+  <!-- Wizard Form -->
+  <form [formGroup]="wizardForm" (ngSubmit)="onSubmit()" class="wizard-form">
+    <!-- Step 1: Basic Information -->
+    <div class="wizard-step" *ngIf="currentStep === 1">
+      <div class="step-header">
+        <h3>Basic Information</h3>
+        <p>Enter the basic details about the medication</p>
+      </div>
+
+      <mat-form-field
+        appearance="outline"
+        class="full-width"
+        [class.name-field-pending]="isNameControlPending()">
+        <mat-label>Medication Name</mat-label>
+        <input
+          matInput
+          id="name"
+          formControlName="name"
+          placeholder="e.g., Paracetamol"
+          [class.field-invalid]="isNameFieldInvalid()"
+          [attr.aria-busy]="isNameControlPending()"
+          [attr.aria-invalid]="isNameFieldInvalid()">
+        <mat-spinner
+          *ngIf="isNameControlPending()"
+          matSuffix
+          diameter="20"
+          aria-label="Validating medication name">
+        </mat-spinner>
+        <mat-hint *ngIf="isNameControlPending()">Validating...</mat-hint>
+        <mat-error *ngIf="getNameFieldError() as nameError">{{ nameError }}</mat-error>
+      </mat-form-field>
+
+      <button
+        *ngIf="isNameCheckUnavailable()"
+        type="button"
+        class="btn-retry-name-check"
+        (click)="retryNameValidation()">
+        Retry name check
+      </button>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Category</mat-label>
+        <mat-select id="category" formControlName="category">
+          <mat-option value="">Select a category</mat-option>
+          <mat-option *ngFor="let cat of categories" [value]="cat">{{ cat }}</mat-option>
+        </mat-select>
+        <mat-error *ngIf="getFieldError('category') as categoryError">{{ categoryError }}</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Description</mat-label>
+        <textarea matInput id="description" formControlName="description" rows="4" placeholder="Enter medication description (optional)"></textarea>
+        <mat-error *ngIf="getFieldError('description')">{{ getFieldError('description') }}</mat-error>
+      </mat-form-field>
+    </div>
+
+    <!-- Step 2: Details & Stock -->
+    <div class="wizard-step" *ngIf="currentStep === 2">
+      <div class="step-header">
+        <h3>Details & Stock</h3>
+        <p>Enter pricing and stock information</p>
+      </div>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Price</mat-label>
+          <span matTextPrefix>$&nbsp;</span>
+          <input matInput type="number" id="price" formControlName="price" placeholder="0.00" step="0.01" min="0.01">
+          <mat-error *ngIf="getFieldError('price')">{{ getFieldError('price') }}</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Stock Quantity</mat-label>
+          <input matInput type="number" id="stockQuantity" formControlName="stockQuantity" placeholder="0" min="0">
+          <mat-error *ngIf="getFieldError('stockQuantity')">{{ getFieldError('stockQuantity') }}</mat-error>
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Minimum Stock Level</mat-label>
+        <input matInput type="number" id="minimumStockLevel" formControlName="minimumStockLevel" placeholder="10" min="0">
+        <mat-error *ngIf="getFieldError('minimumStockLevel')">{{ getFieldError('minimumStockLevel') }}</mat-error>
+      </mat-form-field>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Dosage Form</mat-label>
+          <mat-select id="dosageForm" formControlName="dosageForm">
+            <mat-option value="">Select dosage form</mat-option>
+            <mat-option *ngFor="let form of dosageForms" [value]="form">{{ form }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Strength</mat-label>
+          <input matInput type="text" id="strength" formControlName="strength" placeholder="e.g., 500mg">
+          <mat-error *ngIf="getFieldError('strength')">{{ getFieldError('strength') }}</mat-error>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <!-- Step 3: Additional Info -->
+    <div class="wizard-step" *ngIf="currentStep === 3">
+      <div class="step-header">
+        <h3>Additional Information</h3>
+        <p>Enter expiry date and other details</p>
+      </div>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Expiry Date</mat-label>
+          <input matInput type="date" id="expiryDate" formControlName="expiryDate">
+          <mat-error *ngIf="getFieldError('expiryDate')">{{ getFieldError('expiryDate') }}</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Batch Number</mat-label>
+          <input matInput type="text" id="batchNumber" formControlName="batchNumber" placeholder="e.g., BATCH-001">
+          <mat-error *ngIf="getFieldError('batchNumber')">{{ getFieldError('batchNumber') }}</mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Generic Name</mat-label>
+          <input matInput type="text" id="genericName" formControlName="genericName" placeholder="e.g., Acetaminophen">
+          <mat-error *ngIf="getFieldError('genericName')">{{ getFieldError('genericName') }}</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Manufacturer</mat-label>
+          <input matInput type="text" id="manufacturer" formControlName="manufacturer" placeholder="e.g., PharmaCorp">
+          <mat-error *ngIf="getFieldError('manufacturer')">{{ getFieldError('manufacturer') }}</mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="form-row checkbox-row">
+        <mat-checkbox formControlName="requiresPrescription">Requires Prescription</mat-checkbox>
+        <mat-checkbox formControlName="isActive">Active (available for use)</mat-checkbox>
+      </div>
+    </div>
+
+    <!-- Navigation Buttons -->
+    <div class="wizard-actions">
+      <button
+        type="button"
+        class="btn btn-cancel"
+        (click)="cancel()"
+        [disabled]="isLoading">
+        Cancel
+      </button>
+
+      <div class="navigation-buttons">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="previousStep()"
+          [disabled]="currentStep === 1 || isLoading">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          Previous
+        </button>
+
+        <button
+          *ngIf="currentStep < totalSteps"
+          type="button"
+          class="btn btn-primary"
+          (click)="nextStep()"
+          [disabled]="isLoading || !isStepValid(currentStep) || isNameControlPending()">
+          Next
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+
+        <button
+          *ngIf="currentStep === totalSteps"
+          type="submit"
+          class="btn btn-primary"
+          [disabled]="isLoading || wizardForm.invalid || wizardForm.pending">
+          <span *ngIf="!isLoading">Submit</span>
+          <span *ngIf="isLoading">Submitting...</span>
+          <svg *ngIf="!isLoading" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Submitting medication...</p>
+  </div>
+</div>
+</app-pharmacy-shell>
