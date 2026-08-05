@@ -7,6 +7,36 @@
   h1 { margin: 0; font-size: 1.75rem; }
 }
 
+.draft-banner {
+  margin-bottom: 1rem;
+  border-left: 4px solid #6a1b9a;
+}
+
+.draft-banner-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  p {
+    margin: 0.35rem 0 0;
+    color: #64748b;
+    font-size: 0.875rem;
+  }
+}
+
+.draft-saved-at {
+  display: block;
+  margin-top: 0.25rem;
+}
+
+.draft-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .step-body {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
