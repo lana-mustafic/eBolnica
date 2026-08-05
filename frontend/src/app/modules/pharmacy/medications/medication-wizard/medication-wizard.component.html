@@ -3,6 +3,28 @@
   <button mat-button (click)="cancel()">Odustani</button>
 </div>
 
+@if (showDraftBanner) {
+  <mat-card class="draft-banner">
+    <mat-card-content>
+      <div class="draft-banner-body">
+        <div>
+          <strong>Imate sačuvani draft</strong>
+          <p>
+            Nastavite gdje ste stali ili odbacite draft i krenite ispočetka.
+            @if (getDraftSavedAtLabel(); as savedAt) {
+              <span class="draft-saved-at">Posljednje čuvanje: {{ savedAt }}.</span>
+            }
+          </p>
+        </div>
+        <div class="draft-banner-actions">
+          <button mat-raised-button color="primary" type="button" (click)="continueDraft()">Nastavi draft</button>
+          <button mat-stroked-button color="warn" type="button" (click)="discardDraft()">Odbaci draft</button>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+}
+
 <mat-stepper [linear]="false" [selectedIndex]="step - 1">
   <mat-step label="Osnovno">
     <div [formGroup]="form" class="step-body">
