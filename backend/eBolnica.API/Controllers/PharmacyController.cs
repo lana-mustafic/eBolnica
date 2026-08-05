@@ -10,6 +10,7 @@ using eBolnica.Application.Modules.Pharmacy.Medications.Commands.CreateMedicatio
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.DeleteMedication;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.DeleteMedicationImage;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.ImportMedicationsCsv;
+using eBolnica.Application.Modules.Pharmacy.Medications.Commands.ReorderMedicationImages;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.SetPrimaryMedicationImage;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.UpdateMedication;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.UploadMedicationImage;
@@ -165,6 +166,21 @@ public sealed class PharmacyController(IMediator mediator) : ControllerBase
         return NoContent();
     }
 
+    [HttpPut("medications/{id:int}/images/reorder")]
+    [Authorize(Policy = "PharmacyStaff")]
+    public async Task<IActionResult> ReorderMedicationImages(
+        int id,
+        [FromBody] ReorderMedicationImagesRequest body,
+        CancellationToken ct)
+    {
+        await mediator.Send(new ReorderMedicationImagesCommand
+        {
+            MedicationId = id,
+            ImageIds = body.ImageIds
+        }, ct);
+        return NoContent();
+    }
+
     [HttpPost("medications")]
     [Authorize(Policy = "PharmacyStaff")]
     public async Task<ActionResult<MedicationDto>> CreateMedication(
@@ -267,4 +283,9 @@ public sealed class PharmacyController(IMediator mediator) : ControllerBase
         Response.Headers["X-Export-Row-Count"] = result.RowCount.ToString();
         return File(result.Content, "application/pdf", result.FileName);
     }
+}
+
+public sealed class ReorderMedicationImagesRequest
+{
+    public IReadOnlyList<int> ImageIds { get; init; } = Array.Empty<int>();
 }

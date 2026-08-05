@@ -97,6 +97,25 @@
 
 .medications-table {
   width: 100%;
+  min-width: 960px;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover strong {
+    color: #6a1b9a;
+    text-decoration: underline;
+  }
 }
 
 .sortable {

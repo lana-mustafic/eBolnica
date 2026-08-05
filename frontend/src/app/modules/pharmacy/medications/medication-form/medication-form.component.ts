@@ -1,16 +1,34 @@
+import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, Router } from '@angular/router';
 import { map } from 'rxjs';
 import { PharmacyApiService } from '../../../../api-services/pharmacy/pharmacy-api.service';
 import { MedicationImageDto, MedicationUpsertCommand } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../../core/services/toaster.service';
 import { medicationNameAsyncValidator } from '../../../shared/validators/medication-name-async.validator';
+import { MedicationImageUrlService } from '../../services/medication-image-url.service';
+import {
+  MedicationImageLightboxComponent,
+  MedicationImageLightboxData,
+} from '../medication-image-lightbox/medication-image-lightbox.component';
+import { compressMedicationImage } from '../utils/medication-image-compress.util';
 import {
   extractMedicationImageUploadResponse,
   getHttpUploadProgressPercent,
 } from '../utils/medication-image-upload-progress.util';
-import { MedicationImageUrlService } from '../../services/medication-image-url.service';
+
+interface PendingImageUpload {
+  key: string;
+  file: File;
+  previewUrl: string;
+  originalSize: number;
+  compressedSize: number;
+  status: 'pending' | 'uploading' | 'error';
+  progress: number;
+  errorMessage?: string;
+}
 
 @Component({
   selector: 'app-medication-form',
@@ -25,6 +43,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private toaster = inject(ToasterService);
+  private dialog = inject(MatDialog);
 
   isEditMode = false;
   medicationId: number | null = null;
@@ -32,8 +51,9 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   isSaving = false;
   images: MedicationImageDto[] = [];
   imageUrls = new Map<number, string>();
-  isUploadingImage = false;
-  uploadProgress = 0;
+  pendingUploads: PendingImageUpload[] = [];
+  isDragOver = false;
+  isProcessingQueue = false;
 
   categories = [
     'Analgesics',
@@ -88,6 +108,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.clearPendingUploads();
     this.imageUrlService.revokeAll();
   }
 
@@ -184,48 +205,88 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
     });
   }
 
-  private loadImageUrls(medicationId: number, images: MedicationImageDto[]): void {
-    this.imageUrlService.revokeAll();
-    this.imageUrls.clear();
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    this.isDragOver = true;
+  }
 
-    for (const image of images) {
-      this.imageUrlService.getAuthenticatedUrl(medicationId, image.id).subscribe({
-        next: (url) => this.imageUrls.set(image.id, url),
-        error: () => {
-          const legacy = this.imageUrlService.getLegacyUrl(image.relativeUrl);
-          if (legacy) {
-            this.imageUrls.set(image.id, legacy);
-          }
-        },
-      });
+  onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    this.isDragOver = false;
+  }
+
+  onDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.isDragOver = false;
+    if (!this.medicationId || !event.dataTransfer?.files?.length) {
+      return;
     }
+    void this.queueFiles(Array.from(event.dataTransfer.files));
   }
 
   onImageSelected(event: Event): void {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file || !this.medicationId) return;
+    const input = event.target as HTMLInputElement;
+    const files = input.files;
+    input.value = '';
+    if (!files?.length || !this.medicationId) {
+      return;
+    }
+    void this.queueFiles(Array.from(files));
+  }
 
-    this.isUploadingImage = true;
-    this.uploadProgress = 0;
-    this.pharmacyApi.uploadImage(this.medicationId, file).subscribe({
-      next: (httpEvent) => {
-        const progress = getHttpUploadProgressPercent(httpEvent);
-        if (progress != null) {
-          this.uploadProgress = progress;
-        }
+  removePending(key: string): void {
+    const item = this.pendingUploads.find((entry) => entry.key === key);
+    if (item) {
+      URL.revokeObjectURL(item.previewUrl);
+    }
+    this.pendingUploads = this.pendingUploads.filter((entry) => entry.key !== key);
+  }
 
-        const uploaded = extractMedicationImageUploadResponse(httpEvent);
-        if (uploaded) {
-          this.isUploadingImage = false;
-          this.uploadProgress = 0;
-          this.toaster.success('Slika uploadovana.');
-          this.loadImages(this.medicationId!);
-        }
-      },
+  uploadPending(item: PendingImageUpload): void {
+    if (!this.medicationId || item.status === 'uploading') {
+      return;
+    }
+    this.uploadFile(item);
+  }
+
+  uploadAllPending(): void {
+    for (const item of this.pendingUploads.filter((entry) => entry.status !== 'uploading')) {
+      this.uploadFile(item);
+    }
+  }
+
+  retryPending(item: PendingImageUpload): void {
+    item.status = 'pending';
+    item.progress = 0;
+    item.errorMessage = undefined;
+    this.uploadFile(item);
+  }
+
+  openLightbox(image: MedicationImageDto): void {
+    const imageUrl = this.imageUrl(image);
+    if (!imageUrl) {
+      return;
+    }
+
+    this.dialog.open(MedicationImageLightboxComponent, {
+      data: { imageUrl, fileName: image.fileName } satisfies MedicationImageLightboxData,
+      maxWidth: '95vw',
+      panelClass: 'medication-image-lightbox-panel',
+    });
+  }
+
+  dropGallery(event: CdkDragDrop<MedicationImageDto[]>): void {
+    if (event.previousIndex === event.currentIndex || !this.medicationId) {
+      return;
+    }
+
+    moveItemInArray(this.images, event.previousIndex, event.currentIndex);
+    const imageIds = this.images.map((image) => image.id);
+    this.pharmacyApi.reorderImages(this.medicationId, imageIds).subscribe({
+      next: () => this.toaster.success('Redoslijed slika ažuriran.'),
       error: () => {
-        this.isUploadingImage = false;
-        this.uploadProgress = 0;
-        this.toaster.error('Greška pri uploadu slike.');
+        this.toaster.error('Greška pri reorderu slika.');
+        this.loadImages(this.medicationId!);
       },
     });
   }
@@ -251,5 +312,101 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
 
   imageUrl(image: MedicationImageDto): string | null {
     return this.imageUrls.get(image.id) ?? this.imageUrlService.getLegacyUrl(image.relativeUrl);
+  }
+
+  formatBytes(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  private async queueFiles(files: File[]): Promise<void> {
+    if (!this.medicationId) {
+      return;
+    }
+
+    this.isProcessingQueue = true;
+    try {
+      for (const original of files) {
+        if (!original.type.startsWith('image/')) {
+          this.toaster.error(`Preskočeno: ${original.name} nije slika.`);
+          continue;
+        }
+
+        const compressed = await compressMedicationImage(original);
+        const previewUrl = URL.createObjectURL(compressed);
+        this.pendingUploads = [
+          ...this.pendingUploads,
+          {
+            key: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+            file: compressed,
+            previewUrl,
+            originalSize: original.size,
+            compressedSize: compressed.size,
+            status: 'pending',
+            progress: 0,
+          },
+        ];
+      }
+    } finally {
+      this.isProcessingQueue = false;
+    }
+  }
+
+  private uploadFile(item: PendingImageUpload): void {
+    if (!this.medicationId) {
+      return;
+    }
+
+    item.status = 'uploading';
+    item.progress = 0;
+    item.errorMessage = undefined;
+
+    this.pharmacyApi.uploadImage(this.medicationId, item.file).subscribe({
+      next: (httpEvent) => {
+        const progress = getHttpUploadProgressPercent(httpEvent);
+        if (progress != null) {
+          item.progress = progress;
+        }
+
+        const uploaded = extractMedicationImageUploadResponse(httpEvent);
+        if (uploaded) {
+          URL.revokeObjectURL(item.previewUrl);
+          this.pendingUploads = this.pendingUploads.filter((entry) => entry.key !== item.key);
+          this.toaster.success('Slika uploadovana.');
+          this.loadImages(this.medicationId!);
+        }
+      },
+      error: () => {
+        item.status = 'error';
+        item.progress = 0;
+        item.errorMessage = 'Upload nije uspio.';
+        this.toaster.error('Greška pri uploadu slike.');
+      },
+    });
+  }
+
+  private loadImageUrls(medicationId: number, images: MedicationImageDto[]): void {
+    this.imageUrlService.revokeAll();
+    this.imageUrls.clear();
+
+    for (const image of images) {
+      this.imageUrlService.getAuthenticatedUrl(medicationId, image.id).subscribe({
+        next: (url) => this.imageUrls.set(image.id, url),
+        error: () => {
+          const legacy = this.imageUrlService.getLegacyUrl(image.relativeUrl);
+          if (legacy) {
+            this.imageUrls.set(image.id, legacy);
+          }
+        },
+      });
+    }
+  }
+
+  private clearPendingUploads(): void {
+    for (const item of this.pendingUploads) {
+      URL.revokeObjectURL(item.previewUrl);
+    }
+    this.pendingUploads = [];
   }
 }

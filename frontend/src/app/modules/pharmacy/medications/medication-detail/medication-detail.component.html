@@ -1,0 +1,37 @@
+<div class="page-header">
+  <button mat-icon-button type="button" (click)="back()" aria-label="Nazad"><mat-icon>arrow_back</mat-icon></button>
+  <h1>Detalj lijeka</h1>
+  @if (medication) {
+    <button mat-raised-button color="primary" (click)="edit()">Uredi</button>
+  }
+</div>
+
+@if (isLoading) {
+  <app-fit-table-skeleton [rows]="6" [columns]="2"></app-fit-table-skeleton>
+} @else if (loadError || !medication) {
+  <mat-card>
+    <mat-card-content>
+      <p>Lijek nije pronađen.</p>
+      <button mat-stroked-button type="button" (click)="back()">Nazad</button>
+    </mat-card-content>
+  </mat-card>
+} @else {
+  <mat-card>
+    <mat-card-content>
+      <dl class="detail-list">
+        <div><dt>Naziv</dt><dd>{{ medication.name }}</dd></div>
+        <div><dt>Generički naziv</dt><dd>{{ medication.genericName || '-' }}</dd></div>
+        <div><dt>Kategorija</dt><dd>{{ medication.category || '-' }}</dd></div>
+        <div><dt>Proizvođač</dt><dd>{{ medication.manufacturer || '-' }}</dd></div>
+        <div><dt>Cijena</dt><dd>{{ medication.price | number:'1.2-2' }} KM</dd></div>
+        <div><dt>Zaliha</dt><dd>{{ medication.stockQuantity }} / min {{ medication.minimumStockLevel }}</dd></div>
+        <div><dt>Rok trajanja</dt><dd>{{ medication.expiryDate ? (medication.expiryDate | date:'dd.MM.yyyy') : '-' }}</dd></div>
+        <div><dt>Recept</dt><dd>{{ medication.requiresPrescription ? 'Da' : 'Ne (OTC)' }}</dd></div>
+        <div><dt>Status</dt><dd>{{ medication.isActive ? 'Aktivan' : 'Neaktivan' }}</dd></div>
+        @if (medication.description) {
+          <div><dt>Opis</dt><dd>{{ medication.description }}</dd></div>
+        }
+      </dl>
+    </mat-card-content>
+  </mat-card>
+}

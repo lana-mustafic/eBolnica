@@ -61,17 +61,7 @@
         @if (revenueItems.length === 0) {
           <p class="empty">Nema podataka o prihodu (izdaj recepte za prikaz).</p>
         } @else {
-          <ul class="bar-chart">
-            @for (item of revenueItems; track item.yearMonth) {
-              <li>
-                <span class="label">{{ item.monthShort }}</span>
-                <div class="bar-wrap">
-                  <div class="bar" [style.width.%]="(item.revenue / maxRevenueValue) * 100"></div>
-                </div>
-                <span class="value">{{ item.revenue | number:'1.0-0' }} KM</span>
-              </li>
-            }
-          </ul>
+          <app-pharmacy-revenue-chart [items]="revenueItems"></app-pharmacy-revenue-chart>
         }
       </mat-card-content>
     </mat-card>
@@ -82,14 +72,7 @@
         @if (categories.length === 0) {
           <p class="empty">Nema kategorija.</p>
         } @else {
-          <ul class="category-list">
-            @for (c of categories; track c.category) {
-              <li>
-                <span>{{ c.category }}</span>
-                <span>{{ c.medicationCount }} ({{ c.percentage }}%)</span>
-              </li>
-            }
-          </ul>
+          <app-pharmacy-categories-chart [items]="categories"></app-pharmacy-categories-chart>
         }
       </mat-card-content>
     </mat-card>
@@ -100,14 +83,7 @@
         @if (stockItems.length === 0) {
           <p class="empty">Nema podataka.</p>
         } @else {
-          <ul class="stock-list">
-            @for (s of stockItems; track s.medicationId) {
-              <li>
-                <span>{{ s.medicationName }}</span>
-                <span class="status-{{ s.status.toLowerCase() }}">{{ s.quantity }} — {{ s.status }}</span>
-              </li>
-            }
-          </ul>
+          <app-pharmacy-stock-chart [items]="stockItems"></app-pharmacy-stock-chart>
         }
       </mat-card-content>
     </mat-card>

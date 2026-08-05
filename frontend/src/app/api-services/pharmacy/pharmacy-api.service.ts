@@ -131,6 +131,10 @@ export class PharmacyApiService {
     return this.http.put<void>(`${this.baseUrl}/medications/${medicationId}/images/${imageId}/primary`, {});
   }
 
+  reorderImages(medicationId: number, imageIds: number[]): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/medications/${medicationId}/images/reorder`, { imageIds });
+  }
+
   imageFullUrl(relativeUrl: string): string {
     if (relativeUrl.startsWith('http')) {
       return relativeUrl;

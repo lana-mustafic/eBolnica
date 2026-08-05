@@ -1,5 +1,19 @@
+@if (isHandset) {
+  <mat-toolbar class="mobile-toolbar">
+    <button mat-icon-button type="button" (click)="sidenav?.toggle()" aria-label="Meni">
+      <mat-icon>menu</mat-icon>
+    </button>
+    <span>eBolnica Apoteka</span>
+  </mat-toolbar>
+}
+
 <mat-sidenav-container class="sidenav-container">
-  <mat-sidenav mode="side" opened class="sidenav">
+  <mat-sidenav
+    #sidenav
+    [mode]="isHandset ? 'over' : 'side'"
+    [opened]="!isHandset"
+    class="sidenav"
+  >
     <div class="sidebar-header">
       <div class="user-info">
         <div class="user-avatar">
@@ -20,29 +34,29 @@
     <mat-nav-list>
       <div class="nav-section-title">eBolnica Apoteka</div>
 
-      <a mat-list-item routerLink="/pharmacy/dashboard" routerLinkActive="active">
+      <a mat-list-item routerLink="/pharmacy/dashboard" routerLinkActive="active" (click)="closeSidenavOnNavigate()">
         <mat-icon matListItemIcon>dashboard</mat-icon>
         <span matListItemTitle>Dashboard</span>
       </a>
 
-      <a mat-list-item routerLink="/pharmacy/medications" routerLinkActive="active">
+      <a mat-list-item routerLink="/pharmacy/medications" routerLinkActive="active" (click)="closeSidenavOnNavigate()">
         <mat-icon matListItemIcon>medication_liquid</mat-icon>
         <span matListItemTitle>Lijekovi</span>
       </a>
 
-      <a mat-list-item routerLink="/pharmacy/inventory" routerLinkActive="active">
+      <a mat-list-item routerLink="/pharmacy/inventory" routerLinkActive="active" (click)="closeSidenavOnNavigate()">
         <mat-icon matListItemIcon>inventory_2</mat-icon>
         <span matListItemTitle>Inventar</span>
       </a>
 
-      <a mat-list-item routerLink="/pharmacy/prescriptions" routerLinkActive="active">
+      <a mat-list-item routerLink="/pharmacy/prescriptions" routerLinkActive="active" (click)="closeSidenavOnNavigate()">
         <mat-icon matListItemIcon>receipt_long</mat-icon>
         <span matListItemTitle>Recepti</span>
       </a>
 
       <mat-divider></mat-divider>
 
-      <a mat-list-item routerLink="/auth/logout" class="logout-item">
+      <a mat-list-item routerLink="/auth/logout" class="logout-item" (click)="closeSidenavOnNavigate()">
         <mat-icon matListItemIcon>logout</mat-icon>
         <span matListItemTitle>Odjava</span>
       </a>

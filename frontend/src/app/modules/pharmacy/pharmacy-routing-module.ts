@@ -4,6 +4,7 @@ import { PharmacyLayoutComponent } from './pharmacy-layout/pharmacy-layout.compo
 import { PharmacyDashboardComponent } from './dashboard/pharmacy-dashboard.component';
 import { PharmacyMedicationsComponent } from './medications/pharmacy-medications.component';
 import { MedicationFormComponent } from './medications/medication-form/medication-form.component';
+import { MedicationDetailComponent } from './medications/medication-detail/medication-detail.component';
 import { MedicationWizardComponent } from './medications/medication-wizard/medication-wizard.component';
 import { PharmacyInventoryComponent } from './inventory/pharmacy-inventory.component';
 import { PharmacyPrescriptionsComponent } from './prescriptions/pharmacy-prescriptions.component';
@@ -19,6 +20,7 @@ const routes: Routes = [
       { path: 'medications/wizard', component: MedicationWizardComponent },
       { path: 'medications/new', component: MedicationFormComponent },
       { path: 'medications/:id/edit', component: MedicationFormComponent },
+      { path: 'medications/:id', component: MedicationDetailComponent },
       { path: 'inventory', component: PharmacyInventoryComponent },
       { path: 'prescriptions', component: PharmacyPrescriptionsComponent },
       { path: 'prescriptions/:id', component: PrescriptionDetailComponent },
