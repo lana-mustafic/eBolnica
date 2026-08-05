@@ -46,6 +46,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
 
   autocompleteSuggestions: MedicationAutocompleteSuggestion[] = [];
   showAutocomplete = false;
+  selectedSuggestionIndex = -1;
   importSummary: MedicationImportResult | null = null;
   thumbnailUrls = new Map<number, string>();
 
@@ -109,6 +110,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
       .subscribe((suggestions) => {
         this.autocompleteSuggestions = suggestions;
         this.showAutocomplete = suggestions.length > 0;
+        this.selectedSuggestionIndex = suggestions.length > 0 ? 0 : -1;
       });
 
     this.loadTrigger$.next();
@@ -189,9 +191,40 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
     this.autocompleteQuery$.next(this.search);
   }
 
+  onSearchKeydown(event: KeyboardEvent): void {
+    if (!this.showAutocomplete || this.autocompleteSuggestions.length === 0) {
+      return;
+    }
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.selectedSuggestionIndex = Math.min(
+        this.selectedSuggestionIndex + 1,
+        this.autocompleteSuggestions.length - 1
+      );
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.selectedSuggestionIndex = Math.max(this.selectedSuggestionIndex - 1, 0);
+    } else if (event.key === 'Enter' && this.selectedSuggestionIndex >= 0) {
+      event.preventDefault();
+      this.selectSuggestion(this.autocompleteSuggestions[this.selectedSuggestionIndex]);
+    } else if (event.key === 'Escape') {
+      this.showAutocomplete = false;
+      this.selectedSuggestionIndex = -1;
+    }
+  }
+
+  onSearchBlur(): void {
+    window.setTimeout(() => {
+      this.showAutocomplete = false;
+      this.selectedSuggestionIndex = -1;
+    }, 150);
+  }
+
   selectSuggestion(s: MedicationAutocompleteSuggestion): void {
     this.search = s.name;
     this.showAutocomplete = false;
+    this.selectedSuggestionIndex = -1;
     this.onFilterChange();
   }
 
@@ -236,7 +269,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
         }
         this.loadTrigger$.next();
       },
-      error: () => this.toaster.error('Greška pri brisanju lijeka.'),
+      error: () => this.toaster.error('Greška pri deaktivaciji lijeka.'),
     });
   }
 
@@ -249,7 +282,10 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
         const match = disposition.match(/filename="?([^";]+)"?/i);
         this.downloadBlob(blob, match?.[1] ?? 'medications-export.csv');
       },
-      error: () => this.toaster.error('Greška pri exportu CSV.'),
+      error: (err) => {
+        const msg = err?.error?.message ?? 'Greška pri exportu CSV.';
+        this.toaster.error(msg);
+      },
     });
   }
 

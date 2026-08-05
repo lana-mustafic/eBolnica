@@ -83,6 +83,8 @@ export interface InventoryResponse {
   items: MedicationDto[];
   lowStockAlerts: MedicationDto[];
   expiryAlerts: MedicationDto[];
+  lowStockAlertCount: number;
+  expiryAlertCount: number;
   totalCount: number;
   currentPage: number;
   pageSize: number;

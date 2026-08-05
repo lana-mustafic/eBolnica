@@ -115,6 +115,7 @@ public sealed class CreatePrescriptionCommandHandler(IAppDbContext ctx, IAppCurr
             catch (DbUpdateException) when (attempt < maxAttempts)
             {
                 await transaction.RollbackAsync(ct);
+                ctx.ClearChangeTracker();
             }
         }
 

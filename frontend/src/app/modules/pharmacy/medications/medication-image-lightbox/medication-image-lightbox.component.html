@@ -2,6 +2,34 @@
   <button mat-icon-button type="button" class="close-btn" (click)="close()" aria-label="Zatvori">
     <mat-icon>close</mat-icon>
   </button>
-  <img [src]="data.imageUrl" [alt]="data.fileName" />
+
+  <div class="zoom-controls">
+    <button mat-icon-button type="button" (click)="zoomOut()" aria-label="Umanji">
+      <mat-icon>remove</mat-icon>
+    </button>
+    <span>{{ (scale * 100) | number:'1.0-0' }}%</span>
+    <button mat-icon-button type="button" (click)="zoomIn()" aria-label="Uvećaj">
+      <mat-icon>add</mat-icon>
+    </button>
+    <button mat-stroked-button type="button" (click)="resetZoom()">Reset</button>
+  </div>
+
+  <div
+    class="viewport"
+    (wheel)="onWheel($event)"
+    (pointerdown)="onPointerDown($event)"
+    (pointermove)="onPointerMove($event)"
+    (pointerup)="onPointerUp($event)"
+    (pointercancel)="onPointerUp($event)"
+  >
+    <img
+      [src]="data.imageUrl"
+      [alt]="data.fileName"
+      [style.transform]="imageTransform"
+      draggable="false"
+    />
+  </div>
+
   <p>{{ data.fileName }}</p>
+  <p class="hint">Koristite točkić miša za zoom. Povucite sliku kada je uvećana.</p>
 </div>

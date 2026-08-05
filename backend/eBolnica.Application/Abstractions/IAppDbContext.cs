@@ -23,4 +23,6 @@ public interface IAppDbContext
     DatabaseFacade Database { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct);
+
+    void ClearChangeTracker();
 }

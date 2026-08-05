@@ -21,6 +21,8 @@ public partial class DatabaseContext : DbContext, IAppDbContext
 
     DatabaseFacade IAppDbContext.Database => Database;
 
+    public void ClearChangeTracker() => ChangeTracker.Clear();
+
     private readonly TimeProvider _clock;
     public DatabaseContext(DbContextOptions<DatabaseContext> options, TimeProvider clock) : base(options)
     {

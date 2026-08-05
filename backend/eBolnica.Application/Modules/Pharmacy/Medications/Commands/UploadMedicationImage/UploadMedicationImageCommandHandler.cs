@@ -1,3 +1,4 @@
+using System.Data;
 using eBolnica.Application.Abstractions;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.UploadMedicationImage;
 using eBolnica.Application.Modules.Pharmacy.Medications.Images;
@@ -17,38 +18,63 @@ public sealed class UploadMedicationImageCommandHandler(
         if (medication is null)
             throw new eBolnicaNotFoundException("Medication not found.");
 
-        var (relativeUrl, size) = await storage.SaveAsync(
-            request.MedicationId, request.FileName, request.Content, ct);
-
-        var isFirst = medication.Images.Count == 0;
-        var image = new MedicationImageEntity
+        string? relativeUrl = null;
+        await using var transaction = await ctx.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        try
         {
-            MedicationId = medication.Id,
-            FileName = Path.GetFileName(request.FileName),
-            RelativeUrl = relativeUrl,
-            IsPrimary = isFirst,
-            SortOrder = medication.Images.Count,
-            FileSizeBytes = size,
-            CreatedAtUtc = DateTime.UtcNow
-        };
+            var (savedUrl, size) = await storage.SaveAsync(
+                request.MedicationId, request.FileName, request.Content, ct);
+            relativeUrl = savedUrl;
 
-        ctx.MedicationImages.Add(image);
+            var activeImages = medication.Images.Where(i => !i.IsDeleted).ToList();
+            var isFirst = activeImages.Count == 0;
+            var image = new MedicationImageEntity
+            {
+                MedicationId = medication.Id,
+                FileName = Path.GetFileName(request.FileName),
+                RelativeUrl = relativeUrl,
+                IsPrimary = isFirst,
+                SortOrder = activeImages.Count,
+                FileSizeBytes = size,
+                CreatedAtUtc = DateTime.UtcNow
+            };
 
-        if (isFirst)
-            medication.ImageUrl = relativeUrl;
+            ctx.MedicationImages.Add(image);
 
-        medication.ModifiedAtUtc = DateTime.UtcNow;
-        await ctx.SaveChangesAsync(ct);
+            if (isFirst)
+                medication.ImageUrl = relativeUrl;
 
-        return new MedicationImageDto
+            medication.ModifiedAtUtc = DateTime.UtcNow;
+            await ctx.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+
+            return new MedicationImageDto
+            {
+                Id = image.Id,
+                MedicationId = image.MedicationId,
+                FileName = image.FileName,
+                RelativeUrl = image.RelativeUrl,
+                IsPrimary = image.IsPrimary,
+                SortOrder = image.SortOrder,
+                FileSizeBytes = image.FileSizeBytes
+            };
+        }
+        catch
         {
-            Id = image.Id,
-            MedicationId = image.MedicationId,
-            FileName = image.FileName,
-            RelativeUrl = image.RelativeUrl,
-            IsPrimary = image.IsPrimary,
-            SortOrder = image.SortOrder,
-            FileSizeBytes = image.FileSizeBytes
-        };
+            await transaction.RollbackAsync(ct);
+            if (relativeUrl is not null)
+            {
+                try
+                {
+                    await storage.DeleteAsync(relativeUrl, ct);
+                }
+                catch
+                {
+                    // Best-effort cleanup of orphaned file.
+                }
+            }
+
+            throw;
+        }
     }
 }

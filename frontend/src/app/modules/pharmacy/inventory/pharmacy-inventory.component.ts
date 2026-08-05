@@ -19,6 +19,8 @@ export class PharmacyInventoryComponent implements OnInit {
   items: MedicationDto[] = [];
   lowStockAlerts: MedicationDto[] = [];
   expiryAlerts: MedicationDto[] = [];
+  lowStockAlertCount = 0;
+  expiryAlertCount = 0;
   isLoading = true;
   loadError = false;
   totalCount = 0;
@@ -66,6 +68,8 @@ export class PharmacyInventoryComponent implements OnInit {
         this.items = res.items;
         this.lowStockAlerts = res.lowStockAlerts;
         this.expiryAlerts = res.expiryAlerts;
+        this.lowStockAlertCount = res.lowStockAlertCount ?? res.lowStockAlerts.length;
+        this.expiryAlertCount = res.expiryAlertCount ?? res.expiryAlerts.length;
         this.totalCount = res.totalCount;
         this.totalPages = res.totalPages;
         this.currentPage = res.currentPage;

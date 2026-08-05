@@ -61,8 +61,9 @@ export class PharmacyApiService {
   }
 
   exportMedicationsCsv(request: ListMedicationsRequest = {}): Observable<HttpResponse<Blob>> {
+    const { pageNumber: _pageNumber, pageSize: _pageSize, ...exportFilters } = request;
     return this.http.get(`${this.baseUrl}/medications/export/csv`, {
-      params: this.buildMedicationParams({ ...request, pageNumber: 1, pageSize: 100 }),
+      params: this.buildMedicationParams(exportFilters),
       responseType: 'blob',
       observe: 'response',
     });
@@ -191,15 +192,16 @@ export class PharmacyApiService {
   }
 
   exportInventoryPdf(request: ListMedicationsRequest = {}): Observable<HttpResponse<Blob>> {
+    const { pageNumber: _pageNumber, pageSize: _pageSize, ...exportFilters } = request;
     return this.http.get(`${this.baseUrl}/reports/inventory/pdf`, {
-      params: this.buildMedicationParams({ ...request, pageNumber: 1, pageSize: 100 }),
+      params: this.buildMedicationParams(exportFilters),
       responseType: 'blob',
       observe: 'response',
     });
   }
 
   exportPrescriptionsPdf(request: ListPrescriptionsRequest = {}): Observable<HttpResponse<Blob>> {
-    let params = new HttpParams().set('pageNumber', '1').set('pageSize', '100');
+    let params = new HttpParams();
     if (request.status) params = params.set('status', request.status);
     if (request.search) params = params.set('search', request.search);
     if (request.sortBy) params = params.set('sortBy', request.sortBy);
