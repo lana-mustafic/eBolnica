@@ -1,0 +1,7 @@
+<div class="lightbox">
+  <button mat-icon-button type="button" class="close-btn" (click)="close()" aria-label="Zatvori">
+    <mat-icon>close</mat-icon>
+  </button>
+  <img [src]="data.imageUrl" [alt]="data.fileName" />
+  <p>{{ data.fileName }}</p>
+</div>

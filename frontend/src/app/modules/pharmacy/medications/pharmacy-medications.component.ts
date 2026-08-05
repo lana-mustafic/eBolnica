@@ -217,6 +217,15 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
     this.router.navigate(['/pharmacy/medications', id, 'edit']);
   }
 
+  openDetail(id: number): void {
+    this.router.navigate(['/pharmacy/medications', id]);
+  }
+
+  sortAriaSort(column: string): 'ascending' | 'descending' | 'none' {
+    if (this.sortBy !== column) return 'none';
+    return this.sortOrder === 'asc' ? 'ascending' : 'descending';
+  }
+
   deleteMedication(medication: MedicationDto): void {
     if (!confirm(`Deaktivirati lijek "${medication.name}"?`)) return;
     this.pharmacyApi.deleteMedication(medication.id).subscribe({

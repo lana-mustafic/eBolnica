@@ -111,17 +111,71 @@
     <mat-card class="section">
       <mat-card-header><mat-card-title>Slike lijeka</mat-card-title></mat-card-header>
       <mat-card-content>
-        <input type="file" accept="image/jpeg,image/png,image/webp" (change)="onImageSelected($event)" [disabled]="isUploadingImage" />
-        @if (isUploadingImage) {
-          <div class="upload-progress">
-            <mat-progress-bar mode="determinate" [value]="uploadProgress"></mat-progress-bar>
-            <span>{{ uploadProgress }}%</span>
+        <div
+          class="drop-zone"
+          [class.drag-over]="isDragOver"
+          (dragover)="onDragOver($event)"
+          (dragleave)="onDragLeave($event)"
+          (drop)="onDrop($event)"
+        >
+          <mat-icon>cloud_upload</mat-icon>
+          <p>Povucite slike ovdje ili odaberite fajlove</p>
+          <input
+            #fileInput
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            hidden
+            (change)="onImageSelected($event)"
+          />
+          <button mat-stroked-button type="button" (click)="fileInput.click()" [disabled]="isProcessingQueue">
+            Odaberi slike
+          </button>
+          <small>Slike se kompresuju prije uploada (max širina 1280px).</small>
+        </div>
+
+        @if (pendingUploads.length) {
+          <div class="pending-queue">
+            <div class="pending-header">
+              <strong>Pregled prije uploada ({{ pendingUploads.length }})</strong>
+              <button mat-stroked-button type="button" (click)="uploadAllPending()">Upload sve</button>
+            </div>
+            @for (item of pendingUploads; track item.key) {
+              <div class="pending-item">
+                <img [src]="item.previewUrl" [alt]="item.file.name" />
+                <div class="pending-meta">
+                  <span>{{ item.file.name }}</span>
+                  <span>{{ formatBytes(item.originalSize) }} → {{ formatBytes(item.compressedSize) }}</span>
+                  @if (item.status === 'uploading') {
+                    <mat-progress-bar mode="determinate" [value]="item.progress"></mat-progress-bar>
+                  }
+                  @if (item.errorMessage) {
+                    <span class="error-text">{{ item.errorMessage }}</span>
+                  }
+                </div>
+                <div class="pending-actions">
+                  @if (item.status === 'pending') {
+                    <button mat-button type="button" (click)="uploadPending(item)">Upload</button>
+                  }
+                  @if (item.status === 'error') {
+                    <button mat-button type="button" (click)="retryPending(item)">Ponovi</button>
+                  }
+                  <button mat-button color="warn" type="button" (click)="removePending(item.key)">Ukloni</button>
+                </div>
+              </div>
+            }
           </div>
         }
-        <div class="image-grid">
+
+        <div
+          class="image-grid"
+          cdkDropList
+          cdkDropListOrientation="horizontal"
+          (cdkDropListDropped)="dropGallery($event)"
+        >
           @for (img of images; track img.id) {
-            <div class="image-item" [class.primary]="img.isPrimary">
-              <img [src]="imageUrl(img)" [alt]="img.fileName" />
+            <div class="image-item" cdkDrag [class.primary]="img.isPrimary">
+              <img [src]="imageUrl(img)" [alt]="img.fileName" (click)="openLightbox(img)" />
               <div class="image-actions">
                 @if (!img.isPrimary) {
                   <button mat-button type="button" (click)="setPrimary(img)">Primarna</button>
@@ -130,6 +184,7 @@
                 }
                 <button mat-button color="warn" type="button" (click)="deleteImage(img)">Obriši</button>
               </div>
+              <span class="drag-hint">Prevuci za reorder</span>
             </div>
           }
         </div>

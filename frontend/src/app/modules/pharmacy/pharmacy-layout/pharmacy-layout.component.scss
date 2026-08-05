@@ -59,3 +59,15 @@ a.active {
   background: #fff;
   min-height: 100vh;
 }
+
+.mobile-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+@media (max-width: 960px) {
+  .main-content {
+    padding: 1rem;
+  }
+}
