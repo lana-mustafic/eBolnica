@@ -1,3 +1,4 @@
+using eBolnica.Application.Modules.Pharmacy;
 using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Medications.Queries.GetInventory;
 using eBolnica.Application.Modules.Pharmacy.Medications.Queries.ListMedications;
@@ -34,6 +35,7 @@ public sealed class GetInventoryQueryHandler(IAppDbContext ctx)
             .Select(MedicationMapping.ToDtoExpression)
             .ToListAsync(ct);
 
+        PharmacySortValidator.ValidateMedicationSort(request.SortBy);
         query = MedicationQueryFilters.ApplySorting(query, request.SortBy, request.SortOrder);
 
         var items = await query

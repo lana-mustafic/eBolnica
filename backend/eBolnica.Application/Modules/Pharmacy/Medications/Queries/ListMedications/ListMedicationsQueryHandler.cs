@@ -1,3 +1,4 @@
+using eBolnica.Application.Modules.Pharmacy;
 using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Medications.Queries.ListMedications;
 using eBolnica.Domain.Entities.Pharmacy;
@@ -20,6 +21,7 @@ public sealed class ListMedicationsQueryHandler(IAppDbContext ctx)
         var page = Math.Max(1, request.PageNumber);
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
 
+        PharmacySortValidator.ValidateMedicationSort(request.SortBy);
         query = MedicationQueryFilters.ApplySorting(query, request.SortBy, request.SortOrder);
 
         var items = await query

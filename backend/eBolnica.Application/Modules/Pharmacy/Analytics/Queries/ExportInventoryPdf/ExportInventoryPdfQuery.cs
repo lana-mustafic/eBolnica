@@ -1,3 +1,4 @@
+using eBolnica.Application.Modules.Pharmacy;
 using eBolnica.Application.Modules.Pharmacy.Analytics;
 using eBolnica.Application.Modules.Pharmacy.Analytics.Queries.ExportInventoryPdf;
 using eBolnica.Application.Modules.Pharmacy.Medications;
@@ -29,6 +30,7 @@ public sealed class ExportInventoryPdfQueryHandler(IAppDbContext ctx, IPharmacyP
             request.IncludeInactive,
             request.StockStatus);
 
+        PharmacySortValidator.ValidateMedicationSort(request.SortBy);
         query = MedicationQueryFilters.ApplySorting(query, request.SortBy, request.SortOrder);
 
         var total = await query.CountAsync(ct);

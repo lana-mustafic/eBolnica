@@ -1,5 +1,6 @@
 using eBolnica.Application.Abstractions;
 using eBolnica.Application.Modules.Pharmacy.Analytics;
+using eBolnica.Domain.Entities.Clinical;
 using eBolnica.Domain.Entities.Pharmacy;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -56,7 +57,7 @@ public sealed class PharmacyPdfReportService : IPharmacyPdfReportService
                 page.Footer().AlignCenter().Text(t =>
                 {
                     t.Span("Generisano: ");
-                    t.Span(DateTime.Now.ToString("dd.MM.yyyy HH:mm"));
+                    t.Span(DateTime.UtcNow.ToString("dd.MM.yyyy HH:mm"));
                 });
             });
         }).GeneratePdf();
@@ -96,8 +97,8 @@ public sealed class PharmacyPdfReportService : IPharmacyPdfReportService
                         var p = prescriptions[i];
                         table.Cell().Text((i + 1).ToString());
                         table.Cell().Text(p.PrescriptionNumber);
-                        table.Cell().Text($"{p.Patient.FirstName} {p.Patient.LastName}");
-                        table.Cell().Text($"Dr. {p.Doctor.FirstName} {p.Doctor.LastName}");
+                        table.Cell().Text(FormatPatientName(p.Patient));
+                        table.Cell().Text(FormatDoctorName(p.Doctor));
                         table.Cell().Text(p.Status);
                         table.Cell().Text($"{p.TotalAmount:F2} KM");
                         table.Cell().Text(p.PrescribedDate.ToString("dd.MM.yyyy"));
@@ -106,8 +107,14 @@ public sealed class PharmacyPdfReportService : IPharmacyPdfReportService
                 page.Footer().AlignCenter().Text(t =>
                 {
                     t.Span("Generisano: ");
-                    t.Span(DateTime.Now.ToString("dd.MM.yyyy HH:mm"));
+                    t.Span(DateTime.UtcNow.ToString("dd.MM.yyyy HH:mm"));
                 });
             });
         }).GeneratePdf();
+
+    private static string FormatPatientName(PatientEntity? patient) =>
+        patient is null ? "-" : $"{patient.FirstName} {patient.LastName}";
+
+    private static string FormatDoctorName(DoctorEntity? doctor) =>
+        doctor is null ? "-" : $"Dr. {doctor.FirstName} {doctor.LastName}";
 }

@@ -1,3 +1,4 @@
+using System.Data;
 using eBolnica.Application.Modules.Pharmacy.Prescriptions;
 using eBolnica.Domain.Entities.Pharmacy;
 
@@ -17,7 +18,7 @@ public sealed class DispensePrescriptionCommandHandler(IAppDbContext ctx, IAppCu
         if (pharmacist is null)
             throw new eBolnicaNotFoundException("Pharmacist profile not found.");
 
-        await using var transaction = await ctx.Database.BeginTransactionAsync(ct);
+        await using var transaction = await ctx.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         try
         {
             var prescription = await ctx.Prescriptions
@@ -62,6 +63,11 @@ public sealed class DispensePrescriptionCommandHandler(IAppDbContext ctx, IAppCu
                     throw new eBolnicaBusinessRuleException(
                         "prescription.insufficient_stock",
                         $"Insufficient stock for {medication.Name}. Available: {medication.StockQuantity}, Required: {required}.");
+
+                if (!medication.RequiresPrescription)
+                    throw new eBolnicaBusinessRuleException(
+                        "prescription.medication_otc",
+                        $"Medication {medication.Name} is not a prescription-only product.");
             }
 
             var now = DateTime.UtcNow;

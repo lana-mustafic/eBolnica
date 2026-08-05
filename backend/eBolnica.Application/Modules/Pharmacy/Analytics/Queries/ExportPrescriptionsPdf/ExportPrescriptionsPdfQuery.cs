@@ -1,3 +1,4 @@
+using eBolnica.Application.Modules.Pharmacy;
 using eBolnica.Application.Modules.Pharmacy.Analytics;
 using eBolnica.Application.Modules.Pharmacy.Analytics.Queries.ExportPrescriptionsPdf;
 using eBolnica.Application.Modules.Pharmacy.Prescriptions;
@@ -24,6 +25,7 @@ public sealed class ExportPrescriptionsPdfQueryHandler(IAppDbContext ctx, IPharm
             request.Status,
             request.Search);
 
+        PharmacySortValidator.ValidatePrescriptionSort(request.SortBy);
         query = PrescriptionQueryFilters.ApplySorting(query, request.SortBy, request.SortOrder);
 
         var total = await query.CountAsync(ct);
