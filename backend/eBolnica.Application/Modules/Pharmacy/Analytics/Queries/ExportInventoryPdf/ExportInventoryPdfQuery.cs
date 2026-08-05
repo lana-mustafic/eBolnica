@@ -13,6 +13,7 @@ public sealed class ExportInventoryPdfQuery : IRequest<PdfReportResultDto>
     public bool? IsActive { get; set; }
     public bool IncludeInactive { get; set; }
     public string? StockStatus { get; set; }
+    public bool? RequiresPrescription { get; set; }
     public string? SortBy { get; set; }
     public string? SortOrder { get; set; }
 }
@@ -28,7 +29,8 @@ public sealed class ExportInventoryPdfQueryHandler(IAppDbContext ctx, IPharmacyP
             request.Category,
             request.IsActive,
             request.IncludeInactive,
-            request.StockStatus);
+            request.StockStatus,
+            request.RequiresPrescription);
 
         PharmacySortValidator.ValidateMedicationSort(request.SortBy);
         query = MedicationQueryFilters.ApplySorting(query, request.SortBy, request.SortOrder);

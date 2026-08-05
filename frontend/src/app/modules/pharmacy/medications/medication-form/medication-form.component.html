@@ -121,7 +121,7 @@
         <div class="image-grid">
           @for (img of images; track img.id) {
             <div class="image-item" [class.primary]="img.isPrimary">
-              <img [src]="imageUrl(img.relativeUrl)" [alt]="img.fileName" />
+              <img [src]="imageUrl(img)" [alt]="img.fileName" />
               <div class="image-actions">
                 @if (!img.isPrimary) {
                   <button mat-button type="button" (click)="setPrimary(img)">Primarna</button>

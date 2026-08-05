@@ -6,6 +6,8 @@ public sealed class GetInventoryQuery : IRequest<GetInventoryQueryDto>
 {
     public string? Search { get; init; }
     public string? Category { get; init; }
+    public string? StockStatus { get; init; }
+    public bool? RequiresPrescription { get; init; }
     public int PageNumber { get; init; } = 1;
     public int PageSize { get; init; } = 10;
     public string? SortBy { get; init; }

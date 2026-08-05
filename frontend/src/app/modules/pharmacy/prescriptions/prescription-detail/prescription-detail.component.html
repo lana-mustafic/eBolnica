@@ -5,6 +5,14 @@
 
 @if (isLoading) {
   <app-fit-table-skeleton [rows]="4" [columns]="3"></app-fit-table-skeleton>
+} @else if (loadError) {
+  <mat-card class="error-card">
+    <mat-card-content>
+      <p>Recept nije moguće učitati.</p>
+      <button mat-stroked-button type="button" (click)="loadData()">Pokušaj ponovo</button>
+      <button mat-button type="button" (click)="back()">Nazad na listu</button>
+    </mat-card-content>
+  </mat-card>
 } @else if (prescription) {
   <div class="detail-grid">
     <mat-card>

@@ -14,7 +14,8 @@ public sealed class ExportMedicationsCsvQueryHandler(IAppDbContext ctx)
             request.Category,
             request.IsActive,
             request.IncludeInactive,
-            request.StockStatus);
+            request.StockStatus,
+            request.RequiresPrescription);
 
         PharmacySortValidator.ValidateMedicationSort(request.SortBy);
         query = MedicationQueryFilters.ApplySorting(query, request.SortBy, request.SortOrder);

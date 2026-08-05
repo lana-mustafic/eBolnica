@@ -9,6 +9,7 @@ public sealed class ExportMedicationsCsvQuery : IRequest<ExportMedicationsCsvQue
     public bool? IsActive { get; init; }
     public bool IncludeInactive { get; init; }
     public string? StockStatus { get; init; }
+    public bool? RequiresPrescription { get; init; }
     public string? SortBy { get; init; }
     public string? SortOrder { get; init; }
 }
