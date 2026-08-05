@@ -1,6 +1,7 @@
-import { Component, ElementRef, inject, OnInit, ViewChild } from '@angular/core';
+import { Component, DestroyRef, ElementRef, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
+import { Subject, catchError, debounceTime, distinctUntilChanged, of, switchMap } from 'rxjs';
 import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.service';
 import {
   MedicationAutocompleteSuggestion,
@@ -8,6 +9,7 @@ import {
   MedicationImportResult,
 } from '../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../core/services/toaster.service';
+import { MedicationImageUrlService } from '../services/medication-image-url.service';
 
 @Component({
   selector: 'app-pharmacy-medications',
@@ -15,15 +17,18 @@ import { ToasterService } from '../../../core/services/toaster.service';
   templateUrl: './pharmacy-medications.component.html',
   styleUrl: './pharmacy-medications.component.scss',
 })
-export class PharmacyMedicationsComponent implements OnInit {
+export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   @ViewChild('csvInput') csvInput?: ElementRef<HTMLInputElement>;
 
   private pharmacyApi = inject(PharmacyApiService);
+  private imageUrlService = inject(MedicationImageUrlService);
   private router = inject(Router);
   private toaster = inject(ToasterService);
+  private destroyRef = inject(DestroyRef);
 
   medications: MedicationDto[] = [];
   isLoading = false;
+  loadError = false;
   isImporting = false;
   totalCount = 0;
   totalPages = 0;
@@ -33,6 +38,7 @@ export class PharmacyMedicationsComponent implements OnInit {
   search = '';
   selectedCategory = '';
   selectedStockStatus = '';
+  selectedRequiresPrescription = '';
   showInactive = false;
 
   sortBy = 'createdAt';
@@ -41,17 +47,51 @@ export class PharmacyMedicationsComponent implements OnInit {
   autocompleteSuggestions: MedicationAutocompleteSuggestion[] = [];
   showAutocomplete = false;
   importSummary: MedicationImportResult | null = null;
+  thumbnailUrls = new Map<number, string>();
 
   private searchChanged$ = new Subject<void>();
   private autocompleteQuery$ = new Subject<string>();
+  private loadTrigger$ = new Subject<void>();
 
   displayedColumns = ['name', 'category', 'price', 'stockQuantity', 'expiryDate', 'status', 'actions'];
 
   ngOnInit(): void {
-    this.searchChanged$.pipe(debounceTime(300)).subscribe(() => {
-      this.currentPage = 1;
-      this.loadMedications();
-    });
+    this.loadTrigger$
+      .pipe(
+        switchMap(() => {
+          this.isLoading = true;
+          this.loadError = false;
+          return this.pharmacyApi.listMedications(this.buildRequest()).pipe(
+            catchError(() => {
+              this.loadError = true;
+              this.medications = [];
+              this.thumbnailUrls.clear();
+              this.toaster.error('Greška pri učitavanju lijekova.');
+              return of(null);
+            })
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((res) => {
+        this.isLoading = false;
+        if (!res) {
+          return;
+        }
+
+        this.medications = res.items;
+        this.totalCount = res.totalCount;
+        this.totalPages = res.totalPages;
+        this.currentPage = res.currentPage;
+        this.loadThumbnailUrls();
+      });
+
+    this.searchChanged$
+      .pipe(debounceTime(300), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.currentPage = 1;
+        this.loadTrigger$.next();
+      });
 
     this.autocompleteQuery$
       .pipe(
@@ -60,41 +100,45 @@ export class PharmacyMedicationsComponent implements OnInit {
         switchMap((q) => {
           if (q.trim().length < 2) {
             this.showAutocomplete = false;
-            return of([]);
+            return of([] as MedicationAutocompleteSuggestion[]);
           }
           return this.pharmacyApi.getAutocomplete(q);
-        })
+        }),
+        takeUntilDestroyed(this.destroyRef)
       )
       .subscribe((suggestions) => {
         this.autocompleteSuggestions = suggestions;
         this.showAutocomplete = suggestions.length > 0;
       });
 
-    this.loadMedications();
+    this.loadTrigger$.next();
+  }
+
+  ngOnDestroy(): void {
+    this.imageUrlService.revokeAll();
   }
 
   loadMedications(): void {
-    this.isLoading = true;
-    this.pharmacyApi.listMedications(this.buildRequest()).subscribe({
-      next: (res) => {
-        this.medications = res.items;
-        this.totalCount = res.totalCount;
-        this.totalPages = res.totalPages;
-        this.currentPage = res.currentPage;
-        this.isLoading = false;
-      },
-      error: () => {
-        this.isLoading = false;
-        this.toaster.error('Greška pri učitavanju lijekova.');
-      },
-    });
+    this.loadTrigger$.next();
+  }
+
+  retryLoad(): void {
+    this.loadTrigger$.next();
   }
 
   private buildRequest() {
+    const requiresPrescription =
+      this.selectedRequiresPrescription === 'true'
+        ? true
+        : this.selectedRequiresPrescription === 'false'
+          ? false
+          : undefined;
+
     return {
       search: this.search || undefined,
       category: this.selectedCategory || undefined,
       stockStatus: this.selectedStockStatus || undefined,
+      requiresPrescription,
       isActive: this.showInactive ? undefined : true,
       includeInactive: this.showInactive,
       pageNumber: this.currentPage,
@@ -102,6 +146,26 @@ export class PharmacyMedicationsComponent implements OnInit {
       sortBy: this.sortBy,
       sortOrder: this.sortOrder,
     };
+  }
+
+  clearFilters(): void {
+    this.search = '';
+    this.selectedCategory = '';
+    this.selectedStockStatus = '';
+    this.selectedRequiresPrescription = '';
+    this.showInactive = false;
+    this.currentPage = 1;
+    this.loadTrigger$.next();
+  }
+
+  hasActiveFilters(): boolean {
+    return !!(
+      this.search ||
+      this.selectedCategory ||
+      this.selectedStockStatus ||
+      this.selectedRequiresPrescription ||
+      this.showInactive
+    );
   }
 
   onSort(column: string): void {
@@ -112,7 +176,7 @@ export class PharmacyMedicationsComponent implements OnInit {
       this.sortOrder = 'asc';
     }
     this.currentPage = 1;
-    this.loadMedications();
+    this.loadTrigger$.next();
   }
 
   sortIndicator(column: string): string {
@@ -138,7 +202,7 @@ export class PharmacyMedicationsComponent implements OnInit {
   goToPage(page: number): void {
     if (page < 1 || page > this.totalPages) return;
     this.currentPage = page;
-    this.loadMedications();
+    this.loadTrigger$.next();
   }
 
   createNew(): void {
@@ -158,7 +222,10 @@ export class PharmacyMedicationsComponent implements OnInit {
     this.pharmacyApi.deleteMedication(medication.id).subscribe({
       next: () => {
         this.toaster.success('Lijek deaktiviran.');
-        this.loadMedications();
+        if (this.medications.length === 1 && this.currentPage > 1) {
+          this.currentPage--;
+        }
+        this.loadTrigger$.next();
       },
       error: () => this.toaster.error('Greška pri brisanju lijeka.'),
     });
@@ -214,7 +281,7 @@ export class PharmacyMedicationsComponent implements OnInit {
       next: (summary) => {
         this.isImporting = false;
         this.importSummary = summary;
-        if (summary.successCount > 0) this.loadMedications();
+        if (summary.successCount > 0) this.loadTrigger$.next();
         this.toaster.success(`Import: ${summary.successCount} uspješno, ${summary.failureCount} grešaka.`);
       },
       error: (err) => {
@@ -225,7 +292,18 @@ export class PharmacyMedicationsComponent implements OnInit {
   }
 
   imageUrl(m: MedicationDto): string | null {
-    return m.primaryImageUrl ? this.pharmacyApi.imageFullUrl(m.primaryImageUrl) : null;
+    const cached = this.thumbnailUrls.get(m.id);
+    if (cached) {
+      return cached;
+    }
+    if (m.primaryImageUrl) {
+      return this.imageUrlService.getLegacyUrl(m.primaryImageUrl);
+    }
+    return null;
+  }
+
+  onImageError(medicationId: number): void {
+    this.thumbnailUrls.delete(medicationId);
   }
 
   getStockStatus(m: MedicationDto): string {
@@ -241,6 +319,32 @@ export class PharmacyMedicationsComponent implements OnInit {
     if (status === 'Nema na stanju') return 'out';
     if (status === 'Neaktivan') return 'inactive';
     return 'ok';
+  }
+
+  private loadThumbnailUrls(): void {
+    this.imageUrlService.revokeAll();
+    this.thumbnailUrls.clear();
+
+    for (const medication of this.medications) {
+      if (!medication.primaryImageId) {
+        continue;
+      }
+
+      this.imageUrlService
+        .getAuthenticatedUrl(medication.id, medication.primaryImageId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (url) => this.thumbnailUrls.set(medication.id, url),
+          error: () => {
+            if (medication.primaryImageUrl) {
+              const legacy = this.imageUrlService.getLegacyUrl(medication.primaryImageUrl);
+              if (legacy) {
+                this.thumbnailUrls.set(medication.id, legacy);
+              }
+            }
+          },
+        });
+    }
   }
 
   private downloadBlob(blob: Blob, fileName: string): void {

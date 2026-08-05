@@ -7,6 +7,7 @@ public sealed class ListMedicationsQuery : IRequest<ListMedicationsQueryDto>
     public bool? IsActive { get; init; }
     public bool IncludeInactive { get; init; }
     public string? StockStatus { get; init; }
+    public bool? RequiresPrescription { get; init; }
     public int PageNumber { get; init; } = 1;
     public int PageSize { get; init; } = 10;
     public string? SortBy { get; init; }

@@ -25,8 +25,8 @@
   </mat-card>
 }
 
-<mat-stepper [linear]="false" [selectedIndex]="step - 1">
-  <mat-step label="Osnovno">
+<mat-stepper [linear]="true" [selectedIndex]="step - 1">
+  <mat-step label="Osnovno" [editable]="false">
     <div [formGroup]="form" class="step-body">
       <mat-form-field appearance="outline">
         <mat-label>Naziv</mat-label>
@@ -53,7 +53,7 @@
     </div>
   </mat-step>
 
-  <mat-step label="Zaliha i cijena">
+  <mat-step label="Zaliha i cijena" [editable]="false">
     <div [formGroup]="form" class="step-body">
       <mat-form-field appearance="outline"><mat-label>Cijena</mat-label><input matInput type="number" formControlName="price" /></mat-form-field>
       <mat-form-field appearance="outline"><mat-label>Zaliha</mat-label><input matInput type="number" formControlName="stockQuantity" /></mat-form-field>
@@ -72,7 +72,7 @@
     </div>
   </mat-step>
 
-  <mat-step label="Pregled">
+  <mat-step label="Pregled" [editable]="false">
     <div class="review">
       <p><strong>Naziv:</strong> {{ form.value.name }}</p>
       <p><strong>Kategorija:</strong> {{ form.value.category }}</p>

@@ -1,6 +1,46 @@
 <div class="page-header"><h1>Inventar</h1></div>
 
-@if (isLoading) {
+<div class="filters">
+  <mat-form-field appearance="outline">
+    <mat-label>Pretraga</mat-label>
+    <input matInput [(ngModel)]="search" (input)="onFilterChange()" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Kategorija</mat-label>
+    <input matInput [(ngModel)]="selectedCategory" (input)="onFilterChange()" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Stanje zaliha</mat-label>
+    <mat-select [(ngModel)]="selectedStockStatus" (selectionChange)="onFilterChange()">
+      <mat-option value="">Sve</mat-option>
+      <mat-option value="low stock">Nizak nivo</mat-option>
+      <mat-option value="out of stock">Nema na stanju</mat-option>
+      <mat-option value="normal stock">Normalno</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Recept</mat-label>
+    <mat-select [(ngModel)]="selectedRequiresPrescription" (selectionChange)="onFilterChange()">
+      <mat-option value="">Sve</mat-option>
+      <mat-option value="true">Na recept</mat-option>
+      <mat-option value="false">Bez recepta (OTC)</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <button mat-stroked-button type="button" (click)="clearFilters()">Očisti filtere</button>
+</div>
+
+@if (loadError) {
+  <mat-card class="error-card">
+    <mat-card-content>
+      <p>Greška pri učitavanju inventara.</p>
+      <button mat-stroked-button type="button" (click)="retryLoad()">Pokušaj ponovo</button>
+    </mat-card-content>
+  </mat-card>
+} @else if (isLoading) {
   <app-fit-table-skeleton [rows]="4" [columns]="3"></app-fit-table-skeleton>
 } @else {
   <div class="alerts-grid">

@@ -5,7 +5,7 @@
       <mat-icon>download</mat-icon> Export CSV
     </button>
     <button mat-stroked-button (click)="exportPdf()">
-      <mat-icon>picture_as_pdf</mat-icon> Export PDF
+      <mat-icon>picture_as_pdf</mat-icon> Export inventar PDF
     </button>
     <button mat-stroked-button (click)="downloadTemplate()">Template</button>
     <button mat-stroked-button (click)="triggerImport()" [disabled]="isImporting">
@@ -70,11 +70,40 @@
     </mat-select>
   </mat-form-field>
 
+  <mat-form-field appearance="outline">
+    <mat-label>Recept</mat-label>
+    <mat-select [(ngModel)]="selectedRequiresPrescription" (selectionChange)="onFilterChange()">
+      <mat-option value="">Sve</mat-option>
+      <mat-option value="true">Na recept</mat-option>
+      <mat-option value="false">Bez recepta (OTC)</mat-option>
+    </mat-select>
+  </mat-form-field>
+
   <mat-checkbox [(ngModel)]="showInactive" (change)="onFilterChange()">Prikaži neaktivne</mat-checkbox>
+
+  @if (hasActiveFilters()) {
+    <button mat-stroked-button type="button" (click)="clearFilters()">Očisti filtere</button>
+  }
 </div>
 
-@if (isLoading) {
+@if (loadError) {
+  <mat-card class="error-card">
+    <mat-card-content>
+      <p>Greška pri učitavanju lijekova.</p>
+      <button mat-stroked-button type="button" (click)="retryLoad()">Pokušaj ponovo</button>
+    </mat-card-content>
+  </mat-card>
+} @else if (isLoading) {
   <app-fit-table-skeleton [rows]="5" [columns]="6"></app-fit-table-skeleton>
+} @else if (medications.length === 0) {
+  <mat-card>
+    <mat-card-content>
+      <p class="empty">Nema lijekova za odabrane filtere.</p>
+      @if (hasActiveFilters()) {
+        <button mat-stroked-button type="button" (click)="clearFilters()">Očisti filtere</button>
+      }
+    </mat-card-content>
+  </mat-card>
 } @else {
   <table mat-table [dataSource]="medications" class="medications-table">
     <ng-container matColumnDef="name">
@@ -84,7 +113,7 @@
       <td mat-cell *matCellDef="let m">
         <div class="name-cell">
           @if (imageUrl(m); as img) {
-            <img [src]="img" alt="" class="thumb" />
+            <img [src]="img" alt="" class="thumb" (error)="onImageError(m.id)" />
           }
           <div>
             <strong>{{ m.name }}</strong>
@@ -147,9 +176,11 @@
     <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
   </table>
 
-  <div class="pagination" *ngIf="totalPages > 1">
-    <button mat-stroked-button (click)="goToPage(currentPage - 1)" [disabled]="currentPage <= 1">Prethodna</button>
-    <span>Stranica {{ currentPage }} / {{ totalPages }} ({{ totalCount }})</span>
-    <button mat-stroked-button (click)="goToPage(currentPage + 1)" [disabled]="currentPage >= totalPages">Sljedeća</button>
-  </div>
+  @if (totalPages > 1) {
+    <div class="pagination">
+      <button mat-stroked-button (click)="goToPage(currentPage - 1)" [disabled]="currentPage <= 1">Prethodna</button>
+      <span>Stranica {{ currentPage }} / {{ totalPages }} ({{ totalCount }})</span>
+      <button mat-stroked-button (click)="goToPage(currentPage + 1)" [disabled]="currentPage >= totalPages">Sljedeća</button>
+    </div>
+  }
 }

@@ -1,6 +1,9 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, catchError, debounceTime, of, switchMap } from 'rxjs';
 import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.service';
 import { MedicationDto } from '../../../api-services/pharmacy/pharmacy-api.models';
+import { ToasterService } from '../../../core/services/toaster.service';
 
 @Component({
   selector: 'app-pharmacy-inventory',
@@ -10,53 +13,115 @@ import { MedicationDto } from '../../../api-services/pharmacy/pharmacy-api.model
 })
 export class PharmacyInventoryComponent implements OnInit {
   private pharmacyApi = inject(PharmacyApiService);
+  private toaster = inject(ToasterService);
+  private destroyRef = inject(DestroyRef);
 
   items: MedicationDto[] = [];
   lowStockAlerts: MedicationDto[] = [];
   expiryAlerts: MedicationDto[] = [];
   isLoading = true;
+  loadError = false;
   totalCount = 0;
   currentPage = 1;
   totalPages = 0;
+
+  search = '';
+  selectedCategory = '';
+  selectedStockStatus = '';
+  selectedRequiresPrescription = '';
 
   sortBy = 'name';
   sortOrder: 'asc' | 'desc' = 'asc';
 
   displayedColumns = ['name', 'stock', 'expiry'];
 
-  ngOnInit(): void {
-    this.load();
-  }
+  private filterChanged$ = new Subject<void>();
+  private loadTrigger$ = new Subject<void>();
 
-  load(): void {
-    this.isLoading = true;
-    this.pharmacyApi
-      .getInventory({
-        pageNumber: this.currentPage,
-        pageSize: 10,
-        sortBy: this.sortBy,
-        sortOrder: this.sortOrder,
-      })
-      .subscribe({
-      next: (res) => {
+  ngOnInit(): void {
+    this.loadTrigger$
+      .pipe(
+        switchMap(() => {
+          this.isLoading = true;
+          this.loadError = false;
+          return this.pharmacyApi.getInventory(this.buildRequest()).pipe(
+            catchError(() => {
+              this.loadError = true;
+              this.items = [];
+              this.lowStockAlerts = [];
+              this.expiryAlerts = [];
+              this.toaster.error('Greška pri učitavanju inventara.');
+              return of(null);
+            })
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((res) => {
+        this.isLoading = false;
+        if (!res) {
+          return;
+        }
+
         this.items = res.items;
         this.lowStockAlerts = res.lowStockAlerts;
         this.expiryAlerts = res.expiryAlerts;
         this.totalCount = res.totalCount;
         this.totalPages = res.totalPages;
         this.currentPage = res.currentPage;
-        this.isLoading = false;
-      },
-      error: () => {
-        this.isLoading = false;
-      },
-    });
+      });
+
+    this.filterChanged$
+      .pipe(debounceTime(300), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.currentPage = 1;
+        this.loadTrigger$.next();
+      });
+
+    this.loadTrigger$.next();
+  }
+
+  private buildRequest() {
+    const requiresPrescription =
+      this.selectedRequiresPrescription === 'true'
+        ? true
+        : this.selectedRequiresPrescription === 'false'
+          ? false
+          : undefined;
+
+    return {
+      search: this.search || undefined,
+      category: this.selectedCategory || undefined,
+      stockStatus: this.selectedStockStatus || undefined,
+      requiresPrescription,
+      pageNumber: this.currentPage,
+      pageSize: 10,
+      sortBy: this.sortBy,
+      sortOrder: this.sortOrder,
+    };
+  }
+
+  onFilterChange(): void {
+    this.filterChanged$.next();
+  }
+
+  clearFilters(): void {
+    this.search = '';
+    this.selectedCategory = '';
+    this.selectedStockStatus = '';
+    this.selectedRequiresPrescription = '';
+    this.currentPage = 1;
+    this.loadTrigger$.next();
+  }
+
+  retryLoad(): void {
+    this.loadTrigger$.next();
   }
 
   goToPage(page: number): void {
     if (page < 1 || page > this.totalPages) return;
     this.currentPage = page;
-    this.load();
+    this.loadTrigger$.next();
   }
 
   onSort(column: string): void {
@@ -67,7 +132,7 @@ export class PharmacyInventoryComponent implements OnInit {
       this.sortOrder = 'asc';
     }
     this.currentPage = 1;
-    this.load();
+    this.loadTrigger$.next();
   }
 
   sortIndicator(column: string): string {

@@ -14,7 +14,8 @@ public sealed class GetInventoryQueryHandler(IAppDbContext ctx)
             request.Category,
             isActive: true,
             includeInactive: false,
-            stockStatus: null);
+            request.StockStatus,
+            request.RequiresPrescription);
 
         var totalCount = await query.CountAsync(ct);
         var page = Math.Max(1, request.PageNumber);

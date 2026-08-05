@@ -4,6 +4,13 @@
 
 @if (isLoading) {
   <app-fit-table-skeleton [rows]="3" [columns]="3"></app-fit-table-skeleton>
+} @else if (loadError) {
+  <mat-card class="error-card">
+    <mat-card-content>
+      <p>Greška pri učitavanju dashboard podataka.</p>
+      <button mat-stroked-button type="button" (click)="reload()">Pokušaj ponovo</button>
+    </mat-card-content>
+  </mat-card>
 } @else if (summary) {
   <div class="stats-grid">
     <mat-card>
@@ -59,7 +66,7 @@
               <li>
                 <span class="label">{{ item.monthShort }}</span>
                 <div class="bar-wrap">
-                  <div class="bar" [style.width.%]="(item.revenue / maxRevenue()) * 100"></div>
+                  <div class="bar" [style.width.%]="(item.revenue / maxRevenueValue) * 100"></div>
                 </div>
                 <span class="value">{{ item.revenue | number:'1.0-0' }} KM</span>
               </li>

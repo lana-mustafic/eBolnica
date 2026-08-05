@@ -24,6 +24,7 @@ export class PrescriptionDetailComponent implements OnInit {
   prescription: PrescriptionDto | null = null;
   medications: MedicationDto[] = [];
   isLoading = false;
+  loadError = false;
   isDispensing = false;
   prescriptionId: number | null = null;
 
@@ -39,12 +40,15 @@ export class PrescriptionDetailComponent implements OnInit {
     if (!this.prescriptionId) return;
 
     this.isLoading = true;
+    this.loadError = false;
     this.pharmacyApi.getPrescriptionById(this.prescriptionId).subscribe({
       next: (prescription) => {
         this.prescription = prescription;
         this.loadMedicationStock(prescription.prescriptionItems);
       },
       error: () => {
+        this.loadError = true;
+        this.prescription = null;
         this.toaster.error('Greška pri učitavanju recepta.');
         this.isLoading = false;
       },
@@ -64,6 +68,7 @@ export class PrescriptionDetailComponent implements OnInit {
         this.isLoading = false;
       },
       error: () => {
+        this.toaster.error('Greška pri učitavanju zaliha lijekova.');
         this.isLoading = false;
       },
     });

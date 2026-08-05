@@ -20,4 +20,5 @@ public sealed class MedicationDto
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
     public string? PrimaryImageUrl { get; init; }
+    public int? PrimaryImageId { get; init; }
 }

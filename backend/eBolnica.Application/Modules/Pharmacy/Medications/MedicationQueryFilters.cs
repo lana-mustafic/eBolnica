@@ -11,7 +11,8 @@ internal static class MedicationQueryFilters
         string? category,
         bool? isActive,
         bool includeInactive,
-        string? stockStatus)
+        string? stockStatus,
+        bool? requiresPrescription = null)
     {
         query = query.Where(m => !m.IsDeleted);
 
@@ -43,6 +44,9 @@ internal static class MedicationQueryFilters
                 _ => query
             };
         }
+
+        if (requiresPrescription.HasValue)
+            query = query.Where(m => m.RequiresPrescription == requiresPrescription.Value);
 
         return query;
     }

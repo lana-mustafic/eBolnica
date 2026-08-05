@@ -15,7 +15,8 @@ public sealed class ListMedicationsQueryHandler(IAppDbContext ctx)
             request.Category,
             request.IsActive,
             request.IncludeInactive,
-            request.StockStatus);
+            request.StockStatus,
+            request.RequiresPrescription);
 
         var totalCount = await query.CountAsync(ct);
         var page = Math.Max(1, request.PageNumber);
@@ -64,9 +65,16 @@ internal static class MedicationMapping
             CreatedAt = m.CreatedAtUtc,
             UpdatedAt = m.ModifiedAtUtc,
             PrimaryImageUrl = m.ImageUrl ?? m.Images
+                .Where(i => !i.IsDeleted)
                 .OrderByDescending(i => i.IsPrimary)
                 .ThenBy(i => i.SortOrder)
                 .Select(i => i.RelativeUrl)
+                .FirstOrDefault(),
+            PrimaryImageId = m.Images
+                .Where(i => !i.IsDeleted)
+                .OrderByDescending(i => i.IsPrimary)
+                .ThenBy(i => i.SortOrder)
+                .Select(i => (int?)i.Id)
                 .FirstOrDefault()
         };
 }

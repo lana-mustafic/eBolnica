@@ -17,6 +17,7 @@ export interface MedicationDto {
   createdAt: string;
   updatedAt?: string | null;
   primaryImageUrl?: string | null;
+  primaryImageId?: number | null;
 }
 
 export interface MedicationUpsertCommand {
@@ -42,6 +43,7 @@ export interface ListMedicationsRequest {
   isActive?: boolean;
   includeInactive?: boolean;
   stockStatus?: string;
+  requiresPrescription?: boolean;
   pageNumber?: number;
   pageSize?: number;
   sortBy?: string;

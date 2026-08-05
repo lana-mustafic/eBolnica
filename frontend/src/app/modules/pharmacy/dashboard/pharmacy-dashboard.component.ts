@@ -17,13 +17,25 @@ export class PharmacyDashboardComponent implements OnInit {
   private pharmacyApi = inject(PharmacyApiService);
 
   isLoading = true;
+  loadError = false;
   summary: StatisticsSummaryDto | null = null;
   revenueItems: MonthlyRevenueItemDto[] = [];
   categories: CategoryItemDto[] = [];
   stockItems: StockTrendItemDto[] = [];
   revenueChange = 0;
+  maxRevenueValue = 1;
 
   ngOnInit(): void {
+    this.loadDashboard();
+  }
+
+  reload(): void {
+    this.loadDashboard();
+  }
+
+  private loadDashboard(): void {
+    this.isLoading = true;
+    this.loadError = false;
     this.pharmacyApi.getDashboardStats().subscribe({
       next: (stats) => {
         this.summary = stats.metadata.summary;
@@ -31,15 +43,14 @@ export class PharmacyDashboardComponent implements OnInit {
         this.categories = stats.topCategories.data;
         this.stockItems = stats.stockTrends.data;
         this.revenueChange = stats.monthlyRevenue.revenueChangePercentage;
+        this.maxRevenueValue = Math.max(...this.revenueItems.map((r) => r.revenue), 1);
         this.isLoading = false;
       },
       error: () => {
         this.isLoading = false;
+        this.loadError = true;
+        this.summary = null;
       },
     });
-  }
-
-  maxRevenue(): number {
-    return Math.max(...this.revenueItems.map((r) => r.revenue), 1);
   }
 }

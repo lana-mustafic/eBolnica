@@ -39,6 +39,9 @@ export class PharmacyApiService {
     if (request.isActive !== undefined) params = params.set('isActive', String(request.isActive));
     if (request.includeInactive) params = params.set('includeInactive', 'true');
     if (request.stockStatus) params = params.set('stockStatus', request.stockStatus);
+    if (request.requiresPrescription !== undefined) {
+      params = params.set('requiresPrescription', String(request.requiresPrescription));
+    }
     if (request.sortBy) params = params.set('sortBy', request.sortBy);
     if (request.sortOrder) params = params.set('sortOrder', request.sortOrder);
     return params;
@@ -129,7 +132,17 @@ export class PharmacyApiService {
   }
 
   imageFullUrl(relativeUrl: string): string {
-    return `${environment.apiUrl}${relativeUrl}`;
+    if (relativeUrl.startsWith('http')) {
+      return relativeUrl;
+    }
+    const path = relativeUrl.startsWith('/') ? relativeUrl : `/${relativeUrl}`;
+    return `${environment.apiUrl}${path}`;
+  }
+
+  getMedicationImageBlob(medicationId: number, imageId: number): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/medications/${medicationId}/images/${imageId}/file`, {
+      responseType: 'blob',
+    });
   }
 
   listPrescriptions(request: ListPrescriptionsRequest = {}): Observable<ListPrescriptionsResponse> {

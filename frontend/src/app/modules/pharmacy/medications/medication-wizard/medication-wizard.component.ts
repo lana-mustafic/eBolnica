@@ -43,13 +43,23 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   private draftPromptResolved = false;
   private suppressDraftPersist = false;
 
-  categories = ['Analgesics', 'Antibiotics', 'Cardiovascular', 'Diabetes', 'Other'];
+  categories = [
+    'Analgesics',
+    'Antibiotics',
+    'Antivirals',
+    'Cardiovascular',
+    'Diabetes',
+    'Gastrointestinal',
+    'Respiratory',
+    'Vitamins',
+    'Other',
+  ];
   dosageForms = ['Tablet', 'Capsule', 'Liquid', 'Injection'];
 
   form = this.fb.group({
     name: [
       '',
-      [Validators.required, Validators.minLength(3)],
+      [Validators.required, Validators.minLength(3), Validators.maxLength(100)],
       [
         medicationNameAsyncValidator((name, excludeId) =>
           this.pharmacyApi.checkName(name, excludeId).pipe(map((res) => ({ isAvailable: res.isAvailable })))

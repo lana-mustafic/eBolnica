@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { map } from 'rxjs';
@@ -10,6 +10,7 @@ import {
   extractMedicationImageUploadResponse,
   getHttpUploadProgressPercent,
 } from '../utils/medication-image-upload-progress.util';
+import { MedicationImageUrlService } from '../../services/medication-image-url.service';
 
 @Component({
   selector: 'app-medication-form',
@@ -17,9 +18,10 @@ import {
   templateUrl: './medication-form.component.html',
   styleUrl: './medication-form.component.scss',
 })
-export class MedicationFormComponent implements OnInit {
+export class MedicationFormComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private pharmacyApi = inject(PharmacyApiService);
+  private imageUrlService = inject(MedicationImageUrlService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private toaster = inject(ToasterService);
@@ -29,6 +31,7 @@ export class MedicationFormComponent implements OnInit {
   isLoading = false;
   isSaving = false;
   images: MedicationImageDto[] = [];
+  imageUrls = new Map<number, string>();
   isUploadingImage = false;
   uploadProgress = 0;
 
@@ -82,6 +85,10 @@ export class MedicationFormComponent implements OnInit {
       this.medicationId = Number(idParam);
       this.loadMedication(this.medicationId);
     }
+  }
+
+  ngOnDestroy(): void {
+    this.imageUrlService.revokeAll();
   }
 
   loadMedication(id: number): void {
@@ -169,8 +176,29 @@ export class MedicationFormComponent implements OnInit {
 
   loadImages(id: number): void {
     this.pharmacyApi.listImages(id).subscribe({
-      next: (imgs) => (this.images = imgs),
+      next: (imgs) => {
+        this.images = imgs;
+        this.loadImageUrls(id, imgs);
+      },
+      error: () => this.toaster.error('Greška pri učitavanju slika.'),
     });
+  }
+
+  private loadImageUrls(medicationId: number, images: MedicationImageDto[]): void {
+    this.imageUrlService.revokeAll();
+    this.imageUrls.clear();
+
+    for (const image of images) {
+      this.imageUrlService.getAuthenticatedUrl(medicationId, image.id).subscribe({
+        next: (url) => this.imageUrls.set(image.id, url),
+        error: () => {
+          const legacy = this.imageUrlService.getLegacyUrl(image.relativeUrl);
+          if (legacy) {
+            this.imageUrls.set(image.id, legacy);
+          }
+        },
+      });
+    }
   }
 
   onImageSelected(event: Event): void {
@@ -217,10 +245,11 @@ export class MedicationFormComponent implements OnInit {
     if (!this.medicationId) return;
     this.pharmacyApi.setPrimaryImage(this.medicationId, image.id).subscribe({
       next: () => this.loadImages(this.medicationId!),
+      error: () => this.toaster.error('Greška pri postavljanju primarne slike.'),
     });
   }
 
-  imageUrl(relativeUrl: string): string {
-    return this.pharmacyApi.imageFullUrl(relativeUrl);
+  imageUrl(image: MedicationImageDto): string | null {
+    return this.imageUrls.get(image.id) ?? this.imageUrlService.getLegacyUrl(image.relativeUrl);
   }
 }
