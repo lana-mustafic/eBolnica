@@ -287,7 +287,8 @@ public sealed class PharmacyAnalyticsService(
             Data = data,
             Medications = summaries,
             MetricType = "current-stock-snapshot",
-            SnapshotAt = snapshotAt
+            SnapshotAt = snapshotAt,
+            Note = "Snapshot of current stock levels; historical trend data is not yet tracked."
         };
 
         cache.Set(cacheKey, result, CreateCacheEntryOptions());
@@ -308,7 +309,7 @@ public sealed class PharmacyAnalyticsService(
 
     private async Task<(int ActiveMedications, int PendingPrescriptions, int LowStockAlerts, int ExpiringSoon, int ExpiredMedications, decimal InventoryValue)> GetSummaryMetricsAsync(CancellationToken ct)
     {
-        var now = DateTime.Now;
+        var now = DateTime.UtcNow;
         var in30Days = now.AddDays(30);
         var active = ctx.Medications.AsNoTracking().Where(m => m.IsActive);
 

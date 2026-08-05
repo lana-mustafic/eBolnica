@@ -2,6 +2,8 @@ using eBolnica.Application.Modules.Doctor.Patients.Queries.ListDoctorPatients;
 using eBolnica.Application.Modules.Doctor.Profile.Commands.UpdateDoctorProfile;
 using eBolnica.Application.Modules.Doctor.Profile.Queries.GetDoctorProfile;
 using eBolnica.Application.Modules.Doctor.Stats.Queries.GetDoctorStats;
+using eBolnica.Application.Modules.Pharmacy.Prescriptions;
+using eBolnica.Application.Modules.Pharmacy.Prescriptions.Commands.CreatePrescription;
 
 [ApiController]
 [Route("api/doctor")]
@@ -27,4 +29,13 @@ public sealed class DoctorController(IMediator mediator) : ControllerBase
     [HttpGet("doctor-stats")]
     public async Task<ActionResult<GetDoctorStatsQueryDto>> GetDoctorStats(CancellationToken ct)
         => Ok(await mediator.Send(new GetDoctorStatsQuery(), ct));
+
+    [HttpPost("prescriptions")]
+    public async Task<ActionResult<PrescriptionDto>> CreatePrescription(
+        [FromBody] CreatePrescriptionCommand command,
+        CancellationToken ct)
+    {
+        var result = await mediator.Send(command, ct);
+        return Created($"/api/pharmacy/prescriptions/{result.Id}", result);
+    }
 }

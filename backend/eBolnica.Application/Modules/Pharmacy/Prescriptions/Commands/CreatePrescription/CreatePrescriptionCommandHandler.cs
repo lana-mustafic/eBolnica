@@ -18,6 +18,7 @@ public sealed class CreatePrescriptionCommandHandler(IAppDbContext ctx, IAppCurr
             throw new eBolnicaNotFoundException("Doctor profile not found.");
 
         var medicalReport = await ctx.MedicalReports
+            .Include(mr => mr.MedicalRecord)
             .FirstOrDefaultAsync(mr => mr.Id == request.MedicalReportId, ct);
 
         if (medicalReport is null)
@@ -25,6 +26,11 @@ public sealed class CreatePrescriptionCommandHandler(IAppDbContext ctx, IAppCurr
 
         if (medicalReport.DoctorId != doctor.Id)
             throw new eBolnicaBusinessRuleException("prescription.report_access", "Medical report does not belong to you.");
+
+        if (medicalReport.MedicalRecord.PatientId != request.PatientId)
+            throw new eBolnicaBusinessRuleException(
+                "prescription.report_patient_mismatch",
+                "Medical report does not belong to the selected patient.");
 
         var patient = await ctx.Patients
             .FirstOrDefaultAsync(p => p.Id == request.PatientId, ct);
@@ -46,6 +52,11 @@ public sealed class CreatePrescriptionCommandHandler(IAppDbContext ctx, IAppCurr
 
         foreach (var medication in medications.Where(m => !m.IsActive))
             throw new eBolnicaBusinessRuleException("prescription.medication_inactive", $"Medication {medication.Name} is inactive.");
+
+        foreach (var medication in medications.Where(m => !m.RequiresPrescription))
+            throw new eBolnicaBusinessRuleException(
+                "prescription.medication_otc",
+                $"Medication {medication.Name} does not require a prescription and cannot be added to a prescription.");
 
         var medicationsById = medications.ToDictionary(m => m.Id);
         const int maxAttempts = 3;

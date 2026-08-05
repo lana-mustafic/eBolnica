@@ -46,6 +46,7 @@ public sealed class StockTrendsDataDto
     public IReadOnlyList<MedicationSummaryDto> Medications { get; set; } = Array.Empty<MedicationSummaryDto>();
     public IReadOnlyList<string> Timeline { get; set; } = Array.Empty<string>();
     public string MetricType { get; set; } = "current-stock-snapshot";
+    public string? Note { get; set; }
     public DateTime SnapshotAt { get; set; } = DateTime.UtcNow;
 }
 

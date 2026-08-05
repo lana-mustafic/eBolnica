@@ -1,3 +1,4 @@
+using eBolnica.Application.Modules.Pharmacy;
 using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Medications.Csv;
 using eBolnica.Application.Modules.Pharmacy.Medications.Queries.ExportMedicationsCsv;
@@ -15,6 +16,7 @@ public sealed class ExportMedicationsCsvQueryHandler(IAppDbContext ctx)
             request.IncludeInactive,
             request.StockStatus);
 
+        PharmacySortValidator.ValidateMedicationSort(request.SortBy);
         query = MedicationQueryFilters.ApplySorting(query, request.SortBy, request.SortOrder);
 
         var total = await query.CountAsync(ct);

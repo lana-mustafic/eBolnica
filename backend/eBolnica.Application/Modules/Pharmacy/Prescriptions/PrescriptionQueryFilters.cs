@@ -12,7 +12,8 @@ public static class PrescriptionQueryFilters
         if (!string.IsNullOrWhiteSpace(status) &&
             !string.Equals(status, "All", StringComparison.OrdinalIgnoreCase))
         {
-            query = query.Where(p => p.Status == status);
+            var normalizedStatus = status.Trim();
+            query = query.Where(p => p.Status.ToLower() == normalizedStatus.ToLower());
         }
 
         if (!string.IsNullOrWhiteSpace(search))
