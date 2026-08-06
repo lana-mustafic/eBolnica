@@ -49,28 +49,18 @@ export class PharmacyRevenueChartComponent implements AfterViewInit, OnChanges, 
       return;
     }
 
-    const gradient = context.createLinearGradient(0, 0, 0, 280);
-    gradient.addColorStop(0, 'rgba(124, 58, 237, 0.28)');
-    gradient.addColorStop(1, 'rgba(124, 58, 237, 0)');
-
     this.chart = new Chart(this.canvas.nativeElement, {
-      type: 'line',
+      type: 'bar',
       data: {
         labels: this.items.map((item) => item.monthShort),
         datasets: [
           {
             label: 'Prihod (KM)',
             data: this.items.map((item) => item.revenue),
-            borderColor: '#7C3AED',
-            backgroundColor: gradient,
-            fill: true,
-            tension: 0.4,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            pointBackgroundColor: '#7C3AED',
-            pointBorderColor: '#ffffff',
-            pointBorderWidth: 2,
-            borderWidth: 3,
+            backgroundColor: '#3B82F6',
+            borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 },
+            borderSkipped: false,
+            maxBarThickness: 48,
           },
         ],
       },
@@ -78,7 +68,7 @@ export class PharmacyRevenueChartComponent implements AfterViewInit, OnChanges, 
         responsive: true,
         maintainAspectRatio: false,
         animation: {
-          duration: 700,
+          duration: 800,
           easing: 'easeOutQuart',
         },
         interaction: {
@@ -94,7 +84,7 @@ export class PharmacyRevenueChartComponent implements AfterViewInit, OnChanges, 
             padding: 12,
             cornerRadius: 8,
             callbacks: {
-              label: (ctx: TooltipItem<'line'>) => {
+              label: (ctx: TooltipItem<'bar'>) => {
                 const value = ctx.parsed.y ?? 0;
                 return ` ${value.toFixed(2)} KM`;
               },

@@ -38,7 +38,7 @@ export class PharmacyDashboardComponent implements OnInit {
   categories: CategoryItemDto[] = [];
   stockItems: StockTrendItemDto[] = [];
   revenueChange = 0;
-  todayLabel = this.formatToday();
+  todayShortLabel = this.formatTodayShort();
 
   ngOnInit(): void {
     this.loadTrigger$
@@ -129,6 +129,14 @@ export class PharmacyDashboardComponent implements OnInit {
     return new Date().toLocaleDateString('bs-BA', {
       day: 'numeric',
       month: 'long',
+      year: 'numeric',
+    });
+  }
+
+  private formatTodayShort(): string {
+    return new Date().toLocaleDateString('bs-BA', {
+      day: '2-digit',
+      month: '2-digit',
       year: 'numeric',
     });
   }

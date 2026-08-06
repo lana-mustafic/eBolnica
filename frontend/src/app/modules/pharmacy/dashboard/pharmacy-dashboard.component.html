@@ -1,185 +1,97 @@
-<div class="dashboard-shell">
-  <header class="dashboard-header">
+<div class="dashboard-page">
+  <header class="page-top-bar">
     <div class="header-copy">
-      <p class="welcome-line">Dobrodošli nazad</p>
-      <h1>Apoteka Dashboard</h1>
-      <p class="date-line">Danas je {{ todayLabel }}.</p>
+      <h1>Dobrodošli nazad</h1>
+      <p class="header-meta">{{ todayShortLabel }} | Apoteka Dashboard</p>
     </div>
-
     <div class="header-actions">
-      <div class="profile-chip">
-        <div class="profile-avatar">F</div>
-        <div class="profile-meta">
-          <span class="profile-role">Farmaceut</span>
-          <span class="profile-email">{{ auth.currentUser()?.email }}</span>
-        </div>
+      <div class="avatar-chip" aria-label="Korisnički profil">
+        <span>F</span>
       </div>
     </div>
   </header>
 
-  @if (isLoading) {
-    <app-fit-table-skeleton [rows]="3" [columns]="3"></app-fit-table-skeleton>
-  } @else if (loadError) {
-    <section class="surface-card error-card">
-      <p>Greška pri učitavanju dashboard podataka.</p>
-      <button mat-stroked-button type="button" (click)="reload()">Pokušaj ponovo</button>
-    </section>
-  } @else if (summary) {
-    <section class="kpi-grid" aria-label="KPI statistike">
-      <app-pharmacy-kpi-card
-        icon="pill"
-        tone="purple"
-        title="Aktivni lijekovi"
-        [value]="summary.totalMedications"
-        subtitle="Ukupno u apoteci"
-      ></app-pharmacy-kpi-card>
+  <div class="dashboard-body">
+    @if (isLoading) {
+      <app-fit-table-skeleton [rows]="3" [columns]="2"></app-fit-table-skeleton>
+    } @else if (loadError) {
+      <section class="card error-card">
+        <p>Greška pri učitavanju dashboard podataka.</p>
+        <button type="button" class="btn-secondary" (click)="reload()">Pokušaj ponovo</button>
+      </section>
+    } @else if (summary) {
+      <section class="kpi-grid" aria-label="KPI statistike">
+        <article class="kpi-card">
+          <div class="kpi-icon">
+            <app-pharmacy-icon name="pill" [size]="20"></app-pharmacy-icon>
+          </div>
+          <p class="kpi-label">Aktivni lijekovi</p>
+          <p class="kpi-value">{{ summary.totalMedications }}</p>
+          <p class="kpi-subtitle">Ukupno u apoteci</p>
+        </article>
 
-      <app-pharmacy-kpi-card
-        icon="clipboard"
-        tone="green"
-        title="Recepti na čekanju"
-        [value]="summary.pendingPrescriptions"
-        subtitle="Za izdavanje"
-      ></app-pharmacy-kpi-card>
+        <article class="kpi-card">
+          <div class="kpi-icon">
+            <app-pharmacy-icon name="clipboard" [size]="20"></app-pharmacy-icon>
+          </div>
+          <p class="kpi-label">Recepti na čekanju</p>
+          <p class="kpi-value">{{ summary.pendingPrescriptions }}</p>
+          <p class="kpi-subtitle">Za izdavanje</p>
+        </article>
 
-      <app-pharmacy-kpi-card
-        icon="triangle-alert"
-        tone="orange"
-        title="Nizak nivo zaliha"
-        [value]="summary.lowStockAlerts"
-        subtitle="Potrebna pažnja"
-      ></app-pharmacy-kpi-card>
+        <article class="kpi-card">
+          <div class="kpi-icon">
+            <app-pharmacy-icon name="triangle-alert" [size]="20"></app-pharmacy-icon>
+          </div>
+          <p class="kpi-label">Niska zaliha</p>
+          <p class="kpi-value">{{ summary.lowStockAlerts }}</p>
+          <p class="kpi-subtitle">Potrebna pažnja</p>
+        </article>
 
-      <app-pharmacy-kpi-card
-        icon="wallet"
-        tone="blue"
-        title="Vrijednost inventara"
-        [value]="(summary.inventoryValue | number:'1.2-2') + ' KM'"
-        subtitle="Trenutna procjena"
-      ></app-pharmacy-kpi-card>
+        <article class="kpi-card">
+          <div class="kpi-icon">
+            <app-pharmacy-icon name="wallet" [size]="20"></app-pharmacy-icon>
+          </div>
+          <p class="kpi-label">Vrijednost inventara</p>
+          <p class="kpi-value">{{ summary.inventoryValue | number:'1.2-2' }} KM</p>
+          <p class="kpi-subtitle">Trenutna procjena</p>
+        </article>
+      </section>
 
-      <app-pharmacy-kpi-card
-        icon="trending-up"
-        tone="green"
-        title="Prihod"
-        [value]="(summary.totalRevenue | number:'1.2-2') + ' KM'"
-        subtitle="Ukupni prihod (period)"
-        [trendLabel]="(revenueChange >= 0 ? '+' : '') + (revenueChange | number:'1.1-1') + '% vs preth. mjesec'"
-        [trendPositive]="revenueChange >= 0"
-      ></app-pharmacy-kpi-card>
-
-      <app-pharmacy-kpi-card
-        icon="calendar"
-        tone="red"
-        title="Ističe uskoro / isteklo"
-        [value]="summary.expiringSoon + ' / ' + summary.expiredMedications"
-        subtitle="Kontrola rokova trajanja"
-      ></app-pharmacy-kpi-card>
-    </section>
-
-    <section class="analytics-grid" aria-label="Analitika">
-      <article class="surface-card chart-card chart-card-wide">
-        <div class="card-heading">
-          <div>
+      <section class="split-grid">
+        <article class="card chart-card">
+          <div class="card-heading">
             <h2>Prihod po mjesecima</h2>
             <p>Pregled mjesečnog prihoda apoteke</p>
           </div>
-        </div>
-        <div class="card-body">
-          @if (revenueItems.length === 0) {
-            <p class="empty-state">Nema podataka o prihodu (izdaj recepte za prikaz).</p>
-          } @else {
-            <app-pharmacy-revenue-chart [items]="revenueItems"></app-pharmacy-revenue-chart>
-          }
-        </div>
-      </article>
-
-      <article class="surface-card chart-card">
-        <div class="card-heading">
-          <div>
-            <h2>Top kategorije</h2>
-            <p>Raspodjela lijekova po kategorijama</p>
+          <div class="card-body">
+            @if (revenueItems.length === 0) {
+              <p class="empty-state">Nema podataka o prihodu (izdaj recepte za prikaz).</p>
+            } @else {
+              <app-pharmacy-revenue-chart [items]="revenueItems"></app-pharmacy-revenue-chart>
+            }
           </div>
-        </div>
-        <div class="card-body">
-          @if (categories.length === 0) {
-            <p class="empty-state">Nema kategorija.</p>
-          } @else {
-            <app-pharmacy-categories-chart [items]="categories"></app-pharmacy-categories-chart>
-          }
-        </div>
-      </article>
+        </article>
 
-      <article class="surface-card chart-card">
-        <div class="card-heading">
-          <div>
-            <h2>Nivo zaliha</h2>
-            <p>Snapshot trenutnog stanja</p>
+        <article class="card activity-card">
+          <div class="card-heading">
+            <h2>Najnovije aktivnosti</h2>
           </div>
-        </div>
-        <div class="card-body">
-          @if (stockItems.length === 0) {
-            <p class="empty-state">Nema podataka.</p>
-          } @else {
-            <app-pharmacy-stock-chart [items]="stockItems"></app-pharmacy-stock-chart>
-          }
-        </div>
-      </article>
-    </section>
-
-    <section class="bottom-grid">
-      <article class="surface-card">
-        <div class="card-heading">
-          <div>
-            <h2>Quick Actions</h2>
-            <p>Brze akcije za svakodnevni rad</p>
-          </div>
-        </div>
-        <div class="quick-actions">
-          <a class="quick-action" routerLink="/pharmacy/medications/new">
-            <span class="quick-action-icon purple">
-              <app-pharmacy-icon name="plus" [size]="18"></app-pharmacy-icon>
-            </span>
-            <span class="quick-action-label">Novi lijek</span>
-          </a>
-
-          <a class="quick-action" routerLink="/pharmacy/prescriptions">
-            <span class="quick-action-icon green">
-              <app-pharmacy-icon name="clipboard" [size]="18"></app-pharmacy-icon>
-            </span>
-            <span class="quick-action-label">Novi recept</span>
-          </a>
-
-          <a class="quick-action" routerLink="/pharmacy/inventory">
-            <span class="quick-action-icon blue">
-              <app-pharmacy-icon name="package" [size]="18"></app-pharmacy-icon>
-            </span>
-            <span class="quick-action-label">Dodaj inventar</span>
-          </a>
-        </div>
-      </article>
-
-      <article class="surface-card">
-        <div class="card-heading">
-          <div>
-            <h2>Recent Activity</h2>
-            <p>Najnoviji pregled stanja apoteke</p>
-          </div>
-        </div>
-        <ul class="activity-list">
-          @for (activity of recentActivities; track activity.text) {
-            <li class="activity-item" [class]="'tone-' + activity.tone">
-              <span class="activity-icon">
-                <app-pharmacy-icon [name]="activity.icon" [size]="18"></app-pharmacy-icon>
-              </span>
-              <div class="activity-copy">
-                <span class="activity-text">{{ activity.text }}</span>
-                <span class="activity-time">{{ activity.time }}</span>
-              </div>
-            </li>
-          }
-        </ul>
-      </article>
-    </section>
-  }
+          <ul class="activity-list">
+            @for (activity of recentActivities; track activity.text) {
+              <li class="activity-item">
+                <span class="activity-icon">
+                  <app-pharmacy-icon [name]="activity.icon" [size]="20"></app-pharmacy-icon>
+                </span>
+                <div class="activity-copy">
+                  <span class="activity-text">{{ activity.text }}</span>
+                  <span class="activity-time">{{ activity.time }}</span>
+                </div>
+              </li>
+            }
+          </ul>
+        </article>
+      </section>
+    }
+  </div>
 </div>

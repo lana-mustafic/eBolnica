@@ -3,6 +3,7 @@
 :host {
   @include pharmacy-font;
   display: block;
+  padding: $pharmacy-space-md $pharmacy-space-lg;
 }
 
 .prescriptions-page {
