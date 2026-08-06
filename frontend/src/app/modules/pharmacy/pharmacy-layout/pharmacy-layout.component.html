@@ -70,6 +70,18 @@
 
     <div class="sidebar-footer">
       <div class="sidebar-divider"></div>
+      <div class="sidebar-user">
+        <div class="user-avatar">
+          <app-pharmacy-icon name="user" [size]="18"></app-pharmacy-icon>
+        </div>
+        <div class="user-meta">
+          <span class="user-role">Farmaceut</span>
+          <span class="user-status">
+            <span class="status-dot" aria-hidden="true"></span>
+            Online
+          </span>
+        </div>
+      </div>
       <a class="nav-link logout-link" routerLink="/auth/logout" (click)="closeSidenavOnNavigate()">
         <app-pharmacy-icon name="log-out" [size]="20"></app-pharmacy-icon>
         <span>Odjava</span>

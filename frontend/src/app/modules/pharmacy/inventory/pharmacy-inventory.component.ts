@@ -1,9 +1,16 @@
 import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Router } from '@angular/router';
 import { Subject, catchError, debounceTime, of, switchMap } from 'rxjs';
 import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.service';
 import { MedicationDto } from '../../../api-services/pharmacy/pharmacy-api.models';
+import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
 import { ToasterService } from '../../../core/services/toaster.service';
+
+interface InventoryActivityItem {
+  type: 'success' | 'warning';
+  message: string;
+}
 
 @Component({
   selector: 'app-pharmacy-inventory',
@@ -14,13 +21,17 @@ import { ToasterService } from '../../../core/services/toaster.service';
 export class PharmacyInventoryComponent implements OnInit {
   private pharmacyApi = inject(PharmacyApiService);
   private toaster = inject(ToasterService);
+  private router = inject(Router);
   private destroyRef = inject(DestroyRef);
+
+  auth = inject(AuthFacadeService);
 
   items: MedicationDto[] = [];
   lowStockAlerts: MedicationDto[] = [];
   expiryAlerts: MedicationDto[] = [];
   lowStockAlertCount = 0;
   expiryAlertCount = 0;
+  inventoryValue = 0;
   isLoading = true;
   loadError = false;
   totalCount = 0;
@@ -35,12 +46,25 @@ export class PharmacyInventoryComponent implements OnInit {
   sortBy = 'name';
   sortOrder: 'asc' | 'desc' = 'asc';
 
-  displayedColumns = ['name', 'stock', 'expiry'];
+  displayedColumns = ['name', 'stock', 'expiry', 'actions'];
+  selectedMedication: MedicationDto | null = null;
 
   private filterChanged$ = new Subject<void>();
   private loadTrigger$ = new Subject<void>();
 
   ngOnInit(): void {
+    this.pharmacyApi
+      .getDashboardStats()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.inventoryValue = res.metadata.summary.inventoryValue;
+        },
+        error: () => {
+          this.inventoryValue = 0;
+        },
+      });
+
     this.loadTrigger$
       .pipe(
         switchMap(() => {
@@ -83,6 +107,99 @@ export class PharmacyInventoryComponent implements OnInit {
       });
 
     this.loadTrigger$.next();
+  }
+
+  get firstLowStockAlert(): MedicationDto | null {
+    return this.lowStockAlerts[0] ?? null;
+  }
+
+  get recentActivities(): InventoryActivityItem[] {
+    const activities: InventoryActivityItem[] = [];
+
+    for (const medication of this.lowStockAlerts.slice(0, 3)) {
+      activities.push({
+        type: 'warning',
+        message: `${medication.name} ispod minimuma zalihe (${medication.stockQuantity} / min ${medication.minimumStockLevel})`,
+      });
+    }
+
+    for (const medication of this.expiryAlerts.slice(0, 3)) {
+      const date = medication.expiryDate
+        ? new Date(medication.expiryDate).toLocaleDateString('bs-BA')
+        : '-';
+      activities.push({
+        type: 'warning',
+        message: `${medication.name} ističe uskoro (${date})`,
+      });
+    }
+
+    if (activities.length === 0) {
+      activities.push({
+        type: 'success',
+        message: 'Nema aktivnih upozorenja za inventar.',
+      });
+    }
+
+    return activities.slice(0, 6);
+  }
+
+  hasActiveFilters(): boolean {
+    return !!(
+      this.search ||
+      this.selectedCategory ||
+      this.selectedStockStatus ||
+      this.selectedRequiresPrescription
+    );
+  }
+
+  getStockStatus(m: MedicationDto): string {
+    if (m.stockQuantity <= 0) return 'Kritično';
+    if (m.stockQuantity < m.minimumStockLevel) return 'Niska zaliha';
+    return 'Dostupno';
+  }
+
+  getStockStatusClass(m: MedicationDto): string {
+    const status = this.getStockStatus(m);
+    if (status === 'Niska zaliha') return 'low';
+    if (status === 'Kritično') return 'critical';
+    return 'ok';
+  }
+
+  getStockFillPercent(m: MedicationDto): number {
+    if (m.minimumStockLevel <= 0) {
+      return m.stockQuantity > 0 ? 100 : 0;
+    }
+
+    const target = m.minimumStockLevel * 2;
+    return Math.min(100, Math.round((m.stockQuantity / target) * 100));
+  }
+
+  getExpiryStatus(m: MedicationDto): string {
+    if (!m.expiryDate) return '-';
+
+    const now = new Date();
+    const expiry = new Date(m.expiryDate);
+    const horizon = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    if (expiry < now) return 'Istekao';
+    if (expiry <= horizon) return 'Ističe uskoro';
+    return 'Važi';
+  }
+
+  getExpiryStatusClass(m: MedicationDto): string {
+    const status = this.getExpiryStatus(m);
+    if (status === 'Ističe uskoro') return 'low';
+    if (status === 'Istekao') return 'critical';
+    if (status === 'Važi') return 'ok';
+    return 'neutral';
+  }
+
+  viewMedication(id: number): void {
+    this.router.navigate(['/pharmacy/medications', id]);
+  }
+
+  editMedication(id: number): void {
+    this.router.navigate(['/pharmacy/medications', id, 'edit']);
   }
 
   private buildRequest() {

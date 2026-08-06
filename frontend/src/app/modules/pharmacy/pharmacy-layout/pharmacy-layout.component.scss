@@ -101,6 +101,52 @@
   padding: $pharmacy-space-xs 0 $pharmacy-space-xs;
 }
 
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  margin: 0 8px 8px;
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.2);
+  color: #c4b5fd;
+  display: grid;
+  place-items: center;
+}
+
+.user-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.user-role {
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.user-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: $pharmacy-sidebar-text;
+  font-size: 0.75rem;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: $pharmacy-success;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+}
+
 .sidebar-divider {
   height: 1px;
   margin: 0 $pharmacy-space-sm $pharmacy-space-xs;

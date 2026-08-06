@@ -1,149 +1,341 @@
-<div class="page-header"><h1>Inventar</h1></div>
+<div class="inventory-page">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-copy">
+      <h1>Inventar</h1>
+      <p class="page-subtitle">Pratite stanje zaliha, rokove trajanja i dostupnost lijekova</p>
+    </div>
+    <div class="header-actions">
+      <div class="profile-chip">
+        <div class="profile-avatar">F</div>
+        <div class="profile-meta">
+          <span class="profile-role">Farmaceut</span>
+          <span class="profile-email">{{ auth.currentUser()?.email }}</span>
+        </div>
+      </div>
+    </div>
+  </header>
 
-<div class="filters">
-  <mat-form-field appearance="outline">
-    <mat-label>Pretraga</mat-label>
-    <input matInput [(ngModel)]="search" (input)="onFilterChange()" />
-  </mat-form-field>
+  <!-- KPI cards -->
+  <section class="kpi-row" aria-label="Statistike inventara">
+    <app-pharmacy-kpi-card
+      icon="package"
+      tone="purple"
+      title="Ukupno lijekova"
+      [value]="totalCount"
+      subtitle="Aktivni lijekovi u sistemu"
+    ></app-pharmacy-kpi-card>
+    <article class="kpi-card kpi-highlight-warn">
+      <div class="kpi-icon-wrap">
+        <app-pharmacy-icon name="triangle-alert" [size]="22"></app-pharmacy-icon>
+      </div>
+      <p class="kpi-title">Niska zaliha</p>
+      <p class="kpi-value">{{ lowStockAlertCount }}</p>
+      <p class="kpi-subtitle">Ispod minimuma</p>
+    </article>
+    <article class="kpi-card kpi-highlight-expiry">
+      <div class="kpi-icon-wrap">
+        <app-pharmacy-icon name="clock" [size]="22"></app-pharmacy-icon>
+      </div>
+      <p class="kpi-title">Ističe uskoro</p>
+      <p class="kpi-value">{{ expiryAlertCount }}</p>
+      <p class="kpi-subtitle">Sljedećih 30 dana</p>
+    </article>
+    <app-pharmacy-kpi-card
+      icon="wallet"
+      tone="blue"
+      title="Vrijednost inventara"
+      [value]="(inventoryValue | number:'1.0-0') + ' KM'"
+      subtitle="Procijenjena vrijednost zaliha"
+    ></app-pharmacy-kpi-card>
+  </section>
 
-  <mat-form-field appearance="outline">
-    <mat-label>Kategorija</mat-label>
-    <input matInput [(ngModel)]="selectedCategory" (input)="onFilterChange()" />
-  </mat-form-field>
+  <!-- Filters + alert mini cards -->
+  <div class="filters-alerts-row">
+    <section class="surface-card filters-card">
+      <div class="filters-heading">
+        <h2>
+          <app-pharmacy-icon name="search" [size]="20"></app-pharmacy-icon>
+          Filteri inventara
+        </h2>
+        <p>Pretražite i suzite listu lijekova</p>
+      </div>
 
-  <mat-form-field appearance="outline">
-    <mat-label>Stanje zaliha</mat-label>
-    <mat-select [(ngModel)]="selectedStockStatus" (selectionChange)="onFilterChange()">
-      <mat-option value="">Sve</mat-option>
-      <mat-option value="low stock">Nizak nivo</mat-option>
-      <mat-option value="out of stock">Nema na stanju</mat-option>
-      <mat-option value="normal stock">Normalno</mat-option>
-    </mat-select>
-  </mat-form-field>
+      <div class="filters-grid">
+        <div class="filter-field filter-search">
+          <label class="field-label" for="inventory-search">Pretraga</label>
+          <div class="input-with-icon">
+            <app-pharmacy-icon name="search" [size]="18"></app-pharmacy-icon>
+            <input
+              id="inventory-search"
+              type="text"
+              [(ngModel)]="search"
+              placeholder="Pretraži lijekove..."
+              (input)="onFilterChange()"
+            />
+          </div>
+        </div>
 
-  <mat-form-field appearance="outline">
-    <mat-label>Recept</mat-label>
-    <mat-select [(ngModel)]="selectedRequiresPrescription" (selectionChange)="onFilterChange()">
-      <mat-option value="">Sve</mat-option>
-      <mat-option value="true">Na recept</mat-option>
-      <mat-option value="false">Bez recepta (OTC)</mat-option>
-    </mat-select>
-  </mat-form-field>
+        <div class="filter-field">
+          <label class="field-label">Kategorija</label>
+          <mat-form-field appearance="outline" class="compact-field">
+            <input matInput [(ngModel)]="selectedCategory" placeholder="Sve kategorije" (input)="onFilterChange()" />
+          </mat-form-field>
+        </div>
 
-  <button mat-stroked-button type="button" (click)="clearFilters()">Očisti filtere</button>
-</div>
+        <div class="filter-field">
+          <label class="field-label">Status</label>
+          <mat-form-field appearance="outline" class="compact-field">
+            <mat-select [(ngModel)]="selectedStockStatus" (selectionChange)="onFilterChange()">
+              <mat-option value="">Sve</mat-option>
+              <mat-option value="low stock">Niska zaliha</mat-option>
+              <mat-option value="out of stock">Kritično / nema</mat-option>
+              <mat-option value="normal stock">Dostupno</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
 
-@if (loadError) {
-  <mat-card class="error-card">
-    <mat-card-content>
-      <p>Greška pri učitavanju inventara.</p>
-      <button mat-stroked-button type="button" (click)="retryLoad()">Pokušaj ponovo</button>
-    </mat-card-content>
-  </mat-card>
-} @else if (isLoading) {
-  <app-fit-table-skeleton [rows]="4" [columns]="3"></app-fit-table-skeleton>
-} @else {
-  <div class="alerts-grid">
-    <mat-card>
-      <mat-card-header>
-        <mat-card-title>
-          Nizak nivo zaliha ({{ lowStockAlertCount }})
-          @if (lowStockAlertCount > lowStockAlerts.length) {
-            <span class="alert-hint"> — prikazano {{ lowStockAlerts.length }}</span>
-          }
-        </mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        @if (lowStockAlerts.length === 0) {
-          <p class="empty">Nema upozorenja.</p>
-        } @else {
-          <ul>
-            @for (m of lowStockAlerts; track m.id) {
-              <li>{{ m.name }} — {{ m.stockQuantity }} / min {{ m.minimumStockLevel }}</li>
-            }
-          </ul>
+        <div class="filter-field">
+          <label class="field-label">Recept</label>
+          <mat-form-field appearance="outline" class="compact-field">
+            <mat-select [(ngModel)]="selectedRequiresPrescription" (selectionChange)="onFilterChange()">
+              <mat-option value="">Sve</mat-option>
+              <mat-option value="true">Na recept</mat-option>
+              <mat-option value="false">Bez recepta (OTC)</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        @if (hasActiveFilters()) {
+          <div class="filter-field filter-clear">
+            <button type="button" class="btn btn-secondary" (click)="clearFilters()">Očisti</button>
+          </div>
         }
-      </mat-card-content>
-    </mat-card>
+      </div>
+    </section>
 
-    <mat-card>
-      <mat-card-header>
-        <mat-card-title>
-          Ističe uskoro (30 dana) ({{ expiryAlertCount }})
-          @if (expiryAlertCount > expiryAlerts.length) {
-            <span class="alert-hint"> — prikazano {{ expiryAlerts.length }}</span>
+    <aside class="alert-cards" aria-label="Brza upozorenja">
+      <article class="alert-mini-card warn">
+        <div class="alert-mini-header">
+          <span class="alert-dot warn" aria-hidden="true"></span>
+          Niska zaliha
+        </div>
+        <p class="alert-mini-count">{{ lowStockAlertCount }} lijekova</p>
+        <p class="alert-mini-detail">
+          @if (firstLowStockAlert; as alert) {
+            {{ alert.name }}
+          } @else {
+            Sve je u redu
           }
-        </mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        @if (expiryAlerts.length === 0) {
-          <p class="empty">Nema upozorenja.</p>
-        } @else {
-          <ul>
-            @for (m of expiryAlerts; track m.id) {
-              <li>{{ m.name }} — {{ m.expiryDate | date:'dd.MM.yyyy' }}</li>
-            }
-          </ul>
-        }
-      </mat-card-content>
-    </mat-card>
+        </p>
+      </article>
+
+      <article class="alert-mini-card ok">
+        <div class="alert-mini-header">
+          <span class="alert-dot ok" aria-hidden="true"></span>
+          Ističe uskoro
+        </div>
+        <p class="alert-mini-count">{{ expiryAlertCount }} lijekova</p>
+        <p class="alert-mini-detail">
+          @if (expiryAlerts.length === 0) {
+            Sve je u redu
+          } @else {
+            {{ expiryAlerts[0].name }}
+          }
+        </p>
+      </article>
+    </aside>
   </div>
 
-  <mat-card>
-    <mat-card-header><mat-card-title>Svi aktivni lijekovi ({{ totalCount }})</mat-card-title></mat-card-header>
-    <mat-card-content>
-      <table mat-table [dataSource]="items" class="inventory-table">
-        <ng-container matColumnDef="name">
-          <th mat-header-cell *matHeaderCellDef
-              (click)="onSort('name')"
-              (keydown)="onSortKeydown($event, 'name')"
-              class="sortable"
-              role="button"
-              tabindex="0"
-              [attr.aria-sort]="sortAriaSort('name')">
-            Naziv{{ sortIndicator('name') }}
-          </th>
-          <td mat-cell *matCellDef="let m">{{ m.name }}</td>
-        </ng-container>
-        <ng-container matColumnDef="stock">
-          <th mat-header-cell *matHeaderCellDef
-              (click)="onSort('stockQuantity')"
-              (keydown)="onSortKeydown($event, 'stockQuantity')"
-              class="sortable"
-              role="button"
-              tabindex="0"
-              [attr.aria-sort]="sortAriaSort('stockQuantity')">
-            Zaliha{{ sortIndicator('stockQuantity') }}
-          </th>
-          <td mat-cell *matCellDef="let m">{{ m.stockQuantity }}</td>
-        </ng-container>
-        <ng-container matColumnDef="expiry">
-          <th mat-header-cell *matHeaderCellDef
-              (click)="onSort('expiryDate')"
-              (keydown)="onSortKeydown($event, 'expiryDate')"
-              class="sortable"
-              role="button"
-              tabindex="0"
-              [attr.aria-sort]="sortAriaSort('expiryDate')">
-            Rok{{ sortIndicator('expiryDate') }}
-          </th>
-          <td mat-cell *matCellDef="let m">{{ m.expiryDate ? (m.expiryDate | date:'dd.MM.yyyy') : '-' }}</td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-      </table>
+  @if (loadError) {
+    <section class="surface-card error-card">
+      <p>Greška pri učitavanju inventara.</p>
+      <button type="button" class="btn btn-secondary" (click)="retryLoad()">Pokušaj ponovo</button>
+    </section>
+  } @else if (isLoading) {
+    <app-fit-table-skeleton [rows]="5" [columns]="4"></app-fit-table-skeleton>
+  } @else {
+    <!-- Table -->
+    <section class="surface-card table-card">
+      <div class="table-card-header">
+        <h2>Svi aktivni lijekovi ({{ totalCount }})</h2>
+      </div>
 
-      @if (!isLoading && !loadError && items.length === 0) {
+      @if (items.length === 0) {
         <p class="empty-state">Nema lijekova za prikaz sa trenutnim filterima.</p>
-      }
+        @if (hasActiveFilters()) {
+          <button type="button" class="btn btn-secondary" (click)="clearFilters()">Očisti filtere</button>
+        }
+      } @else {
+        <div class="table-scroll">
+          <table mat-table [dataSource]="items" class="inventory-table">
+            <ng-container matColumnDef="name">
+              <th
+                mat-header-cell
+                *matHeaderCellDef
+                class="sortable"
+                role="button"
+                tabindex="0"
+                (click)="onSort('name')"
+                (keydown)="onSortKeydown($event, 'name')"
+                [attr.aria-sort]="sortAriaSort('name')"
+              >
+                Naziv{{ sortIndicator('name') }}
+              </th>
+              <td mat-cell *matCellDef="let m">
+                <div class="name-cell">
+                  <span class="thumb-placeholder" aria-hidden="true">
+                    <app-pharmacy-icon name="pill" [size]="18"></app-pharmacy-icon>
+                  </span>
+                  <div>
+                    <strong>{{ m.name }}</strong>
+                    @if (m.category) {
+                      <div class="sub">{{ m.category }}</div>
+                    }
+                  </div>
+                </div>
+              </td>
+            </ng-container>
 
-      @if (totalPages > 1) {
-        <div class="pagination">
-          <button mat-stroked-button (click)="goToPage(currentPage - 1)" [disabled]="currentPage <= 1">Prethodna</button>
-          <span>{{ currentPage }} / {{ totalPages }}</span>
-          <button mat-stroked-button (click)="goToPage(currentPage + 1)" [disabled]="currentPage >= totalPages">Sljedeća</button>
+            <ng-container matColumnDef="stock">
+              <th
+                mat-header-cell
+                *matHeaderCellDef
+                class="sortable"
+                role="button"
+                tabindex="0"
+                (click)="onSort('stockQuantity')"
+                (keydown)="onSortKeydown($event, 'stockQuantity')"
+                [attr.aria-sort]="sortAriaSort('stockQuantity')"
+              >
+                Zaliha{{ sortIndicator('stockQuantity') }}
+              </th>
+              <td mat-cell *matCellDef="let m">
+                <div class="stock-cell">
+                  <div class="stock-top">
+                    <span class="stock-qty">{{ m.stockQuantity }}</span>
+                    <span class="status-badge" [class]="getStockStatusClass(m)">{{ getStockStatus(m) }}</span>
+                  </div>
+                  <div class="progress-track" aria-hidden="true">
+                    <div class="progress-fill" [class]="getStockStatusClass(m)" [style.width.%]="getStockFillPercent(m)"></div>
+                  </div>
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="expiry">
+              <th
+                mat-header-cell
+                *matHeaderCellDef
+                class="sortable"
+                role="button"
+                tabindex="0"
+                (click)="onSort('expiryDate')"
+                (keydown)="onSortKeydown($event, 'expiryDate')"
+                [attr.aria-sort]="sortAriaSort('expiryDate')"
+              >
+                Rok{{ sortIndicator('expiryDate') }}
+              </th>
+              <td mat-cell *matCellDef="let m">
+                <div class="expiry-cell">
+                  <span>{{ m.expiryDate ? (m.expiryDate | date:'dd.MM.yyyy') : '-' }}</span>
+                  @if (m.expiryDate) {
+                    <span class="status-badge" [class]="getExpiryStatusClass(m)">{{ getExpiryStatus(m) }}</span>
+                  }
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Akcije</th>
+              <td mat-cell *matCellDef="let m">
+                <div class="row-actions">
+                  <button
+                    type="button"
+                    class="icon-action edit"
+                    (click)="editMedication(m.id)"
+                    aria-label="Uredi {{ m.name }}"
+                    matTooltip="Uredi"
+                  >
+                    <app-pharmacy-icon name="pencil" [size]="16"></app-pharmacy-icon>
+                  </button>
+                  <button
+                    type="button"
+                    class="icon-action menu"
+                    [matMenuTriggerFor]="rowMenu"
+                    (click)="selectedMedication = m"
+                    aria-label="Više akcija za {{ m.name }}"
+                    matTooltip="Više"
+                  >
+                    <app-pharmacy-icon name="more-vertical" [size]="16"></app-pharmacy-icon>
+                  </button>
+                </div>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns" class="data-row"></tr>
+          </table>
         </div>
+
+        @if (totalPages > 1) {
+          <div class="pagination">
+            <button type="button" class="btn btn-secondary" (click)="goToPage(currentPage - 1)" [disabled]="currentPage <= 1">
+              Prethodna
+            </button>
+            <span>{{ currentPage }} / {{ totalPages }}</span>
+            <button type="button" class="btn btn-secondary" (click)="goToPage(currentPage + 1)" [disabled]="currentPage >= totalPages">
+              Sljedeća
+            </button>
+          </div>
+        }
+
+        <mat-menu #rowMenu="matMenu">
+          @if (selectedMedication; as m) {
+            <button mat-menu-item type="button" (click)="viewMedication(m.id)">
+              <span class="menu-item-content">
+                <app-pharmacy-icon name="eye" [size]="16"></app-pharmacy-icon>
+                Pregled
+              </span>
+            </button>
+            <button mat-menu-item type="button" (click)="editMedication(m.id)">
+              <span class="menu-item-content">
+                <app-pharmacy-icon name="pencil" [size]="16"></app-pharmacy-icon>
+                Uredi
+              </span>
+            </button>
+            <button mat-menu-item type="button" (click)="editMedication(m.id)">
+              <span class="menu-item-content">
+                <app-pharmacy-icon name="plus" [size]="16"></app-pharmacy-icon>
+                Dodaj zalihu
+              </span>
+            </button>
+            <button mat-menu-item type="button" (click)="editMedication(m.id)">
+              <span class="menu-item-content">
+                <app-pharmacy-icon name="trash-2" [size]="16"></app-pharmacy-icon>
+                Deaktiviraj lijek
+              </span>
+            </button>
+          }
+        </mat-menu>
       }
-    </mat-card-content>
-  </mat-card>
-}
+    </section>
+
+    <!-- Recent activity -->
+    <section class="surface-card activity-card">
+      <h2>Nedavne aktivnosti inventara</h2>
+      <ul class="activity-list">
+        @for (activity of recentActivities; track activity.message) {
+          <li [class.warning]="activity.type === 'warning'">
+            @if (activity.type === 'success') {
+              <app-pharmacy-icon name="check-circle" [size]="18"></app-pharmacy-icon>
+            } @else {
+              <app-pharmacy-icon name="triangle-alert" [size]="18"></app-pharmacy-icon>
+            }
+            <span>{{ activity.message }}</span>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+</div>

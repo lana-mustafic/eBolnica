@@ -20,7 +20,11 @@ export type PharmacyIconName =
   | 'download'
   | 'upload'
   | 'pencil'
-  | 'trash-2';
+  | 'trash-2'
+  | 'more-vertical'
+  | 'clock'
+  | 'eye'
+  | 'user';
 
 @Component({
   selector: 'app-pharmacy-icon',
