@@ -15,7 +15,8 @@ internal static class PrescriptionMapping
         {
             Id = p.Patient.Id,
             FirstName = p.Patient.FirstName,
-            LastName = p.Patient.LastName
+            LastName = p.Patient.LastName,
+            PhoneNumber = p.Patient.PhoneNumber
         },
         DoctorId = p.DoctorId,
         Doctor = new PrescriptionDoctorDto

@@ -1,0 +1,142 @@
+<div class="prescription-form-page">
+  <header class="page-top-bar">
+    <div class="page-top-row">
+      <div class="header-copy">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+          <a routerLink="/pharmacy/prescriptions">Recepti</a>
+          <span aria-hidden="true">/</span>
+          <span class="breadcrumb-current">Novi recept</span>
+        </nav>
+        <h1>Novi recept</h1>
+        <p class="header-meta">Kreirajte novi recept za pacijenta</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-body">
+    <form class="form-stack" [formGroup]="form" (ngSubmit)="submit()">
+      <section class="card">
+        <h2 class="section-title">Pacijent</h2>
+        <div class="field">
+          <label for="patient-search">Pretraži pacijenta</label>
+          <div class="input-with-icon">
+            <app-pharmacy-icon name="search" [size]="18"></app-pharmacy-icon>
+            <input
+              id="patient-search"
+              type="text"
+              [(ngModel)]="patientSearch"
+              [ngModelOptions]="{ standalone: true }"
+              placeholder="Ime ili prezime pacijenta..."
+              (input)="onPatientSearchInput()"
+            />
+          </div>
+          @if (patients.length > 0) {
+            <ul class="option-list">
+              @for (patient of patients; track patient.id) {
+                <li>
+                  <button type="button" (click)="selectPatient(patient)">
+                    <strong>{{ patient.firstName }} {{ patient.lastName }}</strong>
+                    @if (patient.phoneNumber) {
+                      <span>{{ patient.phoneNumber }}</span>
+                    }
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+          @if (selectedPatient) {
+            <p class="selected-hint">
+              Odabrano: {{ selectedPatient.firstName }} {{ selectedPatient.lastName }}
+              @if (selectedPatient.phoneNumber) {
+                · {{ selectedPatient.phoneNumber }}
+              }
+            </p>
+          }
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="section-title">Medicinski izvještaj</h2>
+        @if (isLoadingReports) {
+          <p class="hint">Učitavanje izvještaja...</p>
+        } @else if (!selectedPatient) {
+          <p class="hint">Prvo odaberite pacijenta.</p>
+        } @else if (medicalReports.length === 0) {
+          <p class="hint">Nema medicinskih izvještaja za odabranog pacijenta.</p>
+        } @else {
+          <mat-form-field appearance="outline" class="full-field">
+            <mat-label>Izvještaj</mat-label>
+            <mat-select formControlName="medicalReportId">
+              @for (report of medicalReports; track report.id) {
+                <mat-option [value]="report.id">{{ reportLabel(report) }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
+      </section>
+
+      <section class="card">
+        <div class="section-heading">
+          <h2 class="section-title">Stavke recepta</h2>
+          <button type="button" class="btn btn-outline btn-sm" (click)="addItem()">
+            <app-pharmacy-icon name="plus" [size]="16"></app-pharmacy-icon>
+            Dodaj lijek
+          </button>
+        </div>
+
+        <div class="items-list" formArrayName="items">
+          @for (item of items.controls; track $index; let i = $index) {
+            <div class="item-row" [formGroupName]="i">
+              <div class="field flex-grow">
+                <label>Lijek</label>
+                <input
+                  type="text"
+                  formControlName="medicationName"
+                  placeholder="Pretraži lijek..."
+                  (input)="onMedicationSearch(item.get('medicationName')?.value ?? '', i)"
+                />
+                @if (medicationSuggestions.length > 0 && activeItemIndex === i) {
+                  <ul class="option-list">
+                    @for (s of medicationSuggestions; track s.id) {
+                      <li>
+                        <button type="button" (click)="selectMedication(s, i)">
+                          <strong>{{ s.name }}</strong>
+                          <span>{{ s.manufacturer }}</span>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+              <div class="field qty-field">
+                <label>Količina</label>
+                <input type="number" formControlName="quantity" min="1" max="1000" />
+              </div>
+              <div class="field flex-grow">
+                <label>Upute</label>
+                <input type="text" formControlName="instructions" placeholder="Opcionalno" />
+              </div>
+              @if (items.length > 1) {
+                <button type="button" class="icon-btn remove" (click)="removeItem(i)" aria-label="Ukloni stavku">
+                  <app-pharmacy-icon name="trash-2" [size]="16"></app-pharmacy-icon>
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="section-title">Napomena</h2>
+        <textarea formControlName="notes" rows="3" placeholder="Opcionalna napomena..."></textarea>
+      </section>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-outline" (click)="cancel()">Odustani</button>
+        <button type="submit" class="btn btn-primary" [disabled]="isSaving">
+          {{ isSaving ? 'Spremanje...' : 'Kreiraj recept' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

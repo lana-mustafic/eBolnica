@@ -107,6 +107,7 @@ export interface PrescriptionPatientDto {
   id: number;
   firstName: string;
   lastName: string;
+  phoneNumber?: string | null;
 }
 
 export interface PrescriptionDoctorDto {
@@ -181,6 +182,35 @@ export interface ListPrescriptionsResponse {
 
 export interface DispensePrescriptionRequest {
   dispensedDate?: string | null;
+}
+
+export interface CreatePrescriptionItemRequest {
+  medicationId: number;
+  quantity: number;
+  instructions?: string | null;
+}
+
+export interface CreatePrescriptionRequest {
+  medicalReportId: number;
+  patientId: number;
+  notes?: string | null;
+  prescriptionItems: CreatePrescriptionItemRequest[];
+}
+
+export interface PrescriptionFormPatientDto {
+  id: number;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string | null;
+}
+
+export interface PrescriptionFormMedicalReportDto {
+  id: number;
+  createdAt: string;
+  diagnosis?: string | null;
+  doctorFirstName: string;
+  doctorLastName: string;
+  doctorSpecialization?: string | null;
 }
 
 export interface MonthlyRevenueItemDto {

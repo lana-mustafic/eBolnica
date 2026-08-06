@@ -9,6 +9,7 @@ import { MedicationWizardComponent } from './medications/medication-wizard/medic
 import { PharmacyInventoryComponent } from './inventory/pharmacy-inventory.component';
 import { PharmacyPrescriptionsComponent } from './prescriptions/pharmacy-prescriptions.component';
 import { PrescriptionDetailComponent } from './prescriptions/prescription-detail/prescription-detail.component';
+import { PrescriptionFormComponent } from './prescriptions/prescription-form/prescription-form.component';
 
 const routes: Routes = [
   {
@@ -23,6 +24,7 @@ const routes: Routes = [
       { path: 'medications/:id', component: MedicationDetailComponent },
       { path: 'inventory', component: PharmacyInventoryComponent },
       { path: 'prescriptions', component: PharmacyPrescriptionsComponent },
+      { path: 'prescriptions/new', component: PrescriptionFormComponent },
       { path: 'prescriptions/:id', component: PrescriptionDetailComponent },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],

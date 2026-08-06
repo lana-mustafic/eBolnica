@@ -15,6 +15,9 @@ import {
   DispensePrescriptionRequest,
   ListPrescriptionsRequest,
   ListPrescriptionsResponse,
+  CreatePrescriptionRequest,
+  PrescriptionFormMedicalReportDto,
+  PrescriptionFormPatientDto,
   PrescriptionDto,
   DashboardStatsResponseDto,
 } from './pharmacy-api.models';
@@ -166,6 +169,28 @@ export class PharmacyApiService {
 
   dispensePrescription(id: number, body: DispensePrescriptionRequest = {}): Observable<PrescriptionDto> {
     return this.http.post<PrescriptionDto>(`${this.baseUrl}/prescriptions/${id}/dispense`, body);
+  }
+
+  createPrescription(body: CreatePrescriptionRequest): Observable<PrescriptionDto> {
+    return this.http.post<PrescriptionDto>(`${this.baseUrl}/prescriptions`, body);
+  }
+
+  cancelPrescription(id: number): Observable<PrescriptionDto> {
+    return this.http.post<PrescriptionDto>(`${this.baseUrl}/prescriptions/${id}/cancel`, {});
+  }
+
+  searchPrescriptionPatients(search = '', limit = 20): Observable<PrescriptionFormPatientDto[]> {
+    let params = new HttpParams().set('limit', String(limit));
+    if (search.trim()) {
+      params = params.set('search', search.trim());
+    }
+    return this.http.get<PrescriptionFormPatientDto[]>(`${this.baseUrl}/prescriptions/form/patients`, { params });
+  }
+
+  listPatientMedicalReportsForPrescription(patientId: number): Observable<PrescriptionFormMedicalReportDto[]> {
+    return this.http.get<PrescriptionFormMedicalReportDto[]>(
+      `${this.baseUrl}/prescriptions/form/patients/${patientId}/medical-reports`
+    );
   }
 
   getDashboardStats(): Observable<DashboardStatsResponseDto> {

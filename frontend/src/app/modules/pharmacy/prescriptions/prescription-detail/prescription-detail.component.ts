@@ -30,6 +30,7 @@ export class PrescriptionDetailComponent implements OnInit {
   isLoading = false;
   loadError = false;
   isDispensing = false;
+  isCancelling = false;
   prescriptionId: number | null = null;
 
   ngOnInit(): void {
@@ -141,6 +142,50 @@ export class PrescriptionDetailComponent implements OnInit {
 
   canDispense(): boolean {
     return this.prescription?.status === 'Pending' && !this.isDispensing;
+  }
+
+  canCancel(): boolean {
+    return this.prescription?.status === 'Pending' && !this.isCancelling;
+  }
+
+  cancel(): void {
+    if (!this.prescriptionId || !this.canCancel()) {
+      return;
+    }
+
+    this.dialog
+      .showCustom({
+        type: DialogType.WARNING,
+        title: 'Otkaži recept',
+        message: `Jeste li sigurni da želite otkazati recept ${this.prescription?.prescriptionNumber}?`,
+        buttons: [
+          { type: DialogButton.CANCEL, label: 'Odustani' },
+          { type: DialogButton.DELETE, label: 'Otkaži', color: 'warn' },
+        ],
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result) => {
+        if (result?.button !== DialogButton.DELETE || !this.prescriptionId) {
+          return;
+        }
+
+        this.isCancelling = true;
+        this.pharmacyApi
+          .cancelPrescription(this.prescriptionId)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            next: (updated) => {
+              this.prescription = updated;
+              this.isCancelling = false;
+              this.toaster.success('Recept je otkazan.');
+            },
+            error: (err) => {
+              this.isCancelling = false;
+              const msg = err?.error?.message ?? err?.error?.title ?? 'Greška pri otkazivanju recepta.';
+              this.toaster.error(msg);
+            },
+          });
+      });
   }
 
   stockStatus(medicationId: number, required: number): { label: string; css: string } {

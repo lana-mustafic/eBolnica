@@ -21,6 +21,9 @@
         <dl class="meta-list">
           <div><dt>Status</dt><dd>{{ prescription.status }}</dd></div>
           <div><dt>Pacijent</dt><dd>{{ prescription.patient.firstName }} {{ prescription.patient.lastName }}</dd></div>
+          @if (prescription.patient.phoneNumber) {
+            <div><dt>Telefon</dt><dd>{{ prescription.patient.phoneNumber }}</dd></div>
+          }
           <div><dt>Doktor</dt><dd>Dr. {{ prescription.doctor.firstName }} {{ prescription.doctor.lastName }}</dd></div>
           <div><dt>Propisan</dt><dd>{{ prescription.prescribedDate | date:'dd.MM.yyyy HH:mm' }}</dd></div>
           @if (prescription.dispensedDate) {
@@ -35,6 +38,11 @@
         @if (canDispense()) {
           <button mat-raised-button color="primary" (click)="dispense()" [disabled]="isDispensing">
             {{ isDispensing ? 'Izdavanje...' : 'Izdaj recept' }}
+          </button>
+        }
+        @if (canCancel()) {
+          <button mat-stroked-button color="warn" type="button" (click)="cancel()" [disabled]="isCancelling">
+            {{ isCancelling ? 'Otkazivanje...' : 'Otkaži recept' }}
           </button>
         }
       </mat-card-content>

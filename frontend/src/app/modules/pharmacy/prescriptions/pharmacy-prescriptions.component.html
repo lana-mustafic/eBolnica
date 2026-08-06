@@ -1,324 +1,341 @@
 <div class="prescriptions-page">
-  <header class="page-header">
-    <div class="header-copy">
-      <h1>Recepti</h1>
-      <p class="page-subtitle">Pregledajte i upravljajte receptima pacijenata</p>
-    </div>
-    <div class="header-actions">
-      <button type="button" class="btn btn-secondary" (click)="exportPdf()">
-        <app-pharmacy-icon name="file-text" [size]="16"></app-pharmacy-icon>
-        Export PDF
-      </button>
-      <div class="profile-chip">
-        <div class="profile-avatar">F</div>
-        <div class="profile-meta">
-          <span class="profile-role">Farmaceut</span>
-          <span class="profile-email">{{ auth.currentUser()?.email }}</span>
+  <header class="page-top-bar">
+    <div class="page-top-row">
+      <div class="header-copy">
+        <h1>Recepti</h1>
+        <p class="header-meta">Pregledajte i upravljajte receptima pacijenata</p>
+      </div>
+      <div class="header-actions">
+        <div class="avatar-chip" aria-label="Korisnički profil">
+          <span>F</span>
         </div>
       </div>
     </div>
+
+    <div class="page-toolbar">
+      <button type="button" class="btn btn-primary" (click)="createNew()">
+        <app-pharmacy-icon name="plus" [size]="18"></app-pharmacy-icon>
+        Novi recept
+      </button>
+      <button type="button" class="btn btn-secondary" (click)="exportPdf()">
+        <app-pharmacy-icon name="download" [size]="16"></app-pharmacy-icon>
+        Eksport
+      </button>
+      <button type="button" class="btn btn-secondary" (click)="reload()" [disabled]="isLoading">
+        <app-pharmacy-icon name="activity" [size]="16"></app-pharmacy-icon>
+        Osvježi
+      </button>
+    </div>
   </header>
 
-  <section class="kpi-row" aria-label="Statistike recepata">
-    <app-pharmacy-kpi-card
-      icon="clipboard"
-      tone="blue"
-      title="Ukupno recepata"
-      [value]="totalPrescriptions"
-      subtitle="Svi recepti u sistemu"
-    ></app-pharmacy-kpi-card>
+  <div class="page-body">
+    <section class="kpi-grid" aria-label="Statistike recepata">
+      <article class="kpi-card">
+        <div class="kpi-icon">
+          <app-pharmacy-icon name="clipboard" [size]="20"></app-pharmacy-icon>
+        </div>
+        <p class="kpi-label">Ukupno recepata</p>
+        <p class="kpi-value">{{ totalPrescriptions }}</p>
+        <p class="kpi-subtitle">Svi recepti u sistemu</p>
+      </article>
 
-    <article class="kpi-card kpi-highlight-pending">
-      <div class="kpi-icon-wrap">
-        <app-pharmacy-icon name="clock" [size]="22"></app-pharmacy-icon>
-      </div>
-      <p class="kpi-title">Na čekanju</p>
-      <p class="kpi-value">{{ pendingPrescriptions }}</p>
-      <p class="kpi-subtitle">Čekaju izdavanje</p>
-    </article>
+      <article class="kpi-card">
+        <div class="kpi-icon">
+          <app-pharmacy-icon name="clock" [size]="20"></app-pharmacy-icon>
+        </div>
+        <p class="kpi-label">Na čekanju</p>
+        <p class="kpi-value">{{ pendingPrescriptions }}</p>
+        <p class="kpi-subtitle">Čekaju izdavanje</p>
+      </article>
 
-    <article class="kpi-card kpi-highlight-dispensed">
-      <div class="kpi-icon-wrap">
-        <app-pharmacy-icon name="check-circle" [size]="22"></app-pharmacy-icon>
-      </div>
-      <p class="kpi-title">Izdani</p>
-      <p class="kpi-value">{{ dispensedPrescriptions }}</p>
-      <p class="kpi-subtitle">Uspješno izdani</p>
-    </article>
+      <article class="kpi-card">
+        <div class="kpi-icon">
+          <app-pharmacy-icon name="check-circle" [size]="20"></app-pharmacy-icon>
+        </div>
+        <p class="kpi-label">Izdani</p>
+        <p class="kpi-value">{{ dispensedPrescriptions }}</p>
+        <p class="kpi-subtitle">Uspješno izdani</p>
+      </article>
 
-    <app-pharmacy-kpi-card
-      icon="wallet"
-      tone="green"
-      title="Ukupna vrijednost"
-      [value]="(totalRevenue | number:'1.0-0') + ' KM'"
-      subtitle="Prihod od izdanih recepata"
-    ></app-pharmacy-kpi-card>
-  </section>
+      <article class="kpi-card">
+        <div class="kpi-icon">
+          <app-pharmacy-icon name="wallet" [size]="20"></app-pharmacy-icon>
+        </div>
+        <p class="kpi-label">Ukupna vrijednost</p>
+        <p class="kpi-value">{{ totalRevenue | number:'1.0-0' }} KM</p>
+        <p class="kpi-subtitle">Prihod od izdanih recepata</p>
+      </article>
+    </section>
 
-  <section class="surface-card filters-card">
-    <div class="filters-heading">
-      <h2>
-        <app-pharmacy-icon name="search" [size]="20"></app-pharmacy-icon>
-        Filteri recepata
-      </h2>
-      <p>Pretražite i suzite listu recepata</p>
-    </div>
+    <section class="card filters-card">
+      <h2 class="filters-title">Filteri recepata</h2>
+      <p class="filters-subtitle">Pretražite i sužite listu recepata</p>
 
-    <div class="filters-grid">
-      <div class="filter-field filter-search">
-        <label class="field-label" for="prescription-search">Pretraga</label>
+      <div class="search-wrap filter-field">
         <div class="input-with-icon">
           <app-pharmacy-icon name="search" [size]="18"></app-pharmacy-icon>
           <input
             id="prescription-search"
             type="text"
             [(ngModel)]="search"
-            placeholder="Pretraga recepata..."
-            (input)="onFilterChange()"
+            placeholder="Pretraži recepte..."
+            (input)="onSearchInput()"
           />
         </div>
       </div>
 
-      <div class="filter-field">
-        <label class="field-label">Status</label>
-        <mat-form-field appearance="outline" class="compact-field">
-          <mat-select [(ngModel)]="selectedStatus" (selectionChange)="onStatusChange($event.value)">
-            @for (f of statusFilters; track f.value) {
-              <mat-option [value]="f.value">{{ f.label }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-      </div>
-
-      <div class="filter-field">
-        <label class="field-label">Doktor</label>
-        <mat-form-field appearance="outline" class="compact-field">
-          <input matInput [(ngModel)]="doctorFilter" placeholder="Ime doktora" (input)="onFilterChange()" />
-        </mat-form-field>
-      </div>
-
-      <div class="filter-field">
-        <label class="field-label">Pacijent</label>
-        <mat-form-field appearance="outline" class="compact-field">
-          <input matInput [(ngModel)]="patientFilter" placeholder="Ime pacijenta" (input)="onFilterChange()" />
-        </mat-form-field>
-      </div>
-
-      <div class="filter-field">
-        <label class="field-label">Datum</label>
-        <mat-form-field appearance="outline" class="compact-field">
-          <mat-select [(ngModel)]="selectedDateRange" (selectionChange)="onFilterChange()">
-            @for (d of dateRangeFilters; track d.value) {
-              <mat-option [value]="d.value">{{ d.label }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-      </div>
-
-      @if (hasActiveFilters()) {
-        <div class="filter-field filter-clear">
-          <button type="button" class="btn btn-secondary" (click)="clearFilters()">Očisti filtere</button>
+      <div class="filters-grid">
+        <div class="filter-field">
+          <label class="field-label">Status</label>
+          <mat-form-field appearance="outline" class="compact-field">
+            <mat-select [(ngModel)]="selectedStatus">
+              @for (f of statusFilters; track f.value) {
+                <mat-option [value]="f.value">{{ f.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
         </div>
-      }
-    </div>
-  </section>
 
-  @if (loadError) {
-    <section class="surface-card error-card">
-      <p>Greška pri učitavanju recepata.</p>
-      <button type="button" class="btn btn-secondary" (click)="retryLoad()">Pokušaj ponovo</button>
+        <div class="filter-field">
+          <label class="field-label">Doktor</label>
+          <mat-form-field appearance="outline" class="compact-field">
+            <input matInput [(ngModel)]="doctorFilter" placeholder="Ime doktora" />
+          </mat-form-field>
+        </div>
+
+        <div class="filter-field">
+          <label class="field-label">Pacijent</label>
+          <mat-form-field appearance="outline" class="compact-field">
+            <input matInput [(ngModel)]="patientFilter" placeholder="Ime pacijenta" />
+          </mat-form-field>
+        </div>
+
+        <div class="filter-field">
+          <label class="field-label">Datum</label>
+          <mat-form-field appearance="outline" class="compact-field">
+            <mat-select [(ngModel)]="selectedDateRange">
+              @for (d of dateRangeFilters; track d.value) {
+                <mat-option [value]="d.value">{{ d.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <div class="filters-actions">
+        <button type="button" class="btn btn-outline" (click)="clearFilters()">Očisti filtere</button>
+        <button type="button" class="btn btn-primary" (click)="applyFilters()">Primijeni filtere</button>
+      </div>
     </section>
-  } @else if (isLoading) {
-    <app-fit-table-skeleton [rows]="5" [columns]="6"></app-fit-table-skeleton>
-  } @else {
-    <section class="surface-card table-card">
-      <div class="table-card-header">
-        <h2>Aktivni recepti ({{ totalCount }})</h2>
-      </div>
 
-      @if (visiblePrescriptions.length === 0) {
-        <p class="empty-state">Nema recepata za odabrane filtere.</p>
-        @if (hasActiveFilters()) {
-          <button type="button" class="btn btn-secondary" (click)="clearFilters()">Očisti filtere</button>
-        }
-      } @else {
-        <div class="table-scroll">
-          <table mat-table [dataSource]="visiblePrescriptions" class="prescriptions-table">
-            <ng-container matColumnDef="number">
-              <th
-                mat-header-cell
-                *matHeaderCellDef
-                class="sortable"
-                role="button"
-                tabindex="0"
-                (click)="onSort('prescriptionNumber')"
-                (keydown)="onSortKeydown($event, 'prescriptionNumber')"
-                [attr.aria-sort]="sortAriaSort('prescriptionNumber')"
-              >
-                Broj{{ sortIndicator('prescriptionNumber') }}
-              </th>
-              <td mat-cell *matCellDef="let p">
-                <span class="rx-badge">{{ p.prescriptionNumber }}</span>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="patient">
-              <th mat-header-cell *matHeaderCellDef>Pacijent</th>
-              <td mat-cell *matCellDef="let p">
-                <div class="patient-cell">
-                  <div class="cell-title">
-                    <app-pharmacy-icon name="user" [size]="14"></app-pharmacy-icon>
-                    {{ p.patient.firstName }} {{ p.patient.lastName }}
-                  </div>
-                </div>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="doctor">
-              <th mat-header-cell *matHeaderCellDef>Doktor</th>
-              <td mat-cell *matCellDef="let p">
-                <div class="doctor-cell">
-                  <strong>Dr. {{ p.doctor.firstName }} {{ p.doctor.lastName }}</strong>
-                  @if (p.doctor.specialization) {
-                    <div class="cell-sub">{{ p.doctor.specialization }}</div>
-                  }
-                </div>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="status">
-              <th
-                mat-header-cell
-                *matHeaderCellDef
-                class="sortable"
-                role="button"
-                tabindex="0"
-                (click)="onSort('status')"
-                (keydown)="onSortKeydown($event, 'status')"
-                [attr.aria-sort]="sortAriaSort('status')"
-              >
-                Status{{ sortIndicator('status') }}
-              </th>
-              <td mat-cell *matCellDef="let p">
-                <span class="status-badge" [ngClass]="statusClass(p.status)" [class.pulse]="p.status === 'Pending'">
-                  {{ statusLabel(p.status) }}
-                </span>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="amount">
-              <th
-                mat-header-cell
-                *matHeaderCellDef
-                class="sortable"
-                role="button"
-                tabindex="0"
-                (click)="onSort('totalAmount')"
-                (keydown)="onSortKeydown($event, 'totalAmount')"
-                [attr.aria-sort]="sortAriaSort('totalAmount')"
-              >
-                Iznos{{ sortIndicator('totalAmount') }}
-              </th>
-              <td mat-cell *matCellDef="let p">
-                <strong class="amount">{{ p.totalAmount | number:'1.2-2' }} KM</strong>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef>Akcije</th>
-              <td mat-cell *matCellDef="let p">
-                <div class="row-actions">
-                  <button type="button" class="btn btn-primary btn-sm" (click)="openDetail(p.id)">Detalj</button>
-                  <button
-                    type="button"
-                    class="icon-action menu"
-                    [matMenuTriggerFor]="rowMenu"
-                    (click)="selectedPrescription = p"
-                    aria-label="Više akcija za {{ p.prescriptionNumber }}"
-                    matTooltip="Više"
-                  >
-                    <app-pharmacy-icon name="more-vertical" [size]="16"></app-pharmacy-icon>
-                  </button>
-                </div>
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns" class="data-row"></tr>
-          </table>
+    @if (loadError) {
+      <section class="card error-card">
+        <p>Greška pri učitavanju recepata.</p>
+        <button type="button" class="btn btn-outline" (click)="retryLoad()">Pokušaj ponovo</button>
+      </section>
+    } @else if (isLoading) {
+      <app-fit-table-skeleton [rows]="5" [columns]="6"></app-fit-table-skeleton>
+    } @else {
+      <section class="card table-card">
+        <div class="table-header">
+          <h2>Aktivni recepti ({{ totalCount }})</h2>
+          <button type="button" class="btn btn-outline btn-sm" (click)="exportPdf()">
+            <app-pharmacy-icon name="file-text" [size]="16"></app-pharmacy-icon>
+            Export PDF
+          </button>
         </div>
 
-        @if (totalPages > 1) {
-          <div class="pagination">
-            <button type="button" class="btn btn-secondary" (click)="goToPage(currentPage - 1)" [disabled]="currentPage <= 1">
-              Prethodna
-            </button>
-            <span>{{ currentPage }} / {{ totalPages }}</span>
-            <button type="button" class="btn btn-secondary" (click)="goToPage(currentPage + 1)" [disabled]="currentPage >= totalPages">
-              Sljedeća
-            </button>
-          </div>
-        }
+        @if (visiblePrescriptions.length === 0) {
+          <p class="empty-state">Nema recepata za odabrane filtere.</p>
+          @if (hasActiveFilters()) {
+            <button type="button" class="btn btn-outline" (click)="clearFilters()">Očisti filtere</button>
+          }
+        } @else {
+          <div class="table-scroll">
+            <table mat-table [dataSource]="visiblePrescriptions" class="prescriptions-table">
+              <ng-container matColumnDef="number">
+                <th
+                  mat-header-cell
+                  *matHeaderCellDef
+                  class="sortable"
+                  role="button"
+                  tabindex="0"
+                  (click)="onSort('prescriptionNumber')"
+                  (keydown)="onSortKeydown($event, 'prescriptionNumber')"
+                  [attr.aria-sort]="sortAriaSort('prescriptionNumber')"
+                >
+                  Broj{{ sortIndicator('prescriptionNumber') }}
+                </th>
+                <td mat-cell *matCellDef="let p">
+                  <span class="rx-number">{{ p.prescriptionNumber }}</span>
+                </td>
+              </ng-container>
 
-        <mat-menu #rowMenu="matMenu">
-          @if (selectedPrescription; as p) {
-            <button mat-menu-item type="button" (click)="openDetail(p.id)">
-              <span class="menu-item-content">
-                <app-pharmacy-icon name="eye" [size]="16"></app-pharmacy-icon>
-                Pregled
-              </span>
-            </button>
-            @if (canDispense(p)) {
-              <button mat-menu-item type="button" (click)="dispensePrescription(p)">
+              <ng-container matColumnDef="patient">
+                <th mat-header-cell *matHeaderCellDef>Pacijent</th>
+                <td mat-cell *matCellDef="let p">
+                  <div class="stack-cell">
+                    <span class="cell-main">
+                      <app-pharmacy-icon name="user" [size]="14"></app-pharmacy-icon>
+                      {{ p.patient.firstName }} {{ p.patient.lastName }}
+                    </span>
+                    @if (p.patient.phoneNumber) {
+                      <span class="cell-sub">
+                        <app-pharmacy-icon name="phone" [size]="12"></app-pharmacy-icon>
+                        {{ p.patient.phoneNumber }}
+                      </span>
+                    }
+                  </div>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="doctor">
+                <th mat-header-cell *matHeaderCellDef>Doktor</th>
+                <td mat-cell *matCellDef="let p">
+                  <div class="stack-cell">
+                    <span class="cell-main">Dr. {{ p.doctor.firstName }} {{ p.doctor.lastName }}</span>
+                    @if (p.doctor.specialization) {
+                      <span class="cell-sub">{{ p.doctor.specialization }}</span>
+                    }
+                  </div>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="status">
+                <th
+                  mat-header-cell
+                  *matHeaderCellDef
+                  class="sortable"
+                  role="button"
+                  tabindex="0"
+                  (click)="onSort('status')"
+                  (keydown)="onSortKeydown($event, 'status')"
+                  [attr.aria-sort]="sortAriaSort('status')"
+                >
+                  Status{{ sortIndicator('status') }}
+                </th>
+                <td mat-cell *matCellDef="let p">
+                  <span class="status-badge" [ngClass]="statusClass(p.status)" [class.pulse]="p.status === 'Pending'">
+                    <span class="status-dot" aria-hidden="true"></span>
+                    {{ statusLabel(p.status) }}
+                  </span>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="amount">
+                <th
+                  mat-header-cell
+                  *matHeaderCellDef
+                  class="sortable"
+                  role="button"
+                  tabindex="0"
+                  (click)="onSort('totalAmount')"
+                  (keydown)="onSortKeydown($event, 'totalAmount')"
+                  [attr.aria-sort]="sortAriaSort('totalAmount')"
+                >
+                  Iznos{{ sortIndicator('totalAmount') }}
+                </th>
+                <td mat-cell *matCellDef="let p">
+                  <strong class="amount">{{ p.totalAmount | number:'1.2-2' }} KM</strong>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef>Akcije</th>
+                <td mat-cell *matCellDef="let p">
+                  <div class="row-actions">
+                    <button type="button" class="btn btn-primary btn-sm" (click)="openDetail(p.id)">Detalj</button>
+                    <button
+                      type="button"
+                      class="icon-action menu"
+                      [matMenuTriggerFor]="rowMenu"
+                      (click)="selectedPrescription = p"
+                      aria-label="Više akcija za {{ p.prescriptionNumber }}"
+                    >
+                      <app-pharmacy-icon name="more-vertical" [size]="18"></app-pharmacy-icon>
+                    </button>
+                  </div>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: displayedColumns" class="data-row"></tr>
+            </table>
+          </div>
+
+          @if (totalPages > 1) {
+            <div class="pagination">
+              <button type="button" class="btn btn-outline" (click)="goToPage(currentPage - 1)" [disabled]="currentPage <= 1">
+                Prethodna
+              </button>
+              <span>Stranica {{ currentPage }} / {{ totalPages }}</span>
+              <button type="button" class="btn btn-outline" (click)="goToPage(currentPage + 1)" [disabled]="currentPage >= totalPages">
+                Sljedeća
+              </button>
+            </div>
+          }
+
+          <mat-menu #rowMenu="matMenu">
+            @if (selectedPrescription; as p) {
+              <button mat-menu-item type="button" (click)="openDetail(p.id)">
                 <span class="menu-item-content">
-                  <app-pharmacy-icon name="check-circle" [size]="16"></app-pharmacy-icon>
-                  Izdaj
+                  <app-pharmacy-icon name="eye" [size]="16"></app-pharmacy-icon>
+                  Pregled recepta
+                </span>
+              </button>
+              @if (canDispense(p)) {
+                <button mat-menu-item type="button" (click)="dispensePrescription(p)">
+                  <span class="menu-item-content">
+                    <app-pharmacy-icon name="check-circle" [size]="16"></app-pharmacy-icon>
+                    Izdaj lijek
+                  </span>
+                </button>
+              }
+              @if (p.status === 'Pending') {
+                <button mat-menu-item type="button" (click)="cancelPrescription(p)">
+                  <span class="menu-item-content">
+                    <app-pharmacy-icon name="clipboard" [size]="16"></app-pharmacy-icon>
+                    Otkaži recept
+                  </span>
+                </button>
+              }
+              <button mat-menu-item type="button" (click)="printPrescription(p)">
+                <span class="menu-item-content">
+                  <app-pharmacy-icon name="printer" [size]="16"></app-pharmacy-icon>
+                  Štampaj
                 </span>
               </button>
             }
-            <button mat-menu-item type="button" (click)="openDetail(p.id)">
-              <span class="menu-item-content">
-                <app-pharmacy-icon name="pencil" [size]="16"></app-pharmacy-icon>
-                Uredi
-              </span>
-            </button>
-            <button mat-menu-item type="button" (click)="exportPdf()">
-              <span class="menu-item-content">
-                <app-pharmacy-icon name="printer" [size]="16"></app-pharmacy-icon>
-                Štampaj
-              </span>
-            </button>
-          }
-        </mat-menu>
-      }
-    </section>
-
-    <section class="surface-card activity-card">
-      <h2>
-        <app-pharmacy-icon name="clipboard" [size]="20"></app-pharmacy-icon>
-        Najnovije aktivnosti
-      </h2>
-      <ul class="activity-list">
-        @for (activity of recentActivities; track activity.message) {
-          <li [class]="activity.type">
-            @switch (activity.type) {
-              @case ('new') {
-                <app-pharmacy-icon name="file-text" [size]="18"></app-pharmacy-icon>
-              }
-              @case ('success') {
-                <app-pharmacy-icon name="check-circle" [size]="18"></app-pharmacy-icon>
-              }
-              @case ('warning') {
-                <app-pharmacy-icon name="triangle-alert" [size]="18"></app-pharmacy-icon>
-              }
-            }
-            <div class="activity-copy">
-              <span>{{ activity.message }}</span>
-              <small>{{ activity.timeLabel }}</small>
-            </div>
-          </li>
+          </mat-menu>
         }
-      </ul>
-    </section>
-  }
+      </section>
+
+      <section class="card activity-card">
+        <h2 class="section-title">Najnovije aktivnosti</h2>
+        <ul class="activity-list">
+          @for (activity of recentActivities; track activity.message) {
+            <li class="activity-item" [class]="activity.type">
+              <span class="activity-icon">
+                @switch (activity.type) {
+                  @case ('new') {
+                    <app-pharmacy-icon name="file-text" [size]="20"></app-pharmacy-icon>
+                  }
+                  @case ('success') {
+                    <app-pharmacy-icon name="check-circle" [size]="20"></app-pharmacy-icon>
+                  }
+                  @case ('warning') {
+                    <app-pharmacy-icon name="triangle-alert" [size]="20"></app-pharmacy-icon>
+                  }
+                }
+              </span>
+              <div class="activity-copy">
+                <span class="activity-text">{{ activity.message }}</span>
+                <span class="activity-time">{{ activity.timeLabel }}</span>
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  </div>
 </div>
