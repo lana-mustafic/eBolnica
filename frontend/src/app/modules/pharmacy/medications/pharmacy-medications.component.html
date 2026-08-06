@@ -41,12 +41,24 @@
   <div class="search-wrap">
     <mat-form-field appearance="outline" class="search-field">
       <mat-label>Pretraga</mat-label>
-      <input matInput [(ngModel)]="search" (input)="onSearchInput()" (focus)="onSearchInput()" />
+      <input
+        matInput
+        [(ngModel)]="search"
+        (input)="onSearchInput()"
+        (focus)="onSearchInput()"
+        (keydown)="onSearchKeydown($event)"
+        (blur)="onSearchBlur()"
+      />
     </mat-form-field>
     @if (showAutocomplete) {
-      <ul class="autocomplete-list">
-        @for (s of autocompleteSuggestions; track s.id) {
-          <li (click)="selectSuggestion(s)">
+      <ul class="autocomplete-list" role="listbox">
+        @for (s of autocompleteSuggestions; track s.id; let i = $index) {
+          <li
+            role="option"
+            [class.selected]="i === selectedSuggestionIndex"
+            [attr.aria-selected]="i === selectedSuggestionIndex"
+            (mousedown)="selectSuggestion(s)"
+          >
             <strong>{{ s.name }}</strong>
             <span>{{ s.category }} · {{ s.manufacturer }}</span>
           </li>

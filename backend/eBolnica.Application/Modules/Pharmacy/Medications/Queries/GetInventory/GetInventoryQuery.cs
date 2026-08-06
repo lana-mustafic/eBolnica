@@ -19,6 +19,8 @@ public sealed class GetInventoryQueryDto
     public IReadOnlyList<MedicationDto> Items { get; init; } = Array.Empty<MedicationDto>();
     public IReadOnlyList<MedicationDto> LowStockAlerts { get; init; } = Array.Empty<MedicationDto>();
     public IReadOnlyList<MedicationDto> ExpiryAlerts { get; init; } = Array.Empty<MedicationDto>();
+    public int LowStockAlertCount { get; init; }
+    public int ExpiryAlertCount { get; init; }
     public int TotalCount { get; init; }
     public int CurrentPage { get; init; }
     public int PageSize { get; init; }

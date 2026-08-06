@@ -6,6 +6,8 @@ using eBolnica.Application.Modules.Pharmacy.Medications.Queries.ListMedications;
 public sealed class GetInventoryQueryHandler(IAppDbContext ctx)
     : IRequestHandler<GetInventoryQuery, GetInventoryQueryDto>
 {
+    private const int MaxAlertItems = 20;
+
     public async Task<GetInventoryQueryDto> Handle(GetInventoryQuery request, CancellationToken ct)
     {
         var query = MedicationQueryFilters.Apply(
@@ -24,15 +26,25 @@ public sealed class GetInventoryQueryHandler(IAppDbContext ctx)
         var expiryThreshold = DateTime.UtcNow.AddDays(30);
         var now = DateTime.UtcNow;
 
-        var lowStockAlerts = await query
-            .Where(m => m.StockQuantity < m.MinimumStockLevel)
+        var lowStockQuery = query.Where(m => m.StockQuantity < m.MinimumStockLevel);
+        var expiryQuery = query.Where(m => m.ExpiryDate.HasValue
+            && m.ExpiryDate.Value <= expiryThreshold
+            && m.ExpiryDate.Value > now);
+
+        var lowStockAlertCount = await lowStockQuery.CountAsync(ct);
+        var expiryAlertCount = await expiryQuery.CountAsync(ct);
+
+        var lowStockAlerts = await lowStockQuery
+            .OrderBy(m => m.StockQuantity)
+            .ThenBy(m => m.Name)
+            .Take(MaxAlertItems)
             .Select(MedicationMapping.ToDtoExpression)
             .ToListAsync(ct);
 
-        var expiryAlerts = await query
-            .Where(m => m.ExpiryDate.HasValue
-                && m.ExpiryDate.Value <= expiryThreshold
-                && m.ExpiryDate.Value > now)
+        var expiryAlerts = await expiryQuery
+            .OrderBy(m => m.ExpiryDate)
+            .ThenBy(m => m.Name)
+            .Take(MaxAlertItems)
             .Select(MedicationMapping.ToDtoExpression)
             .ToListAsync(ct);
 
@@ -50,6 +62,8 @@ public sealed class GetInventoryQueryHandler(IAppDbContext ctx)
             Items = items,
             LowStockAlerts = lowStockAlerts,
             ExpiryAlerts = expiryAlerts,
+            LowStockAlertCount = lowStockAlertCount,
+            ExpiryAlertCount = expiryAlertCount,
             TotalCount = totalCount,
             CurrentPage = page,
             PageSize = pageSize,

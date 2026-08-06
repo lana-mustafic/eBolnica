@@ -25,6 +25,16 @@
 
 .prescriptions-table {
   width: 100%;
+
+  .sortable {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+}
+
+.error-card {
+  margin-bottom: 1rem;
 }
 
 .status-badge {

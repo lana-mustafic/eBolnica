@@ -19,21 +19,41 @@ public sealed class DeleteMedicationImageCommandHandler(
         if (image is null)
             throw new eBolnicaNotFoundException("Image not found.");
 
-        await storage.DeleteAsync(image.RelativeUrl, ct);
-        ctx.MedicationImages.Remove(image);
+        var relativeUrl = image.RelativeUrl;
+        var wasPrimary = image.IsPrimary;
+        var now = DateTime.UtcNow;
 
-        if (image.IsPrimary)
+        image.IsDeleted = true;
+        image.ModifiedAtUtc = now;
+
+        if (wasPrimary)
         {
-            var next = medication.Images.Where(i => i.Id != image.Id && !i.IsDeleted).OrderBy(i => i.SortOrder).FirstOrDefault();
+            var next = medication.Images
+                .Where(i => i.Id != image.Id && !i.IsDeleted)
+                .OrderBy(i => i.SortOrder)
+                .FirstOrDefault();
+
             if (next is not null)
             {
                 next.IsPrimary = true;
                 medication.ImageUrl = next.RelativeUrl;
             }
-            else medication.ImageUrl = null;
+            else
+            {
+                medication.ImageUrl = null;
+            }
         }
 
-        medication.ModifiedAtUtc = DateTime.UtcNow;
+        medication.ModifiedAtUtc = now;
         await ctx.SaveChangesAsync(ct);
+
+        try
+        {
+            await storage.DeleteAsync(relativeUrl, ct);
+        }
+        catch
+        {
+            // DB state is authoritative; file cleanup can be retried later.
+        }
     }
 }

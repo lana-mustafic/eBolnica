@@ -8,7 +8,7 @@
 <div class="filters">
   <mat-form-field appearance="outline" class="search-field">
     <mat-label>Pretraga</mat-label>
-    <input matInput [(ngModel)]="search" (keyup.enter)="onSearch()" />
+    <input matInput [(ngModel)]="search" (input)="onSearchInput()" (keyup.enter)="onSearch()" />
   </mat-form-field>
   <button mat-stroked-button (click)="onSearch()">Traži</button>
 
@@ -19,14 +19,26 @@
   </mat-button-toggle-group>
 </div>
 
-@if (isLoading) {
+@if (loadError) {
+  <mat-card class="error-card">
+    <mat-card-content>
+      <p>Greška pri učitavanju recepata.</p>
+      <button mat-stroked-button type="button" (click)="retryLoad()">Pokušaj ponovo</button>
+    </mat-card-content>
+  </mat-card>
+} @else if (isLoading) {
   <app-fit-table-skeleton [rows]="5" [columns]="6"></app-fit-table-skeleton>
 } @else {
   <mat-card>
     <mat-card-content>
       <table mat-table [dataSource]="prescriptions" class="prescriptions-table">
         <ng-container matColumnDef="number">
-          <th mat-header-cell *matHeaderCellDef>Broj</th>
+          <th mat-header-cell *matHeaderCellDef
+              (click)="onSort('prescriptionNumber')"
+              class="sortable"
+              [attr.aria-sort]="sortAriaSort('prescriptionNumber')">
+            Broj{{ sortIndicator('prescriptionNumber') }}
+          </th>
           <td mat-cell *matCellDef="let p">{{ p.prescriptionNumber }}</td>
         </ng-container>
 
@@ -41,19 +53,34 @@
         </ng-container>
 
         <ng-container matColumnDef="status">
-          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <th mat-header-cell *matHeaderCellDef
+              (click)="onSort('status')"
+              class="sortable"
+              [attr.aria-sort]="sortAriaSort('status')">
+            Status{{ sortIndicator('status') }}
+          </th>
           <td mat-cell *matCellDef="let p">
             <span class="status-badge" [ngClass]="statusClass(p.status)">{{ p.status }}</span>
           </td>
         </ng-container>
 
         <ng-container matColumnDef="amount">
-          <th mat-header-cell *matHeaderCellDef>Iznos</th>
+          <th mat-header-cell *matHeaderCellDef
+              (click)="onSort('totalAmount')"
+              class="sortable"
+              [attr.aria-sort]="sortAriaSort('totalAmount')">
+            Iznos{{ sortIndicator('totalAmount') }}
+          </th>
           <td mat-cell *matCellDef="let p">{{ p.totalAmount | number:'1.2-2' }} KM</td>
         </ng-container>
 
         <ng-container matColumnDef="date">
-          <th mat-header-cell *matHeaderCellDef>Datum</th>
+          <th mat-header-cell *matHeaderCellDef
+              (click)="onSort('prescribedDate')"
+              class="sortable"
+              [attr.aria-sort]="sortAriaSort('prescribedDate')">
+            Datum{{ sortIndicator('prescribedDate') }}
+          </th>
           <td mat-cell *matCellDef="let p">{{ p.prescribedDate | date:'dd.MM.yyyy' }}</td>
         </ng-container>
 

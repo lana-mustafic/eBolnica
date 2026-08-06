@@ -1,5 +1,6 @@
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnDestroy, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -44,6 +45,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private toaster = inject(ToasterService);
   private dialog = inject(MatDialog);
+  private destroyRef = inject(DestroyRef);
 
   isEditMode = false;
   medicationId: number | null = null;
@@ -114,7 +116,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
 
   loadMedication(id: number): void {
     this.isLoading = true;
-    this.pharmacyApi.getMedicationById(id).subscribe({
+    this.pharmacyApi.getMedicationById(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (m) => {
         const expiry = m.expiryDate ? m.expiryDate.split('T')[0] : '';
         this.form.patchValue({
@@ -178,7 +180,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
         ? this.pharmacyApi.updateMedication(this.medicationId, body)
         : this.pharmacyApi.createMedication(body);
 
-    request$.subscribe({
+    request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.toaster.success(this.isEditMode ? 'Lijek ažuriran.' : 'Lijek kreiran.');
         this.router.navigate(['/pharmacy/medications']);
@@ -196,7 +198,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   }
 
   loadImages(id: number): void {
-    this.pharmacyApi.listImages(id).subscribe({
+    this.pharmacyApi.listImages(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (imgs) => {
         this.images = imgs;
         this.loadImageUrls(id, imgs);
@@ -282,7 +284,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
 
     moveItemInArray(this.images, event.previousIndex, event.currentIndex);
     const imageIds = this.images.map((image) => image.id);
-    this.pharmacyApi.reorderImages(this.medicationId, imageIds).subscribe({
+    this.pharmacyApi.reorderImages(this.medicationId, imageIds).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => this.toaster.success('Redoslijed slika ažuriran.'),
       error: () => {
         this.toaster.error('Greška pri reorderu slika.');
@@ -293,7 +295,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
 
   deleteImage(image: MedicationImageDto): void {
     if (!this.medicationId || !confirm('Obrisati sliku?')) return;
-    this.pharmacyApi.deleteImage(this.medicationId, image.id).subscribe({
+    this.pharmacyApi.deleteImage(this.medicationId, image.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.toaster.success('Slika obrisana.');
         this.loadImages(this.medicationId!);
@@ -304,7 +306,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
 
   setPrimary(image: MedicationImageDto): void {
     if (!this.medicationId) return;
-    this.pharmacyApi.setPrimaryImage(this.medicationId, image.id).subscribe({
+    this.pharmacyApi.setPrimaryImage(this.medicationId, image.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => this.loadImages(this.medicationId!),
       error: () => this.toaster.error('Greška pri postavljanju primarne slike.'),
     });
@@ -362,7 +364,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
     item.progress = 0;
     item.errorMessage = undefined;
 
-    this.pharmacyApi.uploadImage(this.medicationId, item.file).subscribe({
+    this.pharmacyApi.uploadImage(this.medicationId, item.file).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (httpEvent) => {
         const progress = getHttpUploadProgressPercent(httpEvent);
         if (progress != null) {
@@ -391,7 +393,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
     this.imageUrls.clear();
 
     for (const image of images) {
-      this.imageUrlService.getAuthenticatedUrl(medicationId, image.id).subscribe({
+      this.imageUrlService.getAuthenticatedUrl(medicationId, image.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (url) => this.imageUrls.set(image.id, url),
         error: () => {
           const legacy = this.imageUrlService.getLegacyUrl(image.relativeUrl);

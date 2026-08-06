@@ -45,7 +45,14 @@
 } @else {
   <div class="alerts-grid">
     <mat-card>
-      <mat-card-header><mat-card-title>Nizak nivo zaliha ({{ lowStockAlerts.length }})</mat-card-title></mat-card-header>
+      <mat-card-header>
+        <mat-card-title>
+          Nizak nivo zaliha ({{ lowStockAlertCount }})
+          @if (lowStockAlertCount > lowStockAlerts.length) {
+            <span class="alert-hint"> — prikazano {{ lowStockAlerts.length }}</span>
+          }
+        </mat-card-title>
+      </mat-card-header>
       <mat-card-content>
         @if (lowStockAlerts.length === 0) {
           <p class="empty">Nema upozorenja.</p>
@@ -60,7 +67,14 @@
     </mat-card>
 
     <mat-card>
-      <mat-card-header><mat-card-title>Ističe uskoro (30 dana)</mat-card-title></mat-card-header>
+      <mat-card-header>
+        <mat-card-title>
+          Ističe uskoro (30 dana) ({{ expiryAlertCount }})
+          @if (expiryAlertCount > expiryAlerts.length) {
+            <span class="alert-hint"> — prikazano {{ expiryAlerts.length }}</span>
+          }
+        </mat-card-title>
+      </mat-card-header>
       <mat-card-content>
         @if (expiryAlerts.length === 0) {
           <p class="empty">Nema upozorenja.</p>

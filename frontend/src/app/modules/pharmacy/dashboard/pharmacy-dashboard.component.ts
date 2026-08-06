@@ -1,4 +1,6 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { catchError, of } from 'rxjs';
 import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.service';
 import {
   CategoryItemDto,
@@ -15,6 +17,7 @@ import {
 })
 export class PharmacyDashboardComponent implements OnInit {
   private pharmacyApi = inject(PharmacyApiService);
+  private destroyRef = inject(DestroyRef);
 
   isLoading = true;
   loadError = false;
@@ -36,21 +39,26 @@ export class PharmacyDashboardComponent implements OnInit {
   private loadDashboard(): void {
     this.isLoading = true;
     this.loadError = false;
-    this.pharmacyApi.getDashboardStats().subscribe({
-      next: (stats) => {
+    this.pharmacyApi
+      .getDashboardStats()
+      .pipe(
+        catchError(() => {
+          this.loadError = true;
+          this.summary = null;
+          return of(null);
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((stats) => {
+        this.isLoading = false;
+        if (!stats) return;
+
         this.summary = stats.metadata.summary;
         this.revenueItems = stats.monthlyRevenue.data.slice(-6);
         this.categories = stats.topCategories.data;
         this.stockItems = stats.stockTrends.data;
         this.revenueChange = stats.monthlyRevenue.revenueChangePercentage;
         this.maxRevenueValue = Math.max(...this.revenueItems.map((r) => r.revenue), 1);
-        this.isLoading = false;
-      },
-      error: () => {
-        this.isLoading = false;
-        this.loadError = true;
-        this.summary = null;
-      },
-    });
+      });
   }
 }
