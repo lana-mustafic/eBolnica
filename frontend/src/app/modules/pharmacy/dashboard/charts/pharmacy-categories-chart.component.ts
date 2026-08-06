@@ -9,6 +9,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import { Chart, TooltipItem } from 'chart.js/auto';
+import { getMedicationCategoryLabel } from '../../constants/medication-categories.constant';
 import { CategoryItemDto } from '../../../../api-services/pharmacy/pharmacy-api.models';
 
 const CHART_COLORS = ['#7C3AED', '#22C55E', '#3B82F6', '#F59E0B', '#EF4444', '#06B6D4', '#EC4899', '#84CC16'];
@@ -49,7 +50,7 @@ export class PharmacyCategoriesChartComponent implements AfterViewInit, OnChange
     this.chart = new Chart(this.canvas.nativeElement, {
       type: 'doughnut',
       data: {
-        labels: this.items.map((item) => item.category),
+        labels: this.items.map((item) => getMedicationCategoryLabel(item.category)),
         datasets: [
           {
             data: this.items.map((item) => item.medicationCount),

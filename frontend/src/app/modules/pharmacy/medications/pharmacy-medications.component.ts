@@ -12,6 +12,7 @@ import { ToasterService } from '../../../core/services/toaster.service';
 import { DialogButton, DialogType } from '../../shared/models/dialog-config.model';
 import { DialogHelperService } from '../../shared/services/dialog-helper.service';
 import { MedicationImageUrlService } from '../services/medication-image-url.service';
+import { getMedicationCategoryLabel } from '../constants/medication-categories.constant';
 import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
 
 @Component({
@@ -31,6 +32,8 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   private destroyRef = inject(DestroyRef);
 
   auth = inject(AuthFacadeService);
+
+  readonly categoryLabel = getMedicationCategoryLabel;
 
   medications: MedicationDto[] = [];
   isLoading = false;

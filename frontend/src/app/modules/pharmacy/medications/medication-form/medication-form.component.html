@@ -1,140 +1,229 @@
-<div class="page-header">
-  <h1>{{ isEditMode ? 'Uredi lijek' : 'Novi lijek' }}</h1>
-  <button mat-button (click)="cancel()">Odustani</button>
-</div>
+<div class="medication-form-page">
+  <header class="page-header">
+    <div class="header-copy">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a routerLink="/pharmacy/medications">Lijekovi</a>
+        <span aria-hidden="true">/</span>
+        <span class="current">{{ isEditMode ? 'Uredi lijek' : 'Novi lijek' }}</span>
+      </nav>
+      <h1>{{ isEditMode ? 'Uredi lijek' : 'Novi lijek' }}</h1>
+      <p class="page-subtitle">
+        {{ isEditMode ? 'Ažurirajte podatke o lijeku u inventaru apoteke' : 'Dodajte novi lijek u inventar apoteke' }}
+      </p>
+    </div>
+    <div class="profile-chip">
+      <div class="profile-avatar">F</div>
+      <div class="profile-meta">
+        <span class="profile-role">Farmaceut</span>
+        <span class="profile-email">{{ auth.currentUser()?.email }}</span>
+      </div>
+    </div>
+  </header>
 
-@if (isLoading) {
-  <app-fit-table-skeleton [rows]="8" [columns]="2"></app-fit-table-skeleton>
-} @else {
-  <mat-card>
-    <mat-card-content [formGroup]="form">
-      <div class="form-grid">
-        <mat-form-field appearance="outline">
-          <mat-label>Naziv *</mat-label>
-          <input matInput formControlName="name" />
-          @if (nameControl?.pending) {
-            <mat-hint>Provjera naziva...</mat-hint>
-          }
-          @if (nameControl?.hasError('required') && nameControl?.touched) {
-            <mat-error>Naziv je obavezan</mat-error>
-          }
-          @if (nameControl?.hasError('minlength') && nameControl?.touched) {
-            <mat-error>Naziv mora imati najmanje 3 karaktera</mat-error>
-          }
-          @if (nameControl?.hasError('medicationNameExists') && nameControl?.touched) {
-            <mat-error>Naziv već postoji</mat-error>
-          }
-          @if (nameControl?.hasError('medicationNameCheckUnavailable') && nameControl?.touched) {
-            <mat-error>Provjera naziva nije dostupna. Pokušajte ponovo.</mat-error>
-          }
-        </mat-form-field>
+  @if (isLoading) {
+    <app-fit-table-skeleton [rows]="8" [columns]="2"></app-fit-table-skeleton>
+  } @else {
+    <div class="validation-banner" [class.valid]="isFormReady" [class.invalid]="!isFormReady">
+      @if (isFormReady) {
+        <app-pharmacy-icon name="check-circle" [size]="18"></app-pharmacy-icon>
+        <span>Svi podaci su validni</span>
+      } @else {
+        <app-pharmacy-icon name="triangle-alert" [size]="18"></app-pharmacy-icon>
+        <span>Molimo popunite obavezna polja ({{ missingRequiredCount }})</span>
+      }
+    </div>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Generički naziv</mat-label>
-          <input matInput formControlName="genericName" />
-        </mat-form-field>
+    <form class="form-stack" [formGroup]="form" (ngSubmit)="submit()">
+      <!-- Card 1: Basic info -->
+      <section class="form-card card-basic">
+        <h2>
+          <app-pharmacy-icon name="clipboard" [size]="20"></app-pharmacy-icon>
+          Osnovne informacije
+        </h2>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Kategorija *</mat-label>
-          <mat-select formControlName="category">
-            @for (cat of categories; track cat) {
-              <mat-option [value]="cat">{{ cat }}</mat-option>
+        <div class="form-grid cols-2">
+          <div class="field">
+            <label for="med-name">Naziv <span class="required">*</span></label>
+            <input id="med-name" class="field-input" formControlName="name" placeholder="Unesite naziv lijeka" />
+            @if (nameControl?.pending) {
+              <span class="field-hint">Provjera naziva...</span>
             }
-          </mat-select>
-          @if (categoryControl?.hasError('required') && categoryControl?.touched) {
-            <mat-error>Kategorija je obavezna</mat-error>
-          }
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Oblik doze</mat-label>
-          <mat-select formControlName="dosageForm">
-            <mat-option value="">-</mat-option>
-            @for (form of dosageForms; track form) {
-              <mat-option [value]="form">{{ form }}</mat-option>
+            @if (nameControl?.hasError('required') && nameControl?.touched) {
+              <span class="field-error">Naziv je obavezan</span>
             }
-          </mat-select>
-        </mat-form-field>
+            @if (nameControl?.hasError('minlength') && nameControl?.touched) {
+              <span class="field-error">Naziv mora imati najmanje 3 karaktera</span>
+            }
+            @if (nameControl?.hasError('medicationNameExists') && nameControl?.touched) {
+              <span class="field-error">Naziv već postoji</span>
+            }
+            @if (nameControl?.hasError('medicationNameCheckUnavailable') && nameControl?.touched) {
+              <span class="field-error">Provjera naziva nije dostupna. Pokušajte ponovo.</span>
+            }
+          </div>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Jačina</mat-label>
-          <input matInput formControlName="strength" />
-        </mat-form-field>
+          <div class="field">
+            <label for="med-generic">Generički naziv</label>
+            <input id="med-generic" class="field-input" formControlName="genericName" placeholder="Generički naziv" />
+          </div>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Proizvođač</mat-label>
-          <input matInput formControlName="manufacturer" />
-        </mat-form-field>
+          <div class="field">
+            <label for="med-category">Kategorija <span class="required">*</span></label>
+            <select id="med-category" class="field-input" formControlName="category">
+              <option value="">Odaberite kategoriju</option>
+              @for (cat of categories; track cat) {
+                <option [value]="cat">{{ cat }}</option>
+              }
+            </select>
+            @if (categoryControl?.hasError('required') && categoryControl?.touched) {
+              <span class="field-error">Kategorija je obavezna</span>
+            }
+          </div>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Cijena (KM) *</mat-label>
-          <input matInput type="number" step="0.01" formControlName="price" />
-          @if (priceControl?.hasError('required') && priceControl?.touched) {
-            <mat-error>Cijena je obavezna</mat-error>
-          }
-          @if (priceControl?.hasError('min') && priceControl?.touched) {
-            <mat-error>Cijena mora biti veća od 0</mat-error>
-          }
-        </mat-form-field>
+          <div class="field">
+            <label for="med-manufacturer">Proizvođač</label>
+            <input id="med-manufacturer" class="field-input" formControlName="manufacturer" placeholder="Naziv proizvođača" />
+          </div>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Količina na stanju *</mat-label>
-          <input matInput type="number" formControlName="stockQuantity" />
-          @if (stockQuantityControl?.hasError('required') && stockQuantityControl?.touched) {
-            <mat-error>Količina je obavezna</mat-error>
-          }
-          @if (stockQuantityControl?.hasError('min') && stockQuantityControl?.touched) {
-            <mat-error>Količina ne može biti negativna</mat-error>
-          }
-        </mat-form-field>
+          <div class="field span-full">
+            <label for="med-description">Opis</label>
+            <textarea id="med-description" class="field-input field-textarea" rows="4" formControlName="description" placeholder="Opis lijeka"></textarea>
+          </div>
+        </div>
+      </section>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Min. nivo zaliha *</mat-label>
-          <input matInput type="number" formControlName="minimumStockLevel" />
-          @if (minimumStockLevelControl?.hasError('required') && minimumStockLevelControl?.touched) {
-            <mat-error>Min. nivo zaliha je obavezan</mat-error>
-          }
-          @if (minimumStockLevelControl?.hasError('min') && minimumStockLevelControl?.touched) {
-            <mat-error>Min. nivo ne može biti negativan</mat-error>
-          }
-        </mat-form-field>
+      <!-- Card 2: Inventory & prices -->
+      <section class="form-card card-inventory">
+        <h2>
+          <app-pharmacy-icon name="wallet" [size]="20"></app-pharmacy-icon>
+          Inventar i cijene
+        </h2>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Rok trajanja *</mat-label>
-          <input matInput type="date" formControlName="expiryDate" />
-          @if (expiryDateControl?.hasError('required') && expiryDateControl?.touched) {
-            <mat-error>Rok trajanja je obavezan</mat-error>
-          }
-        </mat-form-field>
+        <div class="form-grid cols-3">
+          <div class="field">
+            <label for="med-price">Cijena (KM) <span class="required">*</span></label>
+            <div class="input-prefix-wrap">
+              <span class="input-prefix">KM</span>
+              <input id="med-price" class="field-input prefixed" type="number" step="0.01" formControlName="price" />
+            </div>
+            @if (priceControl?.hasError('required') && priceControl?.touched) {
+              <span class="field-error">Cijena je obavezna</span>
+            }
+            @if (priceControl?.hasError('min') && priceControl?.touched) {
+              <span class="field-error">Cijena mora biti veća od 0</span>
+            }
+          </div>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Broj serije</mat-label>
-          <input matInput formControlName="batchNumber" />
-        </mat-form-field>
+          <div class="field">
+            <label for="med-stock">Količina na stanju <span class="required">*</span></label>
+            <input id="med-stock" class="field-input" type="number" formControlName="stockQuantity" />
+            @if (stockQuantityControl?.hasError('required') && stockQuantityControl?.touched) {
+              <span class="field-error">Količina je obavezna</span>
+            }
+            @if (stockQuantityControl?.hasError('min') && stockQuantityControl?.touched) {
+              <span class="field-error">Količina ne može biti negativna</span>
+            }
+          </div>
+
+          <div class="field">
+            <label for="med-min-stock">Min. nivo zaliha <span class="required">*</span></label>
+            <input id="med-min-stock" class="field-input" type="number" formControlName="minimumStockLevel" />
+            @if (minimumStockLevelControl?.hasError('required') && minimumStockLevelControl?.touched) {
+              <span class="field-error">Min. nivo zaliha je obavezan</span>
+            }
+            @if (minimumStockLevelControl?.hasError('min') && minimumStockLevelControl?.touched) {
+              <span class="field-error">Min. nivo ne može biti negativan</span>
+            }
+          </div>
+        </div>
+
+        <div class="form-grid cols-2">
+          <div class="field">
+            <label for="med-expiry">Rok trajanja <span class="required">*</span></label>
+            <input id="med-expiry" class="field-input" type="date" formControlName="expiryDate" />
+            @if (expiryDateControl?.hasError('required') && expiryDateControl?.touched) {
+              <span class="field-error">Rok trajanja je obavezan</span>
+            }
+          </div>
+
+          <div class="field">
+            <label for="med-batch">Broj serije</label>
+            <input id="med-batch" class="field-input" formControlName="batchNumber" placeholder="SN-2026-001" />
+          </div>
+
+          <div class="field">
+            <label for="med-dosage-form">Oblik doze</label>
+            <select id="med-dosage-form" class="field-input" formControlName="dosageForm">
+              <option value="">Odaberite oblik</option>
+              @for (form of dosageForms; track form) {
+                <option [value]="form">{{ form }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="med-strength">Jačina / doziranje</label>
+            <input
+              id="med-strength"
+              class="field-input"
+              formControlName="strength"
+              placeholder="npr. 5mg, 10mg, 20mg"
+              list="strength-presets"
+            />
+            <datalist id="strength-presets">
+              @for (preset of strengthPresets; track preset) {
+                <option [value]="preset"></option>
+              }
+            </datalist>
+          </div>
+        </div>
+      </section>
+
+      <!-- Card 3: Additional options -->
+      <section class="form-card card-options">
+        <h2>
+          <app-pharmacy-icon name="settings" [size]="20"></app-pharmacy-icon>
+          Dodatne opcije
+        </h2>
+
+        <div class="toggle-row">
+          <div class="toggle-item">
+            <mat-slide-toggle formControlName="requiresPrescription" color="primary">
+              Zahtijeva recept
+            </mat-slide-toggle>
+          </div>
+          <div class="toggle-item">
+            <mat-slide-toggle formControlName="isActive" color="primary">Aktivan</mat-slide-toggle>
+          </div>
+        </div>
+      </section>
+
+      <div class="form-actions">
+        @if (isEditMode) {
+          <button type="button" class="btn btn-danger" (click)="deleteMedication()">
+            <app-pharmacy-icon name="trash-2" [size]="16"></app-pharmacy-icon>
+            Obriši
+          </button>
+        }
+        <div class="actions-right">
+          <button type="button" class="btn btn-secondary" (click)="cancel()">
+            Otkaži
+          </button>
+          <button type="submit" class="btn btn-primary" [disabled]="form.invalid || form.pending || isSaving">
+            <app-pharmacy-icon name="save" [size]="16"></app-pharmacy-icon>
+            Sačuvaj
+          </button>
+        </div>
       </div>
+    </form>
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Opis</mat-label>
-        <textarea matInput rows="3" formControlName="description"></textarea>
-      </mat-form-field>
+    @if (isEditMode && medicationId) {
+      <section class="form-card card-images">
+        <h2>
+          <app-pharmacy-icon name="upload" [size]="20"></app-pharmacy-icon>
+          Slike lijeka
+        </h2>
 
-      <div class="checkbox-row">
-        <mat-checkbox formControlName="requiresPrescription">Zahtijeva recept</mat-checkbox>
-        <mat-checkbox formControlName="isActive">Aktivan</mat-checkbox>
-      </div>
-
-      <div class="actions">
-        <button mat-raised-button color="primary" (click)="submit()" [disabled]="form.invalid || form.pending || isSaving">
-          Sačuvaj
-        </button>
-      </div>
-    </mat-card-content>
-  </mat-card>
-
-  @if (isEditMode && medicationId) {
-    <mat-card class="section">
-      <mat-card-header><mat-card-title>Slike lijeka</mat-card-title></mat-card-header>
-      <mat-card-content>
         <div
           class="drop-zone"
           [class.drag-over]="isDragOver"
@@ -142,7 +231,7 @@
           (dragleave)="onDragLeave($event)"
           (drop)="onDrop($event)"
         >
-          <mat-icon>cloud_upload</mat-icon>
+          <app-pharmacy-icon name="upload" [size]="28"></app-pharmacy-icon>
           <p>Povucite slike ovdje ili odaberite fajlove</p>
           <input
             #fileInput
@@ -152,7 +241,7 @@
             hidden
             (change)="onImageSelected($event)"
           />
-          <button mat-stroked-button type="button" (click)="fileInput.click()" [disabled]="isProcessingQueue">
+          <button type="button" class="btn btn-secondary" (click)="fileInput.click()" [disabled]="isProcessingQueue">
             Odaberi slike
           </button>
           <small>Slike se kompresuju prije uploada (max širina 1280px).</small>
@@ -162,7 +251,7 @@
           <div class="pending-queue">
             <div class="pending-header">
               <strong>Pregled prije uploada ({{ pendingUploads.length }})</strong>
-              <button mat-stroked-button type="button" (click)="uploadAllPending()">Upload sve</button>
+              <button type="button" class="btn btn-secondary" (click)="uploadAllPending()">Upload sve</button>
             </div>
             @for (item of pendingUploads; track item.key) {
               <div class="pending-item">
@@ -182,12 +271,12 @@
                 </div>
                 <div class="pending-actions">
                   @if (item.status === 'pending') {
-                    <button mat-button type="button" (click)="uploadPending(item)">Upload</button>
+                    <button type="button" class="btn btn-secondary btn-sm" (click)="uploadPending(item)">Upload</button>
                   }
                   @if (item.status === 'error') {
-                    <button mat-button type="button" (click)="retryPending(item)">Ponovi</button>
+                    <button type="button" class="btn btn-secondary btn-sm" (click)="retryPending(item)">Ponovi</button>
                   }
-                  <button mat-button color="warn" type="button" (click)="removePending(item.key)">Ukloni</button>
+                  <button type="button" class="btn btn-danger btn-sm" (click)="removePending(item.key)">Ukloni</button>
                 </div>
               </div>
             }
@@ -212,17 +301,17 @@
               </button>
               <div class="image-actions">
                 @if (!img.isPrimary) {
-                  <button mat-button type="button" (click)="setPrimary(img)">Primarna</button>
+                  <button type="button" class="btn btn-secondary btn-sm" (click)="setPrimary(img)">Primarna</button>
                 } @else {
                   <span class="primary-label">Primarna</span>
                 }
-                <button mat-button color="warn" type="button" (click)="deleteImage(img)">Obriši</button>
+                <button type="button" class="btn btn-danger btn-sm" (click)="deleteImage(img)">Obriši</button>
               </div>
               <span class="drag-hint">Prevuci za reorder</span>
             </div>
           }
         </div>
-      </mat-card-content>
-    </mat-card>
+      </section>
+    }
   }
-}
+</div>

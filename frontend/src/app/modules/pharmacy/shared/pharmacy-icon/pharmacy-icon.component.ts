@@ -26,7 +26,8 @@ export type PharmacyIconName =
   | 'eye'
   | 'user'
   | 'phone'
-  | 'printer';
+  | 'printer'
+  | 'save';
 
 @Component({
   selector: 'app-pharmacy-icon',

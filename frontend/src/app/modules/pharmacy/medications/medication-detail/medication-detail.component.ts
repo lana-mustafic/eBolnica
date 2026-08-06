@@ -5,6 +5,7 @@ import { EMPTY, catchError, switchMap } from 'rxjs';
 import { PharmacyApiService } from '../../../../api-services/pharmacy/pharmacy-api.service';
 import { MedicationDto } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { getDosageFormLabel } from '../../constants/medication-dosage-forms.constant';
+import { getMedicationCategoryLabel } from '../../constants/medication-categories.constant';
 
 @Component({
   selector: 'app-medication-detail',
@@ -85,6 +86,10 @@ export class MedicationDetailComponent implements OnInit {
 
   get dosageFormLabel(): string {
     return getDosageFormLabel(this.medication?.dosageForm);
+  }
+
+  get categoryLabel(): string {
+    return getMedicationCategoryLabel(this.medication?.category);
   }
 
   back(): void {

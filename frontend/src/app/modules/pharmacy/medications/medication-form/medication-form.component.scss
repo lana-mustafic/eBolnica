@@ -1,39 +1,341 @@
+@use '../../styles/pharmacy-tokens' as *;
+
+:host {
+  @include pharmacy-font;
+  display: block;
+}
+
+.medication-form-page {
+  display: flex;
+  flex-direction: column;
+  gap: $pharmacy-space-md;
+  max-width: 1100px;
+  padding-bottom: $pharmacy-space-lg;
+}
+
 .page-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 1.5rem;
+  gap: $pharmacy-space-sm;
+  flex-wrap: wrap;
 
   h1 {
-    margin: 0;
-    font-size: 1.75rem;
+    margin: 8px 0 0;
+    font-size: clamp(1.75rem, 2vw, 2.125rem);
+    font-weight: 700;
+    color: $pharmacy-text;
+    line-height: 1.2;
+  }
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: $pharmacy-text-secondary;
+
+  a {
+    color: $pharmacy-primary;
+    text-decoration: none;
+    font-weight: 500;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .current {
+    color: $pharmacy-text;
     font-weight: 600;
+  }
+}
+
+.page-subtitle {
+  margin: 6px 0 0;
+  font-size: 0.9375rem;
+  color: $pharmacy-text-secondary;
+}
+
+.profile-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: $pharmacy-radius-md;
+  background: $pharmacy-card;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: $pharmacy-shadow;
+}
+
+.profile-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.12);
+  color: $pharmacy-primary;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+
+.profile-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.profile-role {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: $pharmacy-text;
+}
+
+.profile-email {
+  font-size: 0.75rem;
+  color: $pharmacy-text-secondary;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.validation-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  animation: fade-in 0.3s ease;
+
+  &.valid {
+    background: #ecfdf5;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+  }
+
+  &.invalid {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+  }
+}
+
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-card {
+  background: $pharmacy-card;
+  border-radius: $pharmacy-radius-lg;
+  padding: $pharmacy-space-md;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(15, 23, 42, 0.04);
+  animation: fade-in 0.3s ease;
+
+  h2 {
+    margin: 0 0 $pharmacy-space-sm;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: $pharmacy-text;
+  }
+
+  &.card-basic {
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+  }
+
+  &.card-inventory {
+    background: #ecfdf5;
+    border-left: 4px solid #10b981;
+  }
+
+  &.card-options {
+    background: #f5f3ff;
+    border-left: 4px solid #8b5cf6;
+  }
+
+  &.card-images {
+    background: $pharmacy-card;
+    border-left: 4px solid $pharmacy-primary;
   }
 }
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 0.5rem 1rem;
+  gap: $pharmacy-space-sm;
+
+  &.cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  &.cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-bottom: $pharmacy-space-sm;
+  }
 }
 
-.full-width {
-  width: 100%;
-  margin-top: 0.5rem;
+.span-full {
+  grid-column: 1 / -1;
 }
 
-.checkbox-row {
+.field {
   display: flex;
-  gap: 1.5rem;
-  margin: 1rem 0;
+  flex-direction: column;
+  gap: 6px;
+
+  label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+  }
 }
 
-.actions {
-  margin-top: 1rem;
+.required {
+  color: $pharmacy-danger;
 }
 
-.section {
-  margin-top: 1.5rem;
+.field-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 0.875rem;
+  color: $pharmacy-text;
+  background: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.65);
+  }
+
+  &.prefixed {
+    padding-left: 48px;
+  }
+}
+
+.field-textarea {
+  resize: vertical;
+  min-height: 110px;
+}
+
+.input-prefix-wrap {
+  position: relative;
+
+  .input-prefix {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: $pharmacy-text-secondary;
+    pointer-events: none;
+  }
+}
+
+.field-hint {
+  font-size: 0.75rem;
+  color: $pharmacy-text-secondary;
+}
+
+.field-error {
+  font-size: 0.75rem;
+  color: $pharmacy-danger;
+  font-weight: 500;
+}
+
+.toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $pharmacy-space-md;
+}
+
+.toggle-item {
+  padding: 8px 0;
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $pharmacy-space-sm;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+
+.actions-right {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+
+  &:hover:not(:disabled) {
+    transform: scale(1.02);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.btn-primary {
+  background: $pharmacy-primary;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(124, 58, 237, 0.28);
+
+  &:hover:not(:disabled) {
+    box-shadow: 0 10px 24px rgba(124, 58, 237, 0.34);
+  }
+}
+
+.btn-secondary {
+  background: #fff;
+  color: $pharmacy-text;
+  border-color: #e5e7eb;
+
+  &:hover:not(:disabled) {
+    background: $pharmacy-bg;
+  }
+}
+
+.btn-danger {
+  background: #fff;
+  color: $pharmacy-danger;
+  border-color: rgba(239, 68, 68, 0.35);
+
+  &:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.06);
+  }
+}
+
+.btn-sm {
+  padding: 6px 10px;
+  font-size: 0.75rem;
 }
 
 .drop-zone {
@@ -42,14 +344,8 @@
   padding: 1.5rem;
   text-align: center;
   margin-bottom: 1rem;
+  background: #fff;
   transition: border-color 0.2s, background 0.2s;
-
-  mat-icon {
-    font-size: 2rem;
-    width: 2rem;
-    height: 2rem;
-    color: #64748b;
-  }
 
   p {
     margin: 0.5rem 0;
@@ -63,8 +359,8 @@
   }
 
   &.drag-over {
-    border-color: #6a1b9a;
-    background: #f3e5f5;
+    border-color: $pharmacy-primary;
+    background: rgba(124, 58, 237, 0.06);
   }
 }
 
@@ -90,6 +386,7 @@
   padding: 0.75rem;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
+  background: #fff;
 
   img {
     width: 72px;
@@ -129,9 +426,10 @@
   border-radius: 8px;
   padding: 0.5rem;
   width: 140px;
+  background: #fff;
 
   &.primary {
-    border-color: #6a1b9a;
+    border-color: $pharmacy-primary;
   }
 
   img {
@@ -173,24 +471,46 @@
 
 .primary-label {
   font-size: 0.75rem;
-  color: #6a1b9a;
+  color: $pharmacy-primary;
   font-weight: 600;
 }
 
-.upload-progress {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-top: 0.75rem;
-  max-width: 320px;
-
-  mat-progress-bar {
-    flex: 1;
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
 
-  span {
-    font-size: 0.875rem;
-    color: #64748b;
-    min-width: 2.5rem;
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 900px) {
+  .form-grid.cols-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .form-grid.cols-2,
+  .form-grid.cols-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions-right {
+    margin-left: 0;
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .btn {
+    justify-content: center;
   }
 }

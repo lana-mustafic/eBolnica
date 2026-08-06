@@ -117,7 +117,7 @@
   <mat-step label="Pregled" [editable]="false">
     <div class="review">
       <p><strong>Naziv:</strong> {{ form.value.name }}</p>
-      <p><strong>Kategorija:</strong> {{ form.value.category }}</p>
+      <p><strong>Kategorija:</strong> {{ categoryLabel(form.value.category) }}</p>
       <p><strong>Cijena:</strong> {{ form.value.price | number:'1.2-2' }} KM</p>
       <p><strong>Zaliha:</strong> {{ form.value.stockQuantity }}</p>
     </div>

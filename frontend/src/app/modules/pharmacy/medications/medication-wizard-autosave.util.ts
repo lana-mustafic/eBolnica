@@ -1,4 +1,5 @@
 import { normalizeDosageForm } from '../constants/medication-dosage-forms.constant';
+import { normalizeMedicationCategory } from '../constants/medication-categories.constant';
 import {
   MedicationWizardDraft,
   MedicationWizardDraftFormValue,
@@ -37,7 +38,7 @@ export function toMedicationWizardDraftFormValue(
 ): MedicationWizardDraftFormValue {
   return {
     name: String(raw['name'] ?? ''),
-    category: String(raw['category'] ?? ''),
+    category: normalizeMedicationCategory(String(raw['category'] ?? '')),
     description: String(raw['description'] ?? ''),
     price: Number(raw['price'] ?? 0),
     stockQuantity: Number(raw['stockQuantity'] ?? 0),

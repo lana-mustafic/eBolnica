@@ -8,9 +8,14 @@ import { EMPTY, catchError, map, switchMap } from 'rxjs';
 import { PharmacyApiService } from '../../../../api-services/pharmacy/pharmacy-api.service';
 import { MedicationDto, MedicationImageDto, MedicationUpsertCommand } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../../core/services/toaster.service';
+import { AuthFacadeService } from '../../../../core/services/auth/auth-facade.service';
 import { DialogButton, DialogType } from '../../../shared/models/dialog-config.model';
 import { DialogHelperService } from '../../../shared/services/dialog-helper.service';
 import { medicationNameAsyncValidator } from '../../../shared/validators/medication-name-async.validator';
+import {
+  MEDICATION_CATEGORIES,
+  normalizeMedicationCategory,
+} from '../../constants/medication-categories.constant';
 import {
   MEDICATION_DOSAGE_FORMS,
   normalizeDosageForm,
@@ -55,6 +60,10 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   private confirmDialog = inject(DialogHelperService);
   private destroyRef = inject(DestroyRef);
 
+  auth = inject(AuthFacadeService);
+
+  readonly strengthPresets = ['5mg', '10mg', '20mg', '50mg', '100mg', '250mg', '500mg'];
+
   isEditMode = false;
   medicationId: number | null = null;
   medicationRowVersion: string | null = null;
@@ -69,17 +78,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   private uploadSessionGeneration = 0;
   private activeUploadCount = 0;
 
-  categories = [
-    'Analgesics',
-    'Antibiotics',
-    'Antivirals',
-    'Cardiovascular',
-    'Diabetes',
-    'Gastrointestinal',
-    'Respiratory',
-    'Vitamins',
-    'Other',
-  ];
+  categories = [...MEDICATION_CATEGORIES];
 
   dosageForms = [...MEDICATION_DOSAGE_FORMS];
 
@@ -227,7 +226,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
       batchNumber: m.batchNumber ?? '',
       isActive: m.isActive,
       requiresPrescription: m.requiresPrescription,
-      category: m.category ?? '',
+      category: normalizeMedicationCategory(m.category),
       dosageForm: normalizeDosageForm(m.dosageForm),
       strength: m.strength ?? '',
     });
@@ -257,6 +256,54 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
 
   get expiryDateControl() {
     return this.form.get('expiryDate');
+  }
+
+  get isFormReady(): boolean {
+    return this.form.valid && !this.form.pending;
+  }
+
+  get missingRequiredCount(): number {
+    const keys = ['name', 'category', 'price', 'stockQuantity', 'minimumStockLevel', 'expiryDate'];
+    return keys.filter((key) => this.form.get(key)?.invalid).length;
+  }
+
+  deleteMedication(): void {
+    if (!this.isEditMode || !this.medicationId) {
+      return;
+    }
+
+    const name = this.form.get('name')?.value ?? 'lijek';
+
+    this.confirmDialog
+      .showCustom({
+        type: DialogType.WARNING,
+        title: 'Deaktiviraj lijek',
+        message: `Jeste li sigurni da želite deaktivirati lijek "${name}"?`,
+        buttons: [
+          { type: DialogButton.CANCEL, label: 'Odustani' },
+          { type: DialogButton.DELETE, label: 'Deaktiviraj', color: 'warn' },
+        ],
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result) => {
+        if (result?.button !== DialogButton.DELETE || !this.medicationId) {
+          return;
+        }
+
+        this.pharmacyApi
+          .deleteMedication(this.medicationId)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            next: () => {
+              this.toaster.success('Lijek deaktiviran.');
+              this.router.navigate(['/pharmacy/medications']);
+            },
+            error: (err) => {
+              const msg = err?.error?.message ?? 'Greška pri deaktivaciji lijeka.';
+              this.toaster.error(msg);
+            },
+          });
+      });
   }
 
   submit(): void {

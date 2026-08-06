@@ -5,6 +5,7 @@ import { Subject, catchError, debounceTime, of, switchMap } from 'rxjs';
 import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.service';
 import { MedicationDto } from '../../../api-services/pharmacy/pharmacy-api.models';
 import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
+import { getMedicationCategoryLabel } from '../constants/medication-categories.constant';
 import { ToasterService } from '../../../core/services/toaster.service';
 
 interface InventoryActivityItem {
@@ -25,6 +26,8 @@ export class PharmacyInventoryComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
 
   auth = inject(AuthFacadeService);
+
+  readonly categoryLabel = getMedicationCategoryLabel;
 
   items: MedicationDto[] = [];
   lowStockAlerts: MedicationDto[] = [];

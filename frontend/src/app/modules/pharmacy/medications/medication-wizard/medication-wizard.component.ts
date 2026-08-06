@@ -13,6 +13,10 @@ import {
   MedicationWizardDraft,
   MedicationWizardDraftService,
 } from '../../services/medication-wizard-draft.service';
+import {
+  getMedicationCategoryLabel,
+  MEDICATION_CATEGORIES,
+} from '../../constants/medication-categories.constant';
 import { MEDICATION_DOSAGE_FORMS } from '../../constants/medication-dosage-forms.constant';
 import {
   buildMedicationWizardDraftRestoreState,
@@ -47,18 +51,10 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   private suppressDraftPersist = false;
   private userStartedAfterDraftPrompt = false;
 
-  categories = [
-    'Analgesics',
-    'Antibiotics',
-    'Antivirals',
-    'Cardiovascular',
-    'Diabetes',
-    'Gastrointestinal',
-    'Respiratory',
-    'Vitamins',
-    'Other',
-  ];
+  categories = [...MEDICATION_CATEGORIES];
   dosageForms = [...MEDICATION_DOSAGE_FORMS];
+
+  readonly categoryLabel = getMedicationCategoryLabel;
 
   form = this.fb.group({
     name: [
