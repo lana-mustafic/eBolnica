@@ -28,6 +28,7 @@ interface PendingImageUpload {
   compressedSize: number;
   status: 'pending' | 'uploading' | 'error';
   progress: number;
+  progressKnown: boolean;
   errorMessage?: string;
 }
 
@@ -56,6 +57,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   pendingUploads: PendingImageUpload[] = [];
   isDragOver = false;
   isProcessingQueue = false;
+  private imageLoadGeneration = 0;
 
   categories = [
     'Analgesics',
@@ -101,12 +103,38 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
-    const idParam = this.route.snapshot.paramMap.get('id');
-    if (idParam && idParam !== 'new') {
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const idParam = params.get('id');
+      if (!idParam || idParam === 'new') {
+        this.isEditMode = false;
+        this.medicationId = null;
+        this.isLoading = false;
+        this.form.reset({
+          name: '',
+          genericName: '',
+          description: '',
+          manufacturer: '',
+          price: 0,
+          stockQuantity: 0,
+          minimumStockLevel: 10,
+          expiryDate: '',
+          batchNumber: '',
+          isActive: true,
+          requiresPrescription: true,
+          category: '',
+          dosageForm: '',
+          strength: '',
+        });
+        this.images = [];
+        this.imageUrls.clear();
+        this.clearPendingUploads();
+        return;
+      }
+
       this.isEditMode = true;
       this.medicationId = Number(idParam);
       this.loadMedication(this.medicationId);
-    }
+    });
   }
 
   ngOnDestroy(): void {
@@ -148,6 +176,26 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
 
   get nameControl() {
     return this.form.get('name');
+  }
+
+  get categoryControl() {
+    return this.form.get('category');
+  }
+
+  get priceControl() {
+    return this.form.get('price');
+  }
+
+  get stockQuantityControl() {
+    return this.form.get('stockQuantity');
+  }
+
+  get minimumStockLevelControl() {
+    return this.form.get('minimumStockLevel');
+  }
+
+  get expiryDateControl() {
+    return this.form.get('expiryDate');
   }
 
   submit(): void {
@@ -347,6 +395,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
             compressedSize: compressed.size,
             status: 'pending',
             progress: 0,
+            progressKnown: false,
           },
         ];
       }
@@ -362,6 +411,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
 
     item.status = 'uploading';
     item.progress = 0;
+    item.progressKnown = false;
     item.errorMessage = undefined;
 
     this.pharmacyApi.uploadImage(this.medicationId, item.file).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -369,6 +419,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
         const progress = getHttpUploadProgressPercent(httpEvent);
         if (progress != null) {
           item.progress = progress;
+          item.progressKnown = true;
         }
 
         const uploaded = extractMedicationImageUploadResponse(httpEvent);
@@ -382,6 +433,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
       error: () => {
         item.status = 'error';
         item.progress = 0;
+        item.progressKnown = false;
         item.errorMessage = 'Upload nije uspio.';
         this.toaster.error('Greška pri uploadu slike.');
       },
@@ -389,19 +441,31 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   }
 
   private loadImageUrls(medicationId: number, images: MedicationImageDto[]): void {
+    const generation = ++this.imageLoadGeneration;
     this.imageUrlService.revokeAll();
     this.imageUrls.clear();
 
     for (const image of images) {
-      this.imageUrlService.getAuthenticatedUrl(medicationId, image.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-        next: (url) => this.imageUrls.set(image.id, url),
-        error: () => {
-          const legacy = this.imageUrlService.getLegacyUrl(image.relativeUrl);
-          if (legacy) {
-            this.imageUrls.set(image.id, legacy);
-          }
-        },
-      });
+      this.imageUrlService
+        .getAuthenticatedUrl(medicationId, image.id)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (url) => {
+            if (generation !== this.imageLoadGeneration) {
+              return;
+            }
+            this.imageUrls.set(image.id, url);
+          },
+          error: () => {
+            if (generation !== this.imageLoadGeneration) {
+              return;
+            }
+            const legacy = this.imageUrlService.getLegacyUrl(image.relativeUrl);
+            if (legacy) {
+              this.imageUrls.set(image.id, legacy);
+            }
+          },
+        });
     }
   }
 

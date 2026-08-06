@@ -1,6 +1,7 @@
 using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.UpdateMedication;
 using eBolnica.Domain.Entities.Pharmacy;
+using Microsoft.EntityFrameworkCore;
 
 public sealed class UpdateMedicationCommandHandler(IAppDbContext ctx, IPharmacyAnalyticsService analytics)
     : IRequestHandler<UpdateMedicationCommand, MedicationDto>
@@ -35,7 +36,15 @@ public sealed class UpdateMedicationCommandHandler(IAppDbContext ctx, IPharmacyA
         medication.Strength = request.Strength?.Trim();
         medication.ModifiedAtUtc = DateTime.UtcNow;
 
-        await ctx.SaveChangesAsync(ct);
+        try
+        {
+            await ctx.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new eBolnicaConflictException(
+                "Medication was modified by another operation. Refresh and try again.");
+        }
 
         analytics.InvalidateAnalyticsCache();
         return new MedicationDto

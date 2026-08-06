@@ -49,6 +49,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   selectedSuggestionIndex = -1;
   importSummary: MedicationImportResult | null = null;
   thumbnailUrls = new Map<number, string>();
+  private thumbnailLoadGeneration = 0;
 
   private searchChanged$ = new Subject<void>();
   private autocompleteQuery$ = new Subject<string>();
@@ -103,7 +104,9 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
             this.showAutocomplete = false;
             return of([] as MedicationAutocompleteSuggestion[]);
           }
-          return this.pharmacyApi.getAutocomplete(q);
+          return this.pharmacyApi.getAutocomplete(q).pipe(
+            catchError(() => of([] as MedicationAutocompleteSuggestion[]))
+          );
         }),
         takeUntilDestroyed(this.destroyRef)
       )
@@ -120,12 +123,15 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
     this.imageUrlService.revokeAll();
   }
 
-  loadMedications(): void {
+  retryLoad(): void {
     this.loadTrigger$.next();
   }
 
-  retryLoad(): void {
-    this.loadTrigger$.next();
+  onSortKeydown(event: KeyboardEvent, column: string): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.onSort(column);
+    }
   }
 
   private buildRequest() {
@@ -261,7 +267,10 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
 
   deleteMedication(medication: MedicationDto): void {
     if (!confirm(`Deaktivirati lijek "${medication.name}"?`)) return;
-    this.pharmacyApi.deleteMedication(medication.id).subscribe({
+    this.pharmacyApi
+      .deleteMedication(medication.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: () => {
         this.toaster.success('Lijek deaktiviran.');
         if (this.medications.length === 1 && this.currentPage > 1) {
@@ -274,7 +283,10 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   }
 
   exportCsv(): void {
-    this.pharmacyApi.exportMedicationsCsv(this.buildRequest()).subscribe({
+    this.pharmacyApi
+      .exportMedicationsCsv(this.buildRequest())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: (res) => {
         const blob = res.body;
         if (!blob) return;
@@ -290,7 +302,10 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   }
 
   exportPdf(): void {
-    this.pharmacyApi.exportInventoryPdf(this.buildRequest()).subscribe({
+    this.pharmacyApi
+      .exportInventoryPdf(this.buildRequest())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: (res) => {
         this.pharmacyApi.downloadBlobResponse(res, 'inventory.pdf');
         this.toaster.success('PDF inventar preuzet.');
@@ -300,7 +315,10 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   }
 
   downloadTemplate(): void {
-    this.pharmacyApi.downloadImportTemplate().subscribe({
+    this.pharmacyApi
+      .downloadImportTemplate()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: (res) => {
         const blob = res.body;
         if (!blob) return;
@@ -322,7 +340,10 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
 
     this.isImporting = true;
     this.importSummary = null;
-    this.pharmacyApi.importMedicationsCsv(file).subscribe({
+    this.pharmacyApi
+      .importMedicationsCsv(file)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: (summary) => {
         this.isImporting = false;
         this.importSummary = summary;
@@ -367,6 +388,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   }
 
   private loadThumbnailUrls(): void {
+    const generation = ++this.thumbnailLoadGeneration;
     this.imageUrlService.revokeAll();
     this.thumbnailUrls.clear();
 
@@ -379,8 +401,16 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
         .getAuthenticatedUrl(medication.id, medication.primaryImageId)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
-          next: (url) => this.thumbnailUrls.set(medication.id, url),
+          next: (url) => {
+            if (generation !== this.thumbnailLoadGeneration) {
+              return;
+            }
+            this.thumbnailUrls.set(medication.id, url);
+          },
           error: () => {
+            if (generation !== this.thumbnailLoadGeneration) {
+              return;
+            }
             if (medication.primaryImageUrl) {
               const legacy = this.imageUrlService.getLegacyUrl(medication.primaryImageUrl);
               if (legacy) {

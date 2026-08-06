@@ -26,7 +26,6 @@ export class PharmacyDashboardComponent implements OnInit {
   categories: CategoryItemDto[] = [];
   stockItems: StockTrendItemDto[] = [];
   revenueChange = 0;
-  maxRevenueValue = 1;
 
   ngOnInit(): void {
     this.loadDashboard();
@@ -58,7 +57,6 @@ export class PharmacyDashboardComponent implements OnInit {
         this.categories = stats.topCategories.data;
         this.stockItems = stats.stockTrends.data;
         this.revenueChange = stats.monthlyRevenue.revenueChangePercentage;
-        this.maxRevenueValue = Math.max(...this.revenueItems.map((r) => r.revenue), 1);
       });
   }
 }

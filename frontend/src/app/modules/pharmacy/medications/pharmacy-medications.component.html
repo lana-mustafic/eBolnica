@@ -43,6 +43,10 @@
       <mat-label>Pretraga</mat-label>
       <input
         matInput
+        role="combobox"
+        aria-autocomplete="list"
+        aria-controls="medication-autocomplete-list"
+        [attr.aria-expanded]="showAutocomplete"
         [(ngModel)]="search"
         (input)="onSearchInput()"
         (focus)="onSearchInput()"
@@ -51,7 +55,7 @@
       />
     </mat-form-field>
     @if (showAutocomplete) {
-      <ul class="autocomplete-list" role="listbox">
+      <ul id="medication-autocomplete-list" class="autocomplete-list" role="listbox">
         @for (s of autocompleteSuggestions; track s.id; let i = $index) {
           <li
             role="option"
@@ -128,7 +132,7 @@
         role="button"
         tabindex="0"
         [attr.aria-sort]="sortAriaSort('name')"
-        (keydown.enter)="onSort('name')"
+        (keydown)="onSortKeydown($event, 'name')"
       >
         Naziv{{ sortIndicator('name') }}
       </th>
@@ -150,28 +154,64 @@
     </ng-container>
 
     <ng-container matColumnDef="category">
-      <th mat-header-cell *matHeaderCellDef (click)="onSort('category')" class="sortable">
+      <th
+        mat-header-cell
+        *matHeaderCellDef
+        (click)="onSort('category')"
+        (keydown)="onSortKeydown($event, 'category')"
+        class="sortable"
+        role="button"
+        tabindex="0"
+        [attr.aria-sort]="sortAriaSort('category')"
+      >
         Kategorija{{ sortIndicator('category') }}
       </th>
       <td mat-cell *matCellDef="let m">{{ m.category || '-' }}</td>
     </ng-container>
 
     <ng-container matColumnDef="price">
-      <th mat-header-cell *matHeaderCellDef (click)="onSort('price')" class="sortable">
+      <th
+        mat-header-cell
+        *matHeaderCellDef
+        (click)="onSort('price')"
+        (keydown)="onSortKeydown($event, 'price')"
+        class="sortable"
+        role="button"
+        tabindex="0"
+        [attr.aria-sort]="sortAriaSort('price')"
+      >
         Cijena{{ sortIndicator('price') }}
       </th>
       <td mat-cell *matCellDef="let m">{{ m.price | number:'1.2-2' }} KM</td>
     </ng-container>
 
     <ng-container matColumnDef="stockQuantity">
-      <th mat-header-cell *matHeaderCellDef (click)="onSort('stockQuantity')" class="sortable">
+      <th
+        mat-header-cell
+        *matHeaderCellDef
+        (click)="onSort('stockQuantity')"
+        (keydown)="onSortKeydown($event, 'stockQuantity')"
+        class="sortable"
+        role="button"
+        tabindex="0"
+        [attr.aria-sort]="sortAriaSort('stockQuantity')"
+      >
         Zaliha{{ sortIndicator('stockQuantity') }}
       </th>
       <td mat-cell *matCellDef="let m">{{ m.stockQuantity }} / min {{ m.minimumStockLevel }}</td>
     </ng-container>
 
     <ng-container matColumnDef="expiryDate">
-      <th mat-header-cell *matHeaderCellDef (click)="onSort('expiryDate')" class="sortable">
+      <th
+        mat-header-cell
+        *matHeaderCellDef
+        (click)="onSort('expiryDate')"
+        (keydown)="onSortKeydown($event, 'expiryDate')"
+        class="sortable"
+        role="button"
+        tabindex="0"
+        [attr.aria-sort]="sortAriaSort('expiryDate')"
+      >
         Rok trajanja{{ sortIndicator('expiryDate') }}
       </th>
       <td mat-cell *matCellDef="let m">{{ m.expiryDate ? (m.expiryDate | date:'dd.MM.yyyy') : '-' }}</td>

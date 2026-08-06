@@ -35,7 +35,10 @@
         <ng-container matColumnDef="number">
           <th mat-header-cell *matHeaderCellDef
               (click)="onSort('prescriptionNumber')"
+              (keydown)="onSortKeydown($event, 'prescriptionNumber')"
               class="sortable"
+              role="button"
+              tabindex="0"
               [attr.aria-sort]="sortAriaSort('prescriptionNumber')">
             Broj{{ sortIndicator('prescriptionNumber') }}
           </th>
@@ -55,7 +58,10 @@
         <ng-container matColumnDef="status">
           <th mat-header-cell *matHeaderCellDef
               (click)="onSort('status')"
+              (keydown)="onSortKeydown($event, 'status')"
               class="sortable"
+              role="button"
+              tabindex="0"
               [attr.aria-sort]="sortAriaSort('status')">
             Status{{ sortIndicator('status') }}
           </th>
@@ -67,7 +73,10 @@
         <ng-container matColumnDef="amount">
           <th mat-header-cell *matHeaderCellDef
               (click)="onSort('totalAmount')"
+              (keydown)="onSortKeydown($event, 'totalAmount')"
               class="sortable"
+              role="button"
+              tabindex="0"
               [attr.aria-sort]="sortAriaSort('totalAmount')">
             Iznos{{ sortIndicator('totalAmount') }}
           </th>
@@ -77,7 +86,10 @@
         <ng-container matColumnDef="date">
           <th mat-header-cell *matHeaderCellDef
               (click)="onSort('prescribedDate')"
+              (keydown)="onSortKeydown($event, 'prescribedDate')"
               class="sortable"
+              role="button"
+              tabindex="0"
               [attr.aria-sort]="sortAriaSort('prescribedDate')">
             Datum{{ sortIndicator('prescribedDate') }}
           </th>

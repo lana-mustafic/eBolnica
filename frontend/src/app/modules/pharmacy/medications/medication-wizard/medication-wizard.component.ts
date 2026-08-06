@@ -1,4 +1,5 @@
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnDestroy, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { debounceTime, map, Subscription } from 'rxjs';
@@ -32,6 +33,7 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   private toaster = inject(ToasterService);
   private draftService = inject(MedicationWizardDraftService);
   private dialog = inject(DialogHelperService);
+  private destroyRef = inject(DestroyRef);
 
   step = 1;
   readonly totalSteps = 3;
@@ -42,6 +44,7 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   private autosaveSubscription?: Subscription;
   private draftPromptResolved = false;
   private suppressDraftPersist = false;
+  private userStartedAfterDraftPrompt = false;
 
   categories = [
     'Analgesics',
@@ -86,7 +89,15 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
 
     this.autosaveSubscription = this.form.valueChanges
       .pipe(debounceTime(MEDICATION_WIZARD_AUTOSAVE_DEBOUNCE_MS))
-      .subscribe(() => this.persistDraft());
+      .subscribe(() => {
+        if (this.showDraftBanner && !this.draftPromptResolved && !this.userStartedAfterDraftPrompt) {
+          this.userStartedAfterDraftPrompt = true;
+          this.draftPromptResolved = true;
+          this.showDraftBanner = false;
+          this.pendingDraft = null;
+        }
+        this.persistDraft();
+      });
   }
 
   ngOnDestroy(): void {
@@ -122,6 +133,7 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
           { type: DialogButton.DELETE, label: 'Odbaci', color: 'warn' },
         ],
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((result) => {
         if (result?.button !== DialogButton.DELETE) {
           return;
@@ -167,6 +179,7 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   submit(): void {
     if (this.form.invalid || this.form.pending) {
       this.form.markAllAsTouched();
+      this.toaster.error('Provjerite obavezna polja prije čuvanja.');
       return;
     }
 
@@ -189,7 +202,10 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
     };
 
     this.isSaving = true;
-    this.pharmacyApi.createMedication(body).subscribe({
+    this.pharmacyApi
+      .createMedication(body)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: (created) => {
         this.suppressDraftPersist = true;
         this.draftService.clear();
@@ -232,6 +248,7 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
         message: 'Sačuvani draft wizarda stariji je od 7 dana i biće odbačen.',
         buttons: [{ type: DialogButton.OK, label: 'U redu', color: 'primary' }],
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this.draftService.clear();
         this.draftPromptResolved = true;

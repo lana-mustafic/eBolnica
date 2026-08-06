@@ -1,4 +1,5 @@
 using eBolnica.Application.Abstractions;
+using eBolnica.Application.Common.Exceptions;
 using eBolnica.Application.Modules.Pharmacy.Analytics;
 using eBolnica.Domain.Entities.Pharmacy;
 using Microsoft.Extensions.Caching.Memory;
@@ -29,12 +30,10 @@ public sealed class PharmacyAnalyticsService(
         int revenueMonths = 12,
         int topCategoriesCount = 8,
         int[]? medicationIds = null,
-        int trendDays = 30,
-        string trendInterval = "daily",
         CancellationToken ct = default)
     {
         var cacheKey =
-            $"dashboard_stats_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}_{revenueMonths}_{topCategoriesCount}_{string.Join(',', medicationIds ?? [])}_{trendDays}_{trendInterval}";
+            $"dashboard_stats_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}_{revenueMonths}_{topCategoriesCount}_{string.Join(',', medicationIds ?? [])}";
 
         if (cache.TryGetValue(cacheKey, out DashboardStatsResponseDto? cached))
             return cached!;
@@ -51,17 +50,10 @@ public sealed class PharmacyAnalyticsService(
             revenueStart = revenueEnd.AddMonths(-revenueMonths);
         }
 
-        var revenueTask = GetMonthlyRevenueAsync(revenueStart, revenueEnd, revenueMonths, ct);
-        var categoriesTask = GetTopCategoriesAsync(topCategoriesCount, ct);
-        var trendsTask = GetStockTrendsAsync(medicationIds, trendDays, trendInterval, ct);
-        var summaryTask = GetSummaryMetricsAsync(ct);
-
-        await Task.WhenAll(revenueTask, categoriesTask, trendsTask, summaryTask);
-
-        var revenue = await revenueTask;
-        var categories = await categoriesTask;
-        var trends = await trendsTask;
-        var summary = await summaryTask;
+        var revenue = await GetMonthlyRevenueAsync(revenueStart, revenueEnd, revenueMonths, ct);
+        var categories = await GetTopCategoriesAsync(topCategoriesCount, ct);
+        var trends = await GetStockTrendsAsync(medicationIds, ct);
+        var summary = await GetSummaryMetricsAsync(ct);
 
         var response = new DashboardStatsResponseDto
         {
@@ -116,7 +108,7 @@ public sealed class PharmacyAnalyticsService(
         }
 
         if (start > end)
-            throw new ArgumentException("Start date cannot be after end date.");
+            throw new eBolnicaBusinessRuleException("validation.failed", "Start date cannot be after end date.");
 
         var revenueByMonth = await (
             from item in ctx.PrescriptionItems.AsNoTracking()
@@ -182,7 +174,7 @@ public sealed class PharmacyAnalyticsService(
     public async Task<CategoriesDataDto> GetTopCategoriesAsync(int topCount = 8, CancellationToken ct = default)
     {
         if (topCount is < 1 or > 50)
-            throw new ArgumentException("TopCount must be between 1 and 50.", nameof(topCount));
+            throw new eBolnicaBusinessRuleException("validation.failed", "TopCount must be between 1 and 50.");
 
         var cacheKey = $"top_categories_{topCount}";
         if (cache.TryGetValue(cacheKey, out CategoriesDataDto? cached))
@@ -240,8 +232,6 @@ public sealed class PharmacyAnalyticsService(
 
     public async Task<StockTrendsDataDto> GetStockTrendsAsync(
         int[]? medicationIds = null,
-        int days = 30,
-        string interval = "daily",
         CancellationToken ct = default)
     {
         var cacheKey = $"current_stock_snapshot_{string.Join(',', medicationIds ?? [])}";

@@ -35,7 +35,6 @@ export class PharmacyPrescriptionsComponent implements OnInit {
     { value: 'All', label: 'Svi' },
     { value: 'Pending', label: 'Na čekanju' },
     { value: 'Dispensed', label: 'Izdani' },
-    { value: 'Cancelled', label: 'Otkazani' },
   ];
 
   displayedColumns = ['number', 'patient', 'doctor', 'status', 'amount', 'date', 'actions'];
@@ -131,6 +130,13 @@ export class PharmacyPrescriptionsComponent implements OnInit {
     return this.sortOrder === 'asc' ? 'ascending' : 'descending';
   }
 
+  onSortKeydown(event: KeyboardEvent, column: string): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.onSort(column);
+    }
+  }
+
   goToPage(page: number): void {
     if (page < 1 || page > this.totalPages) return;
     this.currentPage = page;
@@ -142,7 +148,10 @@ export class PharmacyPrescriptionsComponent implements OnInit {
   }
 
   exportPdf(): void {
-    this.pharmacyApi.exportPrescriptionsPdf(this.buildRequest()).subscribe({
+    this.pharmacyApi
+      .exportPrescriptionsPdf(this.buildRequest())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: (res) => {
         this.pharmacyApi.downloadBlobResponse(res, 'prescriptions.pdf');
         this.toaster.success('PDF recepata preuzet.');

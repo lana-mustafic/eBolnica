@@ -12,6 +12,7 @@ public sealed class DeleteMedicationCommandHandler(IAppDbContext ctx, IPharmacyA
             throw new eBolnicaNotFoundException("Medication not found.");
 
         medication.IsActive = false;
+        medication.IsDeleted = true;
         medication.ModifiedAtUtc = DateTime.UtcNow;
 
         await ctx.SaveChangesAsync(ct);

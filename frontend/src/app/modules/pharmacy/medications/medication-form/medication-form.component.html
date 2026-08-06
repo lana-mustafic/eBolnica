@@ -41,6 +41,9 @@
               <mat-option [value]="cat">{{ cat }}</mat-option>
             }
           </mat-select>
+          @if (categoryControl?.hasError('required') && categoryControl?.touched) {
+            <mat-error>Kategorija je obavezna</mat-error>
+          }
         </mat-form-field>
 
         <mat-form-field appearance="outline">
@@ -66,21 +69,42 @@
         <mat-form-field appearance="outline">
           <mat-label>Cijena (KM) *</mat-label>
           <input matInput type="number" step="0.01" formControlName="price" />
+          @if (priceControl?.hasError('required') && priceControl?.touched) {
+            <mat-error>Cijena je obavezna</mat-error>
+          }
+          @if (priceControl?.hasError('min') && priceControl?.touched) {
+            <mat-error>Cijena mora biti veća od 0</mat-error>
+          }
         </mat-form-field>
 
         <mat-form-field appearance="outline">
           <mat-label>Količina na stanju *</mat-label>
           <input matInput type="number" formControlName="stockQuantity" />
+          @if (stockQuantityControl?.hasError('required') && stockQuantityControl?.touched) {
+            <mat-error>Količina je obavezna</mat-error>
+          }
+          @if (stockQuantityControl?.hasError('min') && stockQuantityControl?.touched) {
+            <mat-error>Količina ne može biti negativna</mat-error>
+          }
         </mat-form-field>
 
         <mat-form-field appearance="outline">
           <mat-label>Min. nivo zaliha *</mat-label>
           <input matInput type="number" formControlName="minimumStockLevel" />
+          @if (minimumStockLevelControl?.hasError('required') && minimumStockLevelControl?.touched) {
+            <mat-error>Min. nivo zaliha je obavezan</mat-error>
+          }
+          @if (minimumStockLevelControl?.hasError('min') && minimumStockLevelControl?.touched) {
+            <mat-error>Min. nivo ne može biti negativan</mat-error>
+          }
         </mat-form-field>
 
         <mat-form-field appearance="outline">
           <mat-label>Rok trajanja *</mat-label>
           <input matInput type="date" formControlName="expiryDate" />
+          @if (expiryDateControl?.hasError('required') && expiryDateControl?.touched) {
+            <mat-error>Rok trajanja je obavezan</mat-error>
+          }
         </mat-form-field>
 
         <mat-form-field appearance="outline">
@@ -147,7 +171,10 @@
                   <span>{{ item.file.name }}</span>
                   <span>{{ formatBytes(item.originalSize) }} → {{ formatBytes(item.compressedSize) }}</span>
                   @if (item.status === 'uploading') {
-                    <mat-progress-bar mode="determinate" [value]="item.progress"></mat-progress-bar>
+                    <mat-progress-bar
+                      [mode]="item.progressKnown ? 'determinate' : 'indeterminate'"
+                      [value]="item.progress"
+                    ></mat-progress-bar>
                   }
                   @if (item.errorMessage) {
                     <span class="error-text">{{ item.errorMessage }}</span>

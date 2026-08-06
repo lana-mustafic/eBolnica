@@ -20,6 +20,7 @@ public sealed class MedicationEntity : BaseEntity
     public string? DosageForm { get; set; }
     public string? Strength { get; set; }
     public string? ImageUrl { get; set; }
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
     public ICollection<MedicationImageEntity> Images { get; set; } = new List<MedicationImageEntity>();
 
     public static string NormalizeName(string name) => name.Trim().ToLowerInvariant();

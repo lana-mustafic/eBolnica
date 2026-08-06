@@ -1,4 +1,5 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PharmacyApiService } from '../../../../api-services/pharmacy/pharmacy-api.service';
 import { MedicationDto } from '../../../../api-services/pharmacy/pharmacy-api.models';
@@ -13,29 +14,44 @@ export class MedicationDetailComponent implements OnInit {
   private pharmacyApi = inject(PharmacyApiService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
 
   medication: MedicationDto | null = null;
   isLoading = true;
   loadError = false;
 
   ngOnInit(): void {
-    const id = Number(this.route.snapshot.paramMap.get('id'));
-    if (!id) {
-      this.loadError = true;
-      this.isLoading = false;
-      return;
-    }
-
-    this.pharmacyApi.getMedicationById(id).subscribe({
-      next: (medication) => {
-        this.medication = medication;
-        this.isLoading = false;
-      },
-      error: () => {
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const id = Number(params.get('id'));
+      if (!id) {
         this.loadError = true;
         this.isLoading = false;
-      },
+        this.medication = null;
+        return;
+      }
+
+      this.loadMedication(id);
     });
+  }
+
+  private loadMedication(id: number): void {
+    this.isLoading = true;
+    this.loadError = false;
+    this.medication = null;
+
+    this.pharmacyApi
+      .getMedicationById(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (medication) => {
+          this.medication = medication;
+          this.isLoading = false;
+        },
+        error: () => {
+          this.loadError = true;
+          this.isLoading = false;
+        },
+      });
   }
 
   edit(): void {

@@ -1,6 +1,7 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
 import { PharmacyApiService } from '../../../../api-services/pharmacy/pharmacy-api.service';
 import {
   MedicationDto,
@@ -20,6 +21,7 @@ export class PrescriptionDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private toaster = inject(ToasterService);
+  private destroyRef = inject(DestroyRef);
 
   prescription: PrescriptionDto | null = null;
   medications: MedicationDto[] = [];
@@ -29,11 +31,18 @@ export class PrescriptionDetailComponent implements OnInit {
   prescriptionId: number | null = null;
 
   ngOnInit(): void {
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.prescriptionId = +id;
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const id = Number(params.get('id'));
+      if (!id) {
+        this.loadError = true;
+        this.isLoading = false;
+        this.prescription = null;
+        return;
+      }
+
+      this.prescriptionId = id;
       this.loadData();
-    }
+    });
   }
 
   loadData(): void {
@@ -41,18 +50,21 @@ export class PrescriptionDetailComponent implements OnInit {
 
     this.isLoading = true;
     this.loadError = false;
-    this.pharmacyApi.getPrescriptionById(this.prescriptionId).subscribe({
-      next: (prescription) => {
-        this.prescription = prescription;
-        this.loadMedicationStock(prescription.prescriptionItems);
-      },
-      error: () => {
-        this.loadError = true;
-        this.prescription = null;
-        this.toaster.error('Greška pri učitavanju recepta.');
-        this.isLoading = false;
-      },
-    });
+    this.pharmacyApi
+      .getPrescriptionById(this.prescriptionId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (prescription) => {
+          this.prescription = prescription;
+          this.loadMedicationStock(prescription.prescriptionItems);
+        },
+        error: () => {
+          this.loadError = true;
+          this.prescription = null;
+          this.toaster.error('Greška pri učitavanju recepta.');
+          this.isLoading = false;
+        },
+      });
   }
 
   private loadMedicationStock(items: PrescriptionItemDto[]): void {
@@ -62,16 +74,22 @@ export class PrescriptionDetailComponent implements OnInit {
       return;
     }
 
-    forkJoin(ids.map((id) => this.pharmacyApi.getMedicationById(id))).subscribe({
-      next: (meds) => {
-        this.medications = meds;
-        this.isLoading = false;
-      },
-      error: () => {
-        this.toaster.error('Greška pri učitavanju zaliha lijekova.');
-        this.isLoading = false;
-      },
-    });
+    forkJoin(
+      ids.map((id) =>
+        this.pharmacyApi.getMedicationById(id).pipe(catchError(() => of(null as MedicationDto | null)))
+      )
+    )
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (meds) => {
+          this.medications = meds.filter((med): med is MedicationDto => med != null);
+          this.isLoading = false;
+        },
+        error: () => {
+          this.toaster.error('Greška pri učitavanju zaliha lijekova.');
+          this.isLoading = false;
+        },
+      });
   }
 
   canDispense(): boolean {
@@ -101,6 +119,7 @@ export class PrescriptionDetailComponent implements OnInit {
     this.isDispensing = true;
     this.pharmacyApi
       .dispensePrescription(this.prescriptionId, { dispensedDate: new Date().toISOString() })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {
           this.prescription = updated;

@@ -176,7 +176,7 @@ public sealed class PharmacyController(IMediator mediator) : ControllerBase
         await mediator.Send(new ReorderMedicationImagesCommand
         {
             MedicationId = id,
-            ImageIds = body.ImageIds
+            ImageIds = body.ImageIds ?? Array.Empty<int>()
         }, ct);
         return NoContent();
     }

@@ -143,4 +143,16 @@ export class PharmacyInventoryComponent implements OnInit {
     if (this.sortBy !== column) return '';
     return this.sortOrder === 'asc' ? ' ▲' : ' ▼';
   }
+
+  sortAriaSort(column: string): 'ascending' | 'descending' | 'none' {
+    if (this.sortBy !== column) return 'none';
+    return this.sortOrder === 'asc' ? 'ascending' : 'descending';
+  }
+
+  onSortKeydown(event: KeyboardEvent, column: string): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.onSort(column);
+    }
+  }
 }

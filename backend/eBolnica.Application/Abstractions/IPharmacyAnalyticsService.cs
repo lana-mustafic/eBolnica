@@ -10,8 +10,6 @@ public interface IPharmacyAnalyticsService
         int revenueMonths = 12,
         int topCategoriesCount = 8,
         int[]? medicationIds = null,
-        int trendDays = 30,
-        string trendInterval = "daily",
         CancellationToken ct = default);
 
     Task<RevenueDataDto> GetMonthlyRevenueAsync(
@@ -24,8 +22,6 @@ public interface IPharmacyAnalyticsService
 
     Task<StockTrendsDataDto> GetStockTrendsAsync(
         int[]? medicationIds = null,
-        int days = 30,
-        string interval = "daily",
         CancellationToken ct = default);
 
     void InvalidateAnalyticsCache();

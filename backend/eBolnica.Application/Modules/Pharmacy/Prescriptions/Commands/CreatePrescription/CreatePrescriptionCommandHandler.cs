@@ -117,6 +117,11 @@ public sealed class CreatePrescriptionCommandHandler(IAppDbContext ctx, IAppCurr
                 await transaction.RollbackAsync(ct);
                 ctx.ClearChangeTracker();
             }
+            catch (DbUpdateException)
+            {
+                await transaction.RollbackAsync(ct);
+                throw new eBolnicaConflictException("Could not generate a unique prescription number. Please retry.");
+            }
         }
 
         throw new eBolnicaConflictException("Could not generate a unique prescription number. Please retry.");
