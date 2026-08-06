@@ -8,6 +8,15 @@ import {
   StatisticsSummaryDto,
   StockTrendItemDto,
 } from '../../../api-services/pharmacy/pharmacy-api.models';
+import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
+import { PharmacyIconName } from '../shared/pharmacy-icon/pharmacy-icon.component';
+
+interface DashboardActivityItem {
+  icon: PharmacyIconName;
+  tone: 'success' | 'warning' | 'info';
+  text: string;
+  time: string;
+}
 
 @Component({
   selector: 'app-pharmacy-dashboard',
@@ -20,6 +29,8 @@ export class PharmacyDashboardComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
   private loadTrigger$ = new Subject<void>();
 
+  auth = inject(AuthFacadeService);
+
   isLoading = true;
   loadError = false;
   summary: StatisticsSummaryDto | null = null;
@@ -27,6 +38,7 @@ export class PharmacyDashboardComponent implements OnInit {
   categories: CategoryItemDto[] = [];
   stockItems: StockTrendItemDto[] = [];
   revenueChange = 0;
+  todayLabel = this.formatToday();
 
   ngOnInit(): void {
     this.loadTrigger$
@@ -60,5 +72,64 @@ export class PharmacyDashboardComponent implements OnInit {
 
   reload(): void {
     this.loadTrigger$.next();
+  }
+
+  get recentActivities(): DashboardActivityItem[] {
+    if (!this.summary) {
+      return [];
+    }
+
+    const items: DashboardActivityItem[] = [
+      {
+        icon: 'check-circle',
+        tone: 'success',
+        text: `${this.summary.totalMedications} aktivnih lijekova u sistemu`,
+        time: 'Upravo sada',
+      },
+    ];
+
+    if (this.summary.pendingPrescriptions > 0) {
+      items.push({
+        icon: 'clipboard',
+        tone: 'info',
+        text: `${this.summary.pendingPrescriptions} recept(a) čeka izdavanje`,
+        time: 'Danas',
+      });
+    }
+
+    if (this.summary.lowStockAlerts > 0) {
+      items.push({
+        icon: 'triangle-alert',
+        tone: 'warning',
+        text: `${this.summary.lowStockAlerts} lijek(ova) ispod minimuma zaliha`,
+        time: 'Danas',
+      });
+    }
+
+    if (this.summary.expiringSoon > 0 || this.summary.expiredMedications > 0) {
+      items.push({
+        icon: 'calendar',
+        tone: 'warning',
+        text: `Rok trajanja: ${this.summary.expiringSoon} uskoro / ${this.summary.expiredMedications} isteklo`,
+        time: 'Inventar',
+      });
+    }
+
+    items.push({
+      icon: 'activity',
+      tone: 'success',
+      text: `Vrijednost inventara ${this.summary.inventoryValue.toFixed(2)} KM`,
+      time: 'Ažurirano',
+    });
+
+    return items.slice(0, 5);
+  }
+
+  private formatToday(): string {
+    return new Date().toLocaleDateString('bs-BA', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
   }
 }

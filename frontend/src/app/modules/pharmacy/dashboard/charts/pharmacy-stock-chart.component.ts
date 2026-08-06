@@ -8,7 +8,7 @@ import {
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
-import { Chart } from 'chart.js/auto';
+import { Chart, TooltipItem } from 'chart.js/auto';
 import { StockTrendItemDto } from '../../../../api-services/pharmacy/pharmacy-api.models';
 
 @Component({
@@ -52,8 +52,9 @@ export class PharmacyStockChartComponent implements AfterViewInit, OnChanges, On
           {
             label: 'Količina',
             data: this.items.map((item) => item.quantity),
-            backgroundColor: '#10b981',
-            borderRadius: 4,
+            backgroundColor: this.items.map((item) => this.colorForStatus(item.status)),
+            borderRadius: 8,
+            borderSkipped: false,
           },
         ],
       },
@@ -61,19 +62,46 @@ export class PharmacyStockChartComponent implements AfterViewInit, OnChanges, On
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
+        animation: {
+          duration: 700,
+          easing: 'easeOutQuart',
+        },
         plugins: {
           legend: { display: false },
-          subtitle: {
-            display: true,
-            text: 'Trenutni snapshot zaliha (nije historijski trend)',
+          tooltip: {
+            backgroundColor: '#111827',
+            padding: 12,
+            cornerRadius: 8,
+            callbacks: {
+              label: (ctx: TooltipItem<'bar'>) => ` ${ctx.parsed.x} kom`,
+            },
           },
         },
         scales: {
           x: {
             beginAtZero: true,
+            grid: { color: 'rgba(148, 163, 184, 0.18)' },
+            ticks: { color: '#6B7280' },
+            border: { display: false },
+          },
+          y: {
+            grid: { display: false },
+            ticks: { color: '#374151', font: { size: 12, weight: 500 } },
+            border: { display: false },
           },
         },
       },
     });
+  }
+
+  private colorForStatus(status: string): string {
+    const normalized = status?.toLowerCase() ?? '';
+    if (normalized.includes('critical') || normalized.includes('out')) {
+      return '#EF4444';
+    }
+    if (normalized.includes('low') || normalized.includes('warn')) {
+      return '#F59E0B';
+    }
+    return '#22C55E';
   }
 }

@@ -8,10 +8,10 @@ import {
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
-import { Chart } from 'chart.js/auto';
+import { Chart, TooltipItem } from 'chart.js/auto';
 import { CategoryItemDto } from '../../../../api-services/pharmacy/pharmacy-api.models';
 
-const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+const CHART_COLORS = ['#7C3AED', '#22C55E', '#3B82F6', '#F59E0B', '#EF4444', '#06B6D4', '#EC4899', '#84CC16'];
 
 @Component({
   selector: 'app-pharmacy-categories-chart',
@@ -54,15 +54,38 @@ export class PharmacyCategoriesChartComponent implements AfterViewInit, OnChange
           {
             data: this.items.map((item) => item.medicationCount),
             backgroundColor: this.items.map((_, index) => CHART_COLORS[index % CHART_COLORS.length]),
+            borderWidth: 0,
+            hoverOffset: 8,
           },
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: {
+          animateRotate: true,
+          animateScale: true,
+          duration: 700,
+        },
+        cutout: '68%',
         plugins: {
           legend: {
             position: 'bottom',
+            labels: {
+              color: '#6B7280',
+              boxWidth: 12,
+              boxHeight: 12,
+              padding: 16,
+              font: { size: 12, weight: 500 },
+            },
+          },
+          tooltip: {
+            backgroundColor: '#111827',
+            padding: 12,
+            cornerRadius: 8,
+            callbacks: {
+              label: (ctx: TooltipItem<'doughnut'>) => ` ${ctx.label}: ${ctx.parsed} lijekova`,
+            },
           },
         },
       },

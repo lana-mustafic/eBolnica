@@ -13,6 +13,8 @@ import { MedicationImageLightboxComponent } from './medications/medication-image
 import { PharmacyInventoryComponent } from './inventory/pharmacy-inventory.component';
 import { PharmacyPrescriptionsComponent } from './prescriptions/pharmacy-prescriptions.component';
 import { PrescriptionDetailComponent } from './prescriptions/prescription-detail/prescription-detail.component';
+import { PharmacyIconComponent } from './shared/pharmacy-icon/pharmacy-icon.component';
+import { PharmacyKpiCardComponent } from './shared/pharmacy-kpi-card/pharmacy-kpi-card.component';
 import { SharedModule } from '../shared/shared-module';
 
 @NgModule({
@@ -30,6 +32,8 @@ import { SharedModule } from '../shared/shared-module';
     PharmacyInventoryComponent,
     PharmacyPrescriptionsComponent,
     PrescriptionDetailComponent,
+    PharmacyIconComponent,
+    PharmacyKpiCardComponent,
   ],
   imports: [PharmacyRoutingModule, SharedModule],
 })

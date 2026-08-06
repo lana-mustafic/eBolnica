@@ -1,0 +1,44 @@
+// Pharmacy module design tokens (SaaS dashboard)
+$pharmacy-primary: #7c3aed;
+$pharmacy-success: #22c55e;
+$pharmacy-warning: #f59e0b;
+$pharmacy-danger: #ef4444;
+$pharmacy-info: #3b82f6;
+
+$pharmacy-bg: #f8fafc;
+$pharmacy-card: #ffffff;
+$pharmacy-text: #111827;
+$pharmacy-text-secondary: #6b7280;
+
+$pharmacy-sidebar-bg: #111827;
+$pharmacy-sidebar-text: #94a3b8;
+$pharmacy-sidebar-active: #7c3aed;
+
+$pharmacy-radius-lg: 16px;
+$pharmacy-radius-md: 12px;
+$pharmacy-radius-sm: 8px;
+
+$pharmacy-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+$pharmacy-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+$pharmacy-space-xs: 8px;
+$pharmacy-space-sm: 16px;
+$pharmacy-space-md: 24px;
+$pharmacy-space-lg: 32px;
+
+@mixin pharmacy-card {
+  background: $pharmacy-card;
+  border-radius: $pharmacy-radius-lg;
+  box-shadow: $pharmacy-shadow;
+  border: 1px solid rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: $pharmacy-shadow-hover;
+  }
+}
+
+@mixin pharmacy-font {
+  font-family: 'Inter', 'Roboto', system-ui, -apple-system, sans-serif;
+}

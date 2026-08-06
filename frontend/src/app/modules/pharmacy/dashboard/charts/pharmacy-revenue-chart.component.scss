@@ -1,4 +1,17 @@
 .chart-host {
   position: relative;
-  height: 280px;
+  height: 320px;
+  animation: chartFadeIn 0.45s ease;
+}
+
+@keyframes chartFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
