@@ -13,6 +13,7 @@ public sealed class DeleteMedicationCommandHandler(IAppDbContext ctx, IPharmacyA
             throw new eBolnicaNotFoundException("Medication not found.");
 
         await MedicationWorkflowGuard.EnsureNoPendingPrescriptionsAsync(ctx, request.Id, ct);
+        await MedicationWorkflowGuard.EnsureNoPrescriptionHistoryAsync(ctx, request.Id, ct);
 
         medication.IsActive = false;
         medication.IsDeleted = true;

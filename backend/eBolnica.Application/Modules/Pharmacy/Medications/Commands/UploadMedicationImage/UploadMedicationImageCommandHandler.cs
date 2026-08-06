@@ -11,20 +11,37 @@ public sealed class UploadMedicationImageCommandHandler(
 {
     public async Task<MedicationImageDto> Handle(UploadMedicationImageCommand request, CancellationToken ct)
     {
-        var medication = await ctx.Medications
-            .Include(m => m.Images)
-            .FirstOrDefaultAsync(m => m.Id == request.MedicationId && !m.IsDeleted, ct);
+        var medicationExists = await ctx.Medications
+            .AsNoTracking()
+            .AnyAsync(m => m.Id == request.MedicationId && !m.IsDeleted, ct);
 
-        if (medication is null)
+        if (!medicationExists)
             throw new eBolnicaNotFoundException("Medication not found.");
 
         string? relativeUrl = null;
-        await using var transaction = await ctx.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        long fileSize;
+
         try
         {
             var (savedUrl, size) = await storage.SaveAsync(
                 request.MedicationId, request.FileName, request.Content, ct);
             relativeUrl = savedUrl;
+            fileSize = size;
+        }
+        catch
+        {
+            throw;
+        }
+
+        await using var transaction = await ctx.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        try
+        {
+            var medication = await ctx.Medications
+                .Include(m => m.Images)
+                .FirstOrDefaultAsync(m => m.Id == request.MedicationId && !m.IsDeleted, ct);
+
+            if (medication is null)
+                throw new eBolnicaNotFoundException("Medication not found.");
 
             var activeImages = medication.Images.Where(i => !i.IsDeleted).ToList();
             var isFirst = activeImages.Count == 0;
@@ -35,7 +52,7 @@ public sealed class UploadMedicationImageCommandHandler(
                 RelativeUrl = relativeUrl,
                 IsPrimary = isFirst,
                 SortOrder = activeImages.Count,
-                FileSizeBytes = size,
+                FileSizeBytes = fileSize,
                 CreatedAtUtc = DateTime.UtcNow
             };
 

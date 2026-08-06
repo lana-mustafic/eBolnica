@@ -20,4 +20,18 @@ internal static class MedicationWorkflowGuard
                 "Cannot delete or deactivate medication while pending prescriptions reference it.");
         }
     }
+
+    public static async Task EnsureNoPrescriptionHistoryAsync(IAppDbContext ctx, int medicationId, CancellationToken ct)
+    {
+        var hasHistory = await ctx.PrescriptionItems
+            .AsNoTracking()
+            .AnyAsync(pi => pi.MedicationId == medicationId, ct);
+
+        if (hasHistory)
+        {
+            throw new eBolnicaBusinessRuleException(
+                "medication.prescription_history",
+                "Cannot delete medication that appears on existing prescriptions.");
+        }
+    }
 }

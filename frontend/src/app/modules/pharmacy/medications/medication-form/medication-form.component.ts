@@ -63,6 +63,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   isDragOver = false;
   isProcessingQueue = false;
   private imageLoadGeneration = 0;
+  private uploadSessionGeneration = 0;
   private activeUploadCount = 0;
 
   categories = [
@@ -128,9 +129,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
           this.medicationId = id;
           this.isLoading = true;
           this.medicationRowVersion = null;
-          this.images = [];
-          this.imageUrls.clear();
-          this.clearPendingUploads();
+          this.resetImageSession();
 
           return this.pharmacyApi.getMedicationById(id).pipe(
             catchError(() => {
@@ -174,9 +173,31 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
       dosageForm: '',
       strength: '',
     });
-    this.images = [];
-    this.imageUrls.clear();
+    this.resetImageSession();
+  }
+
+  private resetImageSession(): void {
+    this.uploadSessionGeneration++;
+    this.imageLoadGeneration++;
+    this.activeUploadCount = 0;
     this.clearPendingUploads();
+    this.imageUrlService.revokeAll();
+    this.imageUrls.clear();
+    this.images = [];
+  }
+
+  private reloadMedication(id: number): void {
+    this.isLoading = true;
+    this.pharmacyApi
+      .getMedicationById(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (medication) => this.applyMedication(medication),
+        error: () => {
+          this.isLoading = false;
+          this.toaster.error('Greška pri osvježavanju lijeka.');
+        },
+      });
   }
 
   private handleInvalidRouteId(): void {
@@ -279,6 +300,9 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
         this.isSaving = false;
         const msg = err?.error?.message ?? 'Greška pri čuvanju lijeka.';
         this.toaster.error(msg);
+        if (err?.status === 409 && this.medicationId) {
+          this.reloadMedication(this.medicationId);
+        }
       },
     });
   }
@@ -288,8 +312,12 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   }
 
   loadImages(id: number): void {
+    const generation = ++this.imageLoadGeneration;
     this.pharmacyApi.listImages(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (imgs) => {
+        if (generation !== this.imageLoadGeneration || this.medicationId !== id) {
+          return;
+        }
         this.images = imgs;
         this.loadImageUrls(id, imgs);
       },
@@ -469,9 +497,12 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   }
 
   private uploadFile(item: PendingImageUpload): void {
-    if (!this.medicationId) {
+    const targetMedicationId = this.medicationId;
+    if (!targetMedicationId) {
       return;
     }
+
+    const uploadSession = this.uploadSessionGeneration;
 
     item.status = 'uploading';
     item.progress = 0;
@@ -479,38 +510,53 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
     item.errorMessage = undefined;
 
     this.activeUploadCount++;
-    this.pharmacyApi.uploadImage(this.medicationId, item.file).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.pharmacyApi.uploadImage(targetMedicationId, item.file).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (httpEvent) => {
         const progress = getHttpUploadProgressPercent(httpEvent);
-        if (progress != null) {
+        if (progress != null && uploadSession === this.uploadSessionGeneration) {
           item.progress = progress;
           item.progressKnown = true;
         }
 
         const uploaded = extractMedicationImageUploadResponse(httpEvent);
-        if (uploaded) {
-          URL.revokeObjectURL(item.previewUrl);
-          this.pendingUploads = this.pendingUploads.filter((entry) => entry.key !== item.key);
-          this.toaster.success('Slika uploadovana.');
-          this.finishUploadBatch();
+        if (!uploaded) {
+          return;
         }
+
+        URL.revokeObjectURL(item.previewUrl);
+        this.pendingUploads = this.pendingUploads.filter((entry) => entry.key !== item.key);
+        if (uploadSession === this.uploadSessionGeneration) {
+          this.toaster.success('Slika uploadovana.');
+        }
+        this.finishUploadBatch(targetMedicationId, uploadSession);
       },
       error: () => {
-        item.status = 'error';
-        item.progress = 0;
-        item.progressKnown = false;
-        item.errorMessage = 'Upload nije uspio.';
-        this.toaster.error('Greška pri uploadu slike.');
-        this.finishUploadBatch();
+        if (uploadSession === this.uploadSessionGeneration) {
+          item.status = 'error';
+          item.progress = 0;
+          item.progressKnown = false;
+          item.errorMessage = 'Upload nije uspio.';
+          this.toaster.error('Greška pri uploadu slike.');
+        }
+        this.finishUploadBatch(targetMedicationId, uploadSession);
       },
     });
   }
 
-  private finishUploadBatch(): void {
+  private finishUploadBatch(targetMedicationId: number, uploadSession: number): void {
     this.activeUploadCount = Math.max(0, this.activeUploadCount - 1);
-    if (this.activeUploadCount === 0 && this.medicationId) {
-      this.loadImages(this.medicationId);
+    if (this.activeUploadCount !== 0) {
+      return;
     }
+
+    if (
+      uploadSession !== this.uploadSessionGeneration
+      || this.medicationId !== targetMedicationId
+    ) {
+      return;
+    }
+
+    this.loadImages(targetMedicationId);
   }
 
   private loadImageUrls(medicationId: number, images: MedicationImageDto[]): void {

@@ -55,7 +55,7 @@ internal static class PrescriptionMapping
             Id = i.Id,
             PrescriptionId = i.PrescriptionId,
             MedicationId = i.MedicationId,
-            MedicationName = i.Medication.Name,
+            MedicationName = i.Medication?.Name ?? "Obrisan lijek",
             Quantity = i.Quantity,
             Instructions = i.Instructions,
             UnitPrice = i.UnitPrice
