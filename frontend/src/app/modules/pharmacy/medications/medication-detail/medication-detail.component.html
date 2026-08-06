@@ -1,39 +1,203 @@
-<div class="page-header">
-  <button mat-icon-button type="button" (click)="back()" aria-label="Nazad"><mat-icon>arrow_back</mat-icon></button>
-  <h1>Detalj lijeka</h1>
-  @if (medication) {
-    <button mat-raised-button color="primary" (click)="edit()">Uredi</button>
+<div class="detail-page">
+  @if (isLoading) {
+    <div class="page-body">
+      <app-fit-table-skeleton [rows]="6" [columns]="2"></app-fit-table-skeleton>
+    </div>
+  } @else if (loadError || !medication) {
+    <div class="page-body">
+      <section class="card error-card">
+        <p>Lijek nije pronađen.</p>
+        <div class="error-actions">
+          <button type="button" class="btn btn-outline" (click)="reload()">Pokušaj ponovo</button>
+          <button type="button" class="btn btn-primary" (click)="back()">Nazad na lijekove</button>
+        </div>
+      </section>
+    </div>
+  } @else {
+    <header class="page-top-bar">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a routerLink="/pharmacy/medications">Lijekovi</a>
+        <span aria-hidden="true">/</span>
+        <span class="breadcrumb-current">{{ medication.name }}</span>
+      </nav>
+
+      <div class="page-top-row">
+        <div class="header-copy">
+          <h1>
+            <app-pharmacy-icon name="pill" [size]="24"></app-pharmacy-icon>
+            {{ medication.name }}
+          </h1>
+          <p class="header-meta">Detaljni prikaz lijeka</p>
+        </div>
+        <div class="header-actions">
+          <button type="button" class="btn btn-primary" (click)="edit()">
+            <app-pharmacy-icon name="pencil" [size]="16"></app-pharmacy-icon>
+            Uredi
+          </button>
+          @if (medication.isActive) {
+            <button type="button" class="btn btn-danger-outline" (click)="deleteMedication()">
+              <app-pharmacy-icon name="trash-2" [size]="16"></app-pharmacy-icon>
+              Obriši
+            </button>
+          }
+        </div>
+      </div>
+    </header>
+
+    <div class="page-body">
+      <section class="card hero-card">
+        <div class="hero-grid">
+          <div class="image-panel">
+            @if (imageUrl; as img) {
+              <img [src]="img" [alt]="medication.name" class="medication-image" (error)="onImageError()" />
+            } @else {
+              <div class="image-placeholder">
+                <app-pharmacy-icon name="pill" [size]="48"></app-pharmacy-icon>
+              </div>
+            }
+            <p class="image-caption">{{ medication.name }}</p>
+          </div>
+
+          <div class="summary-panel">
+            <div class="summary-grid">
+              <div class="summary-field">
+                <span class="field-label">Naziv</span>
+                <span class="field-value">{{ medication.name }}</span>
+              </div>
+              <div class="summary-field">
+                <span class="field-label">Cijena</span>
+                <span class="field-value price">{{ medication.price | number:'1.2-2' }} KM</span>
+              </div>
+              <div class="summary-field">
+                <span class="field-label">Kategorija</span>
+                <span class="category-badge">{{ categoryLabel }}</span>
+              </div>
+              <div class="summary-field">
+                <span class="field-label">Status</span>
+                <span class="status-badge" [class.active]="medication.isActive" [class.inactive]="!medication.isActive">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  {{ medication.isActive ? 'Aktivan' : 'Neaktivan' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="kpi-grid" aria-label="Sažetak lijeka">
+        <article class="kpi-card">
+          <p class="kpi-label">Zaliha</p>
+          <p class="kpi-value">{{ medication.stockQuantity }}</p>
+          <p class="kpi-subtitle">Min. nivo: {{ medication.minimumStockLevel }}</p>
+          <div class="progress-track" aria-hidden="true">
+            <div class="progress-fill" [style.width.%]="stockProgressPercent"></div>
+          </div>
+        </article>
+
+        <article class="kpi-card">
+          <p class="kpi-label">Rok trajanja</p>
+          <p class="kpi-value">
+            {{ medication.expiryDate ? (medication.expiryDate | date:'dd.MM.yyyy') : '—' }}
+          </p>
+          <p class="kpi-subtitle" [class]="expiryHintClass">{{ expiryHint }}</p>
+        </article>
+
+        <article class="kpi-card">
+          <p class="kpi-label">Recept</p>
+          <p class="kpi-value">{{ medication.requiresPrescription ? 'Potreban' : 'Nije potreban' }}</p>
+          <p class="kpi-subtitle">
+            {{ medication.requiresPrescription ? 'Zahtijeva recept' : 'Bez recepta (OTC)' }}
+          </p>
+        </article>
+      </section>
+
+      <section class="card info-card">
+        <h2 class="section-title">Detaljne informacije</h2>
+        <div class="info-grid">
+          <div class="info-column">
+            <div class="info-field">
+              <span class="field-label">Generički naziv</span>
+              <span class="field-value">{{ medication.genericName || '—' }}</span>
+            </div>
+            <div class="info-field">
+              <span class="field-label">Proizvođač</span>
+              <span class="field-value">{{ medication.manufacturer || '—' }}</span>
+            </div>
+            <div class="info-field">
+              <span class="field-label">Oblik doze</span>
+              <span class="field-value">{{ dosageFormLabel }}</span>
+            </div>
+          </div>
+          <div class="info-column">
+            <div class="info-field">
+              <span class="field-label">Šifra</span>
+              <span class="field-value">{{ medicationCode }}</span>
+            </div>
+            <div class="info-field">
+              <span class="field-label">Broj serije</span>
+              <span class="field-value">{{ medication.batchNumber || '—' }}</span>
+            </div>
+            <div class="info-field">
+              <span class="field-label">Datum unosa</span>
+              <span class="field-value">{{ medication.createdAt | date:'dd.MM.yyyy' }}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      @if (medication.description) {
+        <section class="card description-card">
+          <h2 class="section-title">Opis</h2>
+          <p class="description-text">{{ medication.description }}</p>
+        </section>
+      }
+
+      <section class="card history-card">
+        <h2 class="section-title">Historija zaliha</h2>
+        @if (stockHistory.length === 0) {
+          <p class="empty-state">Nema zabilježenih promjena zaliha.</p>
+        } @else {
+          <div class="table-scroll">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Datum</th>
+                  <th>Promjena</th>
+                  <th>Stanje</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of stockHistory; track row.date) {
+                  <tr>
+                    <td>{{ row.date }}</td>
+                    <td [class.positive]="row.change.startsWith('+')" [class.negative]="row.change.startsWith('-')">
+                      {{ row.change }}
+                    </td>
+                    <td>{{ row.stock }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+
+      <section class="actions-bar">
+        <button type="button" class="btn btn-primary" (click)="addStock()">
+          <app-pharmacy-icon name="package" [size]="16"></app-pharmacy-icon>
+          Dodaj zalihu
+        </button>
+        @if (medication.isActive) {
+          <button type="button" class="btn btn-outline" (click)="deleteMedication()">
+            <app-pharmacy-icon name="clipboard" [size]="16"></app-pharmacy-icon>
+            Otpiši lijek
+          </button>
+        }
+        <button type="button" class="btn btn-outline" (click)="print()">
+          <app-pharmacy-icon name="file-text" [size]="16"></app-pharmacy-icon>
+          Štampaj
+        </button>
+      </section>
+    </div>
   }
 </div>
-
-@if (isLoading) {
-  <app-fit-table-skeleton [rows]="6" [columns]="2"></app-fit-table-skeleton>
-} @else if (loadError || !medication) {
-  <mat-card>
-    <mat-card-content>
-      <p>Lijek nije pronađen.</p>
-      <button mat-stroked-button type="button" (click)="reload()">Pokušaj ponovo</button>
-      <button mat-stroked-button type="button" (click)="back()">Nazad</button>
-    </mat-card-content>
-  </mat-card>
-} @else {
-  <mat-card>
-    <mat-card-content>
-      <dl class="detail-list">
-        <div><dt>Naziv</dt><dd>{{ medication.name }}</dd></div>
-        <div><dt>Generički naziv</dt><dd>{{ medication.genericName || '-' }}</dd></div>
-        <div><dt>Kategorija</dt><dd>{{ categoryLabel }}</dd></div>
-        <div><dt>Oblik doze</dt><dd>{{ dosageFormLabel }}</dd></div>
-        <div><dt>Proizvođač</dt><dd>{{ medication.manufacturer || '-' }}</dd></div>
-        <div><dt>Cijena</dt><dd>{{ medication.price | number:'1.2-2' }} KM</dd></div>
-        <div><dt>Zaliha</dt><dd>{{ medication.stockQuantity }} / min {{ medication.minimumStockLevel }}</dd></div>
-        <div><dt>Rok trajanja</dt><dd>{{ medication.expiryDate ? (medication.expiryDate | date:'dd.MM.yyyy') : '-' }}</dd></div>
-        <div><dt>Recept</dt><dd>{{ medication.requiresPrescription ? 'Da' : 'Ne (OTC)' }}</dd></div>
-        <div><dt>Status</dt><dd>{{ medication.isActive ? 'Aktivan' : 'Neaktivan' }}</dd></div>
-        @if (medication.description) {
-          <div><dt>Opis</dt><dd>{{ medication.description }}</dd></div>
-        }
-      </dl>
-    </mat-card-content>
-  </mat-card>
-}

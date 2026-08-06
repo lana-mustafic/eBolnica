@@ -4,14 +4,8 @@ import { Router } from '@angular/router';
 import { Subject, catchError, debounceTime, of, switchMap } from 'rxjs';
 import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.service';
 import { MedicationDto } from '../../../api-services/pharmacy/pharmacy-api.models';
-import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
-import { getMedicationCategoryLabel } from '../constants/medication-categories.constant';
+import { getMedicationCategoryLabel, MEDICATION_CATEGORIES } from '../constants/medication-categories.constant';
 import { ToasterService } from '../../../core/services/toaster.service';
-
-interface InventoryActivityItem {
-  type: 'success' | 'warning';
-  message: string;
-}
 
 @Component({
   selector: 'app-pharmacy-inventory',
@@ -25,9 +19,8 @@ export class PharmacyInventoryComponent implements OnInit {
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
 
-  auth = inject(AuthFacadeService);
-
   readonly categoryLabel = getMedicationCategoryLabel;
+  readonly categories = MEDICATION_CATEGORIES;
 
   items: MedicationDto[] = [];
   lowStockAlerts: MedicationDto[] = [];
@@ -35,6 +28,7 @@ export class PharmacyInventoryComponent implements OnInit {
   lowStockAlertCount = 0;
   expiryAlertCount = 0;
   inventoryValue = 0;
+  totalMedications = 0;
   isLoading = true;
   loadError = false;
   totalCount = 0;
@@ -49,7 +43,7 @@ export class PharmacyInventoryComponent implements OnInit {
   sortBy = 'name';
   sortOrder: 'asc' | 'desc' = 'asc';
 
-  displayedColumns = ['name', 'stock', 'expiry', 'actions'];
+  displayedColumns = ['name', 'stock', 'expiry', 'status', 'actions'];
   selectedMedication: MedicationDto | null = null;
 
   private filterChanged$ = new Subject<void>();
@@ -62,9 +56,11 @@ export class PharmacyInventoryComponent implements OnInit {
       .subscribe({
         next: (res) => {
           this.inventoryValue = res.metadata.summary.inventoryValue;
+          this.totalMedications = res.metadata.summary.totalMedications;
         },
         error: () => {
           this.inventoryValue = 0;
+          this.totalMedications = 0;
         },
       });
 
@@ -116,34 +112,25 @@ export class PharmacyInventoryComponent implements OnInit {
     return this.lowStockAlerts[0] ?? null;
   }
 
-  get recentActivities(): InventoryActivityItem[] {
-    const activities: InventoryActivityItem[] = [];
+  formatMedicationCount(count: number): string {
+    if (count === 1) return '1 lijek';
+    if (count >= 2 && count <= 4) return `${count} lijeka`;
+    return `${count} lijekova`;
+  }
 
-    for (const medication of this.lowStockAlerts.slice(0, 3)) {
-      activities.push({
-        type: 'warning',
-        message: `${medication.name} ispod minimuma zalihe (${medication.stockQuantity} / min ${medication.minimumStockLevel})`,
-      });
-    }
+  getDisplayStatus(m: MedicationDto): string {
+    if (m.stockQuantity <= 0) return 'Kritično';
+    if (this.getExpiryStatus(m) === 'Istekao') return 'Kritično';
+    if (m.stockQuantity < m.minimumStockLevel) return 'Niska';
+    if (this.getExpiryStatus(m) === 'Ističe uskoro') return 'Niska';
+    return 'Dostupno';
+  }
 
-    for (const medication of this.expiryAlerts.slice(0, 3)) {
-      const date = medication.expiryDate
-        ? new Date(medication.expiryDate).toLocaleDateString('bs-BA')
-        : '-';
-      activities.push({
-        type: 'warning',
-        message: `${medication.name} ističe uskoro (${date})`,
-      });
-    }
-
-    if (activities.length === 0) {
-      activities.push({
-        type: 'success',
-        message: 'Nema aktivnih upozorenja za inventar.',
-      });
-    }
-
-    return activities.slice(0, 6);
+  getDisplayStatusClass(m: MedicationDto): string {
+    const status = this.getDisplayStatus(m);
+    if (status === 'Kritično') return 'critical';
+    if (status === 'Niska') return 'low';
+    return 'ok';
   }
 
   hasActiveFilters(): boolean {
@@ -159,22 +146,6 @@ export class PharmacyInventoryComponent implements OnInit {
     if (m.stockQuantity <= 0) return 'Kritično';
     if (m.stockQuantity < m.minimumStockLevel) return 'Niska zaliha';
     return 'Dostupno';
-  }
-
-  getStockStatusClass(m: MedicationDto): string {
-    const status = this.getStockStatus(m);
-    if (status === 'Niska zaliha') return 'low';
-    if (status === 'Kritično') return 'critical';
-    return 'ok';
-  }
-
-  getStockFillPercent(m: MedicationDto): number {
-    if (m.minimumStockLevel <= 0) {
-      return m.stockQuantity > 0 ? 100 : 0;
-    }
-
-    const target = m.minimumStockLevel * 2;
-    return Math.min(100, Math.round((m.stockQuantity / target) * 100));
   }
 
   getExpiryStatus(m: MedicationDto): string {
@@ -195,6 +166,13 @@ export class PharmacyInventoryComponent implements OnInit {
     if (status === 'Istekao') return 'critical';
     if (status === 'Važi') return 'ok';
     return 'neutral';
+  }
+
+  getStockStatusClass(m: MedicationDto): string {
+    const status = this.getStockStatus(m);
+    if (status === 'Niska zaliha') return 'low';
+    if (status === 'Kritično') return 'critical';
+    return 'ok';
   }
 
   viewMedication(id: number): void {
@@ -225,8 +203,39 @@ export class PharmacyInventoryComponent implements OnInit {
     };
   }
 
-  onFilterChange(): void {
+  onSearchInput(): void {
     this.filterChanged$.next();
+  }
+
+  applyFilters(): void {
+    this.currentPage = 1;
+    this.loadTrigger$.next();
+  }
+
+  reload(): void {
+    this.pharmacyApi
+      .getDashboardStats()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.inventoryValue = res.metadata.summary.inventoryValue;
+          this.totalMedications = res.metadata.summary.totalMedications;
+        },
+      });
+    this.loadTrigger$.next();
+  }
+
+  exportPdf(): void {
+    this.pharmacyApi
+      .exportInventoryPdf(this.buildRequest())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.pharmacyApi.downloadBlobResponse(res, 'inventory.pdf');
+          this.toaster.success('PDF inventar preuzet.');
+        },
+        error: () => this.toaster.error('Greška pri exportu PDF.'),
+      });
   }
 
   clearFilters(): void {
