@@ -23,6 +23,7 @@
         <div><dt>Naziv</dt><dd>{{ medication.name }}</dd></div>
         <div><dt>Generički naziv</dt><dd>{{ medication.genericName || '-' }}</dd></div>
         <div><dt>Kategorija</dt><dd>{{ medication.category || '-' }}</dd></div>
+        <div><dt>Oblik doze</dt><dd>{{ dosageFormLabel }}</dd></div>
         <div><dt>Proizvođač</dt><dd>{{ medication.manufacturer || '-' }}</dd></div>
         <div><dt>Cijena</dt><dd>{{ medication.price | number:'1.2-2' }} KM</dd></div>
         <div><dt>Zaliha</dt><dd>{{ medication.stockQuantity }} / min {{ medication.minimumStockLevel }}</dd></div>

@@ -12,6 +12,7 @@ import { ToasterService } from '../../../core/services/toaster.service';
 import { DialogButton, DialogType } from '../../shared/models/dialog-config.model';
 import { DialogHelperService } from '../../shared/services/dialog-helper.service';
 import { MedicationImageUrlService } from '../services/medication-image-url.service';
+import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
 
 @Component({
   selector: 'app-pharmacy-medications',
@@ -28,6 +29,8 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   private toaster = inject(ToasterService);
   private dialog = inject(DialogHelperService);
   private destroyRef = inject(DestroyRef);
+
+  auth = inject(AuthFacadeService);
 
   medications: MedicationDto[] = [];
   isLoading = false;
@@ -411,17 +414,33 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
 
   getStockStatus(m: MedicationDto): string {
     if (!m.isActive) return 'Neaktivan';
-    if (m.stockQuantity === 0) return 'Nema na stanju';
-    if (m.stockQuantity < m.minimumStockLevel) return 'Nizak nivo';
-    return 'OK';
+    if (m.stockQuantity === 0) return 'Nedostupno';
+    if (m.stockQuantity < m.minimumStockLevel) return 'Niska zaliha';
+    return 'Dostupno';
   }
 
   getStockStatusClass(m: MedicationDto): string {
     const status = this.getStockStatus(m);
-    if (status === 'Nizak nivo') return 'low';
-    if (status === 'Nema na stanju') return 'out';
+    if (status === 'Niska zaliha') return 'low';
+    if (status === 'Nedostupno') return 'out';
     if (status === 'Neaktivan') return 'inactive';
     return 'ok';
+  }
+
+  get lowStockOnPageCount(): number {
+    return this.medications.filter(
+      (m) => m.isActive && m.stockQuantity > 0 && m.stockQuantity < m.minimumStockLevel
+    ).length;
+  }
+
+  get expiringSoonOnPageCount(): number {
+    const now = new Date();
+    const horizon = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    return this.medications.filter((m) => {
+      if (!m.expiryDate) return false;
+      const expiry = new Date(m.expiryDate);
+      return expiry >= now && expiry <= horizon;
+    }).length;
   }
 
   private loadThumbnailUrls(): void {

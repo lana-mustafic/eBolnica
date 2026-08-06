@@ -15,7 +15,12 @@ export type PharmacyIconName =
   | 'log-out'
   | 'check-circle'
   | 'file-text'
-  | 'activity';
+  | 'activity'
+  | 'search'
+  | 'download'
+  | 'upload'
+  | 'pencil'
+  | 'trash-2';
 
 @Component({
   selector: 'app-pharmacy-icon',

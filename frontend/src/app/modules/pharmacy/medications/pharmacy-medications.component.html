@@ -1,28 +1,53 @@
-<div class="page-header">
-  <h1>Lijekovi</h1>
-  <div class="header-actions">
-    <button mat-stroked-button (click)="exportCsv()">
-      <mat-icon>download</mat-icon> Export CSV
-    </button>
-    <button mat-stroked-button (click)="exportPdf()">
-      <mat-icon>picture_as_pdf</mat-icon> Export inventar PDF
-    </button>
-    <button mat-stroked-button (click)="downloadTemplate()">Template</button>
-    <button mat-stroked-button (click)="triggerImport()" [disabled]="isImporting">
-      <mat-icon>upload</mat-icon> Import CSV
-    </button>
-    <button mat-stroked-button (click)="openWizard()">Wizard</button>
-    <button mat-raised-button color="primary" (click)="createNew()">
-      <mat-icon>add</mat-icon> Novi lijek
-    </button>
+<div class="medications-page">
+  <header class="page-header">
+    <div class="header-copy">
+      <h1>Lijekovi</h1>
+      <p class="page-subtitle">Upravljanje lijekovima i zalihama</p>
+    </div>
+    <div class="profile-chip">
+      <div class="profile-avatar">F</div>
+      <div class="profile-meta">
+        <span class="profile-role">Farmaceut</span>
+        <span class="profile-email">{{ auth.currentUser()?.email }}</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="toolbar-primary">
+      <button type="button" class="btn btn-primary" (click)="createNew()">
+        <app-pharmacy-icon name="plus" [size]="18"></app-pharmacy-icon>
+        Novi lijek
+      </button>
+    </div>
+    <div class="toolbar-secondary">
+      <button type="button" class="btn btn-secondary" (click)="exportCsv()">
+        <app-pharmacy-icon name="download" [size]="16"></app-pharmacy-icon>
+        Export CSV
+      </button>
+      <button type="button" class="btn btn-secondary" (click)="exportPdf()">
+        <app-pharmacy-icon name="file-text" [size]="16"></app-pharmacy-icon>
+        Export PDF
+      </button>
+      <button type="button" class="btn btn-secondary" (click)="triggerImport()" [disabled]="isImporting">
+        <app-pharmacy-icon name="upload" [size]="16"></app-pharmacy-icon>
+        Import CSV
+      </button>
+      <button type="button" class="btn btn-secondary" (click)="downloadTemplate()">
+        <app-pharmacy-icon name="file-text" [size]="16"></app-pharmacy-icon>
+        Template
+      </button>
+      <button type="button" class="btn btn-secondary" (click)="openWizard()">
+        <app-pharmacy-icon name="activity" [size]="16"></app-pharmacy-icon>
+        Wizard
+      </button>
+    </div>
   </div>
-</div>
 
-<input #csvInput type="file" accept=".csv" hidden (change)="onImportFileSelected($event)" />
+  <input #csvInput type="file" accept=".csv" hidden (change)="onImportFileSelected($event)" />
 
-@if (importSummary) {
-  <mat-card class="import-summary">
-    <mat-card-content>
+  @if (importSummary) {
+    <section class="surface-card import-summary">
       <strong>Import rezultat:</strong>
       {{ importSummary.successCount }} uspješno, {{ importSummary.failureCount }} grešaka
       ({{ importSummary.totalRows }} redova).
@@ -33,223 +58,293 @@
           }
         </ul>
       }
-    </mat-card-content>
-  </mat-card>
-}
-
-<div class="filters">
-  <div class="search-wrap">
-    <mat-form-field appearance="outline" class="search-field">
-      <mat-label>Pretraga</mat-label>
-      <input
-        matInput
-        role="combobox"
-        aria-autocomplete="list"
-        aria-controls="medication-autocomplete-list"
-        [attr.aria-expanded]="showAutocomplete"
-        [attr.aria-activedescendant]="activeSuggestionId"
-        [(ngModel)]="search"
-        (input)="onSearchInput()"
-        (focus)="onSearchInput()"
-        (keydown)="onSearchKeydown($event)"
-        (blur)="onSearchBlur()"
-      />
-    </mat-form-field>
-    @if (showAutocomplete) {
-      <ul id="medication-autocomplete-list" class="autocomplete-list" role="listbox">
-        @for (s of autocompleteSuggestions; track s.id; let i = $index) {
-          <li
-            [id]="'medication-suggestion-' + i"
-            role="option"
-            [class.selected]="i === selectedSuggestionIndex"
-            [attr.aria-selected]="i === selectedSuggestionIndex"
-            (mousedown)="selectSuggestion(s)"
-          >
-            <strong>{{ s.name }}</strong>
-            <span>{{ s.category }} · {{ s.manufacturer }}</span>
-          </li>
-        }
-      </ul>
-    }
-  </div>
-
-  <mat-form-field appearance="outline">
-    <mat-label>Kategorija</mat-label>
-    <input matInput [(ngModel)]="selectedCategory" (input)="onFilterChange()" />
-  </mat-form-field>
-
-  <mat-form-field appearance="outline">
-    <mat-label>Stanje zaliha</mat-label>
-    <mat-select [(ngModel)]="selectedStockStatus" (selectionChange)="onFilterChange()">
-      <mat-option value="">Sve</mat-option>
-      <mat-option value="low stock">Nizak nivo</mat-option>
-      <mat-option value="out of stock">Nema na stanju</mat-option>
-      <mat-option value="normal stock">Normalno</mat-option>
-    </mat-select>
-  </mat-form-field>
-
-  <mat-form-field appearance="outline">
-    <mat-label>Recept</mat-label>
-    <mat-select [(ngModel)]="selectedRequiresPrescription" (selectionChange)="onFilterChange()">
-      <mat-option value="">Sve</mat-option>
-      <mat-option value="true">Na recept</mat-option>
-      <mat-option value="false">Bez recepta (OTC)</mat-option>
-    </mat-select>
-  </mat-form-field>
-
-  <mat-checkbox [(ngModel)]="showInactive" (change)="onFilterChange()">Prikaži neaktivne</mat-checkbox>
-
-  @if (hasActiveFilters()) {
-    <button mat-stroked-button type="button" (click)="clearFilters()">Očisti filtere</button>
+    </section>
   }
-</div>
 
-@if (loadError) {
-  <mat-card class="error-card">
-    <mat-card-content>
+  <section class="kpi-row" aria-label="Statistike lijekova">
+    <app-pharmacy-kpi-card
+      icon="pill"
+      tone="purple"
+      title="Ukupno lijekova"
+      [value]="totalCount"
+      subtitle="Svi lijekovi u sistemu"
+    ></app-pharmacy-kpi-card>
+    <app-pharmacy-kpi-card
+      icon="triangle-alert"
+      tone="orange"
+      title="Niska zaliha"
+      [value]="lowStockOnPageCount"
+      subtitle="Na trenutnoj stranici"
+    ></app-pharmacy-kpi-card>
+    <app-pharmacy-kpi-card
+      icon="calendar"
+      tone="red"
+      title="Ističe uskoro"
+      [value]="expiringSoonOnPageCount"
+      subtitle="Sljedećih 30 dana (stranica)"
+    ></app-pharmacy-kpi-card>
+  </section>
+
+  <section class="surface-card filters-card">
+    <div class="filters-heading">
+      <h2>Filteri</h2>
+      <p>Pretraži i suzi listu lijekova</p>
+    </div>
+    <div class="filters-grid">
+      <div class="search-wrap filter-field">
+        <label class="field-label" for="medication-search">Pretraga</label>
+        <div class="input-with-icon">
+          <app-pharmacy-icon name="search" [size]="18"></app-pharmacy-icon>
+          <input
+            id="medication-search"
+            type="text"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-controls="medication-autocomplete-list"
+            [attr.aria-expanded]="showAutocomplete"
+            [attr.aria-activedescendant]="activeSuggestionId"
+            [(ngModel)]="search"
+            placeholder="Pretraži lijekove..."
+            (input)="onSearchInput()"
+            (focus)="onSearchInput()"
+            (keydown)="onSearchKeydown($event)"
+            (blur)="onSearchBlur()"
+          />
+        </div>
+        @if (showAutocomplete) {
+          <ul id="medication-autocomplete-list" class="autocomplete-list" role="listbox">
+            @for (s of autocompleteSuggestions; track s.id; let i = $index) {
+              <li
+                [id]="'medication-suggestion-' + i"
+                role="option"
+                [class.selected]="i === selectedSuggestionIndex"
+                [attr.aria-selected]="i === selectedSuggestionIndex"
+                (mousedown)="selectSuggestion(s)"
+              >
+                <strong>{{ s.name }}</strong>
+                <span>{{ s.category }} · {{ s.manufacturer }}</span>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+
+      <div class="filter-field">
+        <label class="field-label" for="medication-category">Kategorija</label>
+        <div class="input-with-icon">
+          <app-pharmacy-icon name="package" [size]="18"></app-pharmacy-icon>
+          <input
+            id="medication-category"
+            type="text"
+            [(ngModel)]="selectedCategory"
+            placeholder="Sve kategorije"
+            (input)="onFilterChange()"
+          />
+        </div>
+      </div>
+
+      <div class="filter-field">
+        <label class="field-label">Stanje zaliha</label>
+        <mat-form-field appearance="outline" class="compact-field">
+          <mat-select [(ngModel)]="selectedStockStatus" (selectionChange)="onFilterChange()">
+            <mat-option value="">Sve</mat-option>
+            <mat-option value="low stock">Nizak nivo</mat-option>
+            <mat-option value="out of stock">Nema na stanju</mat-option>
+            <mat-option value="normal stock">Normalno</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <div class="filter-field">
+        <label class="field-label">Recept</label>
+        <mat-form-field appearance="outline" class="compact-field">
+          <mat-select [(ngModel)]="selectedRequiresPrescription" (selectionChange)="onFilterChange()">
+            <mat-option value="">Sve</mat-option>
+            <mat-option value="true">Na recept</mat-option>
+            <mat-option value="false">Bez recepta (OTC)</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <div class="filter-field filter-checkbox">
+        <mat-checkbox [(ngModel)]="showInactive" (change)="onFilterChange()">Prikaži neaktivne</mat-checkbox>
+      </div>
+
+      @if (hasActiveFilters()) {
+        <div class="filter-field filter-clear">
+          <button type="button" class="btn btn-secondary" (click)="clearFilters()">Očisti filtere</button>
+        </div>
+      }
+    </div>
+  </section>
+
+  @if (loadError) {
+    <section class="surface-card error-card">
       <p>Greška pri učitavanju lijekova.</p>
-      <button mat-stroked-button type="button" (click)="retryLoad()">Pokušaj ponovo</button>
-    </mat-card-content>
-  </mat-card>
-} @else if (isLoading) {
-  <app-fit-table-skeleton [rows]="5" [columns]="6"></app-fit-table-skeleton>
-} @else if (medications.length === 0) {
-  <mat-card>
-    <mat-card-content>
+      <button type="button" class="btn btn-secondary" (click)="retryLoad()">Pokušaj ponovo</button>
+    </section>
+  } @else if (isLoading) {
+    <app-fit-table-skeleton [rows]="5" [columns]="6"></app-fit-table-skeleton>
+  } @else if (medications.length === 0) {
+    <section class="surface-card empty-card">
       <p class="empty">Nema lijekova za odabrane filtere.</p>
       @if (hasActiveFilters()) {
-        <button mat-stroked-button type="button" (click)="clearFilters()">Očisti filtere</button>
+        <button type="button" class="btn btn-secondary" (click)="clearFilters()">Očisti filtere</button>
       }
-    </mat-card-content>
-  </mat-card>
-} @else {
-  <div class="table-scroll">
-  <table mat-table [dataSource]="medications" class="medications-table">
-    <ng-container matColumnDef="name">
-      <th
-        mat-header-cell
-        *matHeaderCellDef
-        (click)="onSort('name')"
-        class="sortable"
-        role="button"
-        tabindex="0"
-        [attr.aria-sort]="sortAriaSort('name')"
-        (keydown)="onSortKeydown($event, 'name')"
-      >
-        Naziv{{ sortIndicator('name') }}
-      </th>
-      <td mat-cell *matCellDef="let m">
-        <div class="name-cell">
-          @if (imageUrl(m); as img) {
-            <img [src]="img" alt="" class="thumb" (error)="onImageError(m.id)" />
-          }
-          <div>
-            <button type="button" class="link-button" (click)="openDetail(m.id)">
-              <strong>{{ m.name }}</strong>
-            </button>
-            @if (m.genericName) {
-              <div class="sub">{{ m.genericName }}</div>
-            }
-          </div>
-        </div>
-      </td>
-    </ng-container>
+    </section>
+  } @else {
+    <section class="surface-card table-card">
+      <div class="table-scroll">
+        <table mat-table [dataSource]="medications" class="medications-table">
+          <ng-container matColumnDef="name">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              (click)="onSort('name')"
+              class="sortable"
+              role="button"
+              tabindex="0"
+              [attr.aria-sort]="sortAriaSort('name')"
+              (keydown)="onSortKeydown($event, 'name')"
+            >
+              Naziv{{ sortIndicator('name') }}
+            </th>
+            <td mat-cell *matCellDef="let m">
+              <div class="name-cell">
+                @if (imageUrl(m); as img) {
+                  <img [src]="img" alt="" class="thumb" (error)="onImageError(m.id)" />
+                } @else {
+                  <span class="thumb-placeholder" aria-hidden="true">
+                    <app-pharmacy-icon name="pill" [size]="18"></app-pharmacy-icon>
+                  </span>
+                }
+                <div>
+                  <button type="button" class="link-button" (click)="openDetail(m.id)">
+                    <strong>{{ m.name }}</strong>
+                  </button>
+                  @if (m.genericName) {
+                    <div class="sub">{{ m.genericName }}</div>
+                  }
+                </div>
+              </div>
+            </td>
+          </ng-container>
 
-    <ng-container matColumnDef="category">
-      <th
-        mat-header-cell
-        *matHeaderCellDef
-        (click)="onSort('category')"
-        (keydown)="onSortKeydown($event, 'category')"
-        class="sortable"
-        role="button"
-        tabindex="0"
-        [attr.aria-sort]="sortAriaSort('category')"
-      >
-        Kategorija{{ sortIndicator('category') }}
-      </th>
-      <td mat-cell *matCellDef="let m">{{ m.category || '-' }}</td>
-    </ng-container>
+          <ng-container matColumnDef="category">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              (click)="onSort('category')"
+              (keydown)="onSortKeydown($event, 'category')"
+              class="sortable"
+              role="button"
+              tabindex="0"
+              [attr.aria-sort]="sortAriaSort('category')"
+            >
+              Kategorija{{ sortIndicator('category') }}
+            </th>
+            <td mat-cell *matCellDef="let m">{{ m.category || '-' }}</td>
+          </ng-container>
 
-    <ng-container matColumnDef="price">
-      <th
-        mat-header-cell
-        *matHeaderCellDef
-        (click)="onSort('price')"
-        (keydown)="onSortKeydown($event, 'price')"
-        class="sortable"
-        role="button"
-        tabindex="0"
-        [attr.aria-sort]="sortAriaSort('price')"
-      >
-        Cijena{{ sortIndicator('price') }}
-      </th>
-      <td mat-cell *matCellDef="let m">{{ m.price | number:'1.2-2' }} KM</td>
-    </ng-container>
+          <ng-container matColumnDef="price">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              (click)="onSort('price')"
+              (keydown)="onSortKeydown($event, 'price')"
+              class="sortable"
+              role="button"
+              tabindex="0"
+              [attr.aria-sort]="sortAriaSort('price')"
+            >
+              Cijena{{ sortIndicator('price') }}
+            </th>
+            <td mat-cell *matCellDef="let m">{{ m.price | number:'1.2-2' }} KM</td>
+          </ng-container>
 
-    <ng-container matColumnDef="stockQuantity">
-      <th
-        mat-header-cell
-        *matHeaderCellDef
-        (click)="onSort('stockQuantity')"
-        (keydown)="onSortKeydown($event, 'stockQuantity')"
-        class="sortable"
-        role="button"
-        tabindex="0"
-        [attr.aria-sort]="sortAriaSort('stockQuantity')"
-      >
-        Zaliha{{ sortIndicator('stockQuantity') }}
-      </th>
-      <td mat-cell *matCellDef="let m">{{ m.stockQuantity }} / min {{ m.minimumStockLevel }}</td>
-    </ng-container>
+          <ng-container matColumnDef="stockQuantity">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              (click)="onSort('stockQuantity')"
+              (keydown)="onSortKeydown($event, 'stockQuantity')"
+              class="sortable"
+              role="button"
+              tabindex="0"
+              [attr.aria-sort]="sortAriaSort('stockQuantity')"
+            >
+              Zaliha{{ sortIndicator('stockQuantity') }}
+            </th>
+            <td mat-cell *matCellDef="let m">{{ m.stockQuantity }} / min {{ m.minimumStockLevel }}</td>
+          </ng-container>
 
-    <ng-container matColumnDef="expiryDate">
-      <th
-        mat-header-cell
-        *matHeaderCellDef
-        (click)="onSort('expiryDate')"
-        (keydown)="onSortKeydown($event, 'expiryDate')"
-        class="sortable"
-        role="button"
-        tabindex="0"
-        [attr.aria-sort]="sortAriaSort('expiryDate')"
-      >
-        Rok trajanja{{ sortIndicator('expiryDate') }}
-      </th>
-      <td mat-cell *matCellDef="let m">{{ m.expiryDate ? (m.expiryDate | date:'dd.MM.yyyy') : '-' }}</td>
-    </ng-container>
+          <ng-container matColumnDef="expiryDate">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              (click)="onSort('expiryDate')"
+              (keydown)="onSortKeydown($event, 'expiryDate')"
+              class="sortable"
+              role="button"
+              tabindex="0"
+              [attr.aria-sort]="sortAriaSort('expiryDate')"
+            >
+              Rok trajanja{{ sortIndicator('expiryDate') }}
+            </th>
+            <td mat-cell *matCellDef="let m">{{ m.expiryDate ? (m.expiryDate | date:'dd.MM.yyyy') : '-' }}</td>
+          </ng-container>
 
-    <ng-container matColumnDef="status">
-      <th mat-header-cell *matHeaderCellDef>Status</th>
-      <td mat-cell *matCellDef="let m">
-        <span class="status-badge" [class]="getStockStatusClass(m)">{{ getStockStatus(m) }}</span>
-      </td>
-    </ng-container>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let m">
+              <span class="status-badge" [class]="getStockStatusClass(m)">{{ getStockStatus(m) }}</span>
+            </td>
+          </ng-container>
 
-    <ng-container matColumnDef="actions">
-      <th mat-header-cell *matHeaderCellDef>Akcije</th>
-      <td mat-cell *matCellDef="let m">
-        <button mat-icon-button (click)="editMedication(m.id)" matTooltip="Uredi" aria-label="Uredi lijek">
-          <mat-icon>edit</mat-icon>
-        </button>
-        @if (m.isActive) {
-          <button mat-icon-button color="warn" (click)="deleteMedication(m)" matTooltip="Deaktiviraj" aria-label="Deaktiviraj lijek">
-            <mat-icon>delete</mat-icon>
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>Akcije</th>
+            <td mat-cell *matCellDef="let m">
+              <div class="row-actions">
+                <button
+                  type="button"
+                  class="icon-action edit"
+                  (click)="editMedication(m.id)"
+                  matTooltip="Uredi"
+                  aria-label="Uredi lijek"
+                >
+                  <app-pharmacy-icon name="pencil" [size]="16"></app-pharmacy-icon>
+                </button>
+                @if (m.isActive) {
+                  <button
+                    type="button"
+                    class="icon-action delete"
+                    (click)="deleteMedication(m)"
+                    matTooltip="Deaktiviraj"
+                    aria-label="Deaktiviraj lijek"
+                  >
+                    <app-pharmacy-icon name="trash-2" [size]="16"></app-pharmacy-icon>
+                  </button>
+                }
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="data-row"></tr>
+        </table>
+      </div>
+
+      @if (totalPages > 1) {
+        <div class="pagination">
+          <button type="button" class="btn btn-secondary" (click)="goToPage(currentPage - 1)" [disabled]="currentPage <= 1">
+            Prethodna
           </button>
-        }
-      </td>
-    </ng-container>
-
-    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-  </table>
-  </div>
-
-  @if (totalPages > 1) {
-    <div class="pagination">
-      <button mat-stroked-button (click)="goToPage(currentPage - 1)" [disabled]="currentPage <= 1">Prethodna</button>
-      <span>Stranica {{ currentPage }} / {{ totalPages }} ({{ totalCount }})</span>
-      <button mat-stroked-button (click)="goToPage(currentPage + 1)" [disabled]="currentPage >= totalPages">Sljedeća</button>
-    </div>
+          <span>Stranica {{ currentPage }} / {{ totalPages }} ({{ totalCount }})</span>
+          <button type="button" class="btn btn-secondary" (click)="goToPage(currentPage + 1)" [disabled]="currentPage >= totalPages">
+            Sljedeća
+          </button>
+        </div>
+      }
+    </section>
   }
-}
+</div>

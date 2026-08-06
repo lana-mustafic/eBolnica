@@ -1,3 +1,4 @@
+import { normalizeDosageForm } from '../constants/medication-dosage-forms.constant';
 import {
   MedicationWizardDraft,
   MedicationWizardDraftFormValue,
@@ -41,7 +42,7 @@ export function toMedicationWizardDraftFormValue(
     price: Number(raw['price'] ?? 0),
     stockQuantity: Number(raw['stockQuantity'] ?? 0),
     minimumStockLevel: Number(raw['minimumStockLevel'] ?? 0),
-    dosageForm: String(raw['dosageForm'] ?? ''),
+    dosageForm: normalizeDosageForm(String(raw['dosageForm'] ?? '')),
     strength: String(raw['strength'] ?? ''),
     expiryDate: String(raw['expiryDate'] ?? ''),
     batchNumber: String(raw['batchNumber'] ?? ''),

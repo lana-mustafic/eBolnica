@@ -11,7 +11,10 @@ import { ToasterService } from '../../../../core/services/toaster.service';
 import { DialogButton, DialogType } from '../../../shared/models/dialog-config.model';
 import { DialogHelperService } from '../../../shared/services/dialog-helper.service';
 import { medicationNameAsyncValidator } from '../../../shared/validators/medication-name-async.validator';
-import { MEDICATION_DOSAGE_FORMS } from '../../constants/medication-dosage-forms.constant';
+import {
+  MEDICATION_DOSAGE_FORMS,
+  normalizeDosageForm,
+} from '../../constants/medication-dosage-forms.constant';
 import { MedicationImageUrlService } from '../../services/medication-image-url.service';
 import {
   MedicationImageLightboxComponent,
@@ -225,7 +228,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
       isActive: m.isActive,
       requiresPrescription: m.requiresPrescription,
       category: m.category ?? '',
-      dosageForm: m.dosageForm ?? '',
+      dosageForm: normalizeDosageForm(m.dosageForm),
       strength: m.strength ?? '',
     });
     this.isLoading = false;
