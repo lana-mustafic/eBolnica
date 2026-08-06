@@ -24,7 +24,9 @@ export type PharmacyIconName =
   | 'more-vertical'
   | 'clock'
   | 'eye'
-  | 'user';
+  | 'user'
+  | 'phone'
+  | 'printer';
 
 @Component({
   selector: 'app-pharmacy-icon',

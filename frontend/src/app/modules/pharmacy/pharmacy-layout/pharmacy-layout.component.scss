@@ -8,6 +8,7 @@
 .sidenav-container {
   height: 100vh;
   background: $pharmacy-bg;
+  overflow: hidden;
 }
 
 .sidenav {
@@ -94,6 +95,8 @@
     background: $pharmacy-sidebar-active;
     color: #fff;
     box-shadow: 0 8px 20px rgba(124, 58, 237, 0.35);
+    border-left: 3px solid #3b82f6;
+    padding-left: 13px;
   }
 }
 
@@ -160,8 +163,13 @@
 
 .main-content {
   padding: $pharmacy-space-md;
+  padding-bottom: calc(#{$pharmacy-space-md} + #{$pharmacy-space-lg});
   background: $pharmacy-bg;
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .mobile-toolbar {
