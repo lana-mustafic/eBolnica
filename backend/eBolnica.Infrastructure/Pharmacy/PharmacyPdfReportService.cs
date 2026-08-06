@@ -1,5 +1,4 @@
 using eBolnica.Application.Abstractions;
-using eBolnica.Application.Modules.Pharmacy.Analytics;
 using eBolnica.Domain.Entities.Clinical;
 using eBolnica.Domain.Entities.Pharmacy;
 using QuestPDF.Fluent;
@@ -10,111 +9,376 @@ namespace eBolnica.Infrastructure.Pharmacy;
 
 public sealed class PharmacyPdfReportService : IPharmacyPdfReportService
 {
+    private static readonly Color Primary = Color.FromHex("#7C3AED");
+    private static readonly Color PageBg = Color.FromHex("#F8FAFC");
+    private static readonly Color TextPrimary = Color.FromHex("#111827");
+    private static readonly Color TextSecondary = Color.FromHex("#6B7280");
+    private static readonly Color Border = Color.FromHex("#E5E7EB");
+    private static readonly Color RowAlt = Color.FromHex("#F9FAFB");
+    private static readonly Color Success = Color.FromHex("#22C55E");
+    private static readonly Color Warning = Color.FromHex("#F59E0B");
+    private static readonly Color Danger = Color.FromHex("#EF4444");
+
+    private static readonly Dictionary<string, string> LegacyDosageForms = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Tablet"] = "Tableta",
+        ["Capsule"] = "Kapsula",
+        ["Liquid"] = "Tečnost",
+        ["Injection"] = "Injekcija",
+        ["Cream"] = "Krema",
+        ["Drops"] = "Kapi",
+        ["Other"] = "Ostalo",
+    };
+
     static PharmacyPdfReportService()
     {
         QuestPDF.Settings.License = LicenseType.Community;
     }
 
-    public byte[] GenerateInventoryPdf(IReadOnlyList<MedicationEntity> medications) =>
-        Document.Create(container =>
-        {
-            container.Page(page =>
-            {
-                page.Size(PageSizes.A4);
-                page.Margin(40);
-                page.Header().Text("eBolnica — Inventar lijekova").Bold().FontSize(18);
-                page.Content().Table(table =>
-                {
-                    table.ColumnsDefinition(c =>
-                    {
-                        c.ConstantColumn(24);
-                        c.RelativeColumn(3);
-                        c.RelativeColumn(2);
-                        c.RelativeColumn(1);
-                        c.RelativeColumn(1);
-                        c.RelativeColumn(2);
-                    });
-                    table.Header(h =>
-                    {
-                        h.Cell().Text("#").Bold();
-                        h.Cell().Text("Naziv").Bold();
-                        h.Cell().Text("Kategorija").Bold();
-                        h.Cell().Text("Cijena").Bold();
-                        h.Cell().Text("Zaliha").Bold();
-                        h.Cell().Text("Rok").Bold();
-                    });
-                    for (var i = 0; i < medications.Count; i++)
-                    {
-                        var m = medications[i];
-                        table.Cell().Text((i + 1).ToString());
-                        table.Cell().Text(m.Name);
-                        table.Cell().Text(m.Category ?? "-");
-                        table.Cell().Text($"{m.Price:F2} KM");
-                        table.Cell().Text(m.StockQuantity.ToString());
-                        table.Cell().Text(m.ExpiryDate?.ToString("dd.MM.yyyy") ?? "-");
-                    }
-                });
-                page.Footer().AlignCenter().Text(t =>
-                {
-                    t.Span("Generisano: ");
-                    t.Span(DateTime.UtcNow.ToString("dd.MM.yyyy HH:mm"));
-                });
-            });
-        }).GeneratePdf();
+    public byte[] GenerateInventoryPdf(IReadOnlyList<MedicationEntity> medications)
+    {
+        var generatedAt = DateTime.UtcNow;
+        var lowStockCount = medications.Count(m =>
+            m.IsActive && m.StockQuantity > 0 && m.StockQuantity < m.MinimumStockLevel);
+        var outOfStockCount = medications.Count(m => m.IsActive && m.StockQuantity <= 0);
+        var expiringSoonCount = CountExpiringSoon(medications, generatedAt);
 
-    public byte[] GeneratePrescriptionsPdf(IReadOnlyList<PrescriptionEntity> prescriptions) =>
-        Document.Create(container =>
+        return Document.Create(container =>
         {
             container.Page(page =>
             {
                 page.Size(PageSizes.A4);
-                page.Margin(40);
-                page.Header().Text("eBolnica — Izvještaj recepata").Bold().FontSize(18);
-                page.Content().Table(table =>
-                {
-                    table.ColumnsDefinition(c =>
-                    {
-                        c.ConstantColumn(24);
-                        c.RelativeColumn(2);
-                        c.RelativeColumn(2);
-                        c.RelativeColumn(2);
-                        c.RelativeColumn(1);
-                        c.RelativeColumn(1);
-                        c.RelativeColumn(2);
-                    });
-                    table.Header(h =>
-                    {
-                        h.Cell().Text("#").Bold();
-                        h.Cell().Text("Broj").Bold();
-                        h.Cell().Text("Pacijent").Bold();
-                        h.Cell().Text("Doktor").Bold();
-                        h.Cell().Text("Status").Bold();
-                        h.Cell().Text("Iznos").Bold();
-                        h.Cell().Text("Datum").Bold();
-                    });
-                    for (var i = 0; i < prescriptions.Count; i++)
-                    {
-                        var p = prescriptions[i];
-                        table.Cell().Text((i + 1).ToString());
-                        table.Cell().Text(p.PrescriptionNumber);
-                        table.Cell().Text(FormatPatientName(p.Patient));
-                        table.Cell().Text(FormatDoctorName(p.Doctor));
-                        table.Cell().Text(p.Status);
-                        table.Cell().Text($"{p.TotalAmount:F2} KM");
-                        table.Cell().Text(p.PrescribedDate.ToString("dd.MM.yyyy"));
-                    }
-                });
-                page.Footer().AlignCenter().Text(t =>
-                {
-                    t.Span("Generisano: ");
-                    t.Span(DateTime.UtcNow.ToString("dd.MM.yyyy HH:mm"));
-                });
+                page.MarginHorizontal(32);
+                page.MarginVertical(28);
+                page.DefaultTextStyle(x => x.FontSize(9).FontColor(TextPrimary));
+
+                page.Background().Background(PageBg);
+
+                page.Header().Element(header =>
+                    ComposeInventoryHeader(header, generatedAt, medications.Count, lowStockCount, outOfStockCount, expiringSoonCount));
+
+                page.Content().PaddingTop(12).Element(content =>
+                    ComposeInventoryTable(content, medications));
+
+                page.Footer().Element(footer => ComposeFooter(footer, generatedAt));
             });
         }).GeneratePdf();
+    }
+
+    public byte[] GeneratePrescriptionsPdf(IReadOnlyList<PrescriptionEntity> prescriptions)
+    {
+        var generatedAt = DateTime.UtcNow;
+
+        return Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.MarginHorizontal(32);
+                page.MarginVertical(28);
+                page.DefaultTextStyle(x => x.FontSize(9).FontColor(TextPrimary));
+
+                page.Background().Background(PageBg);
+
+                page.Header().Element(header =>
+                    ComposePrescriptionsHeader(header, generatedAt, prescriptions.Count));
+
+                page.Content().PaddingTop(12).Element(content =>
+                    ComposePrescriptionsTable(content, prescriptions));
+
+                page.Footer().Element(footer => ComposeFooter(footer, generatedAt));
+            });
+        }).GeneratePdf();
+    }
+
+    private static void ComposeInventoryHeader(
+        IContainer container,
+        DateTime generatedAt,
+        int totalCount,
+        int lowStockCount,
+        int outOfStockCount,
+        int expiringSoonCount)
+    {
+        container.Column(column =>
+        {
+            column.Spacing(10);
+
+            column.Item().Height(4).Background(Primary);
+
+            column.Item().Background(Colors.White).Border(1).BorderColor(Border).Padding(16).Column(header =>
+            {
+                header.Item().Row(row =>
+                {
+                    row.RelativeItem().Column(title =>
+                    {
+                        title.Item().Text("eBolnica Apoteka").FontSize(18).Bold().FontColor(Primary);
+                        title.Item().Text("Inventar lijekova").FontSize(13).SemiBold().FontColor(TextPrimary);
+                        title.Item().PaddingTop(4).Text($"Izvještaj generisan: {generatedAt:dd.MM.yyyy HH:mm} UTC")
+                            .FontSize(8).FontColor(TextSecondary);
+                    });
+
+                    row.ConstantItem(110).AlignRight().Column(meta =>
+                    {
+                        meta.Item().Background(PageBg).Border(1).BorderColor(Border).Padding(8).Column(box =>
+                        {
+                            box.Item().Text("Ukupno stavki").FontSize(7).FontColor(TextSecondary);
+                            box.Item().Text(totalCount.ToString()).FontSize(16).Bold().FontColor(TextPrimary);
+                        });
+                    });
+                });
+
+                header.Item().PaddingTop(12).Row(row =>
+                {
+                    row.RelativeItem().Element(c => RenderKpiCard(c, "Ukupno lijekova", totalCount.ToString(), Primary));
+                    row.ConstantItem(8);
+                    row.RelativeItem().Element(c => RenderKpiCard(c, "Niska zaliha", lowStockCount.ToString(), Warning));
+                    row.ConstantItem(8);
+                    row.RelativeItem().Element(c => RenderKpiCard(c, "Nedostupno", outOfStockCount.ToString(), Danger));
+                    row.ConstantItem(8);
+                    row.RelativeItem().Element(c => RenderKpiCard(c, "Ističe uskoro", expiringSoonCount.ToString(), Success));
+                });
+            });
+        });
+    }
+
+    private static void ComposePrescriptionsHeader(IContainer container, DateTime generatedAt, int totalCount)
+    {
+        container.Column(column =>
+        {
+            column.Spacing(10);
+
+            column.Item().Height(4).Background(Primary);
+
+            column.Item().Background(Colors.White).Border(1).BorderColor(Border).Padding(16).Row(row =>
+            {
+                row.RelativeItem().Column(title =>
+                {
+                    title.Item().Text("eBolnica Apoteka").FontSize(18).Bold().FontColor(Primary);
+                    title.Item().Text("Izvještaj recepata").FontSize(13).SemiBold().FontColor(TextPrimary);
+                    title.Item().PaddingTop(4).Text($"Izvještaj generisan: {generatedAt:dd.MM.yyyy HH:mm} UTC")
+                        .FontSize(8).FontColor(TextSecondary);
+                });
+
+                row.ConstantItem(110).AlignRight().Element(c =>
+                    RenderKpiCard(c, "Ukupno recepata", totalCount.ToString(), Primary));
+            });
+        });
+    }
+
+    private static void RenderKpiCard(IContainer container, string label, string value, Color accent)
+    {
+        container.Background(Colors.White).Border(1).BorderColor(Border).Padding(10).Column(column =>
+        {
+            column.Item().Row(row =>
+            {
+                row.RelativeItem().Text(label).FontSize(7).FontColor(TextSecondary);
+                row.ConstantItem(8).Height(8).Width(8).Background(accent);
+            });
+            column.Item().PaddingTop(4).Text(value).FontSize(14).Bold().FontColor(TextPrimary);
+        });
+    }
+
+    private static void ComposeInventoryTable(IContainer container, IReadOnlyList<MedicationEntity> medications)
+    {
+        container.Background(Colors.White).Border(1).BorderColor(Border).Padding(12).Table(table =>
+        {
+            table.ColumnsDefinition(columns =>
+            {
+                columns.ConstantColumn(22);
+                columns.RelativeColumn(3.2f);
+                columns.RelativeColumn(1.8f);
+                columns.RelativeColumn(1.4f);
+                columns.RelativeColumn(1.1f);
+                columns.RelativeColumn(1.1f);
+                columns.RelativeColumn(1.5f);
+                columns.RelativeColumn(1.3f);
+            });
+
+            table.Header(header =>
+            {
+                RenderHeaderCell(header.Cell(), "#");
+                RenderHeaderCell(header.Cell(), "Naziv");
+                RenderHeaderCell(header.Cell(), "Kategorija");
+                RenderHeaderCell(header.Cell(), "Oblik doze");
+                RenderHeaderCell(header.Cell(), "Cijena");
+                RenderHeaderCell(header.Cell(), "Zaliha");
+                RenderHeaderCell(header.Cell(), "Status");
+                RenderHeaderCell(header.Cell(), "Rok");
+            });
+
+            for (var i = 0; i < medications.Count; i++)
+            {
+                var medication = medications[i];
+                var rowBg = i % 2 == 0 ? Colors.White : RowAlt;
+                var status = GetStockStatus(medication);
+
+                RenderBodyCell(table.Cell(), rowBg, (i + 1).ToString(), TextSecondary);
+                RenderNameCell(table.Cell(), rowBg, medication);
+                RenderBodyCell(table.Cell(), rowBg, medication.Category ?? "-");
+                RenderBodyCell(table.Cell(), rowBg, FormatDosageForm(medication.DosageForm));
+                RenderBodyCell(table.Cell(), rowBg, $"{medication.Price:F2} KM", TextPrimary, true);
+                RenderBodyCell(table.Cell(), rowBg, medication.StockQuantity.ToString(), TextPrimary, true);
+                RenderStatusCell(table.Cell(), rowBg, status);
+                RenderBodyCell(table.Cell(), rowBg, medication.ExpiryDate?.ToString("dd.MM.yyyy") ?? "-");
+            }
+        });
+    }
+
+    private static void ComposePrescriptionsTable(IContainer container, IReadOnlyList<PrescriptionEntity> prescriptions)
+    {
+        container.Background(Colors.White).Border(1).BorderColor(Border).Padding(12).Table(table =>
+        {
+            table.ColumnsDefinition(columns =>
+            {
+                columns.ConstantColumn(22);
+                columns.RelativeColumn(1.6f);
+                columns.RelativeColumn(2.2f);
+                columns.RelativeColumn(2.2f);
+                columns.RelativeColumn(1.3f);
+                columns.RelativeColumn(1.2f);
+                columns.RelativeColumn(1.5f);
+            });
+
+            table.Header(header =>
+            {
+                RenderHeaderCell(header.Cell(), "#");
+                RenderHeaderCell(header.Cell(), "Broj");
+                RenderHeaderCell(header.Cell(), "Pacijent");
+                RenderHeaderCell(header.Cell(), "Doktor");
+                RenderHeaderCell(header.Cell(), "Status");
+                RenderHeaderCell(header.Cell(), "Iznos");
+                RenderHeaderCell(header.Cell(), "Datum");
+            });
+
+            for (var i = 0; i < prescriptions.Count; i++)
+            {
+                var prescription = prescriptions[i];
+                var rowBg = i % 2 == 0 ? Colors.White : RowAlt;
+
+                RenderBodyCell(table.Cell(), rowBg, (i + 1).ToString(), TextSecondary);
+                RenderBodyCell(table.Cell(), rowBg, prescription.PrescriptionNumber, TextPrimary, true);
+                RenderBodyCell(table.Cell(), rowBg, FormatPatientName(prescription.Patient));
+                RenderBodyCell(table.Cell(), rowBg, FormatDoctorName(prescription.Doctor));
+                RenderBodyCell(table.Cell(), rowBg, prescription.Status);
+                RenderBodyCell(table.Cell(), rowBg, $"{prescription.TotalAmount:F2} KM", TextPrimary, true);
+                RenderBodyCell(table.Cell(), rowBg, prescription.PrescribedDate.ToString("dd.MM.yyyy"));
+            }
+        });
+    }
+
+    private static void ComposeFooter(IContainer container, DateTime generatedAt)
+    {
+        container.PaddingTop(8).Row(row =>
+        {
+            row.RelativeItem().AlignLeft().Text(text =>
+            {
+                text.DefaultTextStyle(x => x.FontSize(8).FontColor(TextSecondary));
+                text.Span("eBolnica · Apoteka · ");
+                text.Span(generatedAt.ToString("dd.MM.yyyy HH:mm"));
+            });
+
+            row.RelativeItem().AlignRight().DefaultTextStyle(x => x.FontSize(8).FontColor(TextSecondary)).Text(text =>
+            {
+                text.Span("Strana ");
+                text.CurrentPageNumber();
+                text.Span(" / ");
+                text.TotalPages();
+            });
+        });
+    }
+
+    private static void RenderHeaderCell(IContainer cell, string label) =>
+        cell.Background(TextPrimary).BorderBottom(1).BorderColor(Border).PaddingVertical(8).PaddingHorizontal(6)
+            .Text(label.ToUpperInvariant()).FontSize(7).SemiBold().FontColor(Colors.White).LetterSpacing(0.4f);
+
+    private static void RenderBodyCell(
+        IContainer cell,
+        Color rowBg,
+        string value,
+        Color? color = null,
+        bool semiBold = false)
+    {
+        var text = cell.Background(rowBg).BorderBottom(1).BorderColor(Border).PaddingVertical(7).PaddingHorizontal(6).Text(value);
+        text.FontSize(8).FontColor(color ?? TextPrimary);
+        if (semiBold)
+            text.SemiBold();
+    }
+
+    private static void RenderNameCell(IContainer cell, Color rowBg, MedicationEntity medication)
+    {
+        cell.Background(rowBg).BorderBottom(1).BorderColor(Border).PaddingVertical(7).PaddingHorizontal(6).Column(column =>
+        {
+            column.Item().Text(medication.Name).FontSize(8).SemiBold().FontColor(TextPrimary);
+            if (!string.IsNullOrWhiteSpace(medication.GenericName))
+                column.Item().Text(medication.GenericName).FontSize(7).FontColor(TextSecondary);
+        });
+    }
+
+    private static void RenderStatusCell(IContainer cell, Color rowBg, StockStatus status)
+    {
+        var (label, color) = status switch
+        {
+            StockStatus.Available => ("Dostupno", Success),
+            StockStatus.Low => ("Niska zaliha", Warning),
+            StockStatus.Out => ("Nedostupno", Danger),
+            _ => ("Neaktivan", TextSecondary),
+        };
+
+        cell.Background(rowBg).BorderBottom(1).BorderColor(Border).PaddingVertical(7).PaddingHorizontal(6).AlignMiddle()
+            .Element(container =>
+            {
+                container.Background(color).CornerRadius(10).PaddingVertical(3).PaddingHorizontal(8).Text(label)
+                    .FontSize(7).SemiBold().FontColor(Colors.White);
+            });
+    }
+
+    private static StockStatus GetStockStatus(MedicationEntity medication)
+    {
+        if (!medication.IsActive)
+            return StockStatus.Inactive;
+
+        if (medication.StockQuantity <= 0)
+            return StockStatus.Out;
+
+        if (medication.StockQuantity < medication.MinimumStockLevel)
+            return StockStatus.Low;
+
+        return StockStatus.Available;
+    }
+
+    private static int CountExpiringSoon(IReadOnlyList<MedicationEntity> medications, DateTime generatedAt)
+    {
+        var horizon = generatedAt.AddDays(30);
+        return medications.Count(m =>
+        {
+            if (m.ExpiryDate is null)
+                return false;
+
+            return m.ExpiryDate.Value >= generatedAt && m.ExpiryDate.Value <= horizon;
+        });
+    }
+
+    private static string FormatDosageForm(string? dosageForm)
+    {
+        if (string.IsNullOrWhiteSpace(dosageForm))
+            return "-";
+
+        return LegacyDosageForms.TryGetValue(dosageForm.Trim(), out var translated)
+            ? translated
+            : dosageForm.Trim();
+    }
 
     private static string FormatPatientName(PatientEntity? patient) =>
         patient is null ? "-" : $"{patient.FirstName} {patient.LastName}";
 
     private static string FormatDoctorName(DoctorEntity? doctor) =>
         doctor is null ? "-" : $"Dr. {doctor.FirstName} {doctor.LastName}";
+
+    private enum StockStatus
+    {
+        Available,
+        Low,
+        Out,
+        Inactive,
+    }
 }
