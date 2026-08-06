@@ -12,8 +12,7 @@ import { ToasterService } from '../../../core/services/toaster.service';
 import { DialogButton, DialogType } from '../../shared/models/dialog-config.model';
 import { DialogHelperService } from '../../shared/services/dialog-helper.service';
 import { MedicationImageUrlService } from '../services/medication-image-url.service';
-import { getMedicationCategoryLabel } from '../constants/medication-categories.constant';
-import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
+import { getMedicationCategoryLabel, MEDICATION_CATEGORIES } from '../constants/medication-categories.constant';
 
 @Component({
   selector: 'app-pharmacy-medications',
@@ -31,9 +30,8 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   private dialog = inject(DialogHelperService);
   private destroyRef = inject(DestroyRef);
 
-  auth = inject(AuthFacadeService);
-
   readonly categoryLabel = getMedicationCategoryLabel;
+  readonly categories = MEDICATION_CATEGORIES;
 
   medications: MedicationDto[] = [];
   isLoading = false;
@@ -57,6 +55,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   showAutocomplete = false;
   selectedSuggestionIndex = -1;
   importSummary: MedicationImportResult | null = null;
+  selectedMedication: MedicationDto | null = null;
   thumbnailUrls = new Map<number, string>();
   private thumbnailLoadGeneration = 0;
   private searchBlurTimeoutId?: ReturnType<typeof setTimeout>;
@@ -65,7 +64,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   private autocompleteQuery$ = new Subject<string>();
   private loadTrigger$ = new Subject<void>();
 
-  displayedColumns = ['name', 'category', 'price', 'stockQuantity', 'expiryDate', 'status', 'actions'];
+  displayedColumns = ['name', 'category', 'stockQuantity', 'expiryDate', 'status', 'actions'];
 
   ngOnInit(): void {
     this.loadTrigger$
@@ -139,6 +138,15 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   }
 
   retryLoad(): void {
+    this.loadTrigger$.next();
+  }
+
+  reload(): void {
+    this.loadTrigger$.next();
+  }
+
+  applyFilters(): void {
+    this.currentPage = 1;
     this.loadTrigger$.next();
   }
 
@@ -415,19 +423,57 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
     this.thumbnailUrls.delete(medicationId);
   }
 
-  getStockStatus(m: MedicationDto): string {
+  getDisplayStatus(m: MedicationDto): string {
     if (!m.isActive) return 'Neaktivan';
-    if (m.stockQuantity === 0) return 'Nedostupno';
-    if (m.stockQuantity < m.minimumStockLevel) return 'Niska zaliha';
+    if (this.isExpired(m)) return 'Istekao';
+    if (m.stockQuantity === 0 || m.stockQuantity < m.minimumStockLevel) return 'Niska';
     return 'Dostupno';
   }
 
-  getStockStatusClass(m: MedicationDto): string {
-    const status = this.getStockStatus(m);
-    if (status === 'Niska zaliha') return 'low';
-    if (status === 'Nedostupno') return 'out';
+  getDisplayStatusClass(m: MedicationDto): string {
+    const status = this.getDisplayStatus(m);
     if (status === 'Neaktivan') return 'inactive';
+    if (status === 'Istekao') return 'expired';
+    if (status === 'Niska') return 'low';
     return 'ok';
+  }
+
+  getStockProgressPercent(m: MedicationDto): number {
+    const target = Math.max(m.minimumStockLevel * 2, m.minimumStockLevel + 10, 1);
+    return Math.min(100, Math.round((m.stockQuantity / target) * 100));
+  }
+
+  getStockProgressClass(m: MedicationDto): string {
+    if (this.isExpired(m) || m.stockQuantity === 0) return 'out';
+    if (m.stockQuantity < m.minimumStockLevel) return 'low';
+    return 'ok';
+  }
+
+  getExpiryDotClass(m: MedicationDto): string {
+    if (this.isExpired(m)) return 'expired';
+    if (this.isExpiringSoon(m)) return 'soon';
+    return 'ok';
+  }
+
+  getExpiryHint(m: MedicationDto): string {
+    if (this.isExpired(m)) return 'Istekao';
+    if (this.isExpiringSoon(m)) return 'Ističe uskoro';
+    return 'Dostupno';
+  }
+
+  isExpired(m: MedicationDto): boolean {
+    if (!m.expiryDate) return false;
+    const expiry = new Date(m.expiryDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return expiry < today;
+  }
+
+  isExpiringSoon(m: MedicationDto): boolean {
+    if (!m.expiryDate || this.isExpired(m)) return false;
+    const expiry = new Date(m.expiryDate);
+    const horizon = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    return expiry <= horizon;
   }
 
   get lowStockOnPageCount(): number {
