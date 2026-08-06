@@ -64,6 +64,7 @@ internal static class MedicationMapping
             Strength = m.Strength,
             CreatedAt = m.CreatedAtUtc,
             UpdatedAt = m.ModifiedAtUtc,
+            RowVersion = m.RowVersion,
             PrimaryImageUrl = m.ImageUrl ?? m.Images
                 .Where(i => !i.IsDeleted)
                 .OrderByDescending(i => i.IsPrimary)

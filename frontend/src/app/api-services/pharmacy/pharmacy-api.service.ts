@@ -17,9 +17,6 @@ import {
   ListPrescriptionsResponse,
   PrescriptionDto,
   DashboardStatsResponseDto,
-  RevenueDataDto,
-  CategoriesDataDto,
-  StockTrendsDataDto,
 } from './pharmacy-api.models';
 
 @Injectable({
@@ -173,22 +170,6 @@ export class PharmacyApiService {
 
   getDashboardStats(): Observable<DashboardStatsResponseDto> {
     return this.http.get<DashboardStatsResponseDto>(`${this.baseUrl}/analytics/dashboard-stats`);
-  }
-
-  getMonthlyRevenue(months = 12): Observable<RevenueDataDto> {
-    return this.http.get<RevenueDataDto>(`${this.baseUrl}/analytics/monthly-revenue`, {
-      params: new HttpParams().set('months', String(months)),
-    });
-  }
-
-  getTopCategories(limit = 8): Observable<CategoriesDataDto> {
-    return this.http.get<CategoriesDataDto>(`${this.baseUrl}/analytics/top-categories`, {
-      params: new HttpParams().set('limit', String(limit)),
-    });
-  }
-
-  getStockTrends(): Observable<StockTrendsDataDto> {
-    return this.http.get<StockTrendsDataDto>(`${this.baseUrl}/analytics/stock-trends`);
   }
 
   exportInventoryPdf(request: ListMedicationsRequest = {}): Observable<HttpResponse<Blob>> {

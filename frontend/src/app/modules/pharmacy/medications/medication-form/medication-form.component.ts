@@ -4,11 +4,14 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, Router } from '@angular/router';
-import { map } from 'rxjs';
+import { EMPTY, catchError, map, switchMap } from 'rxjs';
 import { PharmacyApiService } from '../../../../api-services/pharmacy/pharmacy-api.service';
-import { MedicationImageDto, MedicationUpsertCommand } from '../../../../api-services/pharmacy/pharmacy-api.models';
+import { MedicationDto, MedicationImageDto, MedicationUpsertCommand } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../../core/services/toaster.service';
+import { DialogButton, DialogType } from '../../../shared/models/dialog-config.model';
+import { DialogHelperService } from '../../../shared/services/dialog-helper.service';
 import { medicationNameAsyncValidator } from '../../../shared/validators/medication-name-async.validator';
+import { MEDICATION_DOSAGE_FORMS } from '../../constants/medication-dosage-forms.constant';
 import { MedicationImageUrlService } from '../../services/medication-image-url.service';
 import {
   MedicationImageLightboxComponent,
@@ -46,10 +49,12 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private toaster = inject(ToasterService);
   private dialog = inject(MatDialog);
+  private confirmDialog = inject(DialogHelperService);
   private destroyRef = inject(DestroyRef);
 
   isEditMode = false;
   medicationId: number | null = null;
+  medicationRowVersion: string | null = null;
   isLoading = false;
   isSaving = false;
   images: MedicationImageDto[] = [];
@@ -58,6 +63,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   isDragOver = false;
   isProcessingQueue = false;
   private imageLoadGeneration = 0;
+  private activeUploadCount = 0;
 
   categories = [
     'Analgesics',
@@ -71,7 +77,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
     'Other',
   ];
 
-  dosageForms = ['Tablet', 'Capsule', 'Liquid', 'Injection', 'Cream', 'Drops', 'Other'];
+  dosageForms = [...MEDICATION_DOSAGE_FORMS];
 
   form = this.fb.group({
     name: [
@@ -103,38 +109,43 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
-    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
-      const idParam = params.get('id');
-      if (!idParam || idParam === 'new') {
-        this.isEditMode = false;
-        this.medicationId = null;
-        this.isLoading = false;
-        this.form.reset({
-          name: '',
-          genericName: '',
-          description: '',
-          manufacturer: '',
-          price: 0,
-          stockQuantity: 0,
-          minimumStockLevel: 10,
-          expiryDate: '',
-          batchNumber: '',
-          isActive: true,
-          requiresPrescription: true,
-          category: '',
-          dosageForm: '',
-          strength: '',
-        });
-        this.images = [];
-        this.imageUrls.clear();
-        this.clearPendingUploads();
-        return;
-      }
+    this.route.paramMap
+      .pipe(
+        switchMap((params) => {
+          const idParam = params.get('id');
+          if (!idParam || idParam === 'new') {
+            this.resetNewForm();
+            return EMPTY;
+          }
 
-      this.isEditMode = true;
-      this.medicationId = Number(idParam);
-      this.loadMedication(this.medicationId);
-    });
+          const id = Number(idParam);
+          if (!Number.isFinite(id) || id <= 0) {
+            this.handleInvalidRouteId();
+            return EMPTY;
+          }
+
+          this.isEditMode = true;
+          this.medicationId = id;
+          this.isLoading = true;
+          this.medicationRowVersion = null;
+          this.images = [];
+          this.imageUrls.clear();
+          this.clearPendingUploads();
+
+          return this.pharmacyApi.getMedicationById(id).pipe(
+            catchError(() => {
+              this.isLoading = false;
+              this.toaster.error('Greška pri učitavanju lijeka.');
+              this.router.navigate(['/pharmacy/medications']);
+              return EMPTY;
+            })
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((medication) => {
+        this.applyMedication(medication);
+      });
   }
 
   ngOnDestroy(): void {
@@ -142,36 +153,62 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
     this.imageUrlService.revokeAll();
   }
 
-  loadMedication(id: number): void {
-    this.isLoading = true;
-    this.pharmacyApi.getMedicationById(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (m) => {
-        const expiry = m.expiryDate ? m.expiryDate.split('T')[0] : '';
-        this.form.patchValue({
-          name: m.name,
-          genericName: m.genericName ?? '',
-          description: m.description ?? '',
-          manufacturer: m.manufacturer ?? '',
-          price: m.price,
-          stockQuantity: m.stockQuantity,
-          minimumStockLevel: m.minimumStockLevel,
-          expiryDate: expiry,
-          batchNumber: m.batchNumber ?? '',
-          isActive: m.isActive,
-          requiresPrescription: m.requiresPrescription,
-          category: m.category ?? '',
-          dosageForm: m.dosageForm ?? '',
-          strength: m.strength ?? '',
-        });
-        this.isLoading = false;
-        this.loadImages(id);
-      },
-      error: () => {
-        this.isLoading = false;
-        this.toaster.error('Greška pri učitavanju lijeka.');
-        this.router.navigate(['/pharmacy/medications']);
-      },
+  private resetNewForm(): void {
+    this.isEditMode = false;
+    this.medicationId = null;
+    this.medicationRowVersion = null;
+    this.isLoading = false;
+    this.form.reset({
+      name: '',
+      genericName: '',
+      description: '',
+      manufacturer: '',
+      price: 0,
+      stockQuantity: 0,
+      minimumStockLevel: 10,
+      expiryDate: '',
+      batchNumber: '',
+      isActive: true,
+      requiresPrescription: true,
+      category: '',
+      dosageForm: '',
+      strength: '',
     });
+    this.images = [];
+    this.imageUrls.clear();
+    this.clearPendingUploads();
+  }
+
+  private handleInvalidRouteId(): void {
+    this.isEditMode = false;
+    this.medicationId = null;
+    this.medicationRowVersion = null;
+    this.isLoading = false;
+    this.toaster.error('Neispravan ID lijeka.');
+    this.router.navigate(['/pharmacy/medications']);
+  }
+
+  private applyMedication(m: MedicationDto): void {
+    const expiry = m.expiryDate ? m.expiryDate.split('T')[0] : '';
+    this.medicationRowVersion = m.rowVersion ?? null;
+    this.form.patchValue({
+      name: m.name,
+      genericName: m.genericName ?? '',
+      description: m.description ?? '',
+      manufacturer: m.manufacturer ?? '',
+      price: m.price,
+      stockQuantity: m.stockQuantity,
+      minimumStockLevel: m.minimumStockLevel,
+      expiryDate: expiry,
+      batchNumber: m.batchNumber ?? '',
+      isActive: m.isActive,
+      requiresPrescription: m.requiresPrescription,
+      category: m.category ?? '',
+      dosageForm: m.dosageForm ?? '',
+      strength: m.strength ?? '',
+    });
+    this.isLoading = false;
+    this.loadImages(m.id);
   }
 
   get nameControl() {
@@ -201,6 +238,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   submit(): void {
     if (this.form.invalid || this.form.pending) {
       this.form.markAllAsTouched();
+      this.toaster.error('Provjerite obavezna polja prije čuvanja.');
       return;
     }
 
@@ -220,6 +258,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
       category: raw.category!,
       dosageForm: raw.dosageForm || null,
       strength: raw.strength || null,
+      rowVersion: this.isEditMode ? this.medicationRowVersion : null,
     };
 
     this.isSaving = true;
@@ -229,7 +268,10 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
         : this.pharmacyApi.createMedication(body);
 
     request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => {
+      next: (saved) => {
+        if (saved?.rowVersion) {
+          this.medicationRowVersion = saved.rowVersion;
+        }
         this.toaster.success(this.isEditMode ? 'Lijek ažuriran.' : 'Lijek kreiran.');
         this.router.navigate(['/pharmacy/medications']);
       },
@@ -342,14 +384,32 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   }
 
   deleteImage(image: MedicationImageDto): void {
-    if (!this.medicationId || !confirm('Obrisati sliku?')) return;
-    this.pharmacyApi.deleteImage(this.medicationId, image.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => {
-        this.toaster.success('Slika obrisana.');
-        this.loadImages(this.medicationId!);
-      },
-      error: () => this.toaster.error('Greška pri brisanju slike.'),
-    });
+    if (!this.medicationId) return;
+
+    this.confirmDialog
+      .showCustom({
+        type: DialogType.WARNING,
+        title: 'Obriši sliku',
+        message: 'Jeste li sigurni da želite obrisati ovu sliku?',
+        buttons: [
+          { type: DialogButton.CANCEL, label: 'Odustani' },
+          { type: DialogButton.DELETE, label: 'Obriši', color: 'warn' },
+        ],
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result) => {
+        if (result?.button !== DialogButton.DELETE || !this.medicationId) {
+          return;
+        }
+
+        this.pharmacyApi.deleteImage(this.medicationId, image.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+          next: () => {
+            this.toaster.success('Slika obrisana.');
+            this.loadImages(this.medicationId!);
+          },
+          error: () => this.toaster.error('Greška pri brisanju slike.'),
+        });
+      });
   }
 
   setPrimary(image: MedicationImageDto): void {
@@ -383,21 +443,25 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
           continue;
         }
 
-        const compressed = await compressMedicationImage(original);
-        const previewUrl = URL.createObjectURL(compressed);
-        this.pendingUploads = [
-          ...this.pendingUploads,
-          {
-            key: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-            file: compressed,
-            previewUrl,
-            originalSize: original.size,
-            compressedSize: compressed.size,
-            status: 'pending',
-            progress: 0,
-            progressKnown: false,
-          },
-        ];
+        try {
+          const compressed = await compressMedicationImage(original);
+          const previewUrl = URL.createObjectURL(compressed);
+          this.pendingUploads = [
+            ...this.pendingUploads,
+            {
+              key: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              file: compressed,
+              previewUrl,
+              originalSize: original.size,
+              compressedSize: compressed.size,
+              status: 'pending',
+              progress: 0,
+              progressKnown: false,
+            },
+          ];
+        } catch {
+          this.toaster.error(`Greška pri obradi slike: ${original.name}`);
+        }
       }
     } finally {
       this.isProcessingQueue = false;
@@ -414,6 +478,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
     item.progressKnown = false;
     item.errorMessage = undefined;
 
+    this.activeUploadCount++;
     this.pharmacyApi.uploadImage(this.medicationId, item.file).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (httpEvent) => {
         const progress = getHttpUploadProgressPercent(httpEvent);
@@ -427,7 +492,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
           URL.revokeObjectURL(item.previewUrl);
           this.pendingUploads = this.pendingUploads.filter((entry) => entry.key !== item.key);
           this.toaster.success('Slika uploadovana.');
-          this.loadImages(this.medicationId!);
+          this.finishUploadBatch();
         }
       },
       error: () => {
@@ -436,8 +501,16 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
         item.progressKnown = false;
         item.errorMessage = 'Upload nije uspio.';
         this.toaster.error('Greška pri uploadu slike.');
+        this.finishUploadBatch();
       },
     });
+  }
+
+  private finishUploadBatch(): void {
+    this.activeUploadCount = Math.max(0, this.activeUploadCount - 1);
+    if (this.activeUploadCount === 0 && this.medicationId) {
+      this.loadImages(this.medicationId);
+    }
   }
 
   private loadImageUrls(medicationId: number, images: MedicationImageDto[]): void {

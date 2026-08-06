@@ -16,6 +16,7 @@ export interface MedicationDto {
   strength?: string | null;
   createdAt: string;
   updatedAt?: string | null;
+  rowVersion?: string | null;
   primaryImageUrl?: string | null;
   primaryImageId?: number | null;
 }
@@ -35,6 +36,7 @@ export interface MedicationUpsertCommand {
   category: string;
   dosageForm?: string | null;
   strength?: string | null;
+  rowVersion?: string | null;
 }
 
 export interface ListMedicationsRequest {

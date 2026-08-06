@@ -17,4 +17,5 @@ public sealed class UpdateMedicationCommand : IRequest<MedicationDto>
     public string Category { get; init; } = string.Empty;
     public string? DosageForm { get; init; }
     public string? Strength { get; init; }
+    public byte[]? RowVersion { get; init; }
 }

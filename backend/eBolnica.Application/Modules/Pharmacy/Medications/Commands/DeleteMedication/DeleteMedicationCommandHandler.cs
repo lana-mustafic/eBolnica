@@ -1,3 +1,4 @@
+using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.DeleteMedication;
 
 public sealed class DeleteMedicationCommandHandler(IAppDbContext ctx, IPharmacyAnalyticsService analytics)
@@ -10,6 +11,8 @@ public sealed class DeleteMedicationCommandHandler(IAppDbContext ctx, IPharmacyA
 
         if (medication is null)
             throw new eBolnicaNotFoundException("Medication not found.");
+
+        await MedicationWorkflowGuard.EnsureNoPendingPrescriptionsAsync(ctx, request.Id, ct);
 
         medication.IsActive = false;
         medication.IsDeleted = true;

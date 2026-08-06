@@ -19,6 +19,7 @@ public sealed class MedicationDto
     public string? Strength { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
+    public byte[]? RowVersion { get; init; }
     public string? PrimaryImageUrl { get; init; }
     public int? PrimaryImageId { get; init; }
 }

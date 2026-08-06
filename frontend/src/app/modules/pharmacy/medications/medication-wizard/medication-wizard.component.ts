@@ -13,6 +13,7 @@ import {
   MedicationWizardDraft,
   MedicationWizardDraftService,
 } from '../../services/medication-wizard-draft.service';
+import { MEDICATION_DOSAGE_FORMS } from '../../constants/medication-dosage-forms.constant';
 import {
   buildMedicationWizardDraftRestoreState,
   buildMedicationWizardDraftSavePayload,
@@ -57,7 +58,7 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
     'Vitamins',
     'Other',
   ];
-  dosageForms = ['Tablet', 'Capsule', 'Liquid', 'Injection'];
+  dosageForms = [...MEDICATION_DOSAGE_FORMS];
 
   form = this.fb.group({
     name: [
@@ -109,6 +110,26 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
 
   get nameControl() {
     return this.form.get('name');
+  }
+
+  get categoryControl() {
+    return this.form.get('category');
+  }
+
+  get priceControl() {
+    return this.form.get('price');
+  }
+
+  get stockQuantityControl() {
+    return this.form.get('stockQuantity');
+  }
+
+  get minimumStockLevelControl() {
+    return this.form.get('minimumStockLevel');
+  }
+
+  get expiryDateControl() {
+    return this.form.get('expiryDate');
   }
 
   continueDraft(): void {

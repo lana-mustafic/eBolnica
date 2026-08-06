@@ -1,7 +1,9 @@
+using eBolnica.Application.Common;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.CreateMedication;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.ImportMedicationsCsv;
 using eBolnica.Application.Modules.Pharmacy.Medications.Csv;
 using eBolnica.Domain.Entities.Pharmacy;
+using Microsoft.EntityFrameworkCore;
 
 public sealed class ImportMedicationsCsvCommandHandler(IAppDbContext ctx, IPharmacyAnalyticsService analytics)
     : IRequestHandler<ImportMedicationsCsvCommand, MedicationImportResultDto>
@@ -80,7 +82,15 @@ public sealed class ImportMedicationsCsvCommandHandler(IAppDbContext ctx, IPharm
         }
 
         ctx.Medications.AddRange(toInsert);
-        await ctx.SaveChangesAsync(ct);
+        try
+        {
+            await ctx.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (DbUpdateExceptionHelper.IsUniqueConstraintViolation(ex))
+        {
+            throw new eBolnicaConflictException("One or more medication names already exist.");
+        }
+
         analytics.InvalidateAnalyticsCache();
 
         result.SuccessCount = toInsert.Count;

@@ -133,6 +133,10 @@
         <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
       </table>
 
+      @if (!isLoading && !loadError && items.length === 0) {
+        <p class="empty-state">Nema lijekova za prikaz sa trenutnim filterima.</p>
+      }
+
       @if (totalPages > 1) {
         <div class="pagination">
           <button mat-stroked-button (click)="goToPage(currentPage - 1)" [disabled]="currentPage <= 1">Prethodna</button>

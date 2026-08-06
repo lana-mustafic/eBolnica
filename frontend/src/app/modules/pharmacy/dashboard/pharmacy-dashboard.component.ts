@@ -1,6 +1,6 @@
 import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { catchError, of } from 'rxjs';
+import { catchError, of, Subject, switchMap } from 'rxjs';
 import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.service';
 import {
   CategoryItemDto,
@@ -18,6 +18,7 @@ import {
 export class PharmacyDashboardComponent implements OnInit {
   private pharmacyApi = inject(PharmacyApiService);
   private destroyRef = inject(DestroyRef);
+  private loadTrigger$ = new Subject<void>();
 
   isLoading = true;
   loadError = false;
@@ -28,23 +29,18 @@ export class PharmacyDashboardComponent implements OnInit {
   revenueChange = 0;
 
   ngOnInit(): void {
-    this.loadDashboard();
-  }
-
-  reload(): void {
-    this.loadDashboard();
-  }
-
-  private loadDashboard(): void {
-    this.isLoading = true;
-    this.loadError = false;
-    this.pharmacyApi
-      .getDashboardStats()
+    this.loadTrigger$
       .pipe(
-        catchError(() => {
-          this.loadError = true;
-          this.summary = null;
-          return of(null);
+        switchMap(() => {
+          this.isLoading = true;
+          this.loadError = false;
+          return this.pharmacyApi.getDashboardStats().pipe(
+            catchError(() => {
+              this.loadError = true;
+              this.summary = null;
+              return of(null);
+            })
+          );
         }),
         takeUntilDestroyed(this.destroyRef)
       )
@@ -58,5 +54,11 @@ export class PharmacyDashboardComponent implements OnInit {
         this.stockItems = stats.stockTrends.data;
         this.revenueChange = stats.monthlyRevenue.revenueChangePercentage;
       });
+
+    this.loadTrigger$.next();
+  }
+
+  reload(): void {
+    this.loadTrigger$.next();
   }
 }

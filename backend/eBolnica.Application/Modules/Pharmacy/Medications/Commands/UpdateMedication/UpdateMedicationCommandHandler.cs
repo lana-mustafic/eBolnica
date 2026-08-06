@@ -1,3 +1,4 @@
+using eBolnica.Application.Common;
 using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.UpdateMedication;
 using eBolnica.Domain.Entities.Pharmacy;
@@ -19,6 +20,9 @@ public sealed class UpdateMedicationCommandHandler(IAppDbContext ctx, IPharmacyA
                 m => !m.IsDeleted && m.NormalizedName == normalized && m.Id != request.Id, ct))
             throw new eBolnicaConflictException("A medication with this name already exists.");
 
+        if (!request.IsActive && medication.IsActive)
+            await MedicationWorkflowGuard.EnsureNoPendingPrescriptionsAsync(ctx, request.Id, ct);
+
         medication.Name = request.Name.Trim();
         medication.NormalizedName = normalized;
         medication.GenericName = request.GenericName?.Trim();
@@ -36,6 +40,13 @@ public sealed class UpdateMedicationCommandHandler(IAppDbContext ctx, IPharmacyA
         medication.Strength = request.Strength?.Trim();
         medication.ModifiedAtUtc = DateTime.UtcNow;
 
+        if (request.RowVersion is { Length: > 0 }
+            && !request.RowVersion.AsSpan().SequenceEqual(medication.RowVersion))
+        {
+            throw new eBolnicaConflictException(
+                "Medication was modified by another operation. Refresh and try again.");
+        }
+
         try
         {
             await ctx.SaveChangesAsync(ct);
@@ -44,6 +55,10 @@ public sealed class UpdateMedicationCommandHandler(IAppDbContext ctx, IPharmacyA
         {
             throw new eBolnicaConflictException(
                 "Medication was modified by another operation. Refresh and try again.");
+        }
+        catch (DbUpdateException ex) when (DbUpdateExceptionHelper.IsUniqueConstraintViolation(ex))
+        {
+            throw new eBolnicaConflictException("A medication with this name already exists.");
         }
 
         analytics.InvalidateAnalyticsCache();
@@ -65,7 +80,8 @@ public sealed class UpdateMedicationCommandHandler(IAppDbContext ctx, IPharmacyA
             DosageForm = medication.DosageForm,
             Strength = medication.Strength,
             CreatedAt = medication.CreatedAtUtc,
-            UpdatedAt = medication.ModifiedAtUtc
+            UpdatedAt = medication.ModifiedAtUtc,
+            RowVersion = medication.RowVersion
         };
     }
 }

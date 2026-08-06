@@ -9,6 +9,8 @@ import {
   MedicationImportResult,
 } from '../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../core/services/toaster.service';
+import { DialogButton, DialogType } from '../../shared/models/dialog-config.model';
+import { DialogHelperService } from '../../shared/services/dialog-helper.service';
 import { MedicationImageUrlService } from '../services/medication-image-url.service';
 
 @Component({
@@ -24,6 +26,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   private imageUrlService = inject(MedicationImageUrlService);
   private router = inject(Router);
   private toaster = inject(ToasterService);
+  private dialog = inject(DialogHelperService);
   private destroyRef = inject(DestroyRef);
 
   medications: MedicationDto[] = [];
@@ -50,6 +53,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   importSummary: MedicationImportResult | null = null;
   thumbnailUrls = new Map<number, string>();
   private thumbnailLoadGeneration = 0;
+  private searchBlurTimeoutId?: ReturnType<typeof setTimeout>;
 
   private searchChanged$ = new Subject<void>();
   private autocompleteQuery$ = new Subject<string>();
@@ -120,7 +124,12 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.clearSearchBlurTimeout();
     this.imageUrlService.revokeAll();
+  }
+
+  get activeSuggestionId(): string | null {
+    return this.selectedSuggestionIndex >= 0 ? `medication-suggestion-${this.selectedSuggestionIndex}` : null;
   }
 
   retryLoad(): void {
@@ -221,10 +230,19 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   }
 
   onSearchBlur(): void {
-    window.setTimeout(() => {
+    this.clearSearchBlurTimeout();
+    this.searchBlurTimeoutId = window.setTimeout(() => {
       this.showAutocomplete = false;
       this.selectedSuggestionIndex = -1;
+      this.searchBlurTimeoutId = undefined;
     }, 150);
+  }
+
+  private clearSearchBlurTimeout(): void {
+    if (this.searchBlurTimeoutId != null) {
+      clearTimeout(this.searchBlurTimeoutId);
+      this.searchBlurTimeoutId = undefined;
+    }
   }
 
   selectSuggestion(s: MedicationAutocompleteSuggestion): void {
@@ -266,20 +284,39 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   }
 
   deleteMedication(medication: MedicationDto): void {
-    if (!confirm(`Deaktivirati lijek "${medication.name}"?`)) return;
-    this.pharmacyApi
-      .deleteMedication(medication.id)
+    this.dialog
+      .showCustom({
+        type: DialogType.WARNING,
+        title: 'Deaktiviraj lijek',
+        message: `Jeste li sigurni da želite deaktivirati lijek "${medication.name}"?`,
+        buttons: [
+          { type: DialogButton.CANCEL, label: 'Odustani' },
+          { type: DialogButton.DELETE, label: 'Deaktiviraj', color: 'warn' },
+        ],
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-      next: () => {
-        this.toaster.success('Lijek deaktiviran.');
-        if (this.medications.length === 1 && this.currentPage > 1) {
-          this.currentPage--;
+      .subscribe((result) => {
+        if (result?.button !== DialogButton.DELETE) {
+          return;
         }
-        this.loadTrigger$.next();
-      },
-      error: () => this.toaster.error('Greška pri deaktivaciji lijeka.'),
-    });
+
+        this.pharmacyApi
+          .deleteMedication(medication.id)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            next: () => {
+              this.toaster.success('Lijek deaktiviran.');
+              if (this.medications.length === 1 && this.currentPage > 1) {
+                this.currentPage--;
+              }
+              this.loadTrigger$.next();
+            },
+            error: (err) => {
+              const msg = err?.error?.message ?? 'Greška pri deaktivaciji lijeka.';
+              this.toaster.error(msg);
+            },
+          });
+      });
   }
 
   exportCsv(): void {

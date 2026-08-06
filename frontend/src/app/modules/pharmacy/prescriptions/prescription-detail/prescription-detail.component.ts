@@ -1,14 +1,15 @@
 import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { catchError, forkJoin, of } from 'rxjs';
+import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { PharmacyApiService } from '../../../../api-services/pharmacy/pharmacy-api.service';
 import {
   MedicationDto,
   PrescriptionDto,
-  PrescriptionItemDto,
 } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../../core/services/toaster.service';
+import { DialogButton, DialogType } from '../../../shared/models/dialog-config.model';
+import { DialogHelperService } from '../../../shared/services/dialog-helper.service';
 
 @Component({
   selector: 'app-prescription-detail',
@@ -21,6 +22,7 @@ export class PrescriptionDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private toaster = inject(ToasterService);
+  private dialog = inject(DialogHelperService);
   private destroyRef = inject(DestroyRef);
 
   prescription: PrescriptionDto | null = null;
@@ -31,64 +33,109 @@ export class PrescriptionDetailComponent implements OnInit {
   prescriptionId: number | null = null;
 
   ngOnInit(): void {
-    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
-      const id = Number(params.get('id'));
-      if (!id) {
-        this.loadError = true;
-        this.isLoading = false;
-        this.prescription = null;
-        return;
-      }
+    this.route.paramMap
+      .pipe(
+        switchMap((params) => {
+          const id = Number(params.get('id'));
+          if (!Number.isFinite(id) || id <= 0) {
+            this.loadError = true;
+            this.isLoading = false;
+            this.prescription = null;
+            this.medications = [];
+            return of(null);
+          }
 
-      this.prescriptionId = id;
-      this.loadData();
-    });
-  }
-
-  loadData(): void {
-    if (!this.prescriptionId) return;
-
-    this.isLoading = true;
-    this.loadError = false;
-    this.pharmacyApi
-      .getPrescriptionById(this.prescriptionId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (prescription) => {
-          this.prescription = prescription;
-          this.loadMedicationStock(prescription.prescriptionItems);
-        },
-        error: () => {
-          this.loadError = true;
+          this.prescriptionId = id;
+          this.isLoading = true;
+          this.loadError = false;
           this.prescription = null;
-          this.toaster.error('Greška pri učitavanju recepta.');
-          this.isLoading = false;
-        },
+          this.medications = [];
+
+          return this.pharmacyApi.getPrescriptionById(id).pipe(
+            switchMap((prescription) => {
+              const medicationIds = [...new Set(prescription.prescriptionItems.map((item) => item.medicationId))];
+              if (medicationIds.length === 0) {
+                return of({ prescription, medications: [] as MedicationDto[] });
+              }
+
+              return forkJoin(
+                medicationIds.map((medicationId) =>
+                  this.pharmacyApi.getMedicationById(medicationId).pipe(catchError(() => of(null as MedicationDto | null)))
+                )
+              ).pipe(
+                map((meds) => ({
+                  prescription,
+                  medications: meds.filter((med): med is MedicationDto => med != null),
+                }))
+              );
+            }),
+            catchError(() => {
+              this.loadError = true;
+              this.toaster.error('Greška pri učitavanju recepta.');
+              return of(null);
+            })
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((result) => {
+        this.isLoading = false;
+        if (!result) {
+          return;
+        }
+
+        this.prescription = result.prescription;
+        this.medications = result.medications;
       });
   }
 
-  private loadMedicationStock(items: PrescriptionItemDto[]): void {
-    const ids = [...new Set(items.map((i) => i.medicationId))];
-    if (ids.length === 0) {
-      this.isLoading = false;
+  reload(): void {
+    const id = this.prescriptionId ?? Number(this.route.snapshot.paramMap.get('id'));
+    if (!Number.isFinite(id) || id <= 0) {
       return;
     }
 
-    forkJoin(
-      ids.map((id) =>
-        this.pharmacyApi.getMedicationById(id).pipe(catchError(() => of(null as MedicationDto | null)))
+    this.prescriptionId = id;
+    this.isLoading = true;
+    this.loadError = false;
+    this.prescription = null;
+    this.medications = [];
+
+    this.pharmacyApi
+      .getPrescriptionById(id)
+      .pipe(
+        switchMap((prescription) => {
+          const medicationIds = [...new Set(prescription.prescriptionItems.map((item) => item.medicationId))];
+          if (medicationIds.length === 0) {
+            return of({ prescription, medications: [] as MedicationDto[] });
+          }
+
+          return forkJoin(
+            medicationIds.map((medicationId) =>
+              this.pharmacyApi.getMedicationById(medicationId).pipe(catchError(() => of(null as MedicationDto | null)))
+            )
+          ).pipe(
+            map((meds) => ({
+              prescription,
+              medications: meds.filter((med): med is MedicationDto => med != null),
+            }))
+          );
+        }),
+        catchError(() => {
+          this.loadError = true;
+          this.toaster.error('Greška pri učitavanju recepta.');
+          return of(null);
+        }),
+        takeUntilDestroyed(this.destroyRef)
       )
-    )
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (meds) => {
-          this.medications = meds.filter((med): med is MedicationDto => med != null);
-          this.isLoading = false;
-        },
-        error: () => {
-          this.toaster.error('Greška pri učitavanju zaliha lijekova.');
-          this.isLoading = false;
-        },
+      .subscribe((result) => {
+        this.isLoading = false;
+        if (!result) {
+          return;
+        }
+
+        this.prescription = result.prescription;
+        this.medications = result.medications;
       });
   }
 
@@ -114,24 +161,39 @@ export class PrescriptionDetailComponent implements OnInit {
       return;
     }
 
-    if (!confirm('Potvrdite izdavanje recepta i smanjenje zaliha.')) return;
-
-    this.isDispensing = true;
-    this.pharmacyApi
-      .dispensePrescription(this.prescriptionId, { dispensedDate: new Date().toISOString() })
+    this.dialog
+      .showCustom({
+        type: DialogType.QUESTION,
+        title: 'Izdaj recept',
+        message: 'Potvrdite izdavanje recepta i smanjenje zaliha.',
+        buttons: [
+          { type: DialogButton.CANCEL, label: 'Odustani' },
+          { type: DialogButton.OK, label: 'Izdaj', color: 'primary' },
+        ],
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (updated) => {
-          this.prescription = updated;
-          this.isDispensing = false;
-          this.toaster.success('Recept uspješno izdan.');
-          this.loadMedicationStock(updated.prescriptionItems);
-        },
-        error: (err) => {
-          this.isDispensing = false;
-          const msg = err?.error?.message ?? err?.error?.title ?? 'Greška pri izdavanju recepta.';
-          this.toaster.error(msg);
-        },
+      .subscribe((result) => {
+        if (result?.button !== DialogButton.OK || !this.prescriptionId) {
+          return;
+        }
+
+        this.isDispensing = true;
+        this.pharmacyApi
+          .dispensePrescription(this.prescriptionId, { dispensedDate: new Date().toISOString() })
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            next: (updated) => {
+              this.prescription = updated;
+              this.isDispensing = false;
+              this.toaster.success('Recept uspješno izdan.');
+              this.reload();
+            },
+            error: (err) => {
+              this.isDispensing = false;
+              const msg = err?.error?.message ?? err?.error?.title ?? 'Greška pri izdavanju recepta.';
+              this.toaster.error(msg);
+            },
+          });
       });
   }
 

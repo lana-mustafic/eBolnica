@@ -202,7 +202,14 @@
         >
           @for (img of images; track img.id) {
             <div class="image-item" cdkDrag [class.primary]="img.isPrimary">
-              <img [src]="imageUrl(img)" [alt]="img.fileName" (click)="openLightbox(img)" />
+              <button
+                type="button"
+                class="image-preview-button"
+                (click)="openLightbox(img)"
+                [attr.aria-label]="'Pregled slike ' + img.fileName"
+              >
+                <img [src]="imageUrl(img)" [alt]="img.fileName" />
+              </button>
               <div class="image-actions">
                 @if (!img.isPrimary) {
                   <button mat-button type="button" (click)="setPrimary(img)">Primarna</button>

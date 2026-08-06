@@ -1,5 +1,7 @@
+using eBolnica.Application.Common;
 using eBolnica.Application.Modules.Pharmacy.Prescriptions;
 using eBolnica.Domain.Entities.Pharmacy;
+using Microsoft.EntityFrameworkCore;
 
 namespace eBolnica.Application.Modules.Pharmacy.Prescriptions.Commands.CreatePrescription;
 
@@ -112,12 +114,12 @@ public sealed class CreatePrescriptionCommandHandler(IAppDbContext ctx, IAppCurr
 
                 return PrescriptionMapping.MapToDto(created);
             }
-            catch (DbUpdateException) when (attempt < maxAttempts)
+            catch (DbUpdateException ex) when (attempt < maxAttempts && DbUpdateExceptionHelper.IsUniqueConstraintViolation(ex))
             {
                 await transaction.RollbackAsync(ct);
                 ctx.ClearChangeTracker();
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex) when (DbUpdateExceptionHelper.IsUniqueConstraintViolation(ex))
             {
                 await transaction.RollbackAsync(ct);
                 throw new eBolnicaConflictException("Could not generate a unique prescription number. Please retry.");

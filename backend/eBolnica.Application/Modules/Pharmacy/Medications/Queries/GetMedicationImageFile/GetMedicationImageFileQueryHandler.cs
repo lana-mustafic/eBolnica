@@ -5,6 +5,13 @@ public sealed class GetMedicationImageFileQueryHandler(IAppDbContext ctx, IMedic
 {
     public async Task<MedicationImageFileQueryDto?> Handle(GetMedicationImageFileQuery request, CancellationToken ct)
     {
+        var medicationExists = await ctx.Medications
+            .AsNoTracking()
+            .AnyAsync(m => m.Id == request.MedicationId && !m.IsDeleted, ct);
+
+        if (!medicationExists)
+            return null;
+
         var image = await ctx.MedicationImages
             .AsNoTracking()
             .FirstOrDefaultAsync(

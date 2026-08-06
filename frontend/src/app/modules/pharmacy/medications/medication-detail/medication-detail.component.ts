@@ -1,6 +1,7 @@
 import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
+import { EMPTY, catchError, switchMap } from 'rxjs';
 import { PharmacyApiService } from '../../../../api-services/pharmacy/pharmacy-api.service';
 import { MedicationDto } from '../../../../api-services/pharmacy/pharmacy-api.models';
 
@@ -21,24 +22,45 @@ export class MedicationDetailComponent implements OnInit {
   loadError = false;
 
   ngOnInit(): void {
-    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
-      const id = Number(params.get('id'));
-      if (!id) {
-        this.loadError = true;
-        this.isLoading = false;
-        this.medication = null;
-        return;
-      }
+    this.route.paramMap
+      .pipe(
+        switchMap((params) => {
+          const id = Number(params.get('id'));
+          if (!Number.isFinite(id) || id <= 0) {
+            this.loadError = true;
+            this.isLoading = false;
+            this.medication = null;
+            return EMPTY;
+          }
 
-      this.loadMedication(id);
-    });
+          this.isLoading = true;
+          this.loadError = false;
+          this.medication = null;
+
+          return this.pharmacyApi.getMedicationById(id).pipe(
+            catchError(() => {
+              this.loadError = true;
+              this.isLoading = false;
+              return EMPTY;
+            })
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((medication) => {
+        this.medication = medication;
+        this.isLoading = false;
+      });
   }
 
-  private loadMedication(id: number): void {
+  reload(): void {
+    const id = this.medication?.id ?? Number(this.route.snapshot.paramMap.get('id'));
+    if (!Number.isFinite(id) || id <= 0) {
+      return;
+    }
+
     this.isLoading = true;
     this.loadError = false;
-    this.medication = null;
-
     this.pharmacyApi
       .getMedicationById(id)
       .pipe(takeUntilDestroyed(this.destroyRef))

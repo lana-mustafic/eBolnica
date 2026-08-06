@@ -1,6 +1,8 @@
+using eBolnica.Application.Common;
 using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.CreateMedication;
 using eBolnica.Domain.Entities.Pharmacy;
+using Microsoft.EntityFrameworkCore;
 
 public sealed class CreateMedicationCommandHandler(IAppDbContext ctx, IPharmacyAnalyticsService analytics)
     : IRequestHandler<CreateMedicationCommand, MedicationDto>
@@ -33,7 +35,14 @@ public sealed class CreateMedicationCommandHandler(IAppDbContext ctx, IPharmacyA
         };
 
         ctx.Medications.Add(medication);
-        await ctx.SaveChangesAsync(ct);
+        try
+        {
+            await ctx.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (DbUpdateExceptionHelper.IsUniqueConstraintViolation(ex))
+        {
+            throw new eBolnicaConflictException("A medication with this name already exists.");
+        }
 
         analytics.InvalidateAnalyticsCache();
         return MapToDto(medication);
@@ -57,6 +66,7 @@ public sealed class CreateMedicationCommandHandler(IAppDbContext ctx, IPharmacyA
         DosageForm = m.DosageForm,
         Strength = m.Strength,
         CreatedAt = m.CreatedAtUtc,
-        UpdatedAt = m.ModifiedAtUtc
+        UpdatedAt = m.ModifiedAtUtc,
+        RowVersion = m.RowVersion
     };
 }
