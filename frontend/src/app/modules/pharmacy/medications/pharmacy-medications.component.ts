@@ -1,7 +1,6 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  computed,
   DestroyRef,
   ElementRef,
   inject,
@@ -12,7 +11,19 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { Subject, catchError, debounceTime, distinctUntilChanged, of, switchMap } from 'rxjs';
+import {
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  map,
+  Observable,
+  of,
+  shareReplay,
+  startWith,
+  Subject,
+  switchMap,
+  tap,
+} from 'rxjs';
 import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.service';
 import {
   MedicationAutocompleteSuggestion,
@@ -26,6 +37,17 @@ import { DialogButton, DialogType } from '../../shared/models/dialog-config.mode
 import { DialogHelperService } from '../../shared/services/dialog-helper.service';
 import { MedicationImageUrlService } from '../services/medication-image-url.service';
 import { getMedicationCategoryLabel, MEDICATION_CATEGORIES } from '../constants/medication-categories.constant';
+
+interface MedicationsListViewModel {
+  loading: boolean;
+  error: boolean;
+  medications: MedicationDto[];
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
+  lowStockOnPageCount: number;
+  expiringSoonOnPageCount: number;
+}
 
 @Component({
   selector: 'app-pharmacy-medications',
@@ -48,14 +70,10 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   readonly categoryLabel = getMedicationCategoryLabel;
   readonly categories = MEDICATION_CATEGORIES;
 
-  medications = signal<MedicationDto[]>([]);
-  isLoading = signal(false);
-  loadError = signal(false);
-  isImporting = signal(false);
-  totalCount = signal(0);
-  totalPages = signal(0);
   currentPage = signal(1);
+  totalPages = signal(0);
   pageSize = 10;
+  medicationsOnPageCount = signal(0);
 
   search = '';
   selectedCategory = '';
@@ -69,28 +87,11 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   autocompleteSuggestions = signal<MedicationAutocompleteSuggestion[]>([]);
   showAutocomplete = signal(false);
   selectedSuggestionIndex = signal(-1);
+  isImporting = signal(false);
   importSummary = signal<MedicationImportResult | null>(null);
   selectedMedication = signal<MedicationDto | null>(null);
 
-  readonly activeSuggestionId = computed(() =>
-    this.selectedSuggestionIndex() >= 0 ? `medication-suggestion-${this.selectedSuggestionIndex()}` : null
-  );
-
-  readonly lowStockOnPageCount = computed(() =>
-    this.medications().filter(
-      (m) => m.isActive && m.stockQuantity > 0 && m.stockQuantity < m.minimumStockLevel
-    ).length
-  );
-
-  readonly expiringSoonOnPageCount = computed(() => {
-    const now = new Date();
-    const horizon = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    return this.medications().filter((m) => {
-      if (!m.expiryDate) return false;
-      const expiry = new Date(m.expiryDate);
-      return expiry >= now && expiry <= horizon;
-    }).length;
-  });
+  readonly activeSuggestionId = signal<string | null>(null);
 
   private thumbnailUrls = signal(new Map<number, string>());
   private thumbnailLoadGeneration = 0;
@@ -100,39 +101,22 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   private autocompleteQuery$ = new Subject<string>();
   private loadTrigger$ = new Subject<void>();
 
+  readonly listState$ = this.loadTrigger$.pipe(
+    switchMap(() => this.loadMedicationsViewModel()),
+    tap((vm) => {
+      this.currentPage.set(vm.currentPage);
+      this.totalPages.set(vm.totalPages);
+      this.medicationsOnPageCount.set(vm.medications.length);
+      if (!vm.loading && !vm.error) {
+        this.loadThumbnailUrls(vm.medications);
+      }
+    }),
+    shareReplay({ bufferSize: 1, refCount: true })
+  );
+
   displayedColumns = ['name', 'category', 'stockQuantity', 'expiryDate', 'createdAt', 'status', 'actions'];
 
   ngOnInit(): void {
-    this.loadTrigger$
-      .pipe(
-        switchMap(() => {
-          this.isLoading.set(true);
-          this.loadError.set(false);
-          return this.pharmacyApi.listMedications(this.buildRequest()).pipe(
-            catchError((err) => {
-              this.loadError.set(true);
-              this.medications.set([]);
-              this.thumbnailUrls.set(new Map());
-              this.toaster.error(getApiErrorMessage(err, 'Greška pri učitavanju lijekova.'));
-              return of(null);
-            })
-          );
-        }),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe((res) => {
-        this.isLoading.set(false);
-        if (!res) {
-          return;
-        }
-
-        this.medications.set(res.items);
-        this.totalCount.set(res.totalCount);
-        this.totalPages.set(res.totalPages);
-        this.currentPage.set(res.currentPage);
-        this.loadThumbnailUrls();
-      });
-
     this.searchChanged$
       .pipe(debounceTime(300), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
@@ -159,6 +143,9 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
         this.autocompleteSuggestions.set(suggestions);
         this.showAutocomplete.set(suggestions.length > 0);
         this.selectedSuggestionIndex.set(suggestions.length > 0 ? 0 : -1);
+        this.activeSuggestionId.set(
+          suggestions.length > 0 ? `medication-suggestion-0` : null
+        );
       });
 
     this.loadTrigger$.next();
@@ -167,6 +154,58 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.clearSearchBlurTimeout();
     this.imageUrlService.revokeAll();
+  }
+
+  private loadMedicationsViewModel(): Observable<MedicationsListViewModel> {
+    return this.pharmacyApi.listMedications(this.buildRequest()).pipe(
+      map((res) => this.toViewModel(res)),
+      catchError((err) => {
+        this.thumbnailUrls.set(new Map());
+        this.toaster.error(getApiErrorMessage(err, 'Greška pri učitavanju lijekova.'));
+        return of(this.emptyViewModel({ error: true }));
+      }),
+      startWith(this.emptyViewModel({ loading: true }))
+    );
+  }
+
+  private toViewModel(res: {
+    items: MedicationDto[];
+    totalCount: number;
+    totalPages: number;
+    currentPage: number;
+  }): MedicationsListViewModel {
+    const now = new Date();
+    const horizon = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    return {
+      loading: false,
+      error: false,
+      medications: res.items,
+      totalCount: res.totalCount,
+      totalPages: res.totalPages,
+      currentPage: res.currentPage,
+      lowStockOnPageCount: res.items.filter(
+        (m) => m.isActive && m.stockQuantity > 0 && m.stockQuantity < m.minimumStockLevel
+      ).length,
+      expiringSoonOnPageCount: res.items.filter((m) => {
+        if (!m.expiryDate) return false;
+        const expiry = new Date(m.expiryDate);
+        return expiry >= now && expiry <= horizon;
+      }).length,
+    };
+  }
+
+  private emptyViewModel(opts: { loading?: boolean; error?: boolean }): MedicationsListViewModel {
+    return {
+      loading: opts.loading ?? false,
+      error: opts.error ?? false,
+      medications: [],
+      totalCount: 0,
+      totalPages: 0,
+      currentPage: this.currentPage(),
+      lowStockOnPageCount: 0,
+      expiringSoonOnPageCount: 0,
+    };
   }
 
   retryLoad(): void {
@@ -260,18 +299,21 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
 
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      this.selectedSuggestionIndex.set(
-        Math.min(this.selectedSuggestionIndex() + 1, suggestions.length - 1)
-      );
+      const nextIndex = Math.min(this.selectedSuggestionIndex() + 1, suggestions.length - 1);
+      this.selectedSuggestionIndex.set(nextIndex);
+      this.activeSuggestionId.set(`medication-suggestion-${nextIndex}`);
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
-      this.selectedSuggestionIndex.set(Math.max(this.selectedSuggestionIndex() - 1, 0));
+      const nextIndex = Math.max(this.selectedSuggestionIndex() - 1, 0);
+      this.selectedSuggestionIndex.set(nextIndex);
+      this.activeSuggestionId.set(`medication-suggestion-${nextIndex}`);
     } else if (event.key === 'Enter' && this.selectedSuggestionIndex() >= 0) {
       event.preventDefault();
       this.selectSuggestion(suggestions[this.selectedSuggestionIndex()]);
     } else if (event.key === 'Escape') {
       this.showAutocomplete.set(false);
       this.selectedSuggestionIndex.set(-1);
+      this.activeSuggestionId.set(null);
     }
   }
 
@@ -280,6 +322,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
     this.searchBlurTimeoutId = window.setTimeout(() => {
       this.showAutocomplete.set(false);
       this.selectedSuggestionIndex.set(-1);
+      this.activeSuggestionId.set(null);
       this.searchBlurTimeoutId = undefined;
     }, 150);
   }
@@ -295,6 +338,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
     this.search = s.name;
     this.showAutocomplete.set(false);
     this.selectedSuggestionIndex.set(-1);
+    this.activeSuggestionId.set(null);
     this.onFilterChange();
   }
 
@@ -352,7 +396,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
           .subscribe({
             next: () => {
               this.toaster.success('Lijek deaktiviran.');
-              if (this.medications().length === 1 && this.currentPage() > 1) {
+              if (this.medicationsOnPageCount() === 1 && this.currentPage() > 1) {
                 this.currentPage.update((page) => page - 1);
               }
               this.loadTrigger$.next();
@@ -510,12 +554,12 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
     return expiry <= horizon;
   }
 
-  private loadThumbnailUrls(): void {
+  private loadThumbnailUrls(medications: MedicationDto[]): void {
     const generation = ++this.thumbnailLoadGeneration;
     this.imageUrlService.revokeAll();
     this.thumbnailUrls.set(new Map());
 
-    for (const medication of this.medications()) {
+    for (const medication of medications) {
       if (!medication.primaryImageId) {
         continue;
       }

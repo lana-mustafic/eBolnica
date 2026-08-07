@@ -27,9 +27,15 @@ public sealed class GetInventoryQueryHandler(IAppDbContext ctx)
             && m.ExpiryDate.Value <= expiryThreshold
             && m.ExpiryDate.Value > now);
 
-        var stats = await query
+        var page = Math.Max(1, request.PageNumber);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+
+        PharmacySortValidator.ValidateMedicationSort(request.SortBy);
+        var sortedQuery = MedicationQueryFilters.ApplySorting(query, request.SortBy, request.SortOrder);
+
+        var filteredStatsTask = query
             .GroupBy(_ => 1)
-            .Select(g => new
+            .Select(g => new FilteredInventoryStats
             {
                 TotalCount = g.Count(),
                 LowStockAlertCount = g.Count(m => m.StockQuantity < m.MinimumStockLevel),
@@ -40,54 +46,55 @@ public sealed class GetInventoryQueryHandler(IAppDbContext ctx)
             })
             .FirstOrDefaultAsync(ct);
 
-        var globalStats = await ctx.Medications
+        var globalStatsTask = ctx.Medications
             .AsNoTracking()
             .Where(m => m.IsActive)
             .GroupBy(_ => 1)
-            .Select(g => new
+            .Select(g => new GlobalInventoryStats
             {
                 TotalMedications = g.Count(),
                 InventoryValue = g.Sum(m => m.Price * m.StockQuantity)
             })
             .FirstOrDefaultAsync(ct);
 
-        var totalCount = stats?.TotalCount ?? 0;
-        var lowStockAlertCount = stats?.LowStockAlertCount ?? 0;
-        var expiryAlertCount = stats?.ExpiryAlertCount ?? 0;
-
-        var lowStockAlerts = await lowStockQuery
+        var lowStockAlertsTask = lowStockQuery
             .OrderBy(m => m.StockQuantity)
             .ThenBy(m => m.Name)
             .Take(MaxAlertItems)
             .Select(MedicationMapping.ToDtoExpression)
             .ToListAsync(ct);
 
-        var expiryAlerts = await expiryQuery
+        var expiryAlertsTask = expiryQuery
             .OrderBy(m => m.ExpiryDate)
             .ThenBy(m => m.Name)
             .Take(MaxAlertItems)
             .Select(MedicationMapping.ToDtoExpression)
             .ToListAsync(ct);
 
-        var page = Math.Max(1, request.PageNumber);
-        var pageSize = Math.Clamp(request.PageSize, 1, 100);
-
-        PharmacySortValidator.ValidateMedicationSort(request.SortBy);
-        query = MedicationQueryFilters.ApplySorting(query, request.SortBy, request.SortOrder);
-
-        var items = await query
+        var itemsTask = sortedQuery
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(MedicationMapping.ToDtoExpression)
             .ToListAsync(ct);
 
+        await Task.WhenAll(
+            filteredStatsTask,
+            globalStatsTask,
+            lowStockAlertsTask,
+            expiryAlertsTask,
+            itemsTask);
+
+        var stats = await filteredStatsTask;
+        var globalStats = await globalStatsTask;
+        var totalCount = stats?.TotalCount ?? 0;
+
         return new GetInventoryQueryDto
         {
-            Items = items,
-            LowStockAlerts = lowStockAlerts,
-            ExpiryAlerts = expiryAlerts,
-            LowStockAlertCount = lowStockAlertCount,
-            ExpiryAlertCount = expiryAlertCount,
+            Items = await itemsTask,
+            LowStockAlerts = await lowStockAlertsTask,
+            ExpiryAlerts = await expiryAlertsTask,
+            LowStockAlertCount = stats?.LowStockAlertCount ?? 0,
+            ExpiryAlertCount = stats?.ExpiryAlertCount ?? 0,
             TotalMedications = globalStats?.TotalMedications ?? 0,
             InventoryValue = globalStats?.InventoryValue ?? 0,
             TotalCount = totalCount,
@@ -95,5 +102,18 @@ public sealed class GetInventoryQueryHandler(IAppDbContext ctx)
             PageSize = pageSize,
             TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
         };
+    }
+
+    private sealed class FilteredInventoryStats
+    {
+        public int TotalCount { get; init; }
+        public int LowStockAlertCount { get; init; }
+        public int ExpiryAlertCount { get; init; }
+    }
+
+    private sealed class GlobalInventoryStats
+    {
+        public int TotalMedications { get; init; }
+        public decimal InventoryValue { get; init; }
     }
 }

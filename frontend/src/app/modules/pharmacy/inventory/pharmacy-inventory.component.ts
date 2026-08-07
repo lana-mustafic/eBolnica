@@ -1,7 +1,6 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  computed,
   DestroyRef,
   inject,
   OnInit,
@@ -9,13 +8,41 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { Subject, catchError, debounceTime, of, switchMap } from 'rxjs';
+import {
+  catchError,
+  debounceTime,
+  map,
+  Observable,
+  of,
+  shareReplay,
+  startWith,
+  Subject,
+  switchMap,
+  tap,
+} from 'rxjs';
 import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.service';
 import { MedicationDto } from '../../../api-services/pharmacy/pharmacy-api.models';
 import { getMedicationCategoryLabel, MEDICATION_CATEGORIES } from '../constants/medication-categories.constant';
 import { ToasterService } from '../../../core/services/toaster.service';
 import { getApiErrorMessage } from '../../../core/utils/api-error.util';
 import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
+
+interface InventoryListViewModel {
+  loading: boolean;
+  error: boolean;
+  items: MedicationDto[];
+  lowStockAlerts: MedicationDto[];
+  expiryAlerts: MedicationDto[];
+  lowStockAlertCount: number;
+  expiryAlertCount: number;
+  inventoryValue: number;
+  inventoryValueLabel: string;
+  totalMedications: number;
+  totalCount: number;
+  currentPage: number;
+  totalPages: number;
+  firstLowStockAlert: MedicationDto | null;
+}
 
 @Component({
   selector: 'app-pharmacy-inventory',
@@ -34,24 +61,8 @@ export class PharmacyInventoryComponent implements OnInit {
   readonly categoryLabel = getMedicationCategoryLabel;
   readonly categories = MEDICATION_CATEGORIES;
 
-  items = signal<MedicationDto[]>([]);
-  lowStockAlerts = signal<MedicationDto[]>([]);
-  expiryAlerts = signal<MedicationDto[]>([]);
-  lowStockAlertCount = signal(0);
-  expiryAlertCount = signal(0);
-  inventoryValue = signal(0);
-  totalMedications = signal(0);
-  isLoading = signal(true);
-  loadError = signal(false);
-  totalCount = signal(0);
   currentPage = signal(1);
   totalPages = signal(0);
-
-  firstLowStockAlert = computed(() => this.lowStockAlerts()[0] ?? null);
-
-  inventoryValueLabel = computed(
-    () => `${Math.round(this.inventoryValue()).toLocaleString('bs-BA')} KM`
-  );
 
   search = '';
   selectedCategory = '';
@@ -67,43 +78,16 @@ export class PharmacyInventoryComponent implements OnInit {
   private filterChanged$ = new Subject<void>();
   private loadTrigger$ = new Subject<void>();
 
+  readonly listState$ = this.loadTrigger$.pipe(
+    switchMap(() => this.loadInventoryViewModel()),
+    tap((vm) => {
+      this.currentPage.set(vm.currentPage);
+      this.totalPages.set(vm.totalPages);
+    }),
+    shareReplay({ bufferSize: 1, refCount: true })
+  );
+
   ngOnInit(): void {
-    this.loadTrigger$
-      .pipe(
-        switchMap(() => {
-          this.isLoading.set(true);
-          this.loadError.set(false);
-          return this.pharmacyApi.getInventory(this.buildRequest()).pipe(
-            catchError((err) => {
-              this.loadError.set(true);
-              this.items.set([]);
-              this.lowStockAlerts.set([]);
-              this.expiryAlerts.set([]);
-              this.toaster.error(getApiErrorMessage(err, 'Greška pri učitavanju inventara.'));
-              return of(null);
-            })
-          );
-        }),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe((res) => {
-        this.isLoading.set(false);
-        if (!res) {
-          return;
-        }
-
-        this.items.set(res.items);
-        this.lowStockAlerts.set(res.lowStockAlerts);
-        this.expiryAlerts.set(res.expiryAlerts);
-        this.lowStockAlertCount.set(res.lowStockAlertCount ?? res.lowStockAlerts.length);
-        this.expiryAlertCount.set(res.expiryAlertCount ?? res.expiryAlerts.length);
-        this.totalMedications.set(res.totalMedications);
-        this.inventoryValue.set(res.inventoryValue);
-        this.totalCount.set(res.totalCount);
-        this.totalPages.set(res.totalPages);
-        this.currentPage.set(res.currentPage);
-      });
-
     this.filterChanged$
       .pipe(debounceTime(300), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
@@ -183,6 +167,67 @@ export class PharmacyInventoryComponent implements OnInit {
 
   editMedication(id: number): void {
     this.router.navigate(['/pharmacy/medications', id, 'edit']);
+  }
+
+  private loadInventoryViewModel(): Observable<InventoryListViewModel> {
+    return this.pharmacyApi.getInventory(this.buildRequest()).pipe(
+      map((res) => this.toViewModel(res)),
+      catchError((err) => {
+        this.toaster.error(getApiErrorMessage(err, 'Greška pri učitavanju inventara.'));
+        return of(this.emptyViewModel({ error: true }));
+      }),
+      startWith(this.emptyViewModel({ loading: true }))
+    );
+  }
+
+  private toViewModel(res: {
+    items: MedicationDto[];
+    lowStockAlerts: MedicationDto[];
+    expiryAlerts: MedicationDto[];
+    lowStockAlertCount?: number;
+    expiryAlertCount?: number;
+    totalMedications: number;
+    inventoryValue: number;
+    totalCount: number;
+    totalPages: number;
+    currentPage: number;
+  }): InventoryListViewModel {
+    const inventoryValue = res.inventoryValue;
+    return {
+      loading: false,
+      error: false,
+      items: res.items,
+      lowStockAlerts: res.lowStockAlerts,
+      expiryAlerts: res.expiryAlerts,
+      lowStockAlertCount: res.lowStockAlertCount ?? res.lowStockAlerts.length,
+      expiryAlertCount: res.expiryAlertCount ?? res.expiryAlerts.length,
+      inventoryValue,
+      inventoryValueLabel: `${Math.round(inventoryValue).toLocaleString('bs-BA')} KM`,
+      totalMedications: res.totalMedications,
+      totalCount: res.totalCount,
+      currentPage: res.currentPage,
+      totalPages: res.totalPages,
+      firstLowStockAlert: res.lowStockAlerts[0] ?? null,
+    };
+  }
+
+  private emptyViewModel(opts: { loading?: boolean; error?: boolean }): InventoryListViewModel {
+    return {
+      loading: opts.loading ?? false,
+      error: opts.error ?? false,
+      items: [],
+      lowStockAlerts: [],
+      expiryAlerts: [],
+      lowStockAlertCount: 0,
+      expiryAlertCount: 0,
+      inventoryValue: 0,
+      inventoryValueLabel: '0 KM',
+      totalMedications: 0,
+      totalCount: 0,
+      currentPage: this.currentPage(),
+      totalPages: 0,
+      firstLowStockAlert: null,
+    };
   }
 
   private buildRequest() {

@@ -1,7 +1,6 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  computed,
   DestroyRef,
   inject,
   OnInit,
@@ -9,7 +8,18 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { Subject, catchError, debounceTime, of, switchMap } from 'rxjs';
+import {
+  catchError,
+  debounceTime,
+  map,
+  Observable,
+  of,
+  shareReplay,
+  startWith,
+  Subject,
+  switchMap,
+  tap,
+} from 'rxjs';
 import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.service';
 import { PharmacyActivityDto, PrescriptionDto } from '../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../core/services/toaster.service';
@@ -31,6 +41,22 @@ interface PrescriptionActivityItem {
   timeLabel: string;
 }
 
+interface PrescriptionsListViewModel {
+  loading: boolean;
+  error: boolean;
+  prescriptions: PrescriptionDto[];
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
+  totalPrescriptions: number;
+  pendingPrescriptions: number;
+  dispensedPrescriptions: number;
+  totalRevenue: number;
+  totalRevenueLabel: string;
+  tableEmptyMessage: string;
+  isOutOfRangePage: boolean;
+}
+
 @Component({
   selector: 'app-pharmacy-prescriptions',
   standalone: false,
@@ -47,18 +73,9 @@ export class PharmacyPrescriptionsComponent implements OnInit {
 
   auth = inject(AuthFacadeService);
 
-  prescriptions = signal<PrescriptionDto[]>([]);
-  isLoading = signal(false);
-  loadError = signal(false);
-  totalCount = signal(0);
-  totalPages = signal(0);
   currentPage = signal(1);
+  totalPages = signal(0);
   pageSize = 10;
-
-  totalPrescriptions = signal(0);
-  pendingPrescriptions = signal(0);
-  dispensedPrescriptions = signal(0);
-  totalRevenue = signal(0);
 
   dispensingId = signal<number | null>(null);
 
@@ -93,85 +110,33 @@ export class PharmacyPrescriptionsComponent implements OnInit {
   private loadTrigger$ = new Subject<void>();
   private activitiesLoadTrigger$ = new Subject<void>();
 
-  activities = signal<PharmacyActivityDto[]>([]);
-
-  recentActivities = computed((): PrescriptionActivityItem[] =>
-    this.activities().map((activity) => ({
-      id: activity.id,
-      type: mapPrescriptionActivityType(activity),
-      message: activity.message,
-      timeLabel: formatRelativeTime(activity.occurredAt),
-    }))
+  readonly activities$ = this.activitiesLoadTrigger$.pipe(
+    switchMap(() =>
+      this.pharmacyApi.listRecentActivities({ limit: 6, category: 'prescription' }).pipe(
+        catchError(() => of([] as PharmacyActivityDto[]))
+      )
+    ),
+    map((activities) =>
+      activities.map((activity) => ({
+        id: activity.id,
+        type: mapPrescriptionActivityType(activity),
+        message: activity.message,
+        timeLabel: formatRelativeTime(activity.occurredAt),
+      }))
+    ),
+    shareReplay({ bufferSize: 1, refCount: true })
   );
 
-  isOutOfRangePage = computed(
-    () => this.prescriptions().length === 0 && this.totalCount() > 0 && this.currentPage() > this.totalPages()
+  readonly listState$ = this.loadTrigger$.pipe(
+    switchMap(() => this.loadPrescriptionsViewModel()),
+    tap((vm) => {
+      this.currentPage.set(vm.currentPage);
+      this.totalPages.set(vm.totalPages);
+    }),
+    shareReplay({ bufferSize: 1, refCount: true })
   );
-
-  totalRevenueLabel = computed(() => `${Math.round(this.totalRevenue()).toLocaleString('bs-BA')} KM`);
-
-  tableEmptyMessage = computed(() => {
-    if (this.isOutOfRangePage()) {
-      return `Nema recepata na stranici ${this.currentPage()}. Pronađeno ${this.totalCount()} za odabrane filtere.`;
-    }
-
-    if (this.hasActiveFilters()) {
-      return 'Nema recepata koji odgovaraju odabranim filterima.';
-    }
-
-    return 'Još nema unesenih recepata.';
-  });
 
   ngOnInit(): void {
-    this.activitiesLoadTrigger$
-      .pipe(
-        switchMap(() =>
-          this.pharmacyApi.listRecentActivities({ limit: 6, category: 'prescription' }).pipe(
-            catchError(() => of([] as PharmacyActivityDto[]))
-          )
-        ),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe((activities) => this.activities.set(activities));
-
-    this.loadTrigger$
-      .pipe(
-        switchMap(() => {
-          this.isLoading.set(true);
-          this.loadError.set(false);
-          return this.pharmacyApi.listPrescriptions(this.buildRequest()).pipe(
-            catchError((err) => {
-              this.loadError.set(true);
-              this.prescriptions.set([]);
-              this.toaster.error(getApiErrorMessage(err, 'Greška pri učitavanju recepata.'));
-              return of(null);
-            })
-          );
-        }),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe((res) => {
-        this.isLoading.set(false);
-        if (!res) return;
-
-        if (res.items.length === 0 && res.totalCount > 0 && res.currentPage > res.totalPages) {
-          this.totalCount.set(res.totalCount);
-          this.totalPages.set(res.totalPages);
-          this.currentPage.set(1);
-          this.loadTrigger$.next();
-          return;
-        }
-
-        this.prescriptions.set(res.items);
-        this.totalPrescriptions.set(res.summary.totalPrescriptions);
-        this.pendingPrescriptions.set(res.summary.pendingPrescriptions);
-        this.dispensedPrescriptions.set(res.summary.dispensedPrescriptions);
-        this.totalRevenue.set(res.summary.totalRevenue);
-        this.totalCount.set(res.totalCount);
-        this.totalPages.set(res.totalPages);
-        this.currentPage.set(res.currentPage);
-      });
-
     this.filterChanged$
       .pipe(debounceTime(300), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
@@ -203,6 +168,90 @@ export class PharmacyPrescriptionsComponent implements OnInit {
 
   statusClass(status: string): string {
     return getPrescriptionStatusClass(status);
+  }
+
+  private loadPrescriptionsViewModel(): Observable<PrescriptionsListViewModel> {
+    return this.pharmacyApi.listPrescriptions(this.buildRequest()).pipe(
+      switchMap((res) => {
+        if (res.items.length === 0 && res.totalCount > 0 && res.currentPage > res.totalPages) {
+          this.currentPage.set(1);
+          return this.pharmacyApi.listPrescriptions({ ...this.buildRequest(), pageNumber: 1 });
+        }
+        return of(res);
+      }),
+      map((res) => this.toViewModel(res)),
+      catchError((err) => {
+        this.toaster.error(getApiErrorMessage(err, 'Greška pri učitavanju recepata.'));
+        return of(this.emptyViewModel({ error: true }));
+      }),
+      startWith(this.emptyViewModel({ loading: true }))
+    );
+  }
+
+  private toViewModel(res: {
+    items: PrescriptionDto[];
+    totalCount: number;
+    totalPages: number;
+    currentPage: number;
+    summary: {
+      totalPrescriptions: number;
+      pendingPrescriptions: number;
+      dispensedPrescriptions: number;
+      totalRevenue: number;
+    };
+  }): PrescriptionsListViewModel {
+    const isOutOfRangePage =
+      res.items.length === 0 && res.totalCount > 0 && res.currentPage > res.totalPages;
+
+    return {
+      loading: false,
+      error: false,
+      prescriptions: res.items,
+      totalCount: res.totalCount,
+      totalPages: res.totalPages,
+      currentPage: res.currentPage,
+      totalPrescriptions: res.summary.totalPrescriptions,
+      pendingPrescriptions: res.summary.pendingPrescriptions,
+      dispensedPrescriptions: res.summary.dispensedPrescriptions,
+      totalRevenue: res.summary.totalRevenue,
+      totalRevenueLabel: `${Math.round(res.summary.totalRevenue).toLocaleString('bs-BA')} KM`,
+      isOutOfRangePage,
+      tableEmptyMessage: this.buildTableEmptyMessage(isOutOfRangePage, res.totalCount, res.currentPage),
+    };
+  }
+
+  private emptyViewModel(opts: { loading?: boolean; error?: boolean }): PrescriptionsListViewModel {
+    return {
+      loading: opts.loading ?? false,
+      error: opts.error ?? false,
+      prescriptions: [],
+      totalCount: 0,
+      totalPages: 0,
+      currentPage: this.currentPage(),
+      totalPrescriptions: 0,
+      pendingPrescriptions: 0,
+      dispensedPrescriptions: 0,
+      totalRevenue: 0,
+      totalRevenueLabel: '0 KM',
+      isOutOfRangePage: false,
+      tableEmptyMessage: this.buildTableEmptyMessage(false, 0, this.currentPage()),
+    };
+  }
+
+  private buildTableEmptyMessage(
+    isOutOfRangePage: boolean,
+    totalCount: number,
+    currentPage: number
+  ): string {
+    if (isOutOfRangePage) {
+      return `Nema recepata na stranici ${currentPage}. Pronađeno ${totalCount} za odabrane filtere.`;
+    }
+
+    if (this.hasActiveFilters()) {
+      return 'Nema recepata koji odgovaraju odabranim filterima.';
+    }
+
+    return 'Još nema unesenih recepata.';
   }
 
   private buildRequest() {

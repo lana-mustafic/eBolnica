@@ -21,7 +21,7 @@
         <app-pharmacy-icon name="download" [size]="16"></app-pharmacy-icon>
         Eksport
       </button>
-      <button type="button" class="btn btn-secondary" (click)="reload()" [disabled]="isLoading()">
+      <button type="button" class="btn btn-secondary" (click)="reload()" [disabled]="(listState$ | async)?.loading">
         <app-pharmacy-icon name="activity" [size]="16"></app-pharmacy-icon>
         Osvježi
       </button>
@@ -29,11 +29,12 @@
   </header>
 
   <div class="page-body">
+    @if (listState$ | async; as vm) {
     <section class="kpi-grid" aria-label="Statistike recepata">
       <app-pharmacy-kpi-card
         icon="clipboard"
         title="Ukupno recepata"
-        [value]="totalPrescriptions()"
+        [value]="vm.totalPrescriptions"
         subtitle="Svi recepti u sistemu"
         tone="blue"
       ></app-pharmacy-kpi-card>
@@ -41,7 +42,7 @@
       <app-pharmacy-kpi-card
         icon="clock"
         title="Na čekanju"
-        [value]="pendingPrescriptions()"
+        [value]="vm.pendingPrescriptions"
         subtitle="Čekaju izdavanje"
         tone="orange"
       ></app-pharmacy-kpi-card>
@@ -49,7 +50,7 @@
       <app-pharmacy-kpi-card
         icon="check-circle"
         title="Izdani"
-        [value]="dispensedPrescriptions()"
+        [value]="vm.dispensedPrescriptions"
         subtitle="Uspješno izdani"
         tone="green"
       ></app-pharmacy-kpi-card>
@@ -57,7 +58,7 @@
       <app-pharmacy-kpi-card
         icon="wallet"
         title="Ukupna vrijednost"
-        [value]="totalRevenueLabel()"
+        [value]="vm.totalRevenueLabel"
         subtitle="Prihod od izdanih recepata"
         tone="purple"
       ></app-pharmacy-kpi-card>
@@ -124,28 +125,28 @@
       </div>
     </section>
 
-    @if (loadError()) {
+    @if (vm.error) {
       <section class="card error-card">
         <p>Greška pri učitavanju recepata.</p>
         <button type="button" class="btn btn-outline" (click)="retryLoad()">Pokušaj ponovo</button>
       </section>
-    } @else if (isLoading()) {
+    } @else if (vm.loading) {
       <app-fit-table-skeleton [rows]="5" [columns]="6"></app-fit-table-skeleton>
     } @else {
       <section class="card table-card">
         <div class="table-header">
-          <h2>Aktivni recepti ({{ totalCount() }})</h2>
+          <h2>Aktivni recepti ({{ vm.totalCount }})</h2>
           <button type="button" class="btn btn-outline btn-sm" (click)="exportPdf()">
             <app-pharmacy-icon name="file-text" [size]="16"></app-pharmacy-icon>
             Export PDF
           </button>
         </div>
 
-        @if (prescriptions().length === 0) {
+        @if (vm.prescriptions.length === 0) {
           <div class="table-empty-state">
-            <p class="empty-state">{{ tableEmptyMessage() }}</p>
+            <p class="empty-state">{{ vm.tableEmptyMessage }}</p>
             <div class="empty-state-actions">
-              @if (isOutOfRangePage()) {
+              @if (vm.isOutOfRangePage) {
                 <button type="button" class="btn btn-primary" (click)="goToFirstPage()">
                   Idi na prvu stranicu
                 </button>
@@ -157,7 +158,7 @@
           </div>
         } @else {
           <div class="table-scroll desktop-table">
-            <table mat-table [dataSource]="prescriptions()" class="prescriptions-table">
+            <table mat-table [dataSource]="vm.prescriptions" class="prescriptions-table">
               <ng-container matColumnDef="number">
                 <th
                   mat-header-cell
@@ -269,7 +270,7 @@
           </div>
 
           <ul class="mobile-card-list" aria-label="Lista recepata">
-            @for (p of prescriptions(); track p.id) {
+            @for (p of vm.prescriptions; track p.id) {
               <li class="prescription-card">
                 <div class="card-row">
                   <span class="card-label">Broj</span>
@@ -371,8 +372,9 @@
 
       <section class="card activity-card">
         <h2 class="section-title">Najnovije aktivnosti</h2>
+        @if (activities$ | async; as activities) {
         <ul class="activity-list">
-          @if (recentActivities().length === 0) {
+          @if (activities.length === 0) {
             <li class="activity-item success">
               <div class="activity-copy">
                 <span class="activity-text">Nema zabilježenih aktivnosti.</span>
@@ -380,7 +382,7 @@
               </div>
             </li>
           } @else {
-            @for (activity of recentActivities(); track activity.id) {
+            @for (activity of activities; track activity.id) {
               <li class="activity-item" [class]="activity.type">
                 <span class="activity-icon">
                   @switch (activity.type) {
@@ -403,7 +405,9 @@
             }
           }
         </ul>
+        }
       </section>
+    }
     }
   </div>
 </div>

@@ -14,11 +14,12 @@
   </header>
 
   <div class="page-body">
+    @if (listState$ | async; as vm) {
     <section class="kpi-grid" aria-label="Statistike inventara">
       <app-pharmacy-kpi-card
         icon="package"
         title="Ukupno lijekova"
-        [value]="totalMedications()"
+        [value]="vm.totalMedications"
         subtitle="Aktivni lijekovi u sistemu"
         tone="purple"
       ></app-pharmacy-kpi-card>
@@ -26,7 +27,7 @@
       <app-pharmacy-kpi-card
         icon="triangle-alert"
         title="Niska zaliha"
-        [value]="lowStockAlertCount()"
+        [value]="vm.lowStockAlertCount"
         subtitle="Ispod minimuma"
         tone="orange"
       ></app-pharmacy-kpi-card>
@@ -34,7 +35,7 @@
       <app-pharmacy-kpi-card
         icon="clock"
         title="Ističe uskoro"
-        [value]="expiryAlertCount()"
+        [value]="vm.expiryAlertCount"
         subtitle="Sljedećih 30 dana"
         tone="red"
       ></app-pharmacy-kpi-card>
@@ -42,7 +43,7 @@
       <app-pharmacy-kpi-card
         icon="wallet"
         title="Vrijednost inventara"
-        [value]="inventoryValueLabel()"
+        [value]="vm.inventoryValueLabel"
         subtitle="Procijenjena vrijednost zaliha"
         tone="green"
       ></app-pharmacy-kpi-card>
@@ -113,16 +114,16 @@
           <app-pharmacy-icon name="triangle-alert" [size]="18"></app-pharmacy-icon>
           Niska zaliha
         </div>
-        <p class="alert-count">{{ formatMedicationCount(lowStockAlertCount()) }}</p>
+        <p class="alert-count">{{ formatMedicationCount(vm.lowStockAlertCount) }}</p>
         <p class="alert-detail">
-          @if (firstLowStockAlert(); as alert) {
+          @if (vm.firstLowStockAlert; as alert) {
             {{ alert.name }}
           } @else {
             Nema lijekova ispod minimuma
           }
         </p>
-        <p class="alert-status" [class.warn]="lowStockAlertCount() > 0">
-          {{ lowStockAlertCount() > 0 ? 'Potrebna pažnja' : 'Zalihe su u redu' }}
+        <p class="alert-status" [class.warn]="vm.lowStockAlertCount > 0">
+          {{ vm.lowStockAlertCount > 0 ? 'Potrebna pažnja' : 'Zalihe su u redu' }}
         </p>
       </article>
 
@@ -131,31 +132,31 @@
           <app-pharmacy-icon name="check-circle" [size]="18"></app-pharmacy-icon>
           Ističe uskoro
         </div>
-        <p class="alert-count">{{ formatMedicationCount(expiryAlertCount()) }}</p>
+        <p class="alert-count">{{ formatMedicationCount(vm.expiryAlertCount) }}</p>
         <p class="alert-detail">
-          @if (expiryAlertCount() === 0) {
+          @if (vm.expiryAlertCount === 0) {
             Sve je u redu
-          } @else if (expiryAlerts()[0]; as alert) {
+          } @else if (vm.expiryAlerts[0]; as alert) {
             {{ alert.name }}
           }
         </p>
-        <p class="alert-status" [class.ok]="expiryAlertCount() === 0">
-          {{ expiryAlertCount() === 0 ? 'Rokovi pod kontrolom' : 'Provjerite rok trajanja' }}
+        <p class="alert-status" [class.ok]="vm.expiryAlertCount === 0">
+          {{ vm.expiryAlertCount === 0 ? 'Rokovi pod kontrolom' : 'Provjerite rok trajanja' }}
         </p>
       </article>
     </section>
 
-    @if (loadError()) {
+    @if (vm.error) {
       <section class="card error-card">
         <p>Greška pri učitavanju inventara.</p>
         <button type="button" class="btn btn-outline" (click)="retryLoad()">Pokušaj ponovo</button>
       </section>
-    } @else if (isLoading()) {
+    } @else if (vm.loading) {
       <app-fit-table-skeleton [rows]="5" [columns]="5"></app-fit-table-skeleton>
     } @else {
       <section class="card table-card">
         <div class="table-header">
-          <h2>Svi aktivni lijekovi ({{ totalCount() }})</h2>
+          <h2>Svi aktivni lijekovi ({{ vm.totalCount }})</h2>
           <div class="table-header-actions">
             <button type="button" class="icon-btn" (click)="reload()" aria-label="Osvježi listu">
               <app-pharmacy-icon name="activity" [size]="18"></app-pharmacy-icon>
@@ -168,14 +169,14 @@
           </div>
         </div>
 
-        @if (items().length === 0) {
+        @if (vm.items.length === 0) {
           <p class="empty-state">Nema lijekova za prikaz sa trenutnim filterima.</p>
           @if (hasActiveFilters()) {
             <button type="button" class="btn btn-outline" (click)="clearFilters()">Očisti filtere</button>
           }
         } @else {
           <div class="table-scroll">
-            <table mat-table [dataSource]="items()" class="inventory-table">
+            <table mat-table [dataSource]="vm.items" class="inventory-table">
               <ng-container matColumnDef="name">
                 <th
                   mat-header-cell
@@ -284,13 +285,13 @@
             </table>
           </div>
 
-          @if (totalPages() > 1) {
+          @if (vm.totalPages > 1) {
             <div class="pagination">
-              <button type="button" class="btn btn-outline" (click)="goToPage(currentPage() - 1)" [disabled]="currentPage() <= 1">
+              <button type="button" class="btn btn-outline" (click)="goToPage(vm.currentPage - 1)" [disabled]="vm.currentPage <= 1">
                 Prethodna
               </button>
-              <span>Stranica {{ currentPage() }} / {{ totalPages() }}</span>
-              <button type="button" class="btn btn-outline" (click)="goToPage(currentPage() + 1)" [disabled]="currentPage() >= totalPages()">
+              <span>Stranica {{ vm.currentPage }} / {{ vm.totalPages }}</span>
+              <button type="button" class="btn btn-outline" (click)="goToPage(vm.currentPage + 1)" [disabled]="vm.currentPage >= vm.totalPages">
                 Sljedeća
               </button>
             </div>
@@ -326,6 +327,7 @@
           </mat-menu>
         }
       </section>
+    }
     }
   </div>
 </div>
