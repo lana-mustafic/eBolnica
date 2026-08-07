@@ -10,6 +10,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, forkJoin, of, Subject, switchMap } from 'rxjs';
 import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.service';
+import { PharmacyDashboardCacheService } from '../services/pharmacy-dashboard-cache.service';
 import {
   CategoryItemDto,
   MonthlyRevenueItemDto,
@@ -43,8 +44,9 @@ interface DashboardActivityItem {
 })
 export class PharmacyDashboardComponent implements OnInit {
   private pharmacyApi = inject(PharmacyApiService);
+  private dashboardCache = inject(PharmacyDashboardCacheService);
   private destroyRef = inject(DestroyRef);
-  private loadTrigger$ = new Subject<void>();
+  private loadTrigger$ = new Subject<boolean>();
 
   auth = inject(AuthFacadeService);
 
@@ -127,11 +129,11 @@ export class PharmacyDashboardComponent implements OnInit {
   ngOnInit(): void {
     this.loadTrigger$
       .pipe(
-        switchMap(() => {
+        switchMap((forceRefresh) => {
           this.isLoading.set(true);
           this.loadError.set(false);
           return forkJoin({
-            stats: this.pharmacyApi.getDashboardStats().pipe(
+            stats: this.dashboardCache.getStats(forceRefresh).pipe(
               catchError(() => of(null))
             ),
             activities: this.pharmacyApi.listRecentActivities({ limit: 10 }).pipe(
@@ -164,10 +166,10 @@ export class PharmacyDashboardComponent implements OnInit {
         this.revenueChange.set(stats.monthlyRevenue.revenueChangePercentage);
       });
 
-    this.loadTrigger$.next();
+    this.loadTrigger$.next(false);
   }
 
   reload(): void {
-    this.loadTrigger$.next();
+    this.loadTrigger$.next(true);
   }
 }

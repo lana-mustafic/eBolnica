@@ -9,9 +9,10 @@ import {
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
-import { Chart, TooltipItem } from 'chart.js/auto';
+import type { Chart, TooltipItem } from 'chart.js';
 import { getMedicationCategoryLabel } from '../../constants/medication-categories.constant';
 import { CategoryItemDto } from '../../../../api-services/pharmacy/pharmacy-api.models';
+import { loadChartJs } from './chart-js-loader';
 
 const CHART_COLORS = ['#7C3AED', '#22C55E', '#3B82F6', '#F59E0B', '#EF4444', '#06B6D4', '#EC4899', '#84CC16'];
 
@@ -28,6 +29,7 @@ export class PharmacyCategoriesChartComponent implements AfterViewInit, OnChange
 
   private chart?: Chart;
   private renderQueued = false;
+  private renderGeneration = 0;
 
   ngAfterViewInit(): void {
     this.queueRender();
@@ -40,6 +42,7 @@ export class PharmacyCategoriesChartComponent implements AfterViewInit, OnChange
   }
 
   ngOnDestroy(): void {
+    this.renderGeneration++;
     this.chart?.destroy();
   }
 
@@ -51,11 +54,11 @@ export class PharmacyCategoriesChartComponent implements AfterViewInit, OnChange
     this.renderQueued = true;
     queueMicrotask(() => {
       this.renderQueued = false;
-      this.renderChart();
+      void this.renderChart();
     });
   }
 
-  private renderChart(): void {
+  private async renderChart(): Promise<void> {
     if (!this.canvas?.nativeElement) {
       return;
     }
@@ -67,7 +70,13 @@ export class PharmacyCategoriesChartComponent implements AfterViewInit, OnChange
       return;
     }
 
-    this.chart = new Chart(this.canvas.nativeElement, {
+    const generation = ++this.renderGeneration;
+    const { Chart: ChartCtor } = await loadChartJs();
+    if (generation !== this.renderGeneration || !this.canvas?.nativeElement) {
+      return;
+    }
+
+    this.chart = new ChartCtor(this.canvas.nativeElement, {
       type: 'doughnut',
       data: {
         labels: this.items.map((item) => getMedicationCategoryLabel(item.category)),

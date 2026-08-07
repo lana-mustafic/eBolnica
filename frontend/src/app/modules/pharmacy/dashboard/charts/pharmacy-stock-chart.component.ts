@@ -9,8 +9,9 @@ import {
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
-import { Chart, TooltipItem } from 'chart.js/auto';
+import type { Chart, TooltipItem } from 'chart.js';
 import { StockTrendItemDto } from '../../../../api-services/pharmacy/pharmacy-api.models';
+import { loadChartJs } from './chart-js-loader';
 
 interface StockChartMedication {
   id: number;
@@ -36,6 +37,7 @@ export class PharmacyStockChartComponent implements AfterViewInit, OnChanges, On
 
   private chart?: Chart;
   private renderQueued = false;
+  private renderGeneration = 0;
 
   ngAfterViewInit(): void {
     this.queueRender();
@@ -48,6 +50,7 @@ export class PharmacyStockChartComponent implements AfterViewInit, OnChanges, On
   }
 
   ngOnDestroy(): void {
+    this.renderGeneration++;
     this.chart?.destroy();
   }
 
@@ -59,11 +62,11 @@ export class PharmacyStockChartComponent implements AfterViewInit, OnChanges, On
     this.renderQueued = true;
     queueMicrotask(() => {
       this.renderQueued = false;
-      this.renderChart();
+      void this.renderChart();
     });
   }
 
-  private renderChart(): void {
+  private async renderChart(): Promise<void> {
     if (!this.canvas?.nativeElement) {
       return;
     }
@@ -75,15 +78,23 @@ export class PharmacyStockChartComponent implements AfterViewInit, OnChanges, On
       return;
     }
 
-    if (this.metricType === 'stock-history-trend' && this.timeline.length > 0) {
-      this.renderTrendChart();
+    const generation = ++this.renderGeneration;
+    const { Chart: ChartCtor } = await loadChartJs();
+    if (generation !== this.renderGeneration || !this.canvas?.nativeElement) {
       return;
     }
 
-    this.renderSnapshotChart();
+    if (this.metricType === 'stock-history-trend' && this.timeline.length > 0) {
+      this.renderTrendChart(ChartCtor);
+      return;
+    }
+
+    this.renderSnapshotChart(ChartCtor);
   }
 
-  private renderTrendChart(): void {
+  private renderTrendChart(
+    ChartCtor: Awaited<ReturnType<typeof loadChartJs>>['Chart']
+  ): void {
     const labels = this.timeline.map((day) =>
       new Date(`${day}T00:00:00`).toLocaleDateString('bs-BA', { day: '2-digit', month: '2-digit' })
     );
@@ -108,15 +119,17 @@ export class PharmacyStockChartComponent implements AfterViewInit, OnChanges, On
       };
     });
 
-    this.chart = new Chart(this.canvas!.nativeElement, {
+    this.chart = new ChartCtor(this.canvas!.nativeElement, {
       type: 'line',
       data: { labels, datasets },
       options: this.buildSharedOptions('line'),
     });
   }
 
-  private renderSnapshotChart(): void {
-    this.chart = new Chart(this.canvas!.nativeElement, {
+  private renderSnapshotChart(
+    ChartCtor: Awaited<ReturnType<typeof loadChartJs>>['Chart']
+  ): void {
+    this.chart = new ChartCtor(this.canvas!.nativeElement, {
       type: 'bar',
       data: {
         labels: this.items.map((item) => item.medicationName),

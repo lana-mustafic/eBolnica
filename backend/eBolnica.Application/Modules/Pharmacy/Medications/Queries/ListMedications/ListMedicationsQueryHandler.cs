@@ -1,8 +1,6 @@
 using eBolnica.Application.Modules.Pharmacy;
 using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Medications.Queries.ListMedications;
-using eBolnica.Domain.Entities.Pharmacy;
-using System.Linq.Expressions;
 
 public sealed class ListMedicationsQueryHandler(IAppDbContext ctx)
     : IRequestHandler<ListMedicationsQuery, ListMedicationsQueryDto>
@@ -28,7 +26,7 @@ public sealed class ListMedicationsQueryHandler(IAppDbContext ctx)
         var items = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(MedicationMapping.ToDtoExpression)
+            .Select(MedicationMapping.ToListDtoExpression)
             .ToListAsync(ct);
 
         return new ListMedicationsQueryDto
@@ -40,42 +38,4 @@ public sealed class ListMedicationsQueryHandler(IAppDbContext ctx)
             TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
         };
     }
-}
-
-internal static class MedicationMapping
-{
-    public static readonly Expression<Func<MedicationEntity, MedicationDto>> ToDtoExpression = m =>
-        new MedicationDto
-        {
-            Id = m.Id,
-            Name = m.Name,
-            GenericName = m.GenericName,
-            Description = m.Description,
-            Manufacturer = m.Manufacturer,
-            Price = m.Price,
-            StockQuantity = m.StockQuantity,
-            MinimumStockLevel = m.MinimumStockLevel,
-            ExpiryDate = m.ExpiryDate,
-            BatchNumber = m.BatchNumber,
-            IsActive = m.IsActive,
-            RequiresPrescription = m.RequiresPrescription,
-            Category = m.Category,
-            DosageForm = m.DosageForm,
-            Strength = m.Strength,
-            CreatedAt = m.CreatedAtUtc,
-            UpdatedAt = m.ModifiedAtUtc,
-            RowVersion = m.RowVersion,
-            PrimaryImageUrl = m.ImageUrl ?? m.Images
-                .Where(i => !i.IsDeleted)
-                .OrderByDescending(i => i.IsPrimary)
-                .ThenBy(i => i.SortOrder)
-                .Select(i => i.RelativeUrl)
-                .FirstOrDefault(),
-            PrimaryImageId = m.Images
-                .Where(i => !i.IsDeleted)
-                .OrderByDescending(i => i.IsPrimary)
-                .ThenBy(i => i.SortOrder)
-                .Select(i => (int?)i.Id)
-                .FirstOrDefault()
-        };
 }

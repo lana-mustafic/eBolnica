@@ -9,8 +9,9 @@ import {
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
-import { Chart, TooltipItem } from 'chart.js/auto';
+import type { Chart, TooltipItem } from 'chart.js';
 import { MonthlyRevenueItemDto } from '../../../../api-services/pharmacy/pharmacy-api.models';
+import { loadChartJs } from './chart-js-loader';
 
 @Component({
   selector: 'app-pharmacy-revenue-chart',
@@ -25,6 +26,7 @@ export class PharmacyRevenueChartComponent implements AfterViewInit, OnChanges, 
 
   private chart?: Chart;
   private renderQueued = false;
+  private renderGeneration = 0;
 
   ngAfterViewInit(): void {
     this.queueRender();
@@ -37,6 +39,7 @@ export class PharmacyRevenueChartComponent implements AfterViewInit, OnChanges, 
   }
 
   ngOnDestroy(): void {
+    this.renderGeneration++;
     this.chart?.destroy();
   }
 
@@ -48,11 +51,11 @@ export class PharmacyRevenueChartComponent implements AfterViewInit, OnChanges, 
     this.renderQueued = true;
     queueMicrotask(() => {
       this.renderQueued = false;
-      this.renderChart();
+      void this.renderChart();
     });
   }
 
-  private renderChart(): void {
+  private async renderChart(): Promise<void> {
     if (!this.canvas?.nativeElement) {
       return;
     }
@@ -64,7 +67,13 @@ export class PharmacyRevenueChartComponent implements AfterViewInit, OnChanges, 
       return;
     }
 
-    this.chart = new Chart(this.canvas.nativeElement, {
+    const generation = ++this.renderGeneration;
+    const { Chart: ChartCtor } = await loadChartJs();
+    if (generation !== this.renderGeneration || !this.canvas?.nativeElement) {
+      return;
+    }
+
+    this.chart = new ChartCtor(this.canvas.nativeElement, {
       type: 'bar',
       data: {
         labels: this.items.map((item) => item.monthShort),

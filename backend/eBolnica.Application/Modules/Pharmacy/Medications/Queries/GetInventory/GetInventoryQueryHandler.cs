@@ -1,7 +1,6 @@
 using eBolnica.Application.Modules.Pharmacy;
 using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Medications.Queries.GetInventory;
-using eBolnica.Application.Modules.Pharmacy.Medications.Queries.ListMedications;
 
 public sealed class GetInventoryQueryHandler(IAppDbContext ctx)
     : IRequestHandler<GetInventoryQuery, GetInventoryQueryDto>
@@ -61,20 +60,20 @@ public sealed class GetInventoryQueryHandler(IAppDbContext ctx)
             .OrderBy(m => m.StockQuantity)
             .ThenBy(m => m.Name)
             .Take(MaxAlertItems)
-            .Select(MedicationMapping.ToDtoExpression)
+            .Select(MedicationMapping.ToListDtoExpression)
             .ToListAsync(ct);
 
         var expiryAlertsTask = expiryQuery
             .OrderBy(m => m.ExpiryDate)
             .ThenBy(m => m.Name)
             .Take(MaxAlertItems)
-            .Select(MedicationMapping.ToDtoExpression)
+            .Select(MedicationMapping.ToListDtoExpression)
             .ToListAsync(ct);
 
         var itemsTask = sortedQuery
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(MedicationMapping.ToDtoExpression)
+            .Select(MedicationMapping.ToListDtoExpression)
             .ToListAsync(ct);
 
         await Task.WhenAll(
