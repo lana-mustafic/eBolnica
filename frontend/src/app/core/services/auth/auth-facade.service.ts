@@ -15,6 +15,7 @@ import {
 import { AuthStorageService } from './auth-storage.service';
 import { CurrentUserDto } from './current-user.dto';
 import { JwtPayloadDto, resolveUserType } from './jwt-payload.dto';
+import { getUserInitials } from '../../utils/user-initials.util';
 
 @Injectable({ providedIn: 'root' })
 export class AuthFacadeService {
@@ -36,6 +37,7 @@ export class AuthFacadeService {
   );
   isManager = computed(() => this._currentUser()?.isManager ?? false);
   isEmployee = computed(() => this._currentUser()?.isEmployee ?? false);
+  userInitials = computed(() => getUserInitials(this._currentUser()?.email));
 
   constructor() {
     this.initializeFromToken();

@@ -20,6 +20,7 @@ import {
 } from './prescription-status.util';
 import { DialogButton, DialogType } from '../../shared/models/dialog-config.model';
 import { DialogHelperService } from '../../shared/services/dialog-helper.service';
+import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
 
 interface PrescriptionActivityItem {
   type: 'new' | 'success' | 'warning';
@@ -40,6 +41,8 @@ export class PharmacyPrescriptionsComponent implements OnInit {
   private toaster = inject(ToasterService);
   private dialog = inject(DialogHelperService);
   private destroyRef = inject(DestroyRef);
+
+  auth = inject(AuthFacadeService);
 
   prescriptions = signal<PrescriptionDto[]>([]);
   isLoading = signal(false);

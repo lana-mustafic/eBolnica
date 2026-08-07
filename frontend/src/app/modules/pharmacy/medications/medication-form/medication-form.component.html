@@ -12,7 +12,7 @@
       </p>
     </div>
     <div class="profile-chip">
-      <div class="profile-avatar">F</div>
+      <div class="profile-avatar">{{ auth.userInitials() }}</div>
       <div class="profile-meta">
         <span class="profile-role">Farmaceut</span>
         <span class="profile-email">{{ auth.currentUser()?.email }}</span>

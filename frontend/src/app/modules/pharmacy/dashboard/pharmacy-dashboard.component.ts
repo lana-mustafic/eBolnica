@@ -17,6 +17,7 @@ import {
   StockTrendItemDto,
 } from '../../../api-services/pharmacy/pharmacy-api.models';
 import { PharmacyIconName } from '../shared/pharmacy-icon/pharmacy-icon.component';
+import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
 
 interface DashboardActivityItem {
   icon: PharmacyIconName;
@@ -36,6 +37,8 @@ export class PharmacyDashboardComponent implements OnInit {
   private pharmacyApi = inject(PharmacyApiService);
   private destroyRef = inject(DestroyRef);
   private loadTrigger$ = new Subject<void>();
+
+  auth = inject(AuthFacadeService);
 
   isLoading = signal(true);
   loadError = signal(false);

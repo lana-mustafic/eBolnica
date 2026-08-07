@@ -6,8 +6,8 @@
         <p class="header-meta">Pratite stanje zaliha, rokove trajanja i dostupnost lijekova</p>
       </div>
       <div class="header-actions">
-        <div class="avatar-chip" aria-label="Korisnički profil">
-          <span>F</span>
+        <div class="avatar-chip" [attr.aria-label]="'Korisnički profil: ' + (auth.currentUser()?.email ?? '')">
+          <span>{{ auth.userInitials() }}</span>
         </div>
       </div>
     </div>
