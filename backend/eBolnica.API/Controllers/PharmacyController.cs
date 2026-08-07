@@ -30,6 +30,7 @@ using eBolnica.Application.Modules.Pharmacy.Prescriptions.Queries.GetPrescriptio
 using eBolnica.Application.Modules.Pharmacy.Prescriptions.Queries.ListPatientMedicalReportsForPrescription;
 using eBolnica.Application.Modules.Pharmacy.Prescriptions.Queries.ListPrescriptions;
 using eBolnica.Application.Modules.Pharmacy.Prescriptions.Queries.SearchPrescriptionPatients;
+using eBolnica.Shared.Dtos;
 using System.Text;
 
 [ApiController]
@@ -91,10 +92,10 @@ public sealed class PharmacyController(IMediator mediator) : ControllerBase
         CancellationToken ct)
     {
         if (file is null || file.Length == 0)
-            return BadRequest(new { error = "No file uploaded." });
+            return BadRequestError("upload.no_file", "No file uploaded.");
 
         if (file.Length > 5 * 1024 * 1024)
-            return BadRequest(new { error = "File exceeds 5 MB limit." });
+            return BadRequestError("upload.file_too_large", "File exceeds 5 MB limit.");
 
         await using var stream = file.OpenReadStream();
         using var reader = new StreamReader(stream, Encoding.UTF8);
@@ -153,7 +154,7 @@ public sealed class PharmacyController(IMediator mediator) : ControllerBase
         CancellationToken ct)
     {
         if (file is null || file.Length == 0)
-            return BadRequest(new { error = "No file uploaded." });
+            return BadRequestError("upload.no_file", "No file uploaded.");
 
         await using var stream = file.OpenReadStream();
         var result = await mediator.Send(new UploadMedicationImageCommand
@@ -310,6 +311,9 @@ public sealed class PharmacyController(IMediator mediator) : ControllerBase
         Response.Headers["X-Export-Row-Count"] = result.RowCount.ToString();
         return File(result.Content, "application/pdf", result.FileName);
     }
+
+    private static BadRequestObjectResult BadRequestError(string code, string message) =>
+        new(new ErrorDto { Code = code, Message = message });
 }
 
 public sealed class ReorderMedicationImagesRequest

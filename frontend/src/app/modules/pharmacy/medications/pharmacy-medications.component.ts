@@ -67,7 +67,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   private autocompleteQuery$ = new Subject<string>();
   private loadTrigger$ = new Subject<void>();
 
-  displayedColumns = ['name', 'category', 'stockQuantity', 'expiryDate', 'status', 'actions'];
+  displayedColumns = ['name', 'category', 'stockQuantity', 'expiryDate', 'createdAt', 'status', 'actions'];
 
   ngOnInit(): void {
     this.loadTrigger$

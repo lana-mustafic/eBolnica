@@ -14,6 +14,8 @@ const PHARMACY_ERROR_MESSAGES: Record<string, string> = {
   'prescription.medication_inactive': 'Jedan od lijekova na receptu nije aktivan.',
   'prescription.medication_expired': 'Jedan od lijekova na receptu je istekao.',
   'medication.pending_prescriptions': 'Lijek ima recepte na čekanju i ne može biti deaktiviran.',
+  'upload.no_file': 'Datoteka nije odabrana.',
+  'upload.file_too_large': 'Datoteka prelazi limit od 5 MB.',
 };
 
 export function getApiErrorBody(error: HttpErrorResponse): ApiErrorBody | null {
