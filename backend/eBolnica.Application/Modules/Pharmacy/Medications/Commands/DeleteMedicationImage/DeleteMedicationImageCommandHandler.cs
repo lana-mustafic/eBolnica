@@ -1,9 +1,12 @@
 using eBolnica.Application.Abstractions;
+using eBolnica.Application.Modules.Pharmacy;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.DeleteMedicationImage;
+using Microsoft.Extensions.Logging;
 
 public sealed class DeleteMedicationImageCommandHandler(
     IAppDbContext ctx,
-    IMedicationImageStorage storage)
+    IMedicationImageStorage storage,
+    ILogger<DeleteMedicationImageCommandHandler> logger)
     : IRequestHandler<DeleteMedicationImageCommand>
 {
     public async Task Handle(DeleteMedicationImageCommand request, CancellationToken ct)
@@ -46,6 +49,12 @@ public sealed class DeleteMedicationImageCommandHandler(
 
         medication.ModifiedAtUtc = now;
         await ctx.SaveChangesAsync(ct);
+
+        PharmacyOperationLogger.MedicationImageDeleted(
+            logger,
+            medication.Id,
+            image.Id,
+            wasPrimary);
 
         try
         {

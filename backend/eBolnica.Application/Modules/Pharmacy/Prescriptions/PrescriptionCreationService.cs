@@ -3,6 +3,7 @@ using eBolnica.Application.Common;
 using eBolnica.Application.Modules.Pharmacy.Activities;
 using eBolnica.Domain.Entities.Pharmacy;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System.Data;
 
 namespace eBolnica.Application.Modules.Pharmacy.Prescriptions;
@@ -10,7 +11,8 @@ namespace eBolnica.Application.Modules.Pharmacy.Prescriptions;
 public sealed class PrescriptionCreationService(
     IAppDbContext ctx,
     IAppCurrentUser currentUser,
-    IPrescriptionNumberGenerator prescriptionNumberGenerator) : IPrescriptionCreationService
+    IPrescriptionNumberGenerator prescriptionNumberGenerator,
+    ILogger<PrescriptionCreationService> logger) : IPrescriptionCreationService
 {
     public async Task<PrescriptionDto> CreateAsync(PrescriptionCreationRequest request, CancellationToken ct = default)
     {
@@ -111,6 +113,13 @@ public sealed class PrescriptionCreationService(
                     .WithDetails()
                     .FirstAsync(p => p.Id == prescription.Id, ct);
 
+                PharmacyOperationLogger.PrescriptionCreated(
+                    logger,
+                    prescription.Id,
+                    prescriptionNumber,
+                    request.PatientId,
+                    currentUser.UserId);
+
                 return PrescriptionMapping.MapToDto(created);
             }
             catch (DbUpdateException ex) when (attempt < maxAttempts && DbUpdateExceptionHelper.IsUniqueConstraintViolation(ex))
@@ -121,10 +130,14 @@ public sealed class PrescriptionCreationService(
             catch (DbUpdateException ex) when (DbUpdateExceptionHelper.IsUniqueConstraintViolation(ex))
             {
                 await transaction.RollbackAsync(ct);
-                throw new eBolnicaConflictException("Could not generate a unique prescription number. Please retry.");
+                throw new eBolnicaConflictException(
+                    "prescription.number_conflict",
+                    "Could not generate a unique prescription number. Please retry.");
             }
         }
 
-        throw new eBolnicaConflictException("Could not generate a unique prescription number. Please retry.");
+        throw new eBolnicaConflictException(
+            "prescription.number_conflict",
+            "Could not generate a unique prescription number. Please retry.");
     }
 }

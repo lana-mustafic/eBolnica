@@ -64,18 +64,18 @@ public sealed class eBolnicaExceptionHandler(
                 message = business.Message;
                 break;
 
-            case eBolnicaNotFoundException:
-                code = "not_found";
-                message = ex.Message;
+            case eBolnicaNotFoundException notFound:
+                code = notFound.Code;
+                message = notFound.Message;
                 break;
 
-            case eBolnicaConflictException:
-                code = "conflict";
-                message = ex.Message;
+            case eBolnicaConflictException conflict:
+                code = conflict.Code;
+                message = conflict.Message;
                 break;
 
             case ValidationException vex:
-                code = "validation.error";
+                code = "validation.failed";
                 message = "Validation failed: " +
                           string.Join("; ", vex.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}"));
                 break;

@@ -1,18 +1,24 @@
 using eBolnica.Application.Common;
+using eBolnica.Application.Modules.Pharmacy;
 using eBolnica.Application.Modules.Pharmacy.Activities;
 using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.CreateMedication;
 using eBolnica.Domain.Entities.Pharmacy;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
-public sealed class CreateMedicationCommandHandler(IAppDbContext ctx, IAppCurrentUser currentUser, IPharmacyAnalyticsService analytics)
+public sealed class CreateMedicationCommandHandler(
+    IAppDbContext ctx,
+    IAppCurrentUser currentUser,
+    IPharmacyAnalyticsService analytics,
+    ILogger<CreateMedicationCommandHandler> logger)
     : IRequestHandler<CreateMedicationCommand, MedicationDto>
 {
     public async Task<MedicationDto> Handle(CreateMedicationCommand request, CancellationToken ct)
     {
         var normalized = MedicationEntity.NormalizeName(request.Name);
         if (await ctx.Medications.AnyAsync(m => !m.IsDeleted && m.NormalizedName == normalized, ct))
-            throw new eBolnicaConflictException("A medication with this name already exists.");
+            throw new eBolnicaConflictException("medication.duplicate_name", "A medication with this name already exists.");
 
         var now = DateTime.UtcNow;
         var medication = new MedicationEntity
@@ -42,7 +48,7 @@ public sealed class CreateMedicationCommandHandler(IAppDbContext ctx, IAppCurren
         }
         catch (DbUpdateException ex) when (DbUpdateExceptionHelper.IsUniqueConstraintViolation(ex))
         {
-            throw new eBolnicaConflictException("A medication with this name already exists.");
+            throw new eBolnicaConflictException("medication.duplicate_name", "A medication with this name already exists.");
         }
 
         MedicationStockHistoryWriter.Record(
@@ -62,6 +68,8 @@ public sealed class CreateMedicationCommandHandler(IAppDbContext ctx, IAppCurren
             medicationId: medication.Id);
 
         await ctx.SaveChangesAsync(ct);
+
+        PharmacyOperationLogger.MedicationCreated(logger, medication.Id, medication.Name);
 
         analytics.InvalidateAnalyticsCache();
         return MapToDto(medication);

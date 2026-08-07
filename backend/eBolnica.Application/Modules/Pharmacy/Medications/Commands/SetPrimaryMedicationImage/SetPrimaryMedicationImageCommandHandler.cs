@@ -1,6 +1,10 @@
+using eBolnica.Application.Modules.Pharmacy;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.SetPrimaryMedicationImage;
+using Microsoft.Extensions.Logging;
 
-public sealed class SetPrimaryMedicationImageCommandHandler(IAppDbContext ctx)
+public sealed class SetPrimaryMedicationImageCommandHandler(
+    IAppDbContext ctx,
+    ILogger<SetPrimaryMedicationImageCommandHandler> logger)
     : IRequestHandler<SetPrimaryMedicationImageCommand>
 {
     public async Task Handle(SetPrimaryMedicationImageCommand request, CancellationToken ct)
@@ -22,5 +26,7 @@ public sealed class SetPrimaryMedicationImageCommandHandler(IAppDbContext ctx)
         medication.ImageUrl = target.RelativeUrl;
         medication.ModifiedAtUtc = DateTime.UtcNow;
         await ctx.SaveChangesAsync(ct);
+
+        PharmacyOperationLogger.MedicationPrimaryImageSet(logger, medication.Id, target.Id);
     }
 }

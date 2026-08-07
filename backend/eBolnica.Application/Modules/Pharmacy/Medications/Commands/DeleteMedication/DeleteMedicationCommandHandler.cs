@@ -1,9 +1,15 @@
+using eBolnica.Application.Modules.Pharmacy;
 using eBolnica.Application.Modules.Pharmacy.Activities;
 using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.DeleteMedication;
 using eBolnica.Domain.Entities.Pharmacy;
+using Microsoft.Extensions.Logging;
 
-public sealed class DeleteMedicationCommandHandler(IAppDbContext ctx, IAppCurrentUser currentUser, IPharmacyAnalyticsService analytics)
+public sealed class DeleteMedicationCommandHandler(
+    IAppDbContext ctx,
+    IAppCurrentUser currentUser,
+    IPharmacyAnalyticsService analytics,
+    ILogger<DeleteMedicationCommandHandler> logger)
     : IRequestHandler<DeleteMedicationCommand>
 {
     public async Task Handle(DeleteMedicationCommand request, CancellationToken ct)
@@ -31,6 +37,9 @@ public sealed class DeleteMedicationCommandHandler(IAppDbContext ctx, IAppCurren
             medicationId: medication.Id);
 
         await ctx.SaveChangesAsync(ct);
+
+        PharmacyOperationLogger.MedicationDeleted(logger, medication.Id, medication.Name, currentUser.UserId);
+
         analytics.InvalidateAnalyticsCache();
     }
 }

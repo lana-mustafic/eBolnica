@@ -3,10 +3,15 @@ using eBolnica.Application.Modules.Pharmacy.Activities;
 using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Prescriptions;
 using eBolnica.Domain.Entities.Pharmacy;
+using Microsoft.Extensions.Logging;
 
 namespace eBolnica.Application.Modules.Pharmacy.Prescriptions.Commands.DispensePrescription;
 
-public sealed class DispensePrescriptionCommandHandler(IAppDbContext ctx, IAppCurrentUser currentUser, IPharmacyAnalyticsService analytics)
+public sealed class DispensePrescriptionCommandHandler(
+    IAppDbContext ctx,
+    IAppCurrentUser currentUser,
+    IPharmacyAnalyticsService analytics,
+    ILogger<DispensePrescriptionCommandHandler> logger)
     : IRequestHandler<DispensePrescriptionCommand, PrescriptionDto>
 {
     public async Task<PrescriptionDto> Handle(DispensePrescriptionCommand request, CancellationToken ct)
@@ -105,6 +110,12 @@ public sealed class DispensePrescriptionCommandHandler(IAppDbContext ctx, IAppCu
 
             await ctx.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
+
+            PharmacyOperationLogger.PrescriptionDispensed(
+                logger,
+                prescription.Id,
+                prescription.PrescriptionNumber,
+                pharmacist.Id);
         }
         catch
         {

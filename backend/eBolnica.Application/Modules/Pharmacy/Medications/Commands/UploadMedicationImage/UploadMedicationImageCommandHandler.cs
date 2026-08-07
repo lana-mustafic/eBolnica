@@ -1,12 +1,15 @@
 using System.Data;
 using eBolnica.Application.Abstractions;
+using eBolnica.Application.Modules.Pharmacy;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.UploadMedicationImage;
 using eBolnica.Application.Modules.Pharmacy.Medications.Images;
 using eBolnica.Domain.Entities.Pharmacy;
+using Microsoft.Extensions.Logging;
 
 public sealed class UploadMedicationImageCommandHandler(
     IAppDbContext ctx,
-    IMedicationImageStorage storage)
+    IMedicationImageStorage storage,
+    ILogger<UploadMedicationImageCommandHandler> logger)
     : IRequestHandler<UploadMedicationImageCommand, MedicationImageDto>
 {
     public async Task<MedicationImageDto> Handle(UploadMedicationImageCommand request, CancellationToken ct)
@@ -64,6 +67,12 @@ public sealed class UploadMedicationImageCommandHandler(
             medication.ModifiedAtUtc = DateTime.UtcNow;
             await ctx.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
+
+            PharmacyOperationLogger.MedicationImageUploaded(
+                logger,
+                medication.Id,
+                image.Id,
+                image.FileName);
 
             return new MedicationImageDto
             {
