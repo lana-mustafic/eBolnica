@@ -4,11 +4,11 @@
       <nav class="breadcrumb" aria-label="Breadcrumb">
         <a routerLink="/pharmacy/medications">Lijekovi</a>
         <span aria-hidden="true">/</span>
-        <span class="current">{{ isEditMode ? 'Uredi lijek' : 'Novi lijek' }}</span>
+        <span class="current">{{ isEditMode() ? 'Uredi lijek' : 'Novi lijek' }}</span>
       </nav>
-      <h1>{{ isEditMode ? 'Uredi lijek' : 'Novi lijek' }}</h1>
+      <h1>{{ isEditMode() ? 'Uredi lijek' : 'Novi lijek' }}</h1>
       <p class="page-subtitle">
-        {{ isEditMode ? 'Ažurirajte podatke o lijeku u inventaru apoteke' : 'Dodajte novi lijek u inventar apoteke' }}
+        {{ isEditMode() ? 'Ažurirajte podatke o lijeku u inventaru apoteke' : 'Dodajte novi lijek u inventar apoteke' }}
       </p>
     </div>
     <div class="profile-chip">
@@ -20,7 +20,7 @@
     </div>
   </header>
 
-  @if (isLoading) {
+  @if (isLoading()) {
     <app-fit-table-skeleton [rows]="8" [columns]="2"></app-fit-table-skeleton>
   } @else {
     <div class="validation-banner" [class.valid]="isFormReady" [class.invalid]="!isFormReady">
@@ -199,7 +199,7 @@
       </section>
 
       <div class="form-actions">
-        @if (isEditMode && auth.isPharmacist()) {
+        @if (isEditMode() && auth.isPharmacist()) {
           <button type="button" class="btn btn-danger" (click)="deleteMedication()">
             <app-pharmacy-icon name="trash-2" [size]="16"></app-pharmacy-icon>
             Obriši
@@ -209,7 +209,7 @@
           <button type="button" class="btn btn-secondary" (click)="cancel()">
             Otkaži
           </button>
-          <button type="submit" class="btn btn-primary" [disabled]="form.invalid || form.pending || isSaving">
+          <button type="submit" class="btn btn-primary" [disabled]="form.invalid || form.pending || isSaving()">
             <app-pharmacy-icon name="save" [size]="16"></app-pharmacy-icon>
             Sačuvaj
           </button>
@@ -217,7 +217,7 @@
       </div>
     </form>
 
-    @if (isEditMode && medicationId) {
+    @if (isEditMode() && medicationId()) {
       <section class="form-card card-images">
         <h2>
           <app-pharmacy-icon name="upload" [size]="20"></app-pharmacy-icon>
@@ -226,7 +226,7 @@
 
         <div
           class="drop-zone"
-          [class.drag-over]="isDragOver"
+          [class.drag-over]="isDragOver()"
           (dragover)="onDragOver($event)"
           (dragleave)="onDragLeave($event)"
           (drop)="onDrop($event)"
@@ -241,19 +241,19 @@
             hidden
             (change)="onImageSelected($event)"
           />
-          <button type="button" class="btn btn-secondary" (click)="fileInput.click()" [disabled]="isProcessingQueue">
+          <button type="button" class="btn btn-secondary" (click)="fileInput.click()" [disabled]="isProcessingQueue()">
             Odaberi slike
           </button>
           <small>Slike se kompresuju prije uploada (max širina 1280px).</small>
         </div>
 
-        @if (pendingUploads.length) {
+        @if (pendingUploads().length) {
           <div class="pending-queue">
             <div class="pending-header">
-              <strong>Pregled prije uploada ({{ pendingUploads.length }})</strong>
+              <strong>Pregled prije uploada ({{ pendingUploads().length }})</strong>
               <button type="button" class="btn btn-secondary" (click)="uploadAllPending()">Upload sve</button>
             </div>
-            @for (item of pendingUploads; track item.key) {
+            @for (item of pendingUploads(); track item.key) {
               <div class="pending-item">
                 <img [src]="item.previewUrl" [alt]="item.file.name" />
                 <div class="pending-meta">
@@ -289,7 +289,7 @@
           cdkDropListOrientation="horizontal"
           (cdkDropListDropped)="dropGallery($event)"
         >
-          @for (img of images; track img.id) {
+          @for (img of images(); track img.id) {
             <div class="image-item" cdkDrag [class.primary]="img.isPrimary">
               <button
                 type="button"

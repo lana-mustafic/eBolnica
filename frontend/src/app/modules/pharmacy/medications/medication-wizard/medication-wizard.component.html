@@ -3,7 +3,7 @@
   <button mat-button (click)="cancel()">Odustani</button>
 </div>
 
-@if (showDraftBanner) {
+@if (showDraftBanner()) {
   <mat-card class="draft-banner">
     <mat-card-content>
       <div class="draft-banner-body">
@@ -25,7 +25,7 @@
   </mat-card>
 }
 
-<mat-stepper [linear]="true" [selectedIndex]="step - 1">
+<mat-stepper [linear]="true" [selectedIndex]="step() - 1">
   <mat-step label="Osnovno" [editable]="false">
     <div [formGroup]="form" class="step-body">
       <mat-form-field appearance="outline">
@@ -130,7 +130,7 @@
 
         <div
           class="drop-zone"
-          [class.drag-over]="isDragOver"
+          [class.drag-over]="isDragOver()"
           (dragover)="onDragOver($event)"
           (dragleave)="onDragLeave($event)"
           (drop)="onDrop($event)"
@@ -145,16 +145,16 @@
             hidden
             (change)="onImageSelected($event)"
           />
-          <button mat-stroked-button type="button" (click)="fileInput.click()" [disabled]="isProcessingQueue || isSaving">
+          <button mat-stroked-button type="button" (click)="fileInput.click()" [disabled]="isProcessingQueue() || isSaving()">
             Odaberi slike
           </button>
           <small>Slike se kompresuju prije uploada (max širina 1280px).</small>
         </div>
 
-        @if (pendingImages.length) {
+        @if (pendingImages().length) {
           <div class="pending-queue">
-            <strong>Pripremljeno za upload ({{ pendingImages.length }})</strong>
-            @for (item of pendingImages; track item.key) {
+            <strong>Pripremljeno za upload ({{ pendingImages().length }})</strong>
+            @for (item of pendingImages(); track item.key) {
               <div class="pending-item">
                 <img [src]="item.previewUrl" [alt]="item.file.name" />
                 <div class="pending-meta">
@@ -174,14 +174,14 @@
 </mat-stepper>
 
 <div class="wizard-actions">
-  @if (step > 1) {
+  @if (step() > 1) {
     <button mat-stroked-button type="button" (click)="back()">Nazad</button>
   }
-  @if (step < totalSteps) {
+  @if (step() < totalSteps) {
     <button mat-raised-button color="primary" type="button" (click)="next()">Dalje</button>
   } @else {
-    <button mat-raised-button color="primary" type="button" (click)="submit()" [disabled]="isSaving || isProcessingQueue || form.invalid || form.pending">
-      {{ isSaving ? 'Čuvanje...' : 'Sačuvaj' }}
+    <button mat-raised-button color="primary" type="button" (click)="submit()" [disabled]="isSaving() || isProcessingQueue() || form.invalid || form.pending">
+      {{ isSaving() ? 'Čuvanje...' : 'Sačuvaj' }}
     </button>
   }
 </div>

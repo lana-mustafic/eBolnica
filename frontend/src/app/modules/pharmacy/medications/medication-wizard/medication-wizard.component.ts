@@ -1,4 +1,12 @@
-import { Component, DestroyRef, inject, OnDestroy, OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  inject,
+  OnDestroy,
+  OnInit,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, Validators } from '@angular/forms';
 import { HttpEventType } from '@angular/common/http';
@@ -41,6 +49,7 @@ interface PendingWizardImage {
   standalone: false,
   templateUrl: './medication-wizard.component.html',
   styleUrl: './medication-wizard.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MedicationWizardComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
@@ -51,14 +60,14 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   private dialog = inject(DialogHelperService);
   private destroyRef = inject(DestroyRef);
 
-  step = 1;
+  step = signal(1);
   readonly totalSteps = 3;
-  isSaving = false;
-  isProcessingQueue = false;
-  isDragOver = false;
-  showDraftBanner = false;
-  pendingDraft: MedicationWizardDraft | null = null;
-  pendingImages: PendingWizardImage[] = [];
+  isSaving = signal(false);
+  isProcessingQueue = signal(false);
+  isDragOver = signal(false);
+  showDraftBanner = signal(false);
+  pendingDraft = signal<MedicationWizardDraft | null>(null);
+  pendingImages = signal<PendingWizardImage[]>([]);
 
   private autosaveSubscription?: Subscription;
   private draftPromptResolved = false;
@@ -101,11 +110,11 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
     this.autosaveSubscription = this.form.valueChanges
       .pipe(debounceTime(MEDICATION_WIZARD_AUTOSAVE_DEBOUNCE_MS))
       .subscribe(() => {
-        if (this.showDraftBanner && !this.draftPromptResolved && !this.userStartedAfterDraftPrompt) {
+        if (this.showDraftBanner() && !this.draftPromptResolved && !this.userStartedAfterDraftPrompt) {
           this.userStartedAfterDraftPrompt = true;
           this.draftPromptResolved = true;
-          this.showDraftBanner = false;
-          this.pendingDraft = null;
+          this.showDraftBanner.set(false);
+          this.pendingDraft.set(null);
         }
         this.persistDraft();
       });
@@ -144,14 +153,15 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   }
 
   continueDraft(): void {
-    if (!this.pendingDraft) {
+    const draft = this.pendingDraft();
+    if (!draft) {
       return;
     }
 
-    this.restoreDraft(this.pendingDraft);
-    this.showDraftBanner = false;
+    this.restoreDraft(draft);
+    this.showDraftBanner.set(false);
     this.draftPromptResolved = true;
-    this.pendingDraft = null;
+    this.pendingDraft.set(null);
   }
 
   discardDraft(): void {
@@ -172,18 +182,19 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
         }
 
         this.draftService.clear();
-        this.pendingDraft = null;
-        this.showDraftBanner = false;
+        this.pendingDraft.set(null);
+        this.showDraftBanner.set(false);
         this.draftPromptResolved = true;
       });
   }
 
   getDraftSavedAtLabel(): string | null {
-    if (!this.pendingDraft?.savedAt) {
+    const draft = this.pendingDraft();
+    if (!draft?.savedAt) {
       return null;
     }
 
-    const savedAt = new Date(this.pendingDraft.savedAt);
+    const savedAt = new Date(draft.savedAt);
     if (Number.isNaN(savedAt.getTime())) {
       return null;
     }
@@ -195,15 +206,15 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   }
 
   next(): void {
-    if (this.step === 1 && !this.isStepValid(['name', 'category', 'genericName', 'manufacturer', 'description'])) return;
-    if (this.step === 2 && !this.isStepValid(['price', 'stockQuantity', 'minimumStockLevel', 'expiryDate', 'batchNumber', 'dosageForm', 'strength'])) return;
-    this.step++;
+    if (this.step() === 1 && !this.isStepValid(['name', 'category', 'genericName', 'manufacturer', 'description'])) return;
+    if (this.step() === 2 && !this.isStepValid(['price', 'stockQuantity', 'minimumStockLevel', 'expiryDate', 'batchNumber', 'dosageForm', 'strength'])) return;
+    this.step.update((s) => s + 1);
     this.persistDraft();
   }
 
   back(): void {
-    if (this.step > 1) {
-      this.step--;
+    if (this.step() > 1) {
+      this.step.update((s) => s - 1);
       this.persistDraft();
     }
   }
@@ -233,7 +244,7 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
       strength: raw.strength || null,
     };
 
-    this.isSaving = true;
+    this.isSaving.set(true);
     this.pharmacyApi
       .createMedication(body)
       .pipe(
@@ -249,7 +260,7 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
           this.suppressDraftPersist = true;
           this.draftService.clear();
           this.clearPendingImagePreviews();
-          this.pendingImages = [];
+          this.pendingImages.set([]);
           this.toaster.success(
             uploadFailed
               ? 'Lijek kreiran, ali neke slike nisu uploadovane.'
@@ -258,7 +269,7 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
           this.router.navigate(['/pharmacy/medications', created.id]);
         },
         error: (err) => {
-          this.isSaving = false;
+          this.isSaving.set(false);
           this.toaster.error(getApiErrorMessage(err, 'Greška pri čuvanju.'));
         },
       });
@@ -266,17 +277,17 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
 
   onDragOver(event: DragEvent): void {
     event.preventDefault();
-    this.isDragOver = true;
+    this.isDragOver.set(true);
   }
 
   onDragLeave(event: DragEvent): void {
     event.preventDefault();
-    this.isDragOver = false;
+    this.isDragOver.set(false);
   }
 
   onDrop(event: DragEvent): void {
     event.preventDefault();
-    this.isDragOver = false;
+    this.isDragOver.set(false);
     if (!event.dataTransfer?.files?.length) {
       return;
     }
@@ -294,11 +305,11 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   }
 
   removePendingImage(key: string): void {
-    const item = this.pendingImages.find((entry) => entry.key === key);
+    const item = this.pendingImages().find((entry) => entry.key === key);
     if (item) {
       URL.revokeObjectURL(item.previewUrl);
     }
-    this.pendingImages = this.pendingImages.filter((entry) => entry.key !== key);
+    this.pendingImages.update((entries) => entries.filter((entry) => entry.key !== key));
   }
 
   formatBytes(bytes: number): string {
@@ -324,8 +335,8 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.pendingDraft = evaluation.draft;
-    this.showDraftBanner = true;
+    this.pendingDraft.set(evaluation.draft);
+    this.showDraftBanner.set(true);
   }
 
   private promptExpiredDraftDiscard(): void {
@@ -347,17 +358,17 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
     const { currentStep, formValue } = buildMedicationWizardDraftRestoreState(draft, this.totalSteps);
 
     this.form.patchValue(pickMedicationWizardDraftFormPatch(formValue), { emitEvent: false });
-    this.step = currentStep;
+    this.step.set(currentStep);
     this.form.updateValueAndValidity({ emitEvent: false });
   }
 
   private persistDraft(): void {
-    if (this.isSaving || !this.draftPromptResolved) {
+    if (this.isSaving() || !this.draftPromptResolved) {
       return;
     }
 
     this.draftService.save(
-      buildMedicationWizardDraftSavePayload(this.step, this.form.getRawValue(), this.totalSteps)
+      buildMedicationWizardDraftSavePayload(this.step(), this.form.getRawValue(), this.totalSteps)
     );
   }
 
@@ -377,7 +388,7 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   }
 
   private async queueFiles(files: File[]): Promise<void> {
-    this.isProcessingQueue = true;
+    this.isProcessingQueue.set(true);
     try {
       for (const original of files) {
         if (!original.type.startsWith('image/')) {
@@ -387,8 +398,8 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
 
         try {
           const compressed = await compressMedicationImage(original);
-          this.pendingImages = [
-            ...this.pendingImages,
+          this.pendingImages.update((entries) => [
+            ...entries,
             {
               key: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
               file: compressed,
@@ -396,24 +407,25 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
               originalSize: original.size,
               compressedSize: compressed.size,
             },
-          ];
+          ]);
         } catch {
           this.toaster.error(`Greška pri obradi slike: ${original.name}`);
         }
       }
     } finally {
-      this.isProcessingQueue = false;
+      this.isProcessingQueue.set(false);
     }
   }
 
   private uploadPendingImages(medicationId: number) {
-    if (this.pendingImages.length === 0) {
+    const images = this.pendingImages();
+    if (images.length === 0) {
       return of(false);
     }
 
     let uploadFailed = false;
     return forkJoin(
-      this.pendingImages.map((item) =>
+      images.map((item) =>
         this.pharmacyApi.uploadImage(medicationId, item.file).pipe(
           filter((event) => event.type === HttpEventType.Response),
           map(() => undefined),
@@ -427,7 +439,7 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   }
 
   private clearPendingImagePreviews(): void {
-    for (const item of this.pendingImages) {
+    for (const item of this.pendingImages()) {
       URL.revokeObjectURL(item.previewUrl);
     }
   }

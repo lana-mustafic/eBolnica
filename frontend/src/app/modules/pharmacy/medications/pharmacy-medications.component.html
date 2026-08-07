@@ -21,7 +21,7 @@
         <app-pharmacy-icon name="download" [size]="16"></app-pharmacy-icon>
         Eksport
       </button>
-      <button type="button" class="btn btn-secondary" (click)="reload()" [disabled]="isLoading">
+      <button type="button" class="btn btn-secondary" (click)="reload()" [disabled]="isLoading()">
         <app-pharmacy-icon name="activity" [size]="16"></app-pharmacy-icon>
         Osvježi
       </button>
@@ -49,7 +49,7 @@
   </mat-menu>
 
   <mat-menu #moreMenu="matMenu">
-    <button mat-menu-item type="button" (click)="triggerImport()" [disabled]="isImporting">
+    <button mat-menu-item type="button" (click)="triggerImport()" [disabled]="isImporting()">
       <span class="menu-item-content">
         <app-pharmacy-icon name="upload" [size]="16"></app-pharmacy-icon>
         Import CSV
@@ -72,14 +72,14 @@
   <input #csvInput type="file" accept=".csv" hidden (change)="onImportFileSelected($event)" />
 
   <div class="page-body">
-    @if (importSummary) {
+    @if (importSummary(); as summary) {
       <section class="card import-summary">
         <strong>Import rezultat:</strong>
-        {{ importSummary.successCount }} uspješno, {{ importSummary.failureCount }} grešaka
-        ({{ importSummary.totalRows }} redova).
-        @if (importSummary.errors.length) {
+        {{ summary.successCount }} uspješno, {{ summary.failureCount }} grešaka
+        ({{ summary.totalRows }} redova).
+        @if (summary.errors.length) {
           <ul>
-            @for (e of importSummary.errors.slice(0, 5); track e.rowNumber) {
+            @for (e of summary.errors.slice(0, 5); track e.rowNumber) {
               <li>Red {{ e.rowNumber }}: {{ e.reason }}</li>
             }
           </ul>
@@ -93,7 +93,7 @@
           <app-pharmacy-icon name="package" [size]="20"></app-pharmacy-icon>
         </div>
         <p class="kpi-label">Ukupno lijekova</p>
-        <p class="kpi-value">{{ totalCount }}</p>
+        <p class="kpi-value">{{ totalCount() }}</p>
         <p class="kpi-subtitle">Svi lijekovi u sistemu</p>
       </article>
 
@@ -102,7 +102,7 @@
           <app-pharmacy-icon name="triangle-alert" [size]="20"></app-pharmacy-icon>
         </div>
         <p class="kpi-label">Niska zaliha</p>
-        <p class="kpi-value">{{ lowStockOnPageCount }}</p>
+        <p class="kpi-value">{{ lowStockOnPageCount() }}</p>
         <p class="kpi-subtitle">Na trenutnoj stranici</p>
       </article>
 
@@ -111,7 +111,7 @@
           <app-pharmacy-icon name="clock" [size]="20"></app-pharmacy-icon>
         </div>
         <p class="kpi-label">Ističe uskoro</p>
-        <p class="kpi-value">{{ expiringSoonOnPageCount }}</p>
+        <p class="kpi-value">{{ expiringSoonOnPageCount() }}</p>
         <p class="kpi-subtitle">Sljedećih 30 dana</p>
       </article>
     </section>
@@ -128,8 +128,8 @@
             role="combobox"
             aria-autocomplete="list"
             aria-controls="medication-autocomplete-list"
-            [attr.aria-expanded]="showAutocomplete"
-            [attr.aria-activedescendant]="activeSuggestionId"
+            [attr.aria-expanded]="showAutocomplete()"
+            [attr.aria-activedescendant]="activeSuggestionId()"
             [(ngModel)]="search"
             placeholder="Pretraži lijekove..."
             (input)="onSearchInput()"
@@ -138,14 +138,14 @@
             (blur)="onSearchBlur()"
           />
         </div>
-        @if (showAutocomplete) {
+        @if (showAutocomplete()) {
           <ul id="medication-autocomplete-list" class="autocomplete-list" role="listbox">
-            @for (s of autocompleteSuggestions; track s.id; let i = $index) {
+            @for (s of autocompleteSuggestions(); track s.id; let i = $index) {
               <li
                 [id]="'medication-suggestion-' + i"
                 role="option"
-                [class.selected]="i === selectedSuggestionIndex"
-                [attr.aria-selected]="i === selectedSuggestionIndex"
+                [class.selected]="i === selectedSuggestionIndex()"
+                [attr.aria-selected]="i === selectedSuggestionIndex()"
                 (mousedown)="selectSuggestion(s)"
               >
                 <strong>{{ s.name }}</strong>
@@ -191,14 +191,14 @@
       </div>
     </section>
 
-    @if (loadError) {
+    @if (loadError()) {
       <section class="card error-card">
         <p>Greška pri učitavanju lijekova.</p>
         <button type="button" class="btn btn-outline" (click)="retryLoad()">Pokušaj ponovo</button>
       </section>
-    } @else if (isLoading) {
+    } @else if (isLoading()) {
       <app-fit-table-skeleton [rows]="5" [columns]="6"></app-fit-table-skeleton>
-    } @else if (medications.length === 0) {
+    } @else if (medications().length === 0) {
       <section class="card empty-card">
         <p class="empty">Nema lijekova za odabrane filtere.</p>
         @if (hasActiveFilters()) {
@@ -208,7 +208,7 @@
     } @else {
       <section class="card table-card">
         <div class="table-header">
-          <h2>Svi lijekovi ({{ totalCount }})</h2>
+          <h2>Svi lijekovi ({{ totalCount() }})</h2>
           <div class="table-header-actions">
             <button type="button" class="icon-btn" (click)="reload()" aria-label="Osvježi listu">
               <app-pharmacy-icon name="activity" [size]="18"></app-pharmacy-icon>
@@ -220,7 +220,7 @@
         </div>
 
         <div class="table-scroll">
-          <table mat-table [dataSource]="medications" class="medications-table">
+          <table mat-table [dataSource]="medications()" class="medications-table">
             <ng-container matColumnDef="name">
               <th
                 mat-header-cell
@@ -357,7 +357,7 @@
                   type="button"
                   class="icon-action menu"
                   [matMenuTriggerFor]="rowMenu"
-                  (click)="selectedMedication = m"
+                  (click)="selectedMedication.set(m)"
                   aria-label="Akcije za {{ m.name }}"
                 >
                   <app-pharmacy-icon name="more-vertical" [size]="18"></app-pharmacy-icon>
@@ -370,13 +370,13 @@
           </table>
         </div>
 
-        @if (totalPages > 1) {
+        @if (totalPages() > 1) {
           <div class="pagination">
-            <button type="button" class="btn btn-outline" (click)="goToPage(currentPage - 1)" [disabled]="currentPage <= 1">
+            <button type="button" class="btn btn-outline" (click)="goToPage(currentPage() - 1)" [disabled]="currentPage() <= 1">
               Prethodna
             </button>
-            <span>Stranica {{ currentPage }} / {{ totalPages }}</span>
-            <button type="button" class="btn btn-outline" (click)="goToPage(currentPage + 1)" [disabled]="currentPage >= totalPages">
+            <span>Stranica {{ currentPage() }} / {{ totalPages() }}</span>
+            <button type="button" class="btn btn-outline" (click)="goToPage(currentPage() + 1)" [disabled]="currentPage() >= totalPages()">
               Sljedeća
             </button>
           </div>
@@ -386,7 +386,7 @@
   </div>
 
   <mat-menu #rowMenu="matMenu">
-    @if (selectedMedication; as m) {
+    @if (selectedMedication(); as m) {
       <button mat-menu-item type="button" (click)="openDetail(m.id)">
         <span class="menu-item-content">
           <app-pharmacy-icon name="eye" [size]="16"></app-pharmacy-icon>

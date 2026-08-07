@@ -1,4 +1,12 @@
-import { Component, DestroyRef, inject, OnDestroy, OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  inject,
+  OnDestroy,
+  OnInit,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { EMPTY, catchError, map, of, switchMap } from 'rxjs';
@@ -26,6 +34,7 @@ interface StockHistoryRow {
   standalone: false,
   templateUrl: './medication-detail.component.html',
   styleUrl: './medication-detail.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MedicationDetailComponent implements OnInit, OnDestroy {
   private pharmacyApi = inject(PharmacyApiService);
@@ -37,12 +46,12 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
   private destroyRef = inject(DestroyRef);
   auth = inject(AuthFacadeService);
 
-  medication: MedicationDto | null = null;
-  isLoading = true;
-  loadError = false;
-  imageUrl: string | null = null;
-  stockHistory: StockHistoryRow[] = [];
-  isLoadingHistory = false;
+  medication = signal<MedicationDto | null>(null);
+  isLoading = signal(true);
+  loadError = signal(false);
+  imageUrl = signal<string | null>(null);
+  stockHistory = signal<StockHistoryRow[]>([]);
+  isLoadingHistory = signal(false);
 
   ngOnInit(): void {
     this.route.paramMap
@@ -50,19 +59,19 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
         switchMap((params) => {
           const id = Number(params.get('id'));
           if (!Number.isFinite(id) || id <= 0) {
-            this.loadError = true;
-            this.isLoading = false;
-            this.medication = null;
-            this.stockHistory = [];
+            this.loadError.set(true);
+            this.isLoading.set(false);
+            this.medication.set(null);
+            this.stockHistory.set([]);
             return EMPTY;
           }
 
-          this.isLoading = true;
-          this.isLoadingHistory = true;
-          this.loadError = false;
-          this.clearImageUrl(this.medication);
-          this.medication = null;
-          this.stockHistory = [];
+          this.isLoading.set(true);
+          this.isLoadingHistory.set(true);
+          this.loadError.set(false);
+          this.clearImageUrl(this.medication());
+          this.medication.set(null);
+          this.stockHistory.set([]);
 
           return this.pharmacyApi.getMedicationById(id).pipe(
             switchMap((medication) =>
@@ -72,9 +81,9 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
               )
             ),
             catchError(() => {
-              this.loadError = true;
-              this.isLoading = false;
-              this.isLoadingHistory = false;
+              this.loadError.set(true);
+              this.isLoading.set(false);
+              this.isLoadingHistory.set(false);
               return EMPTY;
             })
           );
@@ -82,28 +91,28 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe(({ medication, history }) => {
-        this.medication = medication;
-        this.stockHistory = history.map((row) => this.mapStockHistoryRow(row));
-        this.isLoading = false;
-        this.isLoadingHistory = false;
+        this.medication.set(medication);
+        this.stockHistory.set(history.map((row) => this.mapStockHistoryRow(row)));
+        this.isLoading.set(false);
+        this.isLoadingHistory.set(false);
         this.loadImageUrl(medication);
       });
   }
 
   ngOnDestroy(): void {
-    this.clearImageUrl(this.medication);
+    this.clearImageUrl(this.medication());
   }
 
   reload(): void {
-    const id = this.medication?.id ?? Number(this.route.snapshot.paramMap.get('id'));
+    const id = this.medication()?.id ?? Number(this.route.snapshot.paramMap.get('id'));
     if (!Number.isFinite(id) || id <= 0) {
       return;
     }
 
-    this.isLoading = true;
-    this.isLoadingHistory = true;
-    this.loadError = false;
-    const previous = this.medication;
+    this.isLoading.set(true);
+    this.isLoadingHistory.set(true);
+    this.loadError.set(false);
+    const previous = this.medication();
     this.clearImageUrl(previous);
 
     this.pharmacyApi
@@ -119,23 +128,24 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
       )
       .subscribe({
         next: ({ medication, history }) => {
-          this.medication = medication;
-          this.stockHistory = history.map((row) => this.mapStockHistoryRow(row));
-          this.isLoading = false;
-          this.isLoadingHistory = false;
+          this.medication.set(medication);
+          this.stockHistory.set(history.map((row) => this.mapStockHistoryRow(row)));
+          this.isLoading.set(false);
+          this.isLoadingHistory.set(false);
           this.loadImageUrl(medication);
         },
         error: () => {
-          this.loadError = true;
-          this.isLoading = false;
-          this.isLoadingHistory = false;
+          this.loadError.set(true);
+          this.isLoading.set(false);
+          this.isLoadingHistory.set(false);
         },
       });
   }
 
   edit(): void {
-    if (this.medication) {
-      this.router.navigate(['/pharmacy/medications', this.medication.id, 'edit']);
+    const med = this.medication();
+    if (med) {
+      this.router.navigate(['/pharmacy/medications', med.id, 'edit']);
     }
   }
 
@@ -144,7 +154,8 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
   }
 
   deleteMedication(): void {
-    if (!this.medication) {
+    const med = this.medication();
+    if (!med) {
       return;
     }
 
@@ -152,7 +163,7 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
       .showCustom({
         type: DialogType.WARNING,
         title: 'Deaktiviraj lijek',
-        message: `Jeste li sigurni da želite deaktivirati lijek "${this.medication.name}"?`,
+        message: `Jeste li sigurni da želite deaktivirati lijek "${med.name}"?`,
         buttons: [
           { type: DialogButton.CANCEL, label: 'Odustani' },
           { type: DialogButton.DELETE, label: 'Deaktiviraj', color: 'warn' },
@@ -160,12 +171,17 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((result) => {
-        if (result?.button !== DialogButton.DELETE || !this.medication) {
+        if (result?.button !== DialogButton.DELETE) {
+          return;
+        }
+
+        const current = this.medication();
+        if (!current) {
           return;
         }
 
         this.pharmacyApi
-          .deleteMedication(this.medication.id)
+          .deleteMedication(current.id)
           .pipe(takeUntilDestroyed(this.destroyRef))
           .subscribe({
             next: () => {
@@ -184,39 +200,42 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
   }
 
   onImageError(): void {
-    this.imageUrl = null;
+    this.imageUrl.set(null);
   }
 
   get dosageFormLabel(): string {
-    return getDosageFormLabel(this.medication?.dosageForm) || '—';
+    return getDosageFormLabel(this.medication()?.dosageForm) || '—';
   }
 
   get categoryLabel(): string {
-    return getMedicationCategoryLabel(this.medication?.category);
+    return getMedicationCategoryLabel(this.medication()?.category);
   }
 
   get medicationCode(): string {
-    if (!this.medication) {
+    const med = this.medication();
+    if (!med) {
       return '—';
     }
-    return `MED-${String(this.medication.id).padStart(3, '0')}`;
+    return `MED-${String(med.id).padStart(3, '0')}`;
   }
 
   get stockProgressPercent(): number {
-    if (!this.medication) {
+    const med = this.medication();
+    if (!med) {
       return 0;
     }
 
-    const target = Math.max(this.medication.minimumStockLevel * 2, this.medication.minimumStockLevel + 10, 1);
-    return Math.min(100, Math.round((this.medication.stockQuantity / target) * 100));
+    const target = Math.max(med.minimumStockLevel * 2, med.minimumStockLevel + 10, 1);
+    return Math.min(100, Math.round((med.stockQuantity / target) * 100));
   }
 
   get expiryHint(): string {
-    if (!this.medication?.expiryDate) {
+    const med = this.medication();
+    if (!med?.expiryDate) {
       return 'Rok nije definisan';
     }
 
-    const expiry = new Date(this.medication.expiryDate);
+    const expiry = new Date(med.expiryDate);
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
@@ -241,11 +260,12 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
   }
 
   get expiryHintClass(): string {
-    if (!this.medication?.expiryDate) {
+    const med = this.medication();
+    if (!med?.expiryDate) {
       return '';
     }
 
-    const expiry = new Date(this.medication.expiryDate);
+    const expiry = new Date(med.expiryDate);
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
@@ -312,11 +332,11 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: (url) => {
-            this.imageUrl = url;
+            this.imageUrl.set(url);
           },
           error: () => {
             if (medication.primaryImageUrl) {
-              this.imageUrl = this.imageUrlService.getLegacyUrl(medication.primaryImageUrl);
+              this.imageUrl.set(this.imageUrlService.getLegacyUrl(medication.primaryImageUrl));
             }
           },
         });
@@ -324,15 +344,15 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
     }
 
     if (medication.primaryImageUrl) {
-      this.imageUrl = this.imageUrlService.getLegacyUrl(medication.primaryImageUrl);
+      this.imageUrl.set(this.imageUrlService.getLegacyUrl(medication.primaryImageUrl));
     }
   }
 
   private clearImageUrl(medication?: MedicationDto | null): void {
-    const med = medication ?? this.medication;
+    const med = medication ?? this.medication();
     if (med?.primaryImageId) {
       this.imageUrlService.revoke(med.id, med.primaryImageId);
     }
-    this.imageUrl = null;
+    this.imageUrl.set(null);
   }
 }

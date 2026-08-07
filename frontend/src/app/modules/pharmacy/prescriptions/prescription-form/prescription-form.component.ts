@@ -1,4 +1,11 @@
-import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  inject,
+  OnInit,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -18,6 +25,7 @@ import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
   standalone: false,
   templateUrl: './prescription-form.component.html',
   styleUrl: './prescription-form.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PrescriptionFormComponent implements OnInit {
   private fb = inject(FormBuilder);
@@ -34,13 +42,13 @@ export class PrescriptionFormComponent implements OnInit {
   });
 
   patientSearch = '';
-  patients: PrescriptionFormPatientDto[] = [];
-  selectedPatient: PrescriptionFormPatientDto | null = null;
-  medicalReports: PrescriptionFormMedicalReportDto[] = [];
-  medicationSuggestions: MedicationAutocompleteSuggestion[] = [];
-  activeItemIndex = 0;
-  isSaving = false;
-  isLoadingReports = false;
+  patients = signal<PrescriptionFormPatientDto[]>([]);
+  selectedPatient = signal<PrescriptionFormPatientDto | null>(null);
+  medicalReports = signal<PrescriptionFormMedicalReportDto[]>([]);
+  medicationSuggestions = signal<MedicationAutocompleteSuggestion[]>([]);
+  activeItemIndex = signal(0);
+  isSaving = signal(false);
+  isLoadingReports = signal(false);
 
   private patientSearch$ = new Subject<string>();
   private medicationSearch$ = new Subject<string>();
@@ -54,7 +62,7 @@ export class PrescriptionFormComponent implements OnInit {
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe((patients) => {
-        this.patients = patients;
+        this.patients.set(patients);
       });
 
     this.medicationSearch$
@@ -65,7 +73,7 @@ export class PrescriptionFormComponent implements OnInit {
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe((suggestions) => {
-        this.medicationSuggestions = suggestions;
+        this.medicationSuggestions.set(suggestions);
       });
 
     this.patientSearch$.next('');
@@ -100,38 +108,38 @@ export class PrescriptionFormComponent implements OnInit {
   }
 
   selectPatient(patient: PrescriptionFormPatientDto): void {
-    this.selectedPatient = patient;
+    this.selectedPatient.set(patient);
     this.form.patchValue({ patientId: patient.id, medicalReportId: null });
-    this.patients = [];
+    this.patients.set([]);
     this.patientSearch = `${patient.firstName} ${patient.lastName}`;
     this.loadMedicalReports(patient.id);
   }
 
   loadMedicalReports(patientId: number): void {
-    this.isLoadingReports = true;
-    this.medicalReports = [];
+    this.isLoadingReports.set(true);
+    this.medicalReports.set([]);
     this.pharmacyApi
       .listPatientMedicalReportsForPrescription(patientId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (reports) => {
-          this.medicalReports = reports;
-          this.isLoadingReports = false;
+          this.medicalReports.set(reports);
+          this.isLoadingReports.set(false);
           if (reports.length === 1) {
             this.form.patchValue({ medicalReportId: reports[0].id });
           }
         },
         error: () => {
-          this.isLoadingReports = false;
+          this.isLoadingReports.set(false);
           this.toaster.error('Greška pri učitavanju medicinskih izvještaja.');
         },
       });
   }
 
   onMedicationSearch(term: string, index: number): void {
-    this.activeItemIndex = index;
+    this.activeItemIndex.set(index);
     if (term.trim().length < 2) {
-      this.medicationSuggestions = [];
+      this.medicationSuggestions.set([]);
       return;
     }
     this.medicationSearch$.next(term);
@@ -143,7 +151,7 @@ export class PrescriptionFormComponent implements OnInit {
       medicationId: suggestion.id,
       medicationName: suggestion.name,
     });
-    this.medicationSuggestions = [];
+    this.medicationSuggestions.set([]);
   }
 
   reportLabel(report: PrescriptionFormMedicalReportDto): string {
@@ -172,18 +180,18 @@ export class PrescriptionFormComponent implements OnInit {
       })),
     };
 
-    this.isSaving = true;
+    this.isSaving.set(true);
     this.pharmacyApi
       .createPrescription(body)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (created) => {
-          this.isSaving = false;
+          this.isSaving.set(false);
           this.toaster.success('Recept uspješno kreiran.');
           this.router.navigate(['/pharmacy/prescriptions', created.id]);
         },
         error: (err) => {
-          this.isSaving = false;
+          this.isSaving.set(false);
           this.toaster.error(getApiErrorMessage(err, 'Greška pri kreiranju recepta.'));
         },
       });

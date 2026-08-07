@@ -1,4 +1,12 @@
-import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  OnInit,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { Subject, catchError, debounceTime, of, switchMap } from 'rxjs';
@@ -24,6 +32,7 @@ interface PrescriptionActivityItem {
   standalone: false,
   templateUrl: './pharmacy-prescriptions.component.html',
   styleUrl: './pharmacy-prescriptions.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PharmacyPrescriptionsComponent implements OnInit {
   private pharmacyApi = inject(PharmacyApiService);
@@ -32,18 +41,20 @@ export class PharmacyPrescriptionsComponent implements OnInit {
   private dialog = inject(DialogHelperService);
   private destroyRef = inject(DestroyRef);
 
-  prescriptions: PrescriptionDto[] = [];
-  isLoading = false;
-  loadError = false;
-  totalCount = 0;
-  totalPages = 0;
-  currentPage = 1;
+  prescriptions = signal<PrescriptionDto[]>([]);
+  isLoading = signal(false);
+  loadError = signal(false);
+  totalCount = signal(0);
+  totalPages = signal(0);
+  currentPage = signal(1);
   pageSize = 10;
 
-  totalPrescriptions = 0;
-  pendingPrescriptions = 0;
-  dispensedPrescriptions = 0;
-  totalRevenue = 0;
+  totalPrescriptions = signal(0);
+  pendingPrescriptions = signal(0);
+  dispensedPrescriptions = signal(0);
+  totalRevenue = signal(0);
+
+  dispensingId = signal<number | null>(null);
 
   search = '';
   selectedStatus = 'All';
@@ -55,7 +66,6 @@ export class PharmacyPrescriptionsComponent implements OnInit {
   sortOrder: 'asc' | 'desc' = 'desc';
 
   selectedPrescription: PrescriptionDto | null = null;
-  dispensingId: number | null = null;
 
   statusFilters = [
     { value: 'All', label: 'Svi' },
@@ -76,53 +86,12 @@ export class PharmacyPrescriptionsComponent implements OnInit {
   private filterChanged$ = new Subject<void>();
   private loadTrigger$ = new Subject<void>();
 
-  ngOnInit(): void {
-    this.loadTrigger$
-      .pipe(
-        switchMap(() => {
-          this.isLoading = true;
-          this.loadError = false;
-          return this.pharmacyApi.listPrescriptions(this.buildRequest()).pipe(
-            catchError(() => {
-              this.loadError = true;
-              this.prescriptions = [];
-              this.toaster.error('Greška pri učitavanju recepata.');
-              return of(null);
-            })
-          );
-        }),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe((res) => {
-        this.isLoading = false;
-        if (!res) return;
-
-        this.prescriptions = res.items;
-        this.totalPrescriptions = res.summary.totalPrescriptions;
-        this.pendingPrescriptions = res.summary.pendingPrescriptions;
-        this.dispensedPrescriptions = res.summary.dispensedPrescriptions;
-        this.totalRevenue = res.summary.totalRevenue;
-        this.totalCount = res.totalCount;
-        this.totalPages = res.totalPages;
-        this.currentPage = res.currentPage;
-      });
-
-    this.filterChanged$
-      .pipe(debounceTime(300), takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        this.currentPage = 1;
-        this.loadTrigger$.next();
-      });
-
-    this.loadTrigger$.next();
-  }
-
-  get recentActivities(): PrescriptionActivityItem[] {
+  recentActivities = computed((): PrescriptionActivityItem[] => {
     const activities: PrescriptionActivityItem[] = [];
     const now = Date.now();
     const dayMs = 24 * 60 * 60 * 1000;
 
-    for (const prescription of [...this.prescriptions].slice(0, 8)) {
+    for (const prescription of [...this.prescriptions()].slice(0, 8)) {
       const createdAt = new Date(prescription.createdAt).getTime();
       const isRecent = now - createdAt < 2 * dayMs;
 
@@ -163,6 +132,47 @@ export class PharmacyPrescriptionsComponent implements OnInit {
     }
 
     return activities.slice(0, 6);
+  });
+
+  ngOnInit(): void {
+    this.loadTrigger$
+      .pipe(
+        switchMap(() => {
+          this.isLoading.set(true);
+          this.loadError.set(false);
+          return this.pharmacyApi.listPrescriptions(this.buildRequest()).pipe(
+            catchError(() => {
+              this.loadError.set(true);
+              this.prescriptions.set([]);
+              this.toaster.error('Greška pri učitavanju recepata.');
+              return of(null);
+            })
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((res) => {
+        this.isLoading.set(false);
+        if (!res) return;
+
+        this.prescriptions.set(res.items);
+        this.totalPrescriptions.set(res.summary.totalPrescriptions);
+        this.pendingPrescriptions.set(res.summary.pendingPrescriptions);
+        this.dispensedPrescriptions.set(res.summary.dispensedPrescriptions);
+        this.totalRevenue.set(res.summary.totalRevenue);
+        this.totalCount.set(res.totalCount);
+        this.totalPages.set(res.totalPages);
+        this.currentPage.set(res.currentPage);
+      });
+
+    this.filterChanged$
+      .pipe(debounceTime(300), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.currentPage.set(1);
+        this.loadTrigger$.next();
+      });
+
+    this.loadTrigger$.next();
   }
 
   hasActiveFilters(): boolean {
@@ -193,7 +203,7 @@ export class PharmacyPrescriptionsComponent implements OnInit {
       doctorSearch: this.doctorFilter.trim() || undefined,
       prescribedFrom: dateRange.prescribedFrom,
       prescribedTo: dateRange.prescribedTo,
-      pageNumber: this.currentPage,
+      pageNumber: this.currentPage(),
       pageSize: this.pageSize,
       sortBy: this.sortBy,
       sortOrder: this.sortOrder,
@@ -229,7 +239,7 @@ export class PharmacyPrescriptionsComponent implements OnInit {
   }
 
   applyFilters(): void {
-    this.currentPage = 1;
+    this.currentPage.set(1);
     this.loadTrigger$.next();
   }
 
@@ -243,7 +253,7 @@ export class PharmacyPrescriptionsComponent implements OnInit {
     this.patientFilter = '';
     this.selectedStatus = 'All';
     this.selectedDateRange = 'all';
-    this.currentPage = 1;
+    this.currentPage.set(1);
     this.loadTrigger$.next();
   }
 
@@ -258,7 +268,7 @@ export class PharmacyPrescriptionsComponent implements OnInit {
       this.sortBy = column;
       this.sortOrder = 'asc';
     }
-    this.currentPage = 1;
+    this.currentPage.set(1);
     this.loadTrigger$.next();
   }
 
@@ -280,8 +290,8 @@ export class PharmacyPrescriptionsComponent implements OnInit {
   }
 
   goToPage(page: number): void {
-    if (page < 1 || page > this.totalPages) return;
-    this.currentPage = page;
+    if (page < 1 || page > this.totalPages()) return;
+    this.currentPage.set(page);
     this.loadTrigger$.next();
   }
 
@@ -290,7 +300,7 @@ export class PharmacyPrescriptionsComponent implements OnInit {
   }
 
   canDispense(prescription: PrescriptionDto): boolean {
-    return prescription.status === 'Pending' && this.dispensingId !== prescription.id;
+    return prescription.status === 'Pending' && this.dispensingId() !== prescription.id;
   }
 
   dispensePrescription(prescription: PrescriptionDto): void {
@@ -314,18 +324,18 @@ export class PharmacyPrescriptionsComponent implements OnInit {
           return;
         }
 
-        this.dispensingId = prescription.id;
+        this.dispensingId.set(prescription.id);
         this.pharmacyApi
           .dispensePrescription(prescription.id, { dispensedDate: new Date().toISOString() })
           .pipe(takeUntilDestroyed(this.destroyRef))
           .subscribe({
             next: () => {
-              this.dispensingId = null;
+              this.dispensingId.set(null);
               this.toaster.success('Recept uspješno izdan.');
               this.loadTrigger$.next();
             },
             error: (err) => {
-              this.dispensingId = null;
+              this.dispensingId.set(null);
               this.toaster.error(getApiErrorMessage(err, 'Greška pri izdavanju recepta.'));
             },
           });

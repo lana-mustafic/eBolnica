@@ -1,4 +1,12 @@
-import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  OnInit,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { Subject, catchError, debounceTime, of, switchMap } from 'rxjs';
@@ -13,6 +21,7 @@ import { AuthFacadeService } from '../../../core/services/auth/auth-facade.servi
   standalone: false,
   templateUrl: './pharmacy-inventory.component.html',
   styleUrl: './pharmacy-inventory.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PharmacyInventoryComponent implements OnInit {
   private pharmacyApi = inject(PharmacyApiService);
@@ -24,18 +33,20 @@ export class PharmacyInventoryComponent implements OnInit {
   readonly categoryLabel = getMedicationCategoryLabel;
   readonly categories = MEDICATION_CATEGORIES;
 
-  items: MedicationDto[] = [];
-  lowStockAlerts: MedicationDto[] = [];
-  expiryAlerts: MedicationDto[] = [];
-  lowStockAlertCount = 0;
-  expiryAlertCount = 0;
-  inventoryValue = 0;
-  totalMedications = 0;
-  isLoading = true;
-  loadError = false;
-  totalCount = 0;
-  currentPage = 1;
-  totalPages = 0;
+  items = signal<MedicationDto[]>([]);
+  lowStockAlerts = signal<MedicationDto[]>([]);
+  expiryAlerts = signal<MedicationDto[]>([]);
+  lowStockAlertCount = signal(0);
+  expiryAlertCount = signal(0);
+  inventoryValue = signal(0);
+  totalMedications = signal(0);
+  isLoading = signal(true);
+  loadError = signal(false);
+  totalCount = signal(0);
+  currentPage = signal(1);
+  totalPages = signal(0);
+
+  firstLowStockAlert = computed(() => this.lowStockAlerts()[0] ?? null);
 
   search = '';
   selectedCategory = '';
@@ -55,14 +66,14 @@ export class PharmacyInventoryComponent implements OnInit {
     this.loadTrigger$
       .pipe(
         switchMap(() => {
-          this.isLoading = true;
-          this.loadError = false;
+          this.isLoading.set(true);
+          this.loadError.set(false);
           return this.pharmacyApi.getInventory(this.buildRequest()).pipe(
             catchError(() => {
-              this.loadError = true;
-              this.items = [];
-              this.lowStockAlerts = [];
-              this.expiryAlerts = [];
+              this.loadError.set(true);
+              this.items.set([]);
+              this.lowStockAlerts.set([]);
+              this.expiryAlerts.set([]);
               this.toaster.error('Greška pri učitavanju inventara.');
               return of(null);
             })
@@ -71,35 +82,31 @@ export class PharmacyInventoryComponent implements OnInit {
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe((res) => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         if (!res) {
           return;
         }
 
-        this.items = res.items;
-        this.lowStockAlerts = res.lowStockAlerts;
-        this.expiryAlerts = res.expiryAlerts;
-        this.lowStockAlertCount = res.lowStockAlertCount ?? res.lowStockAlerts.length;
-        this.expiryAlertCount = res.expiryAlertCount ?? res.expiryAlerts.length;
-        this.totalMedications = res.totalMedications;
-        this.inventoryValue = res.inventoryValue;
-        this.totalCount = res.totalCount;
-        this.totalPages = res.totalPages;
-        this.currentPage = res.currentPage;
+        this.items.set(res.items);
+        this.lowStockAlerts.set(res.lowStockAlerts);
+        this.expiryAlerts.set(res.expiryAlerts);
+        this.lowStockAlertCount.set(res.lowStockAlertCount ?? res.lowStockAlerts.length);
+        this.expiryAlertCount.set(res.expiryAlertCount ?? res.expiryAlerts.length);
+        this.totalMedications.set(res.totalMedications);
+        this.inventoryValue.set(res.inventoryValue);
+        this.totalCount.set(res.totalCount);
+        this.totalPages.set(res.totalPages);
+        this.currentPage.set(res.currentPage);
       });
 
     this.filterChanged$
       .pipe(debounceTime(300), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
-        this.currentPage = 1;
+        this.currentPage.set(1);
         this.loadTrigger$.next();
       });
 
     this.loadTrigger$.next();
-  }
-
-  get firstLowStockAlert(): MedicationDto | null {
-    return this.lowStockAlerts[0] ?? null;
   }
 
   formatMedicationCount(count: number): string {
@@ -186,7 +193,7 @@ export class PharmacyInventoryComponent implements OnInit {
       category: this.selectedCategory || undefined,
       stockStatus: this.selectedStockStatus || undefined,
       requiresPrescription,
-      pageNumber: this.currentPage,
+      pageNumber: this.currentPage(),
       pageSize: 10,
       sortBy: this.sortBy,
       sortOrder: this.sortOrder,
@@ -198,7 +205,7 @@ export class PharmacyInventoryComponent implements OnInit {
   }
 
   applyFilters(): void {
-    this.currentPage = 1;
+    this.currentPage.set(1);
     this.loadTrigger$.next();
   }
 
@@ -224,7 +231,7 @@ export class PharmacyInventoryComponent implements OnInit {
     this.selectedCategory = '';
     this.selectedStockStatus = '';
     this.selectedRequiresPrescription = '';
-    this.currentPage = 1;
+    this.currentPage.set(1);
     this.loadTrigger$.next();
   }
 
@@ -233,8 +240,8 @@ export class PharmacyInventoryComponent implements OnInit {
   }
 
   goToPage(page: number): void {
-    if (page < 1 || page > this.totalPages) return;
-    this.currentPage = page;
+    if (page < 1 || page > this.totalPages()) return;
+    this.currentPage.set(page);
     this.loadTrigger$.next();
   }
 
@@ -245,7 +252,7 @@ export class PharmacyInventoryComponent implements OnInit {
       this.sortBy = column;
       this.sortOrder = 'asc';
     }
-    this.currentPage = 1;
+    this.currentPage.set(1);
     this.loadTrigger$.next();
   }
 

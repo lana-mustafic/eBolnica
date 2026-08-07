@@ -1,4 +1,11 @@
-import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  inject,
+  OnInit,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, of, switchMap } from 'rxjs';
@@ -18,6 +25,7 @@ import { DialogHelperService } from '../../../shared/services/dialog-helper.serv
   standalone: false,
   templateUrl: './prescription-detail.component.html',
   styleUrl: './prescription-detail.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PrescriptionDetailComponent implements OnInit {
   private pharmacyApi = inject(PharmacyApiService);
@@ -27,12 +35,12 @@ export class PrescriptionDetailComponent implements OnInit {
   private dialog = inject(DialogHelperService);
   private destroyRef = inject(DestroyRef);
 
-  prescription: PrescriptionDto | null = null;
-  isLoading = false;
-  loadError = false;
-  isDispensing = false;
-  isCancelling = false;
-  prescriptionId: number | null = null;
+  prescription = signal<PrescriptionDto | null>(null);
+  isLoading = signal(false);
+  loadError = signal(false);
+  isDispensing = signal(false);
+  isCancelling = signal(false);
+  prescriptionId = signal<number | null>(null);
 
   ngOnInit(): void {
     this.route.paramMap
@@ -40,20 +48,20 @@ export class PrescriptionDetailComponent implements OnInit {
         switchMap((params) => {
           const id = Number(params.get('id'));
           if (!Number.isFinite(id) || id <= 0) {
-            this.loadError = true;
-            this.isLoading = false;
-            this.prescription = null;
+            this.loadError.set(true);
+            this.isLoading.set(false);
+            this.prescription.set(null);
             return of(null);
           }
 
-          this.prescriptionId = id;
-          this.isLoading = true;
-          this.loadError = false;
-          this.prescription = null;
+          this.prescriptionId.set(id);
+          this.isLoading.set(true);
+          this.loadError.set(false);
+          this.prescription.set(null);
 
           return this.pharmacyApi.getPrescriptionById(id).pipe(
             catchError(() => {
-              this.loadError = true;
+              this.loadError.set(true);
               this.toaster.error('Greška pri učitavanju recepta.');
               return of(null);
             })
@@ -62,52 +70,52 @@ export class PrescriptionDetailComponent implements OnInit {
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe((prescription) => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         if (!prescription) {
           return;
         }
 
-        this.prescription = prescription;
+        this.prescription.set(prescription);
       });
   }
 
   reload(): void {
-    const id = this.prescriptionId ?? Number(this.route.snapshot.paramMap.get('id'));
+    const id = this.prescriptionId() ?? Number(this.route.snapshot.paramMap.get('id'));
     if (!Number.isFinite(id) || id <= 0) {
       return;
     }
 
-    this.prescriptionId = id;
-    this.isLoading = true;
-    this.loadError = false;
-    this.prescription = null;
+    this.prescriptionId.set(id);
+    this.isLoading.set(true);
+    this.loadError.set(false);
+    this.prescription.set(null);
 
     this.pharmacyApi
       .getPrescriptionById(id)
       .pipe(
         catchError(() => {
-          this.loadError = true;
+          this.loadError.set(true);
           this.toaster.error('Greška pri učitavanju recepta.');
           return of(null);
         }),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe((prescription) => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         if (!prescription) {
           return;
         }
 
-        this.prescription = prescription;
+        this.prescription.set(prescription);
       });
   }
 
   canDispense(): boolean {
-    return this.prescription?.status === 'Pending' && !this.isDispensing;
+    return this.prescription()?.status === 'Pending' && !this.isDispensing();
   }
 
   canCancel(): boolean {
-    return this.prescription?.status === 'Pending' && !this.isCancelling;
+    return this.prescription()?.status === 'Pending' && !this.isCancelling();
   }
 
   statusLabel(status: string): string {
@@ -115,7 +123,8 @@ export class PrescriptionDetailComponent implements OnInit {
   }
 
   cancel(): void {
-    if (!this.prescriptionId || !this.canCancel()) {
+    const id = this.prescriptionId();
+    if (!id || !this.canCancel()) {
       return;
     }
 
@@ -123,7 +132,7 @@ export class PrescriptionDetailComponent implements OnInit {
       .showCustom({
         type: DialogType.WARNING,
         title: 'Otkaži recept',
-        message: `Jeste li sigurni da želite otkazati recept ${this.prescription?.prescriptionNumber}?`,
+        message: `Jeste li sigurni da želite otkazati recept ${this.prescription()?.prescriptionNumber}?`,
         buttons: [
           { type: DialogButton.CANCEL, label: 'Odustani' },
           { type: DialogButton.DELETE, label: 'Otkaži', color: 'warn' },
@@ -131,22 +140,22 @@ export class PrescriptionDetailComponent implements OnInit {
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((result) => {
-        if (result?.button !== DialogButton.DELETE || !this.prescriptionId) {
+        if (result?.button !== DialogButton.DELETE || !this.prescriptionId()) {
           return;
         }
 
-        this.isCancelling = true;
+        this.isCancelling.set(true);
         this.pharmacyApi
-          .cancelPrescription(this.prescriptionId)
+          .cancelPrescription(this.prescriptionId()!)
           .pipe(takeUntilDestroyed(this.destroyRef))
           .subscribe({
             next: (updated) => {
-              this.prescription = updated;
-              this.isCancelling = false;
+              this.prescription.set(updated);
+              this.isCancelling.set(false);
               this.toaster.success('Recept je otkazan.');
             },
             error: (err) => {
-              this.isCancelling = false;
+              this.isCancelling.set(false);
               this.toaster.error(getApiErrorMessage(err, 'Greška pri otkazivanju recepta.'));
             },
           });
@@ -164,7 +173,8 @@ export class PrescriptionDetailComponent implements OnInit {
   }
 
   dispense(): void {
-    if (!this.prescriptionId || !this.canDispense()) return;
+    const id = this.prescriptionId();
+    if (!id || !this.canDispense()) return;
 
     const validation = this.validateStock();
     if (!validation.ok) {
@@ -184,23 +194,23 @@ export class PrescriptionDetailComponent implements OnInit {
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((result) => {
-        if (result?.button !== DialogButton.OK || !this.prescriptionId) {
+        if (result?.button !== DialogButton.OK || !this.prescriptionId()) {
           return;
         }
 
-        this.isDispensing = true;
+        this.isDispensing.set(true);
         this.pharmacyApi
-          .dispensePrescription(this.prescriptionId, { dispensedDate: new Date().toISOString() })
+          .dispensePrescription(this.prescriptionId()!, { dispensedDate: new Date().toISOString() })
           .pipe(takeUntilDestroyed(this.destroyRef))
           .subscribe({
             next: (updated) => {
-              this.prescription = updated;
-              this.isDispensing = false;
+              this.prescription.set(updated);
+              this.isDispensing.set(false);
               this.toaster.success('Recept uspješno izdan.');
               this.reload();
             },
             error: (err) => {
-              this.isDispensing = false;
+              this.isDispensing.set(false);
               this.toaster.error(getApiErrorMessage(err, 'Greška pri izdavanju recepta.'));
             },
           });
@@ -208,9 +218,10 @@ export class PrescriptionDetailComponent implements OnInit {
   }
 
   private validateStock(): { ok: boolean; message: string } {
-    if (!this.prescription) return { ok: false, message: 'Recept nije učitan.' };
+    const rx = this.prescription();
+    if (!rx) return { ok: false, message: 'Recept nije učitan.' };
 
-    for (const item of this.prescription.prescriptionItems) {
+    for (const item of rx.prescriptionItems) {
       if (item.stockQuantity == null || item.stockQuantity < item.quantity) {
         return {
           ok: false,

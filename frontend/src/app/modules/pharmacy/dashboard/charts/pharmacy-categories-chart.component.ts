@@ -1,5 +1,6 @@
 import {
   AfterViewInit,
+  ChangeDetectionStrategy,
   Component,
   ElementRef,
   Input,
@@ -19,6 +20,7 @@ const CHART_COLORS = ['#7C3AED', '#22C55E', '#3B82F6', '#F59E0B', '#EF4444', '#0
   standalone: false,
   templateUrl: './pharmacy-categories-chart.component.html',
   styleUrl: './pharmacy-categories-chart.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PharmacyCategoriesChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('canvas') canvas?: ElementRef<HTMLCanvasElement>;

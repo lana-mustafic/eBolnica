@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { PharmacyIconName } from '../pharmacy-icon/pharmacy-icon.component';
 
 export type KpiCardTone = 'purple' | 'green' | 'orange' | 'blue' | 'red';
@@ -8,13 +8,14 @@ export type KpiCardTone = 'purple' | 'green' | 'orange' | 'blue' | 'red';
   standalone: false,
   templateUrl: './pharmacy-kpi-card.component.html',
   styleUrl: './pharmacy-kpi-card.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PharmacyKpiCardComponent {
-  @Input({ required: true }) icon!: PharmacyIconName;
-  @Input({ required: true }) title!: string;
-  @Input({ required: true }) value!: string | number;
-  @Input() subtitle?: string;
-  @Input() trendLabel?: string;
-  @Input() trendPositive = true;
-  @Input() tone: KpiCardTone = 'purple';
+  icon = input.required<PharmacyIconName>();
+  title = input.required<string>();
+  value = input.required<string | number>();
+  subtitle = input<string>();
+  trendLabel = input<string>();
+  trendPositive = input(true);
+  tone = input<KpiCardTone>('purple');
 }

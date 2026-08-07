@@ -12,19 +12,19 @@
   </header>
 
   <div class="dashboard-body">
-    @if (isLoading) {
+    @if (isLoading()) {
       <app-fit-table-skeleton [rows]="3" [columns]="2"></app-fit-table-skeleton>
-    } @else if (loadError) {
+    } @else if (loadError()) {
       <section class="card error-card">
         <p>Greška pri učitavanju dashboard podataka.</p>
         <button type="button" class="btn-secondary" (click)="reload()">Pokušaj ponovo</button>
       </section>
-    } @else if (summary) {
+    } @else if (summary()) {
       <section class="kpi-grid" aria-label="KPI statistike">
         <app-pharmacy-kpi-card
           icon="pill"
           title="Aktivni lijekovi"
-          [value]="summary.totalMedications"
+          [value]="summary()!.totalMedications"
           subtitle="Ukupno u apoteci"
           tone="purple"
         ></app-pharmacy-kpi-card>
@@ -32,7 +32,7 @@
         <app-pharmacy-kpi-card
           icon="clipboard"
           title="Recepti na čekanju"
-          [value]="summary.pendingPrescriptions"
+          [value]="summary()!.pendingPrescriptions"
           subtitle="Za izdavanje"
           tone="blue"
         ></app-pharmacy-kpi-card>
@@ -40,7 +40,7 @@
         <app-pharmacy-kpi-card
           icon="triangle-alert"
           title="Niska zaliha"
-          [value]="summary.lowStockAlerts"
+          [value]="summary()!.lowStockAlerts"
           subtitle="Potrebna pažnja"
           tone="orange"
         ></app-pharmacy-kpi-card>
@@ -48,10 +48,10 @@
         <app-pharmacy-kpi-card
           icon="wallet"
           title="Vrijednost inventara"
-          [value]="inventoryValueLabel"
-          [subtitle]="inventoryKpiSubtitle"
-          [trendLabel]="revenueTrendLabel"
-          [trendPositive]="revenueChange >= 0"
+          [value]="inventoryValueLabel()"
+          [subtitle]="inventoryKpiSubtitle()"
+          [trendLabel]="revenueTrendLabel()"
+          [trendPositive]="revenueChange() >= 0"
           tone="green"
         ></app-pharmacy-kpi-card>
       </section>
@@ -62,18 +62,22 @@
             <h2>Prihod po mjesecima</h2>
             <p>
               Pregled mjesečnog prihoda apoteke
-              @if (revenueTrendLabel) {
-                <span class="inline-trend" [class.positive]="revenueChange >= 0" [class.negative]="revenueChange < 0">
-                  {{ revenueChange >= 0 ? '▲' : '▼' }} {{ revenueTrendLabel }}
+              @if (revenueTrendLabel()) {
+                <span
+                  class="inline-trend"
+                  [class.positive]="revenueChange() >= 0"
+                  [class.negative]="revenueChange() < 0"
+                >
+                  {{ revenueChange() >= 0 ? '▲' : '▼' }} {{ revenueTrendLabel() }}
                 </span>
               }
             </p>
           </div>
           <div class="card-body">
-            @if (revenueItems.length === 0) {
+            @if (revenueItems().length === 0) {
               <p class="empty-state">Nema podataka o prihodu (izdaj recepte za prikaz).</p>
             } @else {
-              <app-pharmacy-revenue-chart [items]="revenueItems"></app-pharmacy-revenue-chart>
+              <app-pharmacy-revenue-chart [items]="revenueItems()"></app-pharmacy-revenue-chart>
             }
           </div>
         </article>
@@ -83,7 +87,7 @@
             <h2>Najnovije aktivnosti</h2>
           </div>
           <ul class="activity-list">
-            @for (activity of recentActivities; track activity.text) {
+            @for (activity of recentActivities(); track activity.text) {
               <li class="activity-item">
                 <span class="activity-icon">
                   <app-pharmacy-icon [name]="activity.icon" [size]="20"></app-pharmacy-icon>
@@ -105,28 +109,28 @@
             <p>Raspodjela inventara po kategorijama</p>
           </div>
           <div class="card-body">
-            @if (categories.length === 0) {
+            @if (categories().length === 0) {
               <p class="empty-state">Nema podataka o kategorijama.</p>
             } @else {
-              <app-pharmacy-categories-chart [items]="categories"></app-pharmacy-categories-chart>
+              <app-pharmacy-categories-chart [items]="categories()"></app-pharmacy-categories-chart>
             }
           </div>
         </article>
 
         <article class="card chart-card">
           <div class="card-heading">
-            <h2>{{ stockChartTitle }}</h2>
-            <p>{{ stockChartSubtitle }}</p>
+            <h2>{{ stockChartTitle() }}</h2>
+            <p>{{ stockChartSubtitle() }}</p>
           </div>
           <div class="card-body">
-            @if (stockItems.length === 0) {
+            @if (stockItems().length === 0) {
               <p class="empty-state">Nema podataka o zalihama.</p>
             } @else {
               <app-pharmacy-stock-chart
-                [items]="stockItems"
-                [timeline]="stockTimeline"
-                [medications]="stockMedications"
-                [metricType]="stockMetricType"
+                [items]="stockItems()"
+                [timeline]="stockTimeline()"
+                [medications]="stockMedications()"
+                [metricType]="stockMetricType()"
               ></app-pharmacy-stock-chart>
             }
           </div>

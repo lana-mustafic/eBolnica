@@ -20,7 +20,7 @@
           <app-pharmacy-icon name="package" [size]="20"></app-pharmacy-icon>
         </div>
         <p class="kpi-label">Ukupno lijekova</p>
-        <p class="kpi-value">{{ totalMedications }}</p>
+        <p class="kpi-value">{{ totalMedications() }}</p>
         <p class="kpi-subtitle">Aktivni lijekovi u sistemu</p>
       </article>
 
@@ -29,7 +29,7 @@
           <app-pharmacy-icon name="triangle-alert" [size]="20"></app-pharmacy-icon>
         </div>
         <p class="kpi-label">Niska zaliha</p>
-        <p class="kpi-value">{{ lowStockAlertCount }}</p>
+        <p class="kpi-value">{{ lowStockAlertCount() }}</p>
         <p class="kpi-subtitle">Ispod minimuma</p>
       </article>
 
@@ -38,7 +38,7 @@
           <app-pharmacy-icon name="clock" [size]="20"></app-pharmacy-icon>
         </div>
         <p class="kpi-label">Ističe uskoro</p>
-        <p class="kpi-value">{{ expiryAlertCount }}</p>
+        <p class="kpi-value">{{ expiryAlertCount() }}</p>
         <p class="kpi-subtitle">Sljedećih 30 dana</p>
       </article>
 
@@ -47,7 +47,7 @@
           <app-pharmacy-icon name="wallet" [size]="20"></app-pharmacy-icon>
         </div>
         <p class="kpi-label">Vrijednost inventara</p>
-        <p class="kpi-value">{{ inventoryValue | number:'1.0-0' }} KM</p>
+        <p class="kpi-value">{{ inventoryValue() | number:'1.0-0' }} KM</p>
         <p class="kpi-subtitle">Procijenjena vrijednost zaliha</p>
       </article>
     </section>
@@ -117,16 +117,16 @@
           <app-pharmacy-icon name="triangle-alert" [size]="18"></app-pharmacy-icon>
           Niska zaliha
         </div>
-        <p class="alert-count">{{ formatMedicationCount(lowStockAlertCount) }}</p>
+        <p class="alert-count">{{ formatMedicationCount(lowStockAlertCount()) }}</p>
         <p class="alert-detail">
-          @if (firstLowStockAlert; as alert) {
+          @if (firstLowStockAlert(); as alert) {
             {{ alert.name }}
           } @else {
             Nema lijekova ispod minimuma
           }
         </p>
-        <p class="alert-status" [class.warn]="lowStockAlertCount > 0">
-          {{ lowStockAlertCount > 0 ? 'Potrebna pažnja' : 'Zalihe su u redu' }}
+        <p class="alert-status" [class.warn]="lowStockAlertCount() > 0">
+          {{ lowStockAlertCount() > 0 ? 'Potrebna pažnja' : 'Zalihe su u redu' }}
         </p>
       </article>
 
@@ -135,31 +135,31 @@
           <app-pharmacy-icon name="check-circle" [size]="18"></app-pharmacy-icon>
           Ističe uskoro
         </div>
-        <p class="alert-count">{{ formatMedicationCount(expiryAlertCount) }}</p>
+        <p class="alert-count">{{ formatMedicationCount(expiryAlertCount()) }}</p>
         <p class="alert-detail">
-          @if (expiryAlertCount === 0) {
+          @if (expiryAlertCount() === 0) {
             Sve je u redu
-          } @else if (expiryAlerts[0]; as alert) {
+          } @else if (expiryAlerts()[0]; as alert) {
             {{ alert.name }}
           }
         </p>
-        <p class="alert-status" [class.ok]="expiryAlertCount === 0">
-          {{ expiryAlertCount === 0 ? 'Rokovi pod kontrolom' : 'Provjerite rok trajanja' }}
+        <p class="alert-status" [class.ok]="expiryAlertCount() === 0">
+          {{ expiryAlertCount() === 0 ? 'Rokovi pod kontrolom' : 'Provjerite rok trajanja' }}
         </p>
       </article>
     </section>
 
-    @if (loadError) {
+    @if (loadError()) {
       <section class="card error-card">
         <p>Greška pri učitavanju inventara.</p>
         <button type="button" class="btn btn-outline" (click)="retryLoad()">Pokušaj ponovo</button>
       </section>
-    } @else if (isLoading) {
+    } @else if (isLoading()) {
       <app-fit-table-skeleton [rows]="5" [columns]="5"></app-fit-table-skeleton>
     } @else {
       <section class="card table-card">
         <div class="table-header">
-          <h2>Svi aktivni lijekovi ({{ totalCount }})</h2>
+          <h2>Svi aktivni lijekovi ({{ totalCount() }})</h2>
           <div class="table-header-actions">
             <button type="button" class="icon-btn" (click)="reload()" aria-label="Osvježi listu">
               <app-pharmacy-icon name="activity" [size]="18"></app-pharmacy-icon>
@@ -172,14 +172,14 @@
           </div>
         </div>
 
-        @if (items.length === 0) {
+        @if (items().length === 0) {
           <p class="empty-state">Nema lijekova za prikaz sa trenutnim filterima.</p>
           @if (hasActiveFilters()) {
             <button type="button" class="btn btn-outline" (click)="clearFilters()">Očisti filtere</button>
           }
         } @else {
           <div class="table-scroll">
-            <table mat-table [dataSource]="items" class="inventory-table">
+            <table mat-table [dataSource]="items()" class="inventory-table">
               <ng-container matColumnDef="name">
                 <th
                   mat-header-cell
@@ -288,13 +288,13 @@
             </table>
           </div>
 
-          @if (totalPages > 1) {
+          @if (totalPages() > 1) {
             <div class="pagination">
-              <button type="button" class="btn btn-outline" (click)="goToPage(currentPage - 1)" [disabled]="currentPage <= 1">
+              <button type="button" class="btn btn-outline" (click)="goToPage(currentPage() - 1)" [disabled]="currentPage() <= 1">
                 Prethodna
               </button>
-              <span>Stranica {{ currentPage }} / {{ totalPages }}</span>
-              <button type="button" class="btn btn-outline" (click)="goToPage(currentPage + 1)" [disabled]="currentPage >= totalPages">
+              <span>Stranica {{ currentPage() }} / {{ totalPages() }}</span>
+              <button type="button" class="btn btn-outline" (click)="goToPage(currentPage() + 1)" [disabled]="currentPage() >= totalPages()">
                 Sljedeća
               </button>
             </div>

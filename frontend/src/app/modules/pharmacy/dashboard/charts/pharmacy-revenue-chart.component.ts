@@ -1,5 +1,6 @@
 import {
   AfterViewInit,
+  ChangeDetectionStrategy,
   Component,
   ElementRef,
   Input,
@@ -16,6 +17,7 @@ import { MonthlyRevenueItemDto } from '../../../../api-services/pharmacy/pharmac
   standalone: false,
   templateUrl: './pharmacy-revenue-chart.component.html',
   styleUrl: './pharmacy-revenue-chart.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PharmacyRevenueChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('canvas') canvas?: ElementRef<HTMLCanvasElement>;

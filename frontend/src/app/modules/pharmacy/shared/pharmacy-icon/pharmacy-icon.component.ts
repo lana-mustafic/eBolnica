@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 export type PharmacyIconName =
   | 'pill'
@@ -34,9 +34,10 @@ export type PharmacyIconName =
   standalone: false,
   templateUrl: './pharmacy-icon.component.html',
   styleUrl: './pharmacy-icon.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PharmacyIconComponent {
-  @Input({ required: true }) name!: PharmacyIconName;
-  @Input() size = 20;
-  @Input() strokeWidth = 2;
+  name = input.required<PharmacyIconName>();
+  size = input(20);
+  strokeWidth = input(2);
 }

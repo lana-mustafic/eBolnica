@@ -1,4 +1,4 @@
-@if (isHandset) {
+@if (isHandset()) {
   <mat-toolbar class="mobile-toolbar">
     <button mat-icon-button type="button" (click)="sidenav?.toggle()" aria-label="Meni">
       <app-pharmacy-icon name="layout-dashboard" [size]="22"></app-pharmacy-icon>
@@ -10,8 +10,8 @@
 <mat-sidenav-container class="sidenav-container">
   <mat-sidenav
     #sidenav
-    [mode]="isHandset ? 'over' : 'side'"
-    [opened]="!isHandset"
+    [mode]="isHandset() ? 'over' : 'side'"
+    [opened]="!isHandset()"
     class="sidenav"
   >
     <div class="sidebar-brand">

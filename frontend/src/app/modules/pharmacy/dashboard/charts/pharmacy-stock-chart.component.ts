@@ -1,5 +1,6 @@
 import {
   AfterViewInit,
+  ChangeDetectionStrategy,
   Component,
   ElementRef,
   Input,
@@ -24,6 +25,7 @@ const FALLBACK_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
   standalone: false,
   templateUrl: './pharmacy-stock-chart.component.html',
   styleUrl: './pharmacy-stock-chart.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PharmacyStockChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('canvas') canvas?: ElementRef<HTMLCanvasElement>;

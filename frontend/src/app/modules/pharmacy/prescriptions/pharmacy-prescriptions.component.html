@@ -21,7 +21,7 @@
         <app-pharmacy-icon name="download" [size]="16"></app-pharmacy-icon>
         Eksport
       </button>
-      <button type="button" class="btn btn-secondary" (click)="reload()" [disabled]="isLoading">
+      <button type="button" class="btn btn-secondary" (click)="reload()" [disabled]="isLoading()">
         <app-pharmacy-icon name="activity" [size]="16"></app-pharmacy-icon>
         Osvježi
       </button>
@@ -35,7 +35,7 @@
           <app-pharmacy-icon name="clipboard" [size]="20"></app-pharmacy-icon>
         </div>
         <p class="kpi-label">Ukupno recepata</p>
-        <p class="kpi-value">{{ totalPrescriptions }}</p>
+        <p class="kpi-value">{{ totalPrescriptions() }}</p>
         <p class="kpi-subtitle">Svi recepti u sistemu</p>
       </article>
 
@@ -44,7 +44,7 @@
           <app-pharmacy-icon name="clock" [size]="20"></app-pharmacy-icon>
         </div>
         <p class="kpi-label">Na čekanju</p>
-        <p class="kpi-value">{{ pendingPrescriptions }}</p>
+        <p class="kpi-value">{{ pendingPrescriptions() }}</p>
         <p class="kpi-subtitle">Čekaju izdavanje</p>
       </article>
 
@@ -53,7 +53,7 @@
           <app-pharmacy-icon name="check-circle" [size]="20"></app-pharmacy-icon>
         </div>
         <p class="kpi-label">Izdani</p>
-        <p class="kpi-value">{{ dispensedPrescriptions }}</p>
+        <p class="kpi-value">{{ dispensedPrescriptions() }}</p>
         <p class="kpi-subtitle">Uspješno izdani</p>
       </article>
 
@@ -62,7 +62,7 @@
           <app-pharmacy-icon name="wallet" [size]="20"></app-pharmacy-icon>
         </div>
         <p class="kpi-label">Ukupna vrijednost</p>
-        <p class="kpi-value">{{ totalRevenue | number:'1.0-0' }} KM</p>
+        <p class="kpi-value">{{ totalRevenue() | number:'1.0-0' }} KM</p>
         <p class="kpi-subtitle">Prihod od izdanih recepata</p>
       </article>
     </section>
@@ -128,31 +128,31 @@
       </div>
     </section>
 
-    @if (loadError) {
+    @if (loadError()) {
       <section class="card error-card">
         <p>Greška pri učitavanju recepata.</p>
         <button type="button" class="btn btn-outline" (click)="retryLoad()">Pokušaj ponovo</button>
       </section>
-    } @else if (isLoading) {
+    } @else if (isLoading()) {
       <app-fit-table-skeleton [rows]="5" [columns]="6"></app-fit-table-skeleton>
     } @else {
       <section class="card table-card">
         <div class="table-header">
-          <h2>Aktivni recepti ({{ totalCount }})</h2>
+          <h2>Aktivni recepti ({{ totalCount() }})</h2>
           <button type="button" class="btn btn-outline btn-sm" (click)="exportPdf()">
             <app-pharmacy-icon name="file-text" [size]="16"></app-pharmacy-icon>
             Export PDF
           </button>
         </div>
 
-        @if (prescriptions.length === 0) {
+        @if (prescriptions().length === 0) {
           <p class="empty-state">Nema recepata za odabrane filtere.</p>
           @if (hasActiveFilters()) {
             <button type="button" class="btn btn-outline" (click)="clearFilters()">Očisti filtere</button>
           }
         } @else {
           <div class="table-scroll">
-            <table mat-table [dataSource]="prescriptions" class="prescriptions-table">
+            <table mat-table [dataSource]="prescriptions()" class="prescriptions-table">
               <ng-container matColumnDef="number">
                 <th
                   mat-header-cell
@@ -263,13 +263,13 @@
             </table>
           </div>
 
-          @if (totalPages > 1) {
+          @if (totalPages() > 1) {
             <div class="pagination">
-              <button type="button" class="btn btn-outline" (click)="goToPage(currentPage - 1)" [disabled]="currentPage <= 1">
+              <button type="button" class="btn btn-outline" (click)="goToPage(currentPage() - 1)" [disabled]="currentPage() <= 1">
                 Prethodna
               </button>
-              <span>Stranica {{ currentPage }} / {{ totalPages }}</span>
-              <button type="button" class="btn btn-outline" (click)="goToPage(currentPage + 1)" [disabled]="currentPage >= totalPages">
+              <span>Stranica {{ currentPage() }} / {{ totalPages() }}</span>
+              <button type="button" class="btn btn-outline" (click)="goToPage(currentPage() + 1)" [disabled]="currentPage() >= totalPages()">
                 Sljedeća
               </button>
             </div>
@@ -313,7 +313,7 @@
       <section class="card activity-card">
         <h2 class="section-title">Najnovije aktivnosti</h2>
         <ul class="activity-list">
-          @for (activity of recentActivities; track activity.message) {
+          @for (activity of recentActivities(); track activity.message) {
             <li class="activity-item" [class]="activity.type">
               <span class="activity-icon">
                 @switch (activity.type) {

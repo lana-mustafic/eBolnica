@@ -30,9 +30,9 @@
               (input)="onPatientSearchInput()"
             />
           </div>
-          @if (patients.length > 0) {
+          @if (patients().length > 0) {
             <ul class="option-list">
-              @for (patient of patients; track patient.id) {
+              @for (patient of patients(); track patient.id) {
                 <li>
                   <button type="button" (click)="selectPatient(patient)">
                     <strong>{{ patient.firstName }} {{ patient.lastName }}</strong>
@@ -44,11 +44,11 @@
               }
             </ul>
           }
-          @if (selectedPatient) {
+          @if (selectedPatient(); as patient) {
             <p class="selected-hint">
-              Odabrano: {{ selectedPatient.firstName }} {{ selectedPatient.lastName }}
-              @if (selectedPatient.phoneNumber) {
-                · {{ selectedPatient.phoneNumber }}
+              Odabrano: {{ patient.firstName }} {{ patient.lastName }}
+              @if (patient.phoneNumber) {
+                · {{ patient.phoneNumber }}
               }
             </p>
           }
@@ -57,17 +57,17 @@
 
       <section class="card">
         <h2 class="section-title">Medicinski izvještaj</h2>
-        @if (isLoadingReports) {
+        @if (isLoadingReports()) {
           <p class="hint">Učitavanje izvještaja...</p>
-        } @else if (!selectedPatient) {
+        } @else if (!selectedPatient()) {
           <p class="hint">Prvo odaberite pacijenta.</p>
-        } @else if (medicalReports.length === 0) {
+        } @else if (medicalReports().length === 0) {
           <p class="hint">Nema medicinskih izvještaja za odabranog pacijenta.</p>
         } @else {
           <mat-form-field appearance="outline" class="full-field">
             <mat-label>Izvještaj</mat-label>
             <mat-select formControlName="medicalReportId">
-              @for (report of medicalReports; track report.id) {
+              @for (report of medicalReports(); track report.id) {
                 <mat-option [value]="report.id">{{ reportLabel(report) }}</mat-option>
               }
             </mat-select>
@@ -95,9 +95,9 @@
                   placeholder="Pretraži lijek..."
                   (input)="onMedicationSearch(item.get('medicationName')?.value ?? '', i)"
                 />
-                @if (medicationSuggestions.length > 0 && activeItemIndex === i) {
+                @if (medicationSuggestions().length > 0 && activeItemIndex() === i) {
                   <ul class="option-list">
-                    @for (s of medicationSuggestions; track s.id) {
+                    @for (s of medicationSuggestions(); track s.id) {
                       <li>
                         <button type="button" (click)="selectMedication(s, i)">
                           <strong>{{ s.name }}</strong>
@@ -133,8 +133,8 @@
 
       <div class="form-actions">
         <button type="button" class="btn btn-outline" (click)="cancel()">Odustani</button>
-        <button type="submit" class="btn btn-primary" [disabled]="isSaving">
-          {{ isSaving ? 'Spremanje...' : 'Kreiraj recept' }}
+        <button type="submit" class="btn btn-primary" [disabled]="isSaving()">
+          {{ isSaving() ? 'Spremanje...' : 'Kreiraj recept' }}
         </button>
       </div>
     </form>

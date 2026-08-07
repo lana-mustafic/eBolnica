@@ -1,18 +1,18 @@
-<article class="kpi-card" [class]="'tone-' + tone">
+<article class="kpi-card" [class]="'tone-' + tone()">
   <div class="kpi-icon-wrap">
-    <app-pharmacy-icon [name]="icon" [size]="22"></app-pharmacy-icon>
+    <app-pharmacy-icon [name]="icon()" [size]="22"></app-pharmacy-icon>
   </div>
 
-  <p class="kpi-title">{{ title }}</p>
-  <p class="kpi-value">{{ value }}</p>
+  <p class="kpi-title">{{ title() }}</p>
+  <p class="kpi-value">{{ value() }}</p>
 
-  @if (subtitle) {
-    <p class="kpi-subtitle">{{ subtitle }}</p>
+  @if (subtitle()) {
+    <p class="kpi-subtitle">{{ subtitle() }}</p>
   }
 
-  @if (trendLabel) {
-    <p class="kpi-trend" [class.positive]="trendPositive" [class.negative]="!trendPositive">
-      {{ trendPositive ? '▲' : '▼' }} {{ trendLabel }}
+  @if (trendLabel()) {
+    <p class="kpi-trend" [class.positive]="trendPositive()" [class.negative]="!trendPositive()">
+      {{ trendPositive() ? '▲' : '▼' }} {{ trendLabel() }}
     </p>
   }
 </article>

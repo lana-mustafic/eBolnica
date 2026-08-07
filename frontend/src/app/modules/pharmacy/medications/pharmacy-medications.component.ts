@@ -1,4 +1,15 @@
-import { Component, DestroyRef, ElementRef, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  ElementRef,
+  inject,
+  OnDestroy,
+  OnInit,
+  signal,
+  ViewChild,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { Subject, catchError, debounceTime, distinctUntilChanged, of, switchMap } from 'rxjs';
@@ -21,6 +32,7 @@ import { getMedicationCategoryLabel, MEDICATION_CATEGORIES } from '../constants/
   standalone: false,
   templateUrl: './pharmacy-medications.component.html',
   styleUrl: './pharmacy-medications.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   @ViewChild('csvInput') csvInput?: ElementRef<HTMLInputElement>;
@@ -36,13 +48,13 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   readonly categoryLabel = getMedicationCategoryLabel;
   readonly categories = MEDICATION_CATEGORIES;
 
-  medications: MedicationDto[] = [];
-  isLoading = false;
-  loadError = false;
-  isImporting = false;
-  totalCount = 0;
-  totalPages = 0;
-  currentPage = 1;
+  medications = signal<MedicationDto[]>([]);
+  isLoading = signal(false);
+  loadError = signal(false);
+  isImporting = signal(false);
+  totalCount = signal(0);
+  totalPages = signal(0);
+  currentPage = signal(1);
   pageSize = 10;
 
   search = '';
@@ -54,12 +66,33 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   sortBy = 'createdAt';
   sortOrder: 'asc' | 'desc' = 'desc';
 
-  autocompleteSuggestions: MedicationAutocompleteSuggestion[] = [];
-  showAutocomplete = false;
-  selectedSuggestionIndex = -1;
-  importSummary: MedicationImportResult | null = null;
-  selectedMedication: MedicationDto | null = null;
-  thumbnailUrls = new Map<number, string>();
+  autocompleteSuggestions = signal<MedicationAutocompleteSuggestion[]>([]);
+  showAutocomplete = signal(false);
+  selectedSuggestionIndex = signal(-1);
+  importSummary = signal<MedicationImportResult | null>(null);
+  selectedMedication = signal<MedicationDto | null>(null);
+
+  readonly activeSuggestionId = computed(() =>
+    this.selectedSuggestionIndex() >= 0 ? `medication-suggestion-${this.selectedSuggestionIndex()}` : null
+  );
+
+  readonly lowStockOnPageCount = computed(() =>
+    this.medications().filter(
+      (m) => m.isActive && m.stockQuantity > 0 && m.stockQuantity < m.minimumStockLevel
+    ).length
+  );
+
+  readonly expiringSoonOnPageCount = computed(() => {
+    const now = new Date();
+    const horizon = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    return this.medications().filter((m) => {
+      if (!m.expiryDate) return false;
+      const expiry = new Date(m.expiryDate);
+      return expiry >= now && expiry <= horizon;
+    }).length;
+  });
+
+  private thumbnailUrls = signal(new Map<number, string>());
   private thumbnailLoadGeneration = 0;
   private searchBlurTimeoutId?: ReturnType<typeof setTimeout>;
 
@@ -73,13 +106,13 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
     this.loadTrigger$
       .pipe(
         switchMap(() => {
-          this.isLoading = true;
-          this.loadError = false;
+          this.isLoading.set(true);
+          this.loadError.set(false);
           return this.pharmacyApi.listMedications(this.buildRequest()).pipe(
             catchError(() => {
-              this.loadError = true;
-              this.medications = [];
-              this.thumbnailUrls.clear();
+              this.loadError.set(true);
+              this.medications.set([]);
+              this.thumbnailUrls.set(new Map());
               this.toaster.error('Greška pri učitavanju lijekova.');
               return of(null);
             })
@@ -88,22 +121,22 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe((res) => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         if (!res) {
           return;
         }
 
-        this.medications = res.items;
-        this.totalCount = res.totalCount;
-        this.totalPages = res.totalPages;
-        this.currentPage = res.currentPage;
+        this.medications.set(res.items);
+        this.totalCount.set(res.totalCount);
+        this.totalPages.set(res.totalPages);
+        this.currentPage.set(res.currentPage);
         this.loadThumbnailUrls();
       });
 
     this.searchChanged$
       .pipe(debounceTime(300), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
-        this.currentPage = 1;
+        this.currentPage.set(1);
         this.loadTrigger$.next();
       });
 
@@ -113,7 +146,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
         distinctUntilChanged(),
         switchMap((q) => {
           if (q.trim().length < 2) {
-            this.showAutocomplete = false;
+            this.showAutocomplete.set(false);
             return of([] as MedicationAutocompleteSuggestion[]);
           }
           return this.pharmacyApi.getAutocomplete(q).pipe(
@@ -123,9 +156,9 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe((suggestions) => {
-        this.autocompleteSuggestions = suggestions;
-        this.showAutocomplete = suggestions.length > 0;
-        this.selectedSuggestionIndex = suggestions.length > 0 ? 0 : -1;
+        this.autocompleteSuggestions.set(suggestions);
+        this.showAutocomplete.set(suggestions.length > 0);
+        this.selectedSuggestionIndex.set(suggestions.length > 0 ? 0 : -1);
       });
 
     this.loadTrigger$.next();
@@ -134,10 +167,6 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.clearSearchBlurTimeout();
     this.imageUrlService.revokeAll();
-  }
-
-  get activeSuggestionId(): string | null {
-    return this.selectedSuggestionIndex >= 0 ? `medication-suggestion-${this.selectedSuggestionIndex}` : null;
   }
 
   retryLoad(): void {
@@ -149,7 +178,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   }
 
   applyFilters(): void {
-    this.currentPage = 1;
+    this.currentPage.set(1);
     this.loadTrigger$.next();
   }
 
@@ -175,7 +204,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
       requiresPrescription,
       isActive: this.showInactive ? undefined : true,
       includeInactive: this.showInactive,
-      pageNumber: this.currentPage,
+      pageNumber: this.currentPage(),
       pageSize: this.pageSize,
       sortBy: this.sortBy,
       sortOrder: this.sortOrder,
@@ -188,7 +217,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
     this.selectedStockStatus = '';
     this.selectedRequiresPrescription = '';
     this.showInactive = false;
-    this.currentPage = 1;
+    this.currentPage.set(1);
     this.loadTrigger$.next();
   }
 
@@ -209,7 +238,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
       this.sortBy = column;
       this.sortOrder = 'asc';
     }
-    this.currentPage = 1;
+    this.currentPage.set(1);
     this.loadTrigger$.next();
   }
 
@@ -224,33 +253,33 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   }
 
   onSearchKeydown(event: KeyboardEvent): void {
-    if (!this.showAutocomplete || this.autocompleteSuggestions.length === 0) {
+    const suggestions = this.autocompleteSuggestions();
+    if (!this.showAutocomplete() || suggestions.length === 0) {
       return;
     }
 
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      this.selectedSuggestionIndex = Math.min(
-        this.selectedSuggestionIndex + 1,
-        this.autocompleteSuggestions.length - 1
+      this.selectedSuggestionIndex.set(
+        Math.min(this.selectedSuggestionIndex() + 1, suggestions.length - 1)
       );
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
-      this.selectedSuggestionIndex = Math.max(this.selectedSuggestionIndex - 1, 0);
-    } else if (event.key === 'Enter' && this.selectedSuggestionIndex >= 0) {
+      this.selectedSuggestionIndex.set(Math.max(this.selectedSuggestionIndex() - 1, 0));
+    } else if (event.key === 'Enter' && this.selectedSuggestionIndex() >= 0) {
       event.preventDefault();
-      this.selectSuggestion(this.autocompleteSuggestions[this.selectedSuggestionIndex]);
+      this.selectSuggestion(suggestions[this.selectedSuggestionIndex()]);
     } else if (event.key === 'Escape') {
-      this.showAutocomplete = false;
-      this.selectedSuggestionIndex = -1;
+      this.showAutocomplete.set(false);
+      this.selectedSuggestionIndex.set(-1);
     }
   }
 
   onSearchBlur(): void {
     this.clearSearchBlurTimeout();
     this.searchBlurTimeoutId = window.setTimeout(() => {
-      this.showAutocomplete = false;
-      this.selectedSuggestionIndex = -1;
+      this.showAutocomplete.set(false);
+      this.selectedSuggestionIndex.set(-1);
       this.searchBlurTimeoutId = undefined;
     }, 150);
   }
@@ -264,8 +293,8 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
 
   selectSuggestion(s: MedicationAutocompleteSuggestion): void {
     this.search = s.name;
-    this.showAutocomplete = false;
-    this.selectedSuggestionIndex = -1;
+    this.showAutocomplete.set(false);
+    this.selectedSuggestionIndex.set(-1);
     this.onFilterChange();
   }
 
@@ -274,8 +303,8 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   }
 
   goToPage(page: number): void {
-    if (page < 1 || page > this.totalPages) return;
-    this.currentPage = page;
+    if (page < 1 || page > this.totalPages()) return;
+    this.currentPage.set(page);
     this.loadTrigger$.next();
   }
 
@@ -323,8 +352,8 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
           .subscribe({
             next: () => {
               this.toaster.success('Lijek deaktiviran.');
-              if (this.medications.length === 1 && this.currentPage > 1) {
-                this.currentPage--;
+              if (this.medications().length === 1 && this.currentPage() > 1) {
+                this.currentPage.update((page) => page - 1);
               }
               this.loadTrigger$.next();
             },
@@ -340,17 +369,17 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
       .exportMedicationsCsv(this.buildRequest())
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-      next: (res) => {
-        const blob = res.body;
-        if (!blob) return;
-        const disposition = res.headers.get('content-disposition') ?? '';
-        const match = disposition.match(/filename="?([^";]+)"?/i);
-        this.downloadBlob(blob, match?.[1] ?? 'medications-export.csv');
-      },
-      error: (err) => {
-        this.toaster.error(getApiErrorMessage(err, 'Greška pri exportu CSV.'));
-      },
-    });
+        next: (res) => {
+          const blob = res.body;
+          if (!blob) return;
+          const disposition = res.headers.get('content-disposition') ?? '';
+          const match = disposition.match(/filename="?([^";]+)"?/i);
+          this.downloadBlob(blob, match?.[1] ?? 'medications-export.csv');
+        },
+        error: (err) => {
+          this.toaster.error(getApiErrorMessage(err, 'Greška pri exportu CSV.'));
+        },
+      });
   }
 
   exportPdf(): void {
@@ -358,12 +387,12 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
       .exportInventoryPdf(this.buildRequest())
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-      next: (res) => {
-        this.pharmacyApi.downloadBlobResponse(res, 'inventory.pdf');
-        this.toaster.success('PDF inventar preuzet.');
-      },
-      error: () => this.toaster.error('Greška pri exportu PDF.'),
-    });
+        next: (res) => {
+          this.pharmacyApi.downloadBlobResponse(res, 'inventory.pdf');
+          this.toaster.success('PDF inventar preuzet.');
+        },
+        error: () => this.toaster.error('Greška pri exportu PDF.'),
+      });
   }
 
   downloadTemplate(): void {
@@ -371,13 +400,13 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
       .downloadImportTemplate()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-      next: (res) => {
-        const blob = res.body;
-        if (!blob) return;
-        this.downloadBlob(blob, 'medication-import-template.csv');
-      },
-      error: () => this.toaster.error('Greška pri preuzimanju templatea.'),
-    });
+        next: (res) => {
+          const blob = res.body;
+          if (!blob) return;
+          this.downloadBlob(blob, 'medication-import-template.csv');
+        },
+        error: () => this.toaster.error('Greška pri preuzimanju templatea.'),
+      });
   }
 
   triggerImport(): void {
@@ -390,27 +419,27 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
     input.value = '';
     if (!file) return;
 
-    this.isImporting = true;
-    this.importSummary = null;
+    this.isImporting.set(true);
+    this.importSummary.set(null);
     this.pharmacyApi
       .importMedicationsCsv(file)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-      next: (summary) => {
-        this.isImporting = false;
-        this.importSummary = summary;
-        if (summary.successCount > 0) this.loadTrigger$.next();
-        this.toaster.success(`Import: ${summary.successCount} uspješno, ${summary.failureCount} grešaka.`);
-      },
-      error: (err) => {
-        this.isImporting = false;
-        this.toaster.error(getApiErrorMessage(err, 'Greška pri importu CSV.'));
-      },
-    });
+        next: (summary) => {
+          this.isImporting.set(false);
+          this.importSummary.set(summary);
+          if (summary.successCount > 0) this.loadTrigger$.next();
+          this.toaster.success(`Import: ${summary.successCount} uspješno, ${summary.failureCount} grešaka.`);
+        },
+        error: (err) => {
+          this.isImporting.set(false);
+          this.toaster.error(getApiErrorMessage(err, 'Greška pri importu CSV.'));
+        },
+      });
   }
 
   imageUrl(m: MedicationDto): string | null {
-    const cached = this.thumbnailUrls.get(m.id);
+    const cached = this.thumbnailUrls().get(m.id);
     if (cached) {
       return cached;
     }
@@ -421,7 +450,11 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   }
 
   onImageError(medicationId: number): void {
-    this.thumbnailUrls.delete(medicationId);
+    this.thumbnailUrls.update((map) => {
+      const next = new Map(map);
+      next.delete(medicationId);
+      return next;
+    });
   }
 
   getDisplayStatus(m: MedicationDto): string {
@@ -477,28 +510,12 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
     return expiry <= horizon;
   }
 
-  get lowStockOnPageCount(): number {
-    return this.medications.filter(
-      (m) => m.isActive && m.stockQuantity > 0 && m.stockQuantity < m.minimumStockLevel
-    ).length;
-  }
-
-  get expiringSoonOnPageCount(): number {
-    const now = new Date();
-    const horizon = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    return this.medications.filter((m) => {
-      if (!m.expiryDate) return false;
-      const expiry = new Date(m.expiryDate);
-      return expiry >= now && expiry <= horizon;
-    }).length;
-  }
-
   private loadThumbnailUrls(): void {
     const generation = ++this.thumbnailLoadGeneration;
     this.imageUrlService.revokeAll();
-    this.thumbnailUrls.clear();
+    this.thumbnailUrls.set(new Map());
 
-    for (const medication of this.medications) {
+    for (const medication of this.medications()) {
       if (!medication.primaryImageId) {
         continue;
       }
@@ -511,7 +528,11 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
             if (generation !== this.thumbnailLoadGeneration) {
               return;
             }
-            this.thumbnailUrls.set(medication.id, url);
+            this.thumbnailUrls.update((map) => {
+              const next = new Map(map);
+              next.set(medication.id, url);
+              return next;
+            });
           },
           error: () => {
             if (generation !== this.thumbnailLoadGeneration) {
@@ -520,7 +541,11 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
             if (medication.primaryImageUrl) {
               const legacy = this.imageUrlService.getLegacyUrl(medication.primaryImageUrl);
               if (legacy) {
-                this.thumbnailUrls.set(medication.id, legacy);
+                this.thumbnailUrls.update((map) => {
+                  const next = new Map(map);
+                  next.set(medication.id, legacy);
+                  return next;
+                });
               }
             }
           },
