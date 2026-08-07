@@ -4,6 +4,7 @@ public sealed class GetMedicationAutocompleteQuery : IRequest<IReadOnlyList<Medi
 {
     public string Query { get; init; } = string.Empty;
     public int Limit { get; init; } = 10;
+    public bool? RequiresPrescription { get; init; }
 }
 
 public sealed class MedicationAutocompleteSuggestionDto

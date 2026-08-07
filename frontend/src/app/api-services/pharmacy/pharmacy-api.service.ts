@@ -53,8 +53,15 @@ export class PharmacyApiService {
     });
   }
 
-  getAutocomplete(query: string, limit = 10): Observable<MedicationAutocompleteSuggestion[]> {
-    const params = new HttpParams().set('q', query).set('limit', String(limit));
+  getAutocomplete(
+    query: string,
+    limit = 10,
+    requiresPrescription?: boolean
+  ): Observable<MedicationAutocompleteSuggestion[]> {
+    let params = new HttpParams().set('q', query).set('limit', String(limit));
+    if (requiresPrescription !== undefined) {
+      params = params.set('requiresPrescription', String(requiresPrescription));
+    }
     return this.http.get<MedicationAutocompleteSuggestion[]>(`${this.baseUrl}/medications/autocomplete`, {
       params,
     });

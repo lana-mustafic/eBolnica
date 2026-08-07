@@ -51,8 +51,14 @@ public sealed class PharmacyController(IMediator mediator) : ControllerBase
     public async Task<ActionResult<IReadOnlyList<MedicationAutocompleteSuggestionDto>>> GetAutocomplete(
         [FromQuery(Name = "q")] string query,
         [FromQuery] int limit = 10,
+        [FromQuery] bool? requiresPrescription = null,
         CancellationToken ct = default)
-        => Ok(await mediator.Send(new GetMedicationAutocompleteQuery { Query = query, Limit = limit }, ct));
+        => Ok(await mediator.Send(new GetMedicationAutocompleteQuery
+        {
+            Query = query,
+            Limit = limit,
+            RequiresPrescription = requiresPrescription
+        }, ct));
 
     [HttpGet("medications/check-name")]
     [Authorize(Policy = "PharmacyStaff")]

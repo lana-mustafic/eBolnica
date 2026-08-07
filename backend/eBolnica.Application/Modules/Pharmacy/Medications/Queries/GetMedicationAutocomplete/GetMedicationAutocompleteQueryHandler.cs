@@ -14,9 +14,14 @@ public sealed class GetMedicationAutocompleteQueryHandler(IAppDbContext ctx)
         var normalized = MedicationEntity.NormalizeName(trimmed);
         var limit = Math.Clamp(request.Limit, 1, 10);
 
-        return await ctx.Medications
+        var query = ctx.Medications
             .AsNoTracking()
-            .Where(m => !m.IsDeleted && m.IsActive)
+            .Where(m => !m.IsDeleted && m.IsActive);
+
+        if (request.RequiresPrescription.HasValue)
+            query = query.Where(m => m.RequiresPrescription == request.RequiresPrescription.Value);
+
+        return await query
             .Where(m =>
                 m.NormalizedName.Contains(normalized) ||
                 (m.GenericName != null && m.GenericName.ToLower().Contains(normalized)) ||

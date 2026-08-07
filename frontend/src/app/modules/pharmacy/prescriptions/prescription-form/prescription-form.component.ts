@@ -60,7 +60,7 @@ export class PrescriptionFormComponent implements OnInit {
       .pipe(
         debounceTime(250),
         distinctUntilChanged(),
-        switchMap((term) => this.pharmacyApi.getAutocomplete(term)),
+        switchMap((term) => this.pharmacyApi.getAutocomplete(term, 10, true)),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe((suggestions) => {
