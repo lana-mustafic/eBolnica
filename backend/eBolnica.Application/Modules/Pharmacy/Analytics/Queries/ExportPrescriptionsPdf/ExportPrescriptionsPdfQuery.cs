@@ -2,6 +2,7 @@ using eBolnica.Application.Modules.Pharmacy;
 using eBolnica.Application.Modules.Pharmacy.Analytics;
 using eBolnica.Application.Modules.Pharmacy.Analytics.Queries.ExportPrescriptionsPdf;
 using eBolnica.Application.Modules.Pharmacy.Prescriptions;
+using eBolnica.Domain.Entities.Pharmacy;
 
 namespace eBolnica.Application.Modules.Pharmacy.Analytics.Queries.ExportPrescriptionsPdf;
 
@@ -20,8 +21,6 @@ public sealed class ExportPrescriptionsPdfQuery : IRequest<PdfReportResultDto>
 public sealed class ExportPrescriptionsPdfQueryHandler(IAppDbContext ctx, IPharmacyPdfReportService pdf)
     : IRequestHandler<ExportPrescriptionsPdfQuery, PdfReportResultDto>
 {
-    private const int MaxExportRows = 10_000;
-
     public async Task<PdfReportResultDto> Handle(ExportPrescriptionsPdfQuery request, CancellationToken ct)
     {
         var query = PrescriptionQueryFilters.Apply(
@@ -37,23 +36,23 @@ public sealed class ExportPrescriptionsPdfQueryHandler(IAppDbContext ctx, IPharm
         query = PrescriptionQueryFilters.ApplySorting(query, request.SortBy, request.SortOrder);
 
         var total = await query.CountAsync(ct);
-        if (total > MaxExportRows)
+        if (total > PharmacyExportLimits.MaxPdfExportRows)
             throw new eBolnicaBusinessRuleException(
                 "export.limit_exceeded",
-                $"Export is limited to {MaxExportRows} rows. Refine filters.");
+                $"PDF export is limited to {PharmacyExportLimits.MaxPdfExportRows} rows. Refine filters.");
 
-        var prescriptions = await query
-            .Take(MaxExportRows)
-            .WithDetails()
-            .ToListAsync(ct);
+        var summary = new PrescriptionsPdfSummary { TotalCount = total };
 
-        var content = pdf.GeneratePrescriptionsPdf(prescriptions);
+        IReadOnlyList<PrescriptionEntity> FetchBatch(int skip, int take) =>
+            query.Skip(skip).Take(take).WithDetails().ToListAsync(ct).GetAwaiter().GetResult();
+
+        var content = pdf.GeneratePrescriptionsPdf(summary, FetchBatch);
 
         return new PdfReportResultDto
         {
             Content = content,
             FileName = $"prescriptions-{DateTime.UtcNow:yyyyMMdd-HHmmss}.pdf",
-            RowCount = prescriptions.Count
+            RowCount = total
         };
     }
 }

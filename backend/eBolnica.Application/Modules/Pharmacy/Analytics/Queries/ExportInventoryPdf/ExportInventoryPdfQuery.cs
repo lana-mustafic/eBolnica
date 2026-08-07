@@ -2,7 +2,7 @@ using eBolnica.Application.Modules.Pharmacy;
 using eBolnica.Application.Modules.Pharmacy.Analytics;
 using eBolnica.Application.Modules.Pharmacy.Analytics.Queries.ExportInventoryPdf;
 using eBolnica.Application.Modules.Pharmacy.Medications;
-using eBolnica.Application.Modules.Pharmacy.Medications.Csv;
+using eBolnica.Domain.Entities.Pharmacy;
 
 namespace eBolnica.Application.Modules.Pharmacy.Analytics.Queries.ExportInventoryPdf;
 
@@ -36,19 +36,38 @@ public sealed class ExportInventoryPdfQueryHandler(IAppDbContext ctx, IPharmacyP
         query = MedicationQueryFilters.ApplySorting(query, request.SortBy, request.SortOrder);
 
         var total = await query.CountAsync(ct);
-        if (total > MedicationCsvService.MaxExportRows)
+        if (total > PharmacyExportLimits.MaxPdfExportRows)
             throw new eBolnicaBusinessRuleException(
                 "export.limit_exceeded",
-                $"Export is limited to {MedicationCsvService.MaxExportRows} rows. Refine filters.");
+                $"PDF export is limited to {PharmacyExportLimits.MaxPdfExportRows} rows. Refine filters or use CSV export.");
 
-        var medications = await query.Take(MedicationCsvService.MaxExportRows).ToListAsync(ct);
-        var content = pdf.GenerateInventoryPdf(medications);
+        var generatedAt = DateTime.UtcNow;
+        var horizon = generatedAt.AddDays(30);
+
+        var summary = new InventoryPdfSummary
+        {
+            TotalCount = total,
+            LowStockCount = await query.CountAsync(
+                m => m.IsActive && m.StockQuantity > 0 && m.StockQuantity < m.MinimumStockLevel,
+                ct),
+            OutOfStockCount = await query.CountAsync(
+                m => m.IsActive && m.StockQuantity <= 0,
+                ct),
+            ExpiringSoonCount = await query.CountAsync(
+                m => m.ExpiryDate != null && m.ExpiryDate >= generatedAt && m.ExpiryDate <= horizon,
+                ct)
+        };
+
+        IReadOnlyList<MedicationEntity> FetchBatch(int skip, int take) =>
+            query.Skip(skip).Take(take).ToListAsync(ct).GetAwaiter().GetResult();
+
+        var content = pdf.GenerateInventoryPdf(summary, FetchBatch);
 
         return new PdfReportResultDto
         {
             Content = content,
             FileName = $"inventory-{DateTime.UtcNow:yyyyMMdd-HHmmss}.pdf",
-            RowCount = medications.Count
+            RowCount = total
         };
     }
 }

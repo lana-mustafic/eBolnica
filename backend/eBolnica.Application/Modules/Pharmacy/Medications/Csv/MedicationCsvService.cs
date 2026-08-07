@@ -1,3 +1,4 @@
+using eBolnica.Application.Modules.Pharmacy;
 using eBolnica.Application.Modules.Pharmacy.Medications.Queries.ListMedications;
 using eBolnica.Domain.Entities.Pharmacy;
 using System.Globalization;
@@ -7,7 +8,7 @@ namespace eBolnica.Application.Modules.Pharmacy.Medications.Csv;
 
 internal static class MedicationCsvService
 {
-    public const int MaxExportRows = 10_000;
+    public const int MaxExportRows = PharmacyExportLimits.MaxCsvExportRows;
     public const int MaxImportRows = 10_000;
     public const int MaxFileSizeBytes = 5 * 1024 * 1024;
 
