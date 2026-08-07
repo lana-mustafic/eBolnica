@@ -5,6 +5,7 @@ import { EMPTY, catchError, map, of, switchMap } from 'rxjs';
 import { PharmacyApiService } from '../../../../api-services/pharmacy/pharmacy-api.service';
 import { MedicationDto, MedicationStockHistoryDto } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../../core/services/toaster.service';
+import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
 import { DialogButton, DialogType } from '../../../shared/models/dialog-config.model';
 import { DialogHelperService } from '../../../shared/services/dialog-helper.service';
 import { getDosageFormLabel } from '../../constants/medication-dosage-forms.constant';
@@ -170,8 +171,7 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
               this.router.navigate(['/pharmacy/medications']);
             },
             error: (err) => {
-              const msg = err?.error?.message ?? 'Greška pri deaktivaciji lijeka.';
-              this.toaster.error(msg);
+              this.toaster.error(getApiErrorMessage(err, 'Greška pri deaktivaciji lijeka.'));
             },
           });
       });

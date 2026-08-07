@@ -11,6 +11,7 @@ import {
   PrescriptionFormPatientDto,
 } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../../core/services/toaster.service';
+import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-prescription-form',
@@ -183,8 +184,7 @@ export class PrescriptionFormComponent implements OnInit {
         },
         error: (err) => {
           this.isSaving = false;
-          const msg = err?.error?.message ?? err?.error?.title ?? 'Greška pri kreiranju recepta.';
-          this.toaster.error(msg);
+          this.toaster.error(getApiErrorMessage(err, 'Greška pri kreiranju recepta.'));
         },
       });
   }

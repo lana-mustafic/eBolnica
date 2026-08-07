@@ -8,6 +8,7 @@ import { EMPTY, catchError, map, switchMap } from 'rxjs';
 import { PharmacyApiService } from '../../../../api-services/pharmacy/pharmacy-api.service';
 import { MedicationDto, MedicationImageDto, MedicationUpsertCommand } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../../core/services/toaster.service';
+import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
 import { AuthFacadeService } from '../../../../core/services/auth/auth-facade.service';
 import { DialogButton, DialogType } from '../../../shared/models/dialog-config.model';
 import { DialogHelperService } from '../../../shared/services/dialog-helper.service';
@@ -299,8 +300,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
               this.router.navigate(['/pharmacy/medications']);
             },
             error: (err) => {
-              const msg = err?.error?.message ?? 'Greška pri deaktivaciji lijeka.';
-              this.toaster.error(msg);
+              this.toaster.error(getApiErrorMessage(err, 'Greška pri deaktivaciji lijeka.'));
             },
           });
       });
@@ -348,8 +348,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.isSaving = false;
-        const msg = err?.error?.message ?? 'Greška pri čuvanju lijeka.';
-        this.toaster.error(msg);
+        this.toaster.error(getApiErrorMessage(err, 'Greška pri čuvanju lijeka.'));
         if (err?.status === 409 && this.medicationId) {
           this.reloadMedication(this.medicationId);
         }

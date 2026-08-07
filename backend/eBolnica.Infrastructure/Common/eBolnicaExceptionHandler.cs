@@ -59,10 +59,18 @@ public sealed class eBolnicaExceptionHandler(
 
         switch (ex)
         {
+            case eBolnicaBusinessRuleException business:
+                code = business.Code;
+                message = business.Message;
+                break;
+
             case eBolnicaNotFoundException:
+                code = "not_found";
+                message = ex.Message;
+                break;
+
             case eBolnicaConflictException:
-            case eBolnicaBusinessRuleException:
-                code = "entity.error";
+                code = "conflict";
                 message = ex.Message;
                 break;
 

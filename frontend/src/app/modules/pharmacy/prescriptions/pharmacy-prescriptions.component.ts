@@ -5,6 +5,7 @@ import { Subject, catchError, debounceTime, of, switchMap } from 'rxjs';
 import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.service';
 import { PrescriptionDto } from '../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../core/services/toaster.service';
+import { getApiErrorMessage } from '../../../core/utils/api-error.util';
 import { DialogButton, DialogType } from '../../shared/models/dialog-config.model';
 import { DialogHelperService } from '../../shared/services/dialog-helper.service';
 
@@ -376,8 +377,7 @@ export class PharmacyPrescriptionsComponent implements OnInit {
             },
             error: (err) => {
               this.dispensingId = null;
-              const msg = err?.error?.message ?? err?.error?.title ?? 'Greška pri izdavanju recepta.';
-              this.toaster.error(msg);
+              this.toaster.error(getApiErrorMessage(err, 'Greška pri izdavanju recepta.'));
             },
           });
       });
@@ -418,8 +418,7 @@ export class PharmacyPrescriptionsComponent implements OnInit {
               this.loadTrigger$.next();
             },
             error: (err) => {
-              const msg = err?.error?.message ?? err?.error?.title ?? 'Greška pri otkazivanju recepta.';
-              this.toaster.error(msg);
+              this.toaster.error(getApiErrorMessage(err, 'Greška pri otkazivanju recepta.'));
             },
           });
       });

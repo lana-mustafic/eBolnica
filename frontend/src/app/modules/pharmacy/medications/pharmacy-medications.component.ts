@@ -9,6 +9,7 @@ import {
   MedicationImportResult,
 } from '../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../core/services/toaster.service';
+import { getApiErrorMessage } from '../../../core/utils/api-error.util';
 import { DialogButton, DialogType } from '../../shared/models/dialog-config.model';
 import { DialogHelperService } from '../../shared/services/dialog-helper.service';
 import { MedicationImageUrlService } from '../services/medication-image-url.service';
@@ -326,8 +327,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
               this.loadTrigger$.next();
             },
             error: (err) => {
-              const msg = err?.error?.message ?? 'Greška pri deaktivaciji lijeka.';
-              this.toaster.error(msg);
+              this.toaster.error(getApiErrorMessage(err, 'Greška pri deaktivaciji lijeka.'));
             },
           });
       });
@@ -346,8 +346,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
         this.downloadBlob(blob, match?.[1] ?? 'medications-export.csv');
       },
       error: (err) => {
-        const msg = err?.error?.message ?? 'Greška pri exportu CSV.';
-        this.toaster.error(msg);
+        this.toaster.error(getApiErrorMessage(err, 'Greška pri exportu CSV.'));
       },
     });
   }
@@ -403,7 +402,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.isImporting = false;
-        this.toaster.error(err?.error?.message ?? 'Greška pri importu CSV.');
+        this.toaster.error(getApiErrorMessage(err, 'Greška pri importu CSV.'));
       },
     });
   }
