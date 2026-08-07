@@ -114,12 +114,61 @@
     </div>
   </mat-step>
 
-  <mat-step label="Pregled" [editable]="false">
-    <div class="review">
-      <p><strong>Naziv:</strong> {{ form.value.name }}</p>
-      <p><strong>Kategorija:</strong> {{ categoryLabel(form.value.category) }}</p>
-      <p><strong>Cijena:</strong> {{ form.value.price | number:'1.2-2' }} KM</p>
-      <p><strong>Zaliha:</strong> {{ form.value.stockQuantity }}</p>
+  <mat-step label="Slike i pregled" [editable]="false">
+    <div class="step-review">
+      <div class="review">
+        <h3>Pregled</h3>
+        <p><strong>Naziv:</strong> {{ form.value.name }}</p>
+        <p><strong>Kategorija:</strong> {{ categoryLabel(form.value.category) }}</p>
+        <p><strong>Cijena:</strong> {{ form.value.price | number:'1.2-2' }} KM</p>
+        <p><strong>Zaliha:</strong> {{ form.value.stockQuantity }}</p>
+      </div>
+
+      <section class="image-step">
+        <h3>Slike lijeka</h3>
+        <p class="image-step-hint">Odaberite slike prije čuvanja. Upload će se izvršiti nakon kreiranja lijeka.</p>
+
+        <div
+          class="drop-zone"
+          [class.drag-over]="isDragOver"
+          (dragover)="onDragOver($event)"
+          (dragleave)="onDragLeave($event)"
+          (drop)="onDrop($event)"
+        >
+          <app-pharmacy-icon name="upload" [size]="28"></app-pharmacy-icon>
+          <p>Povucite slike ovdje ili odaberite fajlove</p>
+          <input
+            #fileInput
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            hidden
+            (change)="onImageSelected($event)"
+          />
+          <button mat-stroked-button type="button" (click)="fileInput.click()" [disabled]="isProcessingQueue || isSaving">
+            Odaberi slike
+          </button>
+          <small>Slike se kompresuju prije uploada (max širina 1280px).</small>
+        </div>
+
+        @if (pendingImages.length) {
+          <div class="pending-queue">
+            <strong>Pripremljeno za upload ({{ pendingImages.length }})</strong>
+            @for (item of pendingImages; track item.key) {
+              <div class="pending-item">
+                <img [src]="item.previewUrl" [alt]="item.file.name" />
+                <div class="pending-meta">
+                  <span>{{ item.file.name }}</span>
+                  <span>{{ formatBytes(item.originalSize) }} → {{ formatBytes(item.compressedSize) }}</span>
+                </div>
+                <button mat-icon-button type="button" (click)="removePendingImage(item.key)" aria-label="Ukloni sliku">
+                  <app-pharmacy-icon name="trash-2" [size]="18"></app-pharmacy-icon>
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </section>
     </div>
   </mat-step>
 </mat-stepper>
@@ -131,8 +180,8 @@
   @if (step < totalSteps) {
     <button mat-raised-button color="primary" type="button" (click)="next()">Dalje</button>
   } @else {
-    <button mat-raised-button color="primary" type="button" (click)="submit()" [disabled]="isSaving || form.invalid || form.pending">
-      Sačuvaj
+    <button mat-raised-button color="primary" type="button" (click)="submit()" [disabled]="isSaving || isProcessingQueue || form.invalid || form.pending">
+      {{ isSaving ? 'Čuvanje...' : 'Sačuvaj' }}
     </button>
   }
 </div>

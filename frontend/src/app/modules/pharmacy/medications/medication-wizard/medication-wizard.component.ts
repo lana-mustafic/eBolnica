@@ -1,11 +1,13 @@
 import { Component, DestroyRef, inject, OnDestroy, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, Validators } from '@angular/forms';
+import { HttpEventType } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { debounceTime, map, Subscription } from 'rxjs';
+import { catchError, debounceTime, filter, forkJoin, map, of, Subscription, switchMap } from 'rxjs';
 import { PharmacyApiService } from '../../../../api-services/pharmacy/pharmacy-api.service';
 import { MedicationUpsertCommand } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../../core/services/toaster.service';
+import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
 import { medicationNameAsyncValidator } from '../../../shared/validators/medication-name-async.validator';
 import { DialogButton, DialogType } from '../../../shared/models/dialog-config.model';
 import { DialogHelperService } from '../../../shared/services/dialog-helper.service';
@@ -24,6 +26,15 @@ import {
   MEDICATION_WIZARD_AUTOSAVE_DEBOUNCE_MS,
   pickMedicationWizardDraftFormPatch,
 } from '../medication-wizard-autosave.util';
+import { compressMedicationImage } from '../utils/medication-image-compress.util';
+
+interface PendingWizardImage {
+  key: string;
+  file: File;
+  previewUrl: string;
+  originalSize: number;
+  compressedSize: number;
+}
 
 @Component({
   selector: 'app-medication-wizard',
@@ -43,8 +54,11 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   step = 1;
   readonly totalSteps = 3;
   isSaving = false;
+  isProcessingQueue = false;
+  isDragOver = false;
   showDraftBanner = false;
   pendingDraft: MedicationWizardDraft | null = null;
+  pendingImages: PendingWizardImage[] = [];
 
   private autosaveSubscription?: Subscription;
   private draftPromptResolved = false;
@@ -102,6 +116,7 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
       this.persistDraft();
     }
     this.autosaveSubscription?.unsubscribe();
+    this.clearPendingImagePreviews();
   }
 
   get nameControl() {
@@ -221,19 +236,75 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
     this.isSaving = true;
     this.pharmacyApi
       .createMedication(body)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        switchMap((created) =>
+          this.uploadPendingImages(created.id).pipe(
+            map((uploadFailed) => ({ created, uploadFailed }))
+          )
+        ),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe({
-      next: (created) => {
-        this.suppressDraftPersist = true;
-        this.draftService.clear();
-        this.toaster.success('Lijek kreiran preko wizarda.');
-        this.router.navigate(['/pharmacy/medications', created.id, 'edit']);
-      },
-      error: () => {
-        this.isSaving = false;
-        this.toaster.error('Greška pri čuvanju.');
-      },
-    });
+        next: ({ created, uploadFailed }) => {
+          this.suppressDraftPersist = true;
+          this.draftService.clear();
+          this.clearPendingImagePreviews();
+          this.pendingImages = [];
+          this.toaster.success(
+            uploadFailed
+              ? 'Lijek kreiran, ali neke slike nisu uploadovane.'
+              : 'Lijek kreiran preko wizarda.'
+          );
+          this.router.navigate(['/pharmacy/medications', created.id]);
+        },
+        error: (err) => {
+          this.isSaving = false;
+          this.toaster.error(getApiErrorMessage(err, 'Greška pri čuvanju.'));
+        },
+      });
+  }
+
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    this.isDragOver = true;
+  }
+
+  onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    this.isDragOver = false;
+  }
+
+  onDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.isDragOver = false;
+    if (!event.dataTransfer?.files?.length) {
+      return;
+    }
+    void this.queueFiles(Array.from(event.dataTransfer.files));
+  }
+
+  onImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = input.files;
+    input.value = '';
+    if (!files?.length) {
+      return;
+    }
+    void this.queueFiles(Array.from(files));
+  }
+
+  removePendingImage(key: string): void {
+    const item = this.pendingImages.find((entry) => entry.key === key);
+    if (item) {
+      URL.revokeObjectURL(item.previewUrl);
+    }
+    this.pendingImages = this.pendingImages.filter((entry) => entry.key !== key);
+  }
+
+  formatBytes(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   cancel(): void {
@@ -303,5 +374,61 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
       }
     }
     return ok;
+  }
+
+  private async queueFiles(files: File[]): Promise<void> {
+    this.isProcessingQueue = true;
+    try {
+      for (const original of files) {
+        if (!original.type.startsWith('image/')) {
+          this.toaster.error(`Preskočeno: ${original.name} nije slika.`);
+          continue;
+        }
+
+        try {
+          const compressed = await compressMedicationImage(original);
+          this.pendingImages = [
+            ...this.pendingImages,
+            {
+              key: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              file: compressed,
+              previewUrl: URL.createObjectURL(compressed),
+              originalSize: original.size,
+              compressedSize: compressed.size,
+            },
+          ];
+        } catch {
+          this.toaster.error(`Greška pri obradi slike: ${original.name}`);
+        }
+      }
+    } finally {
+      this.isProcessingQueue = false;
+    }
+  }
+
+  private uploadPendingImages(medicationId: number) {
+    if (this.pendingImages.length === 0) {
+      return of(false);
+    }
+
+    let uploadFailed = false;
+    return forkJoin(
+      this.pendingImages.map((item) =>
+        this.pharmacyApi.uploadImage(medicationId, item.file).pipe(
+          filter((event) => event.type === HttpEventType.Response),
+          map(() => undefined),
+          catchError(() => {
+            uploadFailed = true;
+            return of(undefined);
+          })
+        )
+      )
+    ).pipe(map(() => uploadFailed));
+  }
+
+  private clearPendingImagePreviews(): void {
+    for (const item of this.pendingImages) {
+      URL.revokeObjectURL(item.previewUrl);
+    }
   }
 }
