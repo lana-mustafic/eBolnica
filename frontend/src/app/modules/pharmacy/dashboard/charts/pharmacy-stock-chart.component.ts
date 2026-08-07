@@ -12,6 +12,7 @@ import {
 import type { Chart, TooltipItem } from 'chart.js';
 import { StockTrendItemDto } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { loadChartJs } from './chart-js-loader';
+import { scheduleChartRender } from './chart-render.util';
 
 interface StockChartMedication {
   id: number;
@@ -36,10 +37,12 @@ export class PharmacyStockChartComponent implements AfterViewInit, OnChanges, On
   @Input() metricType = 'current-stock-snapshot';
 
   private chart?: Chart;
+  private viewReady = false;
   private renderQueued = false;
   private renderGeneration = 0;
 
   ngAfterViewInit(): void {
+    this.viewReady = true;
     this.queueRender();
   }
 
@@ -55,12 +58,12 @@ export class PharmacyStockChartComponent implements AfterViewInit, OnChanges, On
   }
 
   private queueRender(): void {
-    if (this.renderQueued) {
+    if (!this.viewReady || this.renderQueued) {
       return;
     }
 
     this.renderQueued = true;
-    queueMicrotask(() => {
+    scheduleChartRender(() => {
       this.renderQueued = false;
       void this.renderChart();
     });

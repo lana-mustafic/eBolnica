@@ -13,6 +13,7 @@ import type { Chart, TooltipItem } from 'chart.js';
 import { getMedicationCategoryLabel } from '../../constants/medication-categories.constant';
 import { CategoryItemDto } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { loadChartJs } from './chart-js-loader';
+import { scheduleChartRender } from './chart-render.util';
 
 const CHART_COLORS = ['#7C3AED', '#22C55E', '#3B82F6', '#F59E0B', '#EF4444', '#06B6D4', '#EC4899', '#84CC16'];
 
@@ -28,10 +29,12 @@ export class PharmacyCategoriesChartComponent implements AfterViewInit, OnChange
   @Input() items: CategoryItemDto[] = [];
 
   private chart?: Chart;
+  private viewReady = false;
   private renderQueued = false;
   private renderGeneration = 0;
 
   ngAfterViewInit(): void {
+    this.viewReady = true;
     this.queueRender();
   }
 
@@ -47,12 +50,12 @@ export class PharmacyCategoriesChartComponent implements AfterViewInit, OnChange
   }
 
   private queueRender(): void {
-    if (this.renderQueued) {
+    if (!this.viewReady || this.renderQueued) {
       return;
     }
 
     this.renderQueued = true;
-    queueMicrotask(() => {
+    scheduleChartRender(() => {
       this.renderQueued = false;
       void this.renderChart();
     });

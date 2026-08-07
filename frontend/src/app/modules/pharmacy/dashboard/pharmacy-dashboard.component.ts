@@ -163,11 +163,11 @@ export class PharmacyDashboardComponent implements OnInit {
         this.summary.set(stats.metadata.summary);
         this.activities.set(activities);
         this.revenueItems.set(stats.monthlyRevenue.data.slice(-6));
-        this.categories.set(stats.topCategories.data);
-        this.stockItems.set(stats.stockTrends.data);
+        this.categories.set(stats.topCategories.data ?? []);
+        this.stockItems.set(stats.stockTrends.data ?? []);
         this.stockTimeline.set(stats.stockTrends.timeline ?? []);
         this.stockMedications.set(stats.stockTrends.medications ?? []);
-        this.stockMetricType.set(stats.stockTrends.metricType);
+        this.stockMetricType.set(stats.stockTrends.metricType ?? 'current-stock-snapshot');
         this.stockNote.set(stats.stockTrends.note ?? undefined);
         this.revenueChange.set(stats.monthlyRevenue.revenueChangePercentage);
       });
