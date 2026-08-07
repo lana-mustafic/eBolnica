@@ -19,10 +19,6 @@ public sealed class GetInventoryQueryHandler(IAppDbContext ctx)
             request.StockStatus,
             request.RequiresPrescription);
 
-        var totalCount = await query.CountAsync(ct);
-        var page = Math.Max(1, request.PageNumber);
-        var pageSize = Math.Clamp(request.PageSize, 1, 100);
-
         var expiryThreshold = DateTime.UtcNow.AddDays(30);
         var now = DateTime.UtcNow;
 
@@ -31,8 +27,22 @@ public sealed class GetInventoryQueryHandler(IAppDbContext ctx)
             && m.ExpiryDate.Value <= expiryThreshold
             && m.ExpiryDate.Value > now);
 
-        var lowStockAlertCount = await lowStockQuery.CountAsync(ct);
-        var expiryAlertCount = await expiryQuery.CountAsync(ct);
+        var stats = await query
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                TotalCount = g.Count(),
+                LowStockAlertCount = g.Count(m => m.StockQuantity < m.MinimumStockLevel),
+                ExpiryAlertCount = g.Count(m =>
+                    m.ExpiryDate.HasValue
+                    && m.ExpiryDate.Value <= expiryThreshold
+                    && m.ExpiryDate.Value > now)
+            })
+            .FirstOrDefaultAsync(ct);
+
+        var totalCount = stats?.TotalCount ?? 0;
+        var lowStockAlertCount = stats?.LowStockAlertCount ?? 0;
+        var expiryAlertCount = stats?.ExpiryAlertCount ?? 0;
 
         var lowStockAlerts = await lowStockQuery
             .OrderBy(m => m.StockQuantity)
@@ -47,6 +57,9 @@ public sealed class GetInventoryQueryHandler(IAppDbContext ctx)
             .Take(MaxAlertItems)
             .Select(MedicationMapping.ToDtoExpression)
             .ToListAsync(ct);
+
+        var page = Math.Max(1, request.PageNumber);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
 
         PharmacySortValidator.ValidateMedicationSort(request.SortBy);
         query = MedicationQueryFilters.ApplySorting(query, request.SortBy, request.SortOrder);
