@@ -2,10 +2,12 @@ using eBolnica.Infrastructure.Common;
 using eBolnica.Shared.Dtos;
 using eBolnica.Shared.Options;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using eBolnica.Domain.Entities.Identity;
 using System.Text;
+using System.Threading.RateLimiting;
 
 namespace eBolnica.API;
 
@@ -112,6 +114,39 @@ public static class DependencyInjection
 
         services.AddExceptionHandler<eBolnicaExceptionHandler>();
         services.AddProblemDetails();
+
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.OnRejected = async (context, token) =>
+            {
+                context.HttpContext.Response.ContentType = "application/json";
+                await context.HttpContext.Response.WriteAsJsonAsync(new ErrorDto
+                {
+                    Code = "rate_limit.exceeded",
+                    Message = "Too many upload requests. Please try again later."
+                }, token);
+            };
+
+            options.AddPolicy("PharmacyUpload", httpContext =>
+            {
+                var partitionKey = httpContext.User.Identity?.IsAuthenticated == true
+                    ? httpContext.User.FindFirst("sub")?.Value
+                      ?? httpContext.User.Identity?.Name
+                      ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                      ?? "anonymous"
+                    : httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
+
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey,
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 20,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0
+                    });
+            });
+        });
 
         return services;
     }

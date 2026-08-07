@@ -23,11 +23,12 @@ internal static class MedicationQueryFilters
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var term = search.Trim().ToLower();
+            var normalized = MedicationEntity.NormalizeName(search);
+            var raw = search.Trim();
             query = query.Where(m =>
-                m.Name.ToLower().Contains(term) ||
-                (m.GenericName != null && m.GenericName.ToLower().Contains(term)) ||
-                (m.Manufacturer != null && m.Manufacturer.ToLower().Contains(term)));
+                m.NormalizedName.Contains(normalized) ||
+                (m.GenericName != null && m.GenericName.Contains(raw)) ||
+                (m.Manufacturer != null && m.Manufacturer.Contains(raw)));
         }
 
         if (!string.IsNullOrWhiteSpace(category))

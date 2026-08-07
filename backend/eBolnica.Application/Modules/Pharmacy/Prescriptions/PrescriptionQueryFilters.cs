@@ -16,32 +16,32 @@ public static class PrescriptionQueryFilters
         if (!string.IsNullOrWhiteSpace(status) &&
             !string.Equals(status, "All", StringComparison.OrdinalIgnoreCase))
         {
-            var normalizedStatus = status.Trim();
-            query = query.Where(p => p.Status.ToLower() == normalizedStatus.ToLower());
+            query = query.Where(p => p.Status == status.Trim());
         }
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var term = search.Trim().ToLowerInvariant();
+            var term = search.Trim();
+            var normalizedMedicationTerm = MedicationEntity.NormalizeName(term);
             query = query.Where(p =>
-                p.PrescriptionNumber.ToLower().Contains(term) ||
-                p.Items.Any(i => i.Medication.Name.ToLower().Contains(term)));
+                p.PrescriptionNumber.Contains(term) ||
+                p.Items.Any(i => i.Medication.NormalizedName.Contains(normalizedMedicationTerm)));
         }
 
         if (!string.IsNullOrWhiteSpace(patientSearch))
         {
-            var term = patientSearch.Trim().ToLowerInvariant();
+            var term = patientSearch.Trim();
             query = query.Where(p =>
-                p.Patient.FirstName.ToLower().Contains(term) ||
-                p.Patient.LastName.ToLower().Contains(term));
+                p.Patient.FirstName.Contains(term) ||
+                p.Patient.LastName.Contains(term));
         }
 
         if (!string.IsNullOrWhiteSpace(doctorSearch))
         {
-            var term = doctorSearch.Trim().ToLowerInvariant();
+            var term = doctorSearch.Trim();
             query = query.Where(p =>
-                p.Doctor.FirstName.ToLower().Contains(term) ||
-                p.Doctor.LastName.ToLower().Contains(term));
+                p.Doctor.FirstName.Contains(term) ||
+                p.Doctor.LastName.Contains(term));
         }
 
         if (prescribedFrom.HasValue)

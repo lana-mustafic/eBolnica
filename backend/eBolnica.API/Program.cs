@@ -96,6 +96,7 @@ public partial class Program
 
             app.UseAuthentication();
             app.UseAuthorization();
+            app.UseRateLimiter();
 
             app.MapControllers();
 

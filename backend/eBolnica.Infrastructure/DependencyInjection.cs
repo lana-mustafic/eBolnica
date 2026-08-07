@@ -57,6 +57,7 @@ public static class DependencyInjection
         services.AddMemoryCache();
         services.AddScoped<IPharmacyAnalyticsService, PharmacyAnalyticsService>();
         services.AddScoped<IPharmacyPdfReportService, PharmacyPdfReportService>();
+        services.AddScoped<IPrescriptionNumberGenerator, PrescriptionNumberGenerator>();
 
         // TimeProvider (if used in handlers/services)
         services.AddSingleton<TimeProvider>(TimeProvider.System);

@@ -2,10 +2,14 @@ using eBolnica.Application.Common;
 using eBolnica.Application.Modules.Pharmacy.Prescriptions;
 using eBolnica.Domain.Entities.Pharmacy;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace eBolnica.Application.Modules.Pharmacy.Prescriptions.Commands.CreatePrescription;
 
-public sealed class CreatePrescriptionCommandHandler(IAppDbContext ctx, IAppCurrentUser currentUser)
+public sealed class CreatePrescriptionCommandHandler(
+    IAppDbContext ctx,
+    IAppCurrentUser currentUser,
+    IPrescriptionNumberGenerator prescriptionNumberGenerator)
     : IRequestHandler<CreatePrescriptionCommand, PrescriptionDto>
 {
     public async Task<PrescriptionDto> Handle(CreatePrescriptionCommand request, CancellationToken ct)
@@ -65,11 +69,11 @@ public sealed class CreatePrescriptionCommandHandler(IAppDbContext ctx, IAppCurr
 
         for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
-            await using var transaction = await ctx.Database.BeginTransactionAsync(ct);
+            await using var transaction = await ctx.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
             try
             {
                 var now = DateTime.UtcNow;
-                var prescriptionNumber = await GeneratePrescriptionNumberAsync(now.Year, ct);
+                var prescriptionNumber = await prescriptionNumberGenerator.ReserveNextAsync(now.Year, ct);
 
                 var prescription = new PrescriptionEntity
                 {
@@ -127,14 +131,5 @@ public sealed class CreatePrescriptionCommandHandler(IAppDbContext ctx, IAppCurr
         }
 
         throw new eBolnicaConflictException("Could not generate a unique prescription number. Please retry.");
-    }
-
-    private async Task<string> GeneratePrescriptionNumberAsync(int year, CancellationToken ct)
-    {
-        var prefix = $"RX-{year}-";
-        var count = await ctx.Prescriptions
-            .CountAsync(p => p.PrescriptionNumber.StartsWith(prefix), ct);
-
-        return $"{prefix}{(count + 1):D4}";
     }
 }

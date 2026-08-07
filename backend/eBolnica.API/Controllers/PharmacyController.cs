@@ -31,6 +31,7 @@ using eBolnica.Application.Modules.Pharmacy.Prescriptions.Queries.ListPatientMed
 using eBolnica.Application.Modules.Pharmacy.Prescriptions.Queries.ListPrescriptions;
 using eBolnica.Application.Modules.Pharmacy.Prescriptions.Queries.SearchPrescriptionPatients;
 using eBolnica.Shared.Dtos;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Text;
 
 [ApiController]
@@ -86,6 +87,7 @@ public sealed class PharmacyController(IMediator mediator) : ControllerBase
 
     [HttpPost("medications/import/csv")]
     [Authorize(Policy = "PharmacyStaff")]
+    [EnableRateLimiting("PharmacyUpload")]
     [Consumes("multipart/form-data")]
     public async Task<ActionResult<MedicationImportResultDto>> ImportMedicationsCsv(
         IFormFile? file,
@@ -147,6 +149,7 @@ public sealed class PharmacyController(IMediator mediator) : ControllerBase
 
     [HttpPost("medications/{id:int}/images")]
     [Authorize(Policy = "PharmacyStaff")]
+    [EnableRateLimiting("PharmacyUpload")]
     [RequestSizeLimit(5 * 1024 * 1024)]
     public async Task<ActionResult<MedicationImageDto>> UploadMedicationImage(
         int id,

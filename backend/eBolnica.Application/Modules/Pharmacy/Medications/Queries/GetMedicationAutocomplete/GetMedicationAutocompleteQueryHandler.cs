@@ -24,8 +24,8 @@ public sealed class GetMedicationAutocompleteQueryHandler(IAppDbContext ctx)
         return await query
             .Where(m =>
                 m.NormalizedName.Contains(normalized) ||
-                (m.GenericName != null && m.GenericName.ToLower().Contains(normalized)) ||
-                (m.Manufacturer != null && m.Manufacturer.ToLower().Contains(normalized)))
+                (m.GenericName != null && m.GenericName.Contains(trimmed)) ||
+                (m.Manufacturer != null && m.Manufacturer.Contains(trimmed)))
             .OrderBy(m => m.Name)
             .Take(limit)
             .Select(m => new MedicationAutocompleteSuggestionDto
