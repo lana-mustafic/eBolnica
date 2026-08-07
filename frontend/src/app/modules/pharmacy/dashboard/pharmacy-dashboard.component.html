@@ -21,48 +21,53 @@
       </section>
     } @else if (summary) {
       <section class="kpi-grid" aria-label="KPI statistike">
-        <article class="kpi-card">
-          <div class="kpi-icon">
-            <app-pharmacy-icon name="pill" [size]="20"></app-pharmacy-icon>
-          </div>
-          <p class="kpi-label">Aktivni lijekovi</p>
-          <p class="kpi-value">{{ summary.totalMedications }}</p>
-          <p class="kpi-subtitle">Ukupno u apoteci</p>
-        </article>
+        <app-pharmacy-kpi-card
+          icon="pill"
+          title="Aktivni lijekovi"
+          [value]="summary.totalMedications"
+          subtitle="Ukupno u apoteci"
+          tone="purple"
+        ></app-pharmacy-kpi-card>
 
-        <article class="kpi-card">
-          <div class="kpi-icon">
-            <app-pharmacy-icon name="clipboard" [size]="20"></app-pharmacy-icon>
-          </div>
-          <p class="kpi-label">Recepti na čekanju</p>
-          <p class="kpi-value">{{ summary.pendingPrescriptions }}</p>
-          <p class="kpi-subtitle">Za izdavanje</p>
-        </article>
+        <app-pharmacy-kpi-card
+          icon="clipboard"
+          title="Recepti na čekanju"
+          [value]="summary.pendingPrescriptions"
+          subtitle="Za izdavanje"
+          tone="blue"
+        ></app-pharmacy-kpi-card>
 
-        <article class="kpi-card">
-          <div class="kpi-icon">
-            <app-pharmacy-icon name="triangle-alert" [size]="20"></app-pharmacy-icon>
-          </div>
-          <p class="kpi-label">Niska zaliha</p>
-          <p class="kpi-value">{{ summary.lowStockAlerts }}</p>
-          <p class="kpi-subtitle">Potrebna pažnja</p>
-        </article>
+        <app-pharmacy-kpi-card
+          icon="triangle-alert"
+          title="Niska zaliha"
+          [value]="summary.lowStockAlerts"
+          subtitle="Potrebna pažnja"
+          tone="orange"
+        ></app-pharmacy-kpi-card>
 
-        <article class="kpi-card">
-          <div class="kpi-icon">
-            <app-pharmacy-icon name="wallet" [size]="20"></app-pharmacy-icon>
-          </div>
-          <p class="kpi-label">Vrijednost inventara</p>
-          <p class="kpi-value">{{ summary.inventoryValue | number:'1.2-2' }} KM</p>
-          <p class="kpi-subtitle">Trenutna procjena</p>
-        </article>
+        <app-pharmacy-kpi-card
+          icon="wallet"
+          title="Vrijednost inventara"
+          [value]="inventoryValueLabel"
+          [subtitle]="inventoryKpiSubtitle"
+          [trendLabel]="revenueTrendLabel"
+          [trendPositive]="revenueChange >= 0"
+          tone="green"
+        ></app-pharmacy-kpi-card>
       </section>
 
       <section class="split-grid">
         <article class="card chart-card">
           <div class="card-heading">
             <h2>Prihod po mjesecima</h2>
-            <p>Pregled mjesečnog prihoda apoteke</p>
+            <p>
+              Pregled mjesečnog prihoda apoteke
+              @if (revenueTrendLabel) {
+                <span class="inline-trend" [class.positive]="revenueChange >= 0" [class.negative]="revenueChange < 0">
+                  {{ revenueChange >= 0 ? '▲' : '▼' }} {{ revenueTrendLabel }}
+                </span>
+              }
+            </p>
           </div>
           <div class="card-body">
             @if (revenueItems.length === 0) {
@@ -90,6 +95,36 @@
               </li>
             }
           </ul>
+        </article>
+      </section>
+
+      <section class="charts-grid">
+        <article class="card chart-card">
+          <div class="card-heading">
+            <h2>Kategorije lijekova</h2>
+            <p>Raspodjela inventara po kategorijama</p>
+          </div>
+          <div class="card-body">
+            @if (categories.length === 0) {
+              <p class="empty-state">Nema podataka o kategorijama.</p>
+            } @else {
+              <app-pharmacy-categories-chart [items]="categories"></app-pharmacy-categories-chart>
+            }
+          </div>
+        </article>
+
+        <article class="card chart-card">
+          <div class="card-heading">
+            <h2>Stanje zaliha</h2>
+            <p>Trenutni nivoi zaliha po lijekovima</p>
+          </div>
+          <div class="card-body">
+            @if (stockItems.length === 0) {
+              <p class="empty-state">Nema podataka o zalihama.</p>
+            } @else {
+              <app-pharmacy-stock-chart [items]="stockItems"></app-pharmacy-stock-chart>
+            }
+          </div>
         </article>
       </section>
     }

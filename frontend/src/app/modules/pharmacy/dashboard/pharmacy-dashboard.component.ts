@@ -74,6 +74,34 @@ export class PharmacyDashboardComponent implements OnInit {
     this.loadTrigger$.next();
   }
 
+  get revenueTrendLabel(): string | undefined {
+    if (this.revenueChange === 0) {
+      return undefined;
+    }
+
+    return `${Math.abs(this.revenueChange).toFixed(1)}% u odnosu na prethodni mjesec`;
+  }
+
+  get inventoryValueLabel(): string {
+    if (!this.summary) {
+      return '0 KM';
+    }
+
+    return `${this.summary.inventoryValue.toFixed(2)} KM`;
+  }
+
+  get inventoryKpiSubtitle(): string {
+    if (!this.summary) {
+      return 'Trenutna procjena';
+    }
+
+    if (this.revenueTrendLabel) {
+      return `Prihod: ${this.summary.totalRevenue.toFixed(2)} KM`;
+    }
+
+    return 'Trenutna procjena';
+  }
+
   get recentActivities(): DashboardActivityItem[] {
     if (!this.summary) {
       return [];
@@ -123,14 +151,6 @@ export class PharmacyDashboardComponent implements OnInit {
     });
 
     return items.slice(0, 5);
-  }
-
-  private formatToday(): string {
-    return new Date().toLocaleDateString('bs-BA', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
   }
 
   private formatTodayShort(): string {

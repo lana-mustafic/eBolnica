@@ -74,63 +74,31 @@
   gap: 20px;
 }
 
-.kpi-card {
-  background: $pharmacy-card;
-  border-radius: 8px;
-  padding: 20px 24px;
-  box-shadow: $pharmacy-shadow;
-  border: 1px solid $pharmacy-border;
-  transition: box-shadow 0.2s ease;
-  animation: fadeIn 0.3s ease backwards;
-
-  @for $i from 1 through 4 {
-    &:nth-child(#{$i}) {
-      animation-delay: #{$i * 0.08}s;
-    }
-  }
-
-  &:hover {
-    box-shadow: $pharmacy-shadow-hover;
-  }
-}
-
-.kpi-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  background: rgba(59, 130, 246, 0.08);
-  color: $pharmacy-accent;
-  display: grid;
-  place-items: center;
-  margin-bottom: 12px;
-}
-
-.kpi-label {
-  margin: 0;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: $pharmacy-text-secondary;
-}
-
-.kpi-value {
-  margin: 8px 0 0;
-  font-size: 2rem;
-  font-weight: 700;
-  color: $pharmacy-text;
-  line-height: 1.1;
-}
-
-.kpi-subtitle {
-  margin: 6px 0 0;
-  font-size: 0.75rem;
-  font-weight: 400;
-  color: $pharmacy-text-secondary;
-}
-
 .split-grid {
   display: grid;
   grid-template-columns: 3fr 2fr;
   gap: 20px;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.inline-trend {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+
+  &.positive {
+    color: $pharmacy-success;
+  }
+
+  &.negative {
+    color: $pharmacy-danger;
+  }
 }
 
 .card-heading {
@@ -238,7 +206,8 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .split-grid {
+  .split-grid,
+  .charts-grid {
     grid-template-columns: 1fr;
   }
 }
