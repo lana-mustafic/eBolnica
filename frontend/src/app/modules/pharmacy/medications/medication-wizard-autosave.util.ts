@@ -8,23 +8,6 @@ import {
 
 export const MEDICATION_WIZARD_AUTOSAVE_DEBOUNCE_MS = 2000;
 
-export const MEDICATION_WIZARD_FORM_FIELD_KEYS = [
-  'name',
-  'category',
-  'description',
-  'price',
-  'stockQuantity',
-  'minimumStockLevel',
-  'dosageForm',
-  'strength',
-  'expiryDate',
-  'batchNumber',
-  'requiresPrescription',
-  'isActive',
-  'genericName',
-  'manufacturer',
-] as const;
-
 export function normalizeMedicationWizardStepIndex(step: number, totalSteps: number): number {
   if (!Number.isFinite(step)) {
     return 1;

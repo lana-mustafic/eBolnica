@@ -16,7 +16,6 @@ import {
   StatisticsSummaryDto,
   StockTrendItemDto,
 } from '../../../api-services/pharmacy/pharmacy-api.models';
-import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
 import { PharmacyIconName } from '../shared/pharmacy-icon/pharmacy-icon.component';
 
 interface DashboardActivityItem {
@@ -38,8 +37,6 @@ export class PharmacyDashboardComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
   private loadTrigger$ = new Subject<void>();
 
-  auth = inject(AuthFacadeService);
-
   isLoading = signal(true);
   loadError = signal(false);
   summary = signal<StatisticsSummaryDto | null>(null);
@@ -53,7 +50,11 @@ export class PharmacyDashboardComponent implements OnInit {
   stockMetricType = signal('current-stock-snapshot');
   stockNote = signal<string | undefined>(undefined);
   revenueChange = signal(0);
-  readonly todayShortLabel = this.formatTodayShort();
+  readonly todayShortLabel = new Date().toLocaleDateString('bs-BA', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
 
   stockChartTitle = computed(() =>
     this.stockMetricType() === 'stock-history-trend' ? 'Trend zaliha' : 'Stanje zaliha'
@@ -189,13 +190,5 @@ export class PharmacyDashboardComponent implements OnInit {
 
   reload(): void {
     this.loadTrigger$.next();
-  }
-
-  private formatTodayShort(): string {
-    return new Date().toLocaleDateString('bs-BA', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
   }
 }

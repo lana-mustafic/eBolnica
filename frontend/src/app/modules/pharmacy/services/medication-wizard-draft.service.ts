@@ -87,16 +87,6 @@ export class MedicationWizardDraftService {
     this.writeDraft(ownerKey, draft);
   }
 
-  load(): MedicationWizardDraft | null {
-    const evaluation = this.evaluateDraft();
-    if (evaluation.status === 'expired') {
-      this.clear();
-      return null;
-    }
-
-    return evaluation.draft;
-  }
-
   evaluateDraft(): MedicationWizardDraftEvaluation {
     const draft = this.readDraftForCurrentOwner();
     if (!draft) {
