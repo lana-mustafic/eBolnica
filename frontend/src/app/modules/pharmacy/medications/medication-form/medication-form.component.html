@@ -22,6 +22,8 @@
 
   @if (isLoading()) {
     <app-fit-table-skeleton [rows]="8" [columns]="2"></app-fit-table-skeleton>
+  } @else if (isSaving()) {
+    <app-fit-table-skeleton [rows]="8" [columns]="2" [showActions]="false"></app-fit-table-skeleton>
   } @else {
     <div class="validation-banner" [class.valid]="isFormReady" [class.invalid]="!isFormReady">
       @if (isFormReady) {
@@ -46,7 +48,9 @@
             <label for="med-name">Naziv <span class="required">*</span></label>
             <input id="med-name" class="field-input" formControlName="name" placeholder="Unesite naziv lijeka" />
             @if (nameControl?.pending) {
-              <span class="field-hint">Provjera naziva...</span>
+              <div class="compact-skeleton" aria-busy="true" aria-label="Provjera naziva">
+                <app-fit-table-skeleton [rows]="1" [columns]="1" [showActions]="false"></app-fit-table-skeleton>
+              </div>
             }
             @if (nameControl?.hasError('required') && nameControl?.touched) {
               <span class="field-error">Naziv je obavezan</span>

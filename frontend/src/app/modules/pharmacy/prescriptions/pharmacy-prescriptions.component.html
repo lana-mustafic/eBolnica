@@ -156,7 +156,7 @@
             </div>
           </div>
         } @else {
-          <div class="table-scroll">
+          <div class="table-scroll desktop-table">
             <table mat-table [dataSource]="prescriptions()" class="prescriptions-table">
               <ng-container matColumnDef="number">
                 <th
@@ -267,6 +267,60 @@
               <tr mat-row *matRowDef="let row; columns: displayedColumns" class="data-row"></tr>
             </table>
           </div>
+
+          <ul class="mobile-card-list" aria-label="Lista recepata">
+            @for (p of prescriptions(); track p.id) {
+              <li class="prescription-card">
+                <div class="card-row">
+                  <span class="card-label">Broj</span>
+                  <span class="rx-number">{{ p.prescriptionNumber }}</span>
+                </div>
+                <div class="card-row">
+                  <span class="card-label">Pacijent</span>
+                  <div class="card-value stack-cell">
+                    <span class="cell-main">
+                      {{ p.patient.firstName }} {{ p.patient.lastName }}
+                    </span>
+                    @if (p.patient.phoneNumber) {
+                      <span class="cell-sub">{{ p.patient.phoneNumber }}</span>
+                    }
+                  </div>
+                </div>
+                <div class="card-row">
+                  <span class="card-label">Doktor</span>
+                  <div class="card-value stack-cell">
+                    <span class="cell-main">Dr. {{ p.doctor.firstName }} {{ p.doctor.lastName }}</span>
+                    @if (p.doctor.specialization) {
+                      <span class="cell-sub">{{ p.doctor.specialization }}</span>
+                    }
+                  </div>
+                </div>
+                <div class="card-row">
+                  <span class="card-label">Status</span>
+                  <span class="status-badge" [ngClass]="statusClass(p.status)" [class.pulse]="p.status === 'Pending'">
+                    <span class="status-dot" aria-hidden="true"></span>
+                    {{ statusLabel(p.status) }}
+                  </span>
+                </div>
+                <div class="card-row">
+                  <span class="card-label">Iznos</span>
+                  <strong class="amount">{{ p.totalAmount | number:'1.2-2' }} KM</strong>
+                </div>
+                <div class="card-actions">
+                  <button type="button" class="btn btn-primary btn-sm" (click)="openDetail(p.id)">Detalj</button>
+                  <button
+                    type="button"
+                    class="icon-action menu"
+                    [matMenuTriggerFor]="rowMenu"
+                    (click)="selectedPrescription = p"
+                    aria-label="Više akcija za {{ p.prescriptionNumber }}"
+                  >
+                    <app-pharmacy-icon name="more-vertical" [size]="18"></app-pharmacy-icon>
+                  </button>
+                </div>
+              </li>
+            }
+          </ul>
 
           @if (totalPages() > 1) {
             <div class="pagination">

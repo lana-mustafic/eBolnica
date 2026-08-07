@@ -44,3 +44,25 @@ $pharmacy-space-lg: 32px;
 @mixin pharmacy-font {
   font-family: 'Inter', 'Roboto', system-ui, -apple-system, sans-serif;
 }
+
+@mixin pharmacy-compact-skeleton {
+  ::ng-deep .skeleton-table {
+    box-shadow: none;
+    border: 0;
+    background: transparent;
+  }
+
+  ::ng-deep .skeleton-header {
+    display: none;
+  }
+
+  ::ng-deep .skeleton-row {
+    padding: 4px 0;
+    border: 0;
+  }
+
+  ::ng-deep .skeleton-text {
+    height: 14px;
+    width: 42%;
+  }
+}

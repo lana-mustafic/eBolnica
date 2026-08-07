@@ -1,3 +1,9 @@
+@use '../../styles/pharmacy-tokens' as *;
+
+.compact-skeleton {
+  @include pharmacy-compact-skeleton;
+}
+
 .page-header {
   display: flex;
   justify-content: space-between;

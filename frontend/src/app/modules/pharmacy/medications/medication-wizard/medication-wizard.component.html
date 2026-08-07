@@ -25,6 +25,9 @@
   </mat-card>
 }
 
+@if (isSaving()) {
+  <app-fit-table-skeleton [rows]="5" [columns]="2" [showActions]="false"></app-fit-table-skeleton>
+} @else {
 <mat-stepper [linear]="true" [selectedIndex]="step() - 1">
   <mat-step label="Osnovno" [editable]="false">
     <div [formGroup]="form" class="step-body">
@@ -32,7 +35,9 @@
         <mat-label>Naziv</mat-label>
         <input matInput formControlName="name" />
         @if (nameControl?.pending) {
-          <mat-hint>Provjera naziva...</mat-hint>
+          <div class="compact-skeleton" aria-busy="true" aria-label="Provjera naziva">
+            <app-fit-table-skeleton [rows]="1" [columns]="1" [showActions]="false"></app-fit-table-skeleton>
+          </div>
         }
         @if (nameControl?.hasError('required') && nameControl?.touched) {
           <mat-error>Naziv je obavezan</mat-error>
@@ -172,6 +177,7 @@
     </div>
   </mat-step>
 </mat-stepper>
+}
 
 <div class="wizard-actions">
   @if (step() > 1) {
