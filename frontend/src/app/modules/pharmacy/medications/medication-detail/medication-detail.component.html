@@ -155,6 +155,11 @@
         <h2 class="section-title">Historija zaliha</h2>
         @if (isLoadingHistory()) {
           <app-fit-table-skeleton [rows]="3" [columns]="3"></app-fit-table-skeleton>
+        } @else if (historyLoadError()) {
+          <div class="empty-state">
+            <p>Historija zaliha nije učitana.</p>
+            <button type="button" class="btn btn-outline" (click)="reloadHistory()">Pokušaj ponovo</button>
+          </div>
         } @else if (stockHistory().length === 0) {
           <p class="empty-state">Nema zabilježenih promjena zaliha.</p>
         } @else {

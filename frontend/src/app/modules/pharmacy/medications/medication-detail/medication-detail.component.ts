@@ -53,6 +53,7 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
   imageUrl = signal<string | null>(null);
   stockHistory = signal<StockHistoryRow[]>([]);
   isLoadingHistory = signal(false);
+  historyLoadError = signal(false);
 
   ngOnInit(): void {
     this.route.paramMap
@@ -70,6 +71,7 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
           this.isLoading.set(true);
           this.isLoadingHistory.set(true);
           this.loadError.set(false);
+          this.historyLoadError.set(false);
           this.clearImageUrl(this.medication());
           this.medication.set(null);
           this.stockHistory.set([]);
@@ -77,8 +79,8 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
           return this.pharmacyApi.getMedicationById(id).pipe(
             switchMap((medication) =>
               this.pharmacyApi.getMedicationStockHistory(id).pipe(
-                map((history) => ({ medication, history })),
-                catchError(() => of({ medication, history: [] as MedicationStockHistoryDto[] }))
+                map((history) => ({ medication, history, historyFailed: false as const })),
+                catchError(() => of({ medication, history: [] as MedicationStockHistoryDto[], historyFailed: true as const }))
               )
             ),
             catchError(() => {
@@ -91,9 +93,10 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
         }),
         takeUntilDestroyed(this.destroyRef)
       )
-      .subscribe(({ medication, history }) => {
+      .subscribe(({ medication, history, historyFailed }) => {
         this.medication.set(medication);
         this.stockHistory.set(history.map((row) => this.mapStockHistoryRow(row)));
+        this.historyLoadError.set(historyFailed);
         this.isLoading.set(false);
         this.isLoadingHistory.set(false);
         this.loadImageUrl(medication);
@@ -102,6 +105,30 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.clearImageUrl(this.medication());
+  }
+
+  reloadHistory(): void {
+    const id = this.medication()?.id ?? Number(this.route.snapshot.paramMap.get('id'));
+    if (!Number.isFinite(id) || id <= 0) {
+      return;
+    }
+
+    this.isLoadingHistory.set(true);
+    this.historyLoadError.set(false);
+
+    this.pharmacyApi
+      .getMedicationStockHistory(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (history) => {
+          this.stockHistory.set(history.map((row) => this.mapStockHistoryRow(row)));
+          this.isLoadingHistory.set(false);
+        },
+        error: () => {
+          this.historyLoadError.set(true);
+          this.isLoadingHistory.set(false);
+        },
+      });
   }
 
   reload(): void {
@@ -113,6 +140,7 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
     this.isLoading.set(true);
     this.isLoadingHistory.set(true);
     this.loadError.set(false);
+    this.historyLoadError.set(false);
     const previous = this.medication();
     this.clearImageUrl(previous);
 
@@ -121,16 +149,17 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
       .pipe(
         switchMap((medication) =>
           this.pharmacyApi.getMedicationStockHistory(id).pipe(
-            map((history) => ({ medication, history })),
-            catchError(() => of({ medication, history: [] as MedicationStockHistoryDto[] }))
+            map((history) => ({ medication, history, historyFailed: false as const })),
+            catchError(() => of({ medication, history: [] as MedicationStockHistoryDto[], historyFailed: true as const }))
           )
         ),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe({
-        next: ({ medication, history }) => {
+        next: ({ medication, history, historyFailed }) => {
           this.medication.set(medication);
           this.stockHistory.set(history.map((row) => this.mapStockHistoryRow(row)));
+          this.historyLoadError.set(historyFailed);
           this.isLoading.set(false);
           this.isLoadingHistory.set(false);
           this.loadImageUrl(medication);

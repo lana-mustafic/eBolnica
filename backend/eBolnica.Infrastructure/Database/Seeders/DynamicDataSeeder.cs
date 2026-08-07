@@ -268,6 +268,29 @@ public static class DynamicDataSeeder
             });
 
         await context.SaveChangesAsync();
+
+        await SeedMedicationStockHistoryAsync(context);
+    }
+
+    private static async Task SeedMedicationStockHistoryAsync(DatabaseContext context)
+    {
+        if (await context.MedicationStockHistory.AnyAsync())
+            return;
+
+        var medications = await context.Medications.AsNoTracking().ToListAsync();
+        foreach (var medication in medications)
+        {
+            context.MedicationStockHistory.Add(new MedicationStockHistoryEntity
+            {
+                MedicationId = medication.Id,
+                ChangeQuantity = medication.StockQuantity,
+                StockAfter = medication.StockQuantity,
+                Reason = MedicationStockChangeReasons.InitialStock,
+                CreatedAtUtc = medication.CreatedAtUtc
+            });
+        }
+
+        await context.SaveChangesAsync();
     }
 
     private static async Task SeedPrescriptionsAsync(DatabaseContext context)
