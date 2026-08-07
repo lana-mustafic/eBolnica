@@ -21,6 +21,7 @@ public interface IAppDbContext
     DbSet<PrescriptionEntity> Prescriptions { get; }
     DbSet<PrescriptionItemEntity> PrescriptionItems { get; }
     DbSet<PrescriptionNumberSequenceEntity> PrescriptionNumberSequences { get; }
+    DbSet<PharmacyActivityEntity> PharmacyActivities { get; }
 
     DatabaseFacade Database { get; }
 

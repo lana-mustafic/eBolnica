@@ -1,4 +1,5 @@
 using System.Data;
+using eBolnica.Application.Modules.Pharmacy.Activities;
 using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Prescriptions;
 using eBolnica.Domain.Entities.Pharmacy;
@@ -92,6 +93,15 @@ public sealed class DispensePrescriptionCommandHandler(IAppDbContext ctx, IAppCu
             prescription.PharmacistId = pharmacist.Id;
             prescription.DispensedDate = request.DispensedDate ?? now;
             prescription.ModifiedAtUtc = now;
+
+            PharmacyActivityWriter.Record(
+                ctx,
+                PharmacyActivityEventTypes.PrescriptionDispensed,
+                PharmacyActivityCategories.Prescription,
+                PharmacyActivitySeverities.Success,
+                $"Izdan recept {prescription.PrescriptionNumber}",
+                currentUser.UserId,
+                prescription.Id);
 
             await ctx.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);

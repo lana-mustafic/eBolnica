@@ -8,20 +8,28 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { catchError, of, Subject, switchMap } from 'rxjs';
+import { catchError, forkJoin, of, Subject, switchMap } from 'rxjs';
 import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.service';
 import {
   CategoryItemDto,
   MonthlyRevenueItemDto,
+  PharmacyActivityDto,
   StatisticsSummaryDto,
   StockTrendItemDto,
 } from '../../../api-services/pharmacy/pharmacy-api.models';
 import { PharmacyIconName } from '../shared/pharmacy-icon/pharmacy-icon.component';
 import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
+import { formatRelativeTime } from '../../../core/utils/relative-time.util';
+import {
+  mapPharmacyActivityIcon,
+  mapPharmacyActivityTone,
+  PharmacyActivityTone,
+} from '../shared/pharmacy-activity.util';
 
 interface DashboardActivityItem {
+  id: number;
   icon: PharmacyIconName;
-  tone: 'success' | 'warning' | 'info';
+  tone: PharmacyActivityTone;
   text: string;
   time: string;
 }
@@ -43,6 +51,7 @@ export class PharmacyDashboardComponent implements OnInit {
   isLoading = signal(true);
   loadError = signal(false);
   summary = signal<StatisticsSummaryDto | null>(null);
+  activities = signal<PharmacyActivityDto[]>([]);
   revenueItems = signal<MonthlyRevenueItemDto[]>([]);
   categories = signal<CategoryItemDto[]>([]);
   stockItems = signal<StockTrendItemDto[]>([]);
@@ -105,57 +114,15 @@ export class PharmacyDashboardComponent implements OnInit {
     return 'Trenutna procjena';
   });
 
-  recentActivities = computed((): DashboardActivityItem[] => {
-    const summary = this.summary();
-    if (!summary) {
-      return [];
-    }
-
-    const items: DashboardActivityItem[] = [
-      {
-        icon: 'check-circle',
-        tone: 'success',
-        text: `${summary.totalMedications} aktivnih lijekova u sistemu`,
-        time: 'Upravo sada',
-      },
-    ];
-
-    if (summary.pendingPrescriptions > 0) {
-      items.push({
-        icon: 'clipboard',
-        tone: 'info',
-        text: `${summary.pendingPrescriptions} recept(a) čeka izdavanje`,
-        time: 'Danas',
-      });
-    }
-
-    if (summary.lowStockAlerts > 0) {
-      items.push({
-        icon: 'triangle-alert',
-        tone: 'warning',
-        text: `${summary.lowStockAlerts} lijek(ova) ispod minimuma zaliha`,
-        time: 'Danas',
-      });
-    }
-
-    if (summary.expiringSoon > 0 || summary.expiredMedications > 0) {
-      items.push({
-        icon: 'calendar',
-        tone: 'warning',
-        text: `Rok trajanja: ${summary.expiringSoon} uskoro / ${summary.expiredMedications} isteklo`,
-        time: 'Inventar',
-      });
-    }
-
-    items.push({
-      icon: 'activity',
-      tone: 'success',
-      text: `Vrijednost inventara ${summary.inventoryValue.toFixed(2)} KM`,
-      time: 'Ažurirano',
-    });
-
-    return items.slice(0, 5);
-  });
+  recentActivities = computed((): DashboardActivityItem[] =>
+    this.activities().map((activity) => ({
+      id: activity.id,
+      icon: mapPharmacyActivityIcon(activity),
+      tone: mapPharmacyActivityTone(activity),
+      text: activity.message,
+      time: formatRelativeTime(activity.occurredAt),
+    }))
+  );
 
   ngOnInit(): void {
     this.loadTrigger$
@@ -163,21 +130,30 @@ export class PharmacyDashboardComponent implements OnInit {
         switchMap(() => {
           this.isLoading.set(true);
           this.loadError.set(false);
-          return this.pharmacyApi.getDashboardStats().pipe(
-            catchError(() => {
-              this.loadError.set(true);
-              this.summary.set(null);
-              return of(null);
-            })
-          );
+          return forkJoin({
+            stats: this.pharmacyApi.getDashboardStats().pipe(
+              catchError(() => of(null))
+            ),
+            activities: this.pharmacyApi.listRecentActivities({ limit: 10 }).pipe(
+              catchError(() => of([] as PharmacyActivityDto[]))
+            ),
+          });
         }),
         takeUntilDestroyed(this.destroyRef)
       )
-      .subscribe((stats) => {
+      .subscribe(({ stats, activities }) => {
         this.isLoading.set(false);
-        if (!stats) return;
 
+        if (!stats) {
+          this.loadError.set(true);
+          this.summary.set(null);
+          this.activities.set([]);
+          return;
+        }
+
+        this.loadError.set(false);
         this.summary.set(stats.metadata.summary);
+        this.activities.set(activities);
         this.revenueItems.set(stats.monthlyRevenue.data.slice(-6));
         this.categories.set(stats.topCategories.data);
         this.stockItems.set(stats.stockTrends.data);

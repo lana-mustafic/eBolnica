@@ -1,10 +1,11 @@
 using eBolnica.Application.Common;
+using eBolnica.Application.Modules.Pharmacy.Activities;
 using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.CreateMedication;
 using eBolnica.Domain.Entities.Pharmacy;
 using Microsoft.EntityFrameworkCore;
 
-public sealed class CreateMedicationCommandHandler(IAppDbContext ctx, IPharmacyAnalyticsService analytics)
+public sealed class CreateMedicationCommandHandler(IAppDbContext ctx, IAppCurrentUser currentUser, IPharmacyAnalyticsService analytics)
     : IRequestHandler<CreateMedicationCommand, MedicationDto>
 {
     public async Task<MedicationDto> Handle(CreateMedicationCommand request, CancellationToken ct)
@@ -50,6 +51,16 @@ public sealed class CreateMedicationCommandHandler(IAppDbContext ctx, IPharmacyA
             0,
             medication.StockQuantity,
             MedicationStockChangeReasons.InitialStock);
+
+        PharmacyActivityWriter.Record(
+            ctx,
+            PharmacyActivityEventTypes.MedicationCreated,
+            PharmacyActivityCategories.Medication,
+            PharmacyActivitySeverities.Success,
+            $"Dodan lijek {medication.Name}",
+            currentUser.UserId,
+            medicationId: medication.Id);
+
         await ctx.SaveChangesAsync(ct);
 
         analytics.InvalidateAnalyticsCache();

@@ -1,11 +1,11 @@
 using eBolnica.Application.Common;
+using eBolnica.Application.Modules.Pharmacy.Activities;
 using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.UpdateMedication;
 using eBolnica.Domain.Entities.Pharmacy;
-using eBolnica.Domain.Entities.Pharmacy;
 using Microsoft.EntityFrameworkCore;
 
-public sealed class UpdateMedicationCommandHandler(IAppDbContext ctx, IPharmacyAnalyticsService analytics)
+public sealed class UpdateMedicationCommandHandler(IAppDbContext ctx, IAppCurrentUser currentUser, IPharmacyAnalyticsService analytics)
     : IRequestHandler<UpdateMedicationCommand, MedicationDto>
 {
     public async Task<MedicationDto> Handle(UpdateMedicationCommand request, CancellationToken ct)
@@ -70,8 +70,19 @@ public sealed class UpdateMedicationCommandHandler(IAppDbContext ctx, IPharmacyA
             previousStock,
             medication.StockQuantity,
             MedicationStockChangeReasons.ManualAdjustment);
+
         if (previousStock != medication.StockQuantity)
+        {
+            PharmacyActivityWriter.Record(
+                ctx,
+                PharmacyActivityEventTypes.StockAdjusted,
+                PharmacyActivityCategories.Inventory,
+                PharmacyActivitySeverities.Info,
+                $"Ažurirane zalihe za {medication.Name}: {previousStock} → {medication.StockQuantity}",
+                currentUser.UserId,
+                medicationId: medication.Id);
             await ctx.SaveChangesAsync(ct);
+        }
 
         analytics.InvalidateAnalyticsCache();
         return new MedicationDto

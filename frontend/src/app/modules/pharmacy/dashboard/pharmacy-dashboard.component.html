@@ -87,16 +87,24 @@
             <h2>Najnovije aktivnosti</h2>
           </div>
           <ul class="activity-list">
-            @for (activity of recentActivities(); track activity.text) {
+            @if (recentActivities().length === 0) {
               <li class="activity-item">
-                <span class="activity-icon">
-                  <app-pharmacy-icon [name]="activity.icon" [size]="20"></app-pharmacy-icon>
-                </span>
                 <div class="activity-copy">
-                  <span class="activity-text">{{ activity.text }}</span>
-                  <span class="activity-time">{{ activity.time }}</span>
+                  <span class="activity-text">Nema zabilježenih aktivnosti.</span>
                 </div>
               </li>
+            } @else {
+              @for (activity of recentActivities(); track activity.id) {
+                <li class="activity-item">
+                  <span class="activity-icon">
+                    <app-pharmacy-icon [name]="activity.icon" [size]="20"></app-pharmacy-icon>
+                  </span>
+                  <div class="activity-copy">
+                    <span class="activity-text">{{ activity.text }}</span>
+                    <span class="activity-time">{{ activity.time }}</span>
+                  </div>
+                </li>
+              }
             }
           </ul>
         </article>

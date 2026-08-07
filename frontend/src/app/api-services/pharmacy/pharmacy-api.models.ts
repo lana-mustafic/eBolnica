@@ -308,3 +308,17 @@ export interface DashboardStatsResponseDto {
   stockTrends: StockTrendsDataDto;
   metadata: { generatedAt: string; summary: StatisticsSummaryDto };
 }
+
+export interface PharmacyActivityDto {
+  id: number;
+  eventType: string;
+  category: string;
+  severity: 'info' | 'success' | 'warning';
+  message: string;
+  occurredAt: string;
+}
+
+export interface ListRecentActivitiesRequest {
+  limit?: number;
+  category?: 'prescription' | 'medication' | 'inventory';
+}

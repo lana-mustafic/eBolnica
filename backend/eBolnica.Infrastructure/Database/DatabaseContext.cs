@@ -21,6 +21,7 @@ public partial class DatabaseContext : DbContext, IAppDbContext
     public DbSet<PrescriptionItemEntity> PrescriptionItems => Set<PrescriptionItemEntity>();
     public DbSet<PrescriptionNumberSequenceEntity> PrescriptionNumberSequences =>
         Set<PrescriptionNumberSequenceEntity>();
+    public DbSet<PharmacyActivityEntity> PharmacyActivities => Set<PharmacyActivityEntity>();
 
     DatabaseFacade IAppDbContext.Database => Database;
 

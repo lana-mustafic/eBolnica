@@ -1,3 +1,5 @@
+using eBolnica.Application.Modules.Pharmacy.Activities;
+using eBolnica.Application.Modules.Pharmacy.Activities.Queries.ListRecentActivities;
 using eBolnica.Application.Modules.Pharmacy.Analytics;
 using eBolnica.Application.Modules.Pharmacy.Analytics.Queries.ExportInventoryPdf;
 using eBolnica.Application.Modules.Pharmacy.Analytics.Queries.ExportPrescriptionsPdf;
@@ -290,6 +292,13 @@ public sealed class PharmacyController(IMediator mediator) : ControllerBase
     [Authorize(Policy = "PharmacistOnly")]
     public async Task<ActionResult<DashboardStatsResponseDto>> GetDashboardStats(
         [FromQuery] GetDashboardStatsQuery query,
+        CancellationToken ct)
+        => Ok(await mediator.Send(query, ct));
+
+    [HttpGet("activities")]
+    [Authorize(Policy = "PharmacistOnly")]
+    public async Task<ActionResult<IReadOnlyList<PharmacyActivityDto>>> ListRecentActivities(
+        [FromQuery] ListRecentActivitiesQuery query,
         CancellationToken ct)
         => Ok(await mediator.Send(query, ct));
 

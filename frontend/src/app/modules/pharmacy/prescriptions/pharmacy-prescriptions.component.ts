@@ -11,9 +11,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { Subject, catchError, debounceTime, of, switchMap } from 'rxjs';
 import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.service';
-import { PrescriptionDto } from '../../../api-services/pharmacy/pharmacy-api.models';
+import { PharmacyActivityDto, PrescriptionDto } from '../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../core/services/toaster.service';
 import { getApiErrorMessage } from '../../../core/utils/api-error.util';
+import { formatRelativeTime } from '../../../core/utils/relative-time.util';
 import {
   getPrescriptionStatusClass,
   getPrescriptionStatusLabel,
@@ -21,8 +22,10 @@ import {
 import { DialogButton, DialogType } from '../../shared/models/dialog-config.model';
 import { DialogHelperService } from '../../shared/services/dialog-helper.service';
 import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
+import { mapPrescriptionActivityType } from '../shared/pharmacy-activity.util';
 
 interface PrescriptionActivityItem {
+  id: number;
   type: 'new' | 'success' | 'warning';
   message: string;
   timeLabel: string;
@@ -88,56 +91,31 @@ export class PharmacyPrescriptionsComponent implements OnInit {
 
   private filterChanged$ = new Subject<void>();
   private loadTrigger$ = new Subject<void>();
+  private activitiesLoadTrigger$ = new Subject<void>();
 
-  recentActivities = computed((): PrescriptionActivityItem[] => {
-    const activities: PrescriptionActivityItem[] = [];
-    const now = Date.now();
-    const dayMs = 24 * 60 * 60 * 1000;
+  activities = signal<PharmacyActivityDto[]>([]);
 
-    for (const prescription of [...this.prescriptions()].slice(0, 8)) {
-      const createdAt = new Date(prescription.createdAt).getTime();
-      const isRecent = now - createdAt < 2 * dayMs;
-
-      if (prescription.status === 'Pending' && isRecent) {
-        activities.push({
-          type: 'new',
-          message: `Novi recept ${prescription.prescriptionNumber} — ${prescription.patient.firstName} ${prescription.patient.lastName}`,
-          timeLabel: this.formatRelativeTime(prescription.createdAt),
-        });
-      }
-
-      if (prescription.status === 'Dispensed' && prescription.dispensedDate) {
-        activities.push({
-          type: 'success',
-          message: `Izdan recept ${prescription.prescriptionNumber}`,
-          timeLabel: this.formatRelativeTime(prescription.dispensedDate),
-        });
-      }
-
-      if (prescription.status === 'Pending') {
-        const age = now - new Date(prescription.prescribedDate).getTime();
-        if (age > dayMs) {
-          activities.push({
-            type: 'warning',
-            message: `Recept ${prescription.prescriptionNumber} na čekanju > 24h`,
-            timeLabel: this.formatRelativeTime(prescription.prescribedDate),
-          });
-        }
-      }
-    }
-
-    if (activities.length === 0) {
-      activities.push({
-        type: 'success',
-        message: 'Nema novih aktivnosti na trenutnoj stranici.',
-        timeLabel: 'sada',
-      });
-    }
-
-    return activities.slice(0, 6);
-  });
+  recentActivities = computed((): PrescriptionActivityItem[] =>
+    this.activities().map((activity) => ({
+      id: activity.id,
+      type: mapPrescriptionActivityType(activity),
+      message: activity.message,
+      timeLabel: formatRelativeTime(activity.occurredAt),
+    }))
+  );
 
   ngOnInit(): void {
+    this.activitiesLoadTrigger$
+      .pipe(
+        switchMap(() =>
+          this.pharmacyApi.listRecentActivities({ limit: 6, category: 'prescription' }).pipe(
+            catchError(() => of([] as PharmacyActivityDto[]))
+          )
+        ),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((activities) => this.activities.set(activities));
+
     this.loadTrigger$
       .pipe(
         switchMap(() => {
@@ -176,6 +154,11 @@ export class PharmacyPrescriptionsComponent implements OnInit {
       });
 
     this.loadTrigger$.next();
+    this.activitiesLoadTrigger$.next();
+  }
+
+  private reloadActivities(): void {
+    this.activitiesLoadTrigger$.next();
   }
 
   hasActiveFilters(): boolean {
@@ -336,6 +319,7 @@ export class PharmacyPrescriptionsComponent implements OnInit {
               this.dispensingId.set(null);
               this.toaster.success('Recept uspješno izdan.');
               this.loadTrigger$.next();
+              this.reloadActivities();
             },
             error: (err) => {
               this.dispensingId.set(null);
@@ -378,6 +362,7 @@ export class PharmacyPrescriptionsComponent implements OnInit {
             next: () => {
               this.toaster.success('Recept je otkazan.');
               this.loadTrigger$.next();
+              this.reloadActivities();
             },
             error: (err) => {
               this.toaster.error(getApiErrorMessage(err, 'Greška pri otkazivanju recepta.'));
@@ -401,19 +386,5 @@ export class PharmacyPrescriptionsComponent implements OnInit {
 
   printPrescription(prescription: PrescriptionDto): void {
     this.router.navigate(['/pharmacy/prescriptions', prescription.id]);
-  }
-
-  private formatRelativeTime(value: string): string {
-    const diffMs = Date.now() - new Date(value).getTime();
-    const minutes = Math.floor(diffMs / 60000);
-
-    if (minutes < 1) return 'upravo sada';
-    if (minutes < 60) return `prije ${minutes}min`;
-
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `prije ${hours}h`;
-
-    const days = Math.floor(hours / 24);
-    return `prije ${days}d`;
   }
 }

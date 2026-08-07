@@ -1,3 +1,4 @@
+using eBolnica.Application.Modules.Pharmacy.Activities;
 using eBolnica.Application.Modules.Pharmacy.Prescriptions;
 using eBolnica.Domain.Entities.Pharmacy;
 
@@ -31,6 +32,15 @@ public sealed class CancelPrescriptionCommandHandler(IAppDbContext ctx, IAppCurr
         var now = DateTime.UtcNow;
         prescription.Status = PrescriptionStatuses.Cancelled;
         prescription.ModifiedAtUtc = now;
+
+        PharmacyActivityWriter.Record(
+            ctx,
+            PharmacyActivityEventTypes.PrescriptionCancelled,
+            PharmacyActivityCategories.Prescription,
+            PharmacyActivitySeverities.Warning,
+            $"Otkazan recept {prescription.PrescriptionNumber}",
+            currentUser.UserId,
+            prescription.Id);
 
         await ctx.SaveChangesAsync(ct);
 

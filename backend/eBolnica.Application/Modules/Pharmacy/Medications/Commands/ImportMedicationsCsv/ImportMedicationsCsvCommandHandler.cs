@@ -1,4 +1,5 @@
 using eBolnica.Application.Common;
+using eBolnica.Application.Modules.Pharmacy.Activities;
 using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.CreateMedication;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.ImportMedicationsCsv;
@@ -6,7 +7,7 @@ using eBolnica.Application.Modules.Pharmacy.Medications.Csv;
 using eBolnica.Domain.Entities.Pharmacy;
 using Microsoft.EntityFrameworkCore;
 
-public sealed class ImportMedicationsCsvCommandHandler(IAppDbContext ctx, IPharmacyAnalyticsService analytics)
+public sealed class ImportMedicationsCsvCommandHandler(IAppDbContext ctx, IAppCurrentUser currentUser, IPharmacyAnalyticsService analytics)
     : IRequestHandler<ImportMedicationsCsvCommand, MedicationImportResultDto>
 {
     public async Task<MedicationImportResultDto> Handle(ImportMedicationsCsvCommand request, CancellationToken ct)
@@ -101,6 +102,14 @@ public sealed class ImportMedicationsCsvCommandHandler(IAppDbContext ctx, IPharm
                 medication.StockQuantity,
                 MedicationStockChangeReasons.Import);
         }
+
+        PharmacyActivityWriter.Record(
+            ctx,
+            PharmacyActivityEventTypes.MedicationsImported,
+            PharmacyActivityCategories.Medication,
+            PharmacyActivitySeverities.Success,
+            $"Uvezeno {toInsert.Count} lijek(ova) iz CSV-a",
+            currentUser.UserId);
 
         await ctx.SaveChangesAsync(ct);
 

@@ -21,6 +21,8 @@ import {
   PrescriptionFormPatientDto,
   PrescriptionDto,
   DashboardStatsResponseDto,
+  PharmacyActivityDto,
+  ListRecentActivitiesRequest,
 } from './pharmacy-api.models';
 
 @Injectable({
@@ -215,6 +217,13 @@ export class PharmacyApiService {
 
   getDashboardStats(): Observable<DashboardStatsResponseDto> {
     return this.http.get<DashboardStatsResponseDto>(`${this.baseUrl}/analytics/dashboard-stats`);
+  }
+
+  listRecentActivities(request: ListRecentActivitiesRequest = {}): Observable<PharmacyActivityDto[]> {
+    let params = new HttpParams();
+    if (request.limit) params = params.set('limit', String(request.limit));
+    if (request.category) params = params.set('category', request.category);
+    return this.http.get<PharmacyActivityDto[]>(`${this.baseUrl}/activities`, { params });
   }
 
   exportInventoryPdf(request: ListMedicationsRequest = {}): Observable<HttpResponse<Blob>> {

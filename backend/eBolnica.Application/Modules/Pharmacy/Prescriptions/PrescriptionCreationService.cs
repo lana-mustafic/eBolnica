@@ -1,5 +1,6 @@
 using eBolnica.Application.Abstractions;
 using eBolnica.Application.Common;
+using eBolnica.Application.Modules.Pharmacy.Activities;
 using eBolnica.Domain.Entities.Pharmacy;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
@@ -8,6 +9,7 @@ namespace eBolnica.Application.Modules.Pharmacy.Prescriptions;
 
 public sealed class PrescriptionCreationService(
     IAppDbContext ctx,
+    IAppCurrentUser currentUser,
     IPrescriptionNumberGenerator prescriptionNumberGenerator) : IPrescriptionCreationService
 {
     public async Task<PrescriptionDto> CreateAsync(PrescriptionCreationRequest request, CancellationToken ct = default)
@@ -91,6 +93,16 @@ public sealed class PrescriptionCreationService(
 
                 prescription.TotalAmount = totalAmount;
                 ctx.Prescriptions.Add(prescription);
+                await ctx.SaveChangesAsync(ct);
+
+                PharmacyActivityWriter.Record(
+                    ctx,
+                    PharmacyActivityEventTypes.PrescriptionCreated,
+                    PharmacyActivityCategories.Prescription,
+                    PharmacyActivitySeverities.Info,
+                    $"Novi recept {prescriptionNumber} — {patient.FirstName} {patient.LastName}",
+                    currentUser.UserId,
+                    prescription.Id);
                 await ctx.SaveChangesAsync(ct);
                 await transaction.CommitAsync(ct);
 

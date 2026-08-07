@@ -313,26 +313,35 @@
       <section class="card activity-card">
         <h2 class="section-title">Najnovije aktivnosti</h2>
         <ul class="activity-list">
-          @for (activity of recentActivities(); track activity.message) {
-            <li class="activity-item" [class]="activity.type">
-              <span class="activity-icon">
-                @switch (activity.type) {
-                  @case ('new') {
-                    <app-pharmacy-icon name="file-text" [size]="20"></app-pharmacy-icon>
-                  }
-                  @case ('success') {
-                    <app-pharmacy-icon name="check-circle" [size]="20"></app-pharmacy-icon>
-                  }
-                  @case ('warning') {
-                    <app-pharmacy-icon name="triangle-alert" [size]="20"></app-pharmacy-icon>
-                  }
-                }
-              </span>
+          @if (recentActivities().length === 0) {
+            <li class="activity-item success">
               <div class="activity-copy">
-                <span class="activity-text">{{ activity.message }}</span>
-                <span class="activity-time">{{ activity.timeLabel }}</span>
+                <span class="activity-text">Nema zabilježenih aktivnosti.</span>
+                <span class="activity-time">—</span>
               </div>
             </li>
+          } @else {
+            @for (activity of recentActivities(); track activity.id) {
+              <li class="activity-item" [class]="activity.type">
+                <span class="activity-icon">
+                  @switch (activity.type) {
+                    @case ('new') {
+                      <app-pharmacy-icon name="file-text" [size]="20"></app-pharmacy-icon>
+                    }
+                    @case ('success') {
+                      <app-pharmacy-icon name="check-circle" [size]="20"></app-pharmacy-icon>
+                    }
+                    @case ('warning') {
+                      <app-pharmacy-icon name="triangle-alert" [size]="20"></app-pharmacy-icon>
+                    }
+                  }
+                </span>
+                <div class="activity-copy">
+                  <span class="activity-text">{{ activity.message }}</span>
+                  <span class="activity-time">{{ activity.timeLabel }}</span>
+                </div>
+              </li>
+            }
           }
         </ul>
       </section>
