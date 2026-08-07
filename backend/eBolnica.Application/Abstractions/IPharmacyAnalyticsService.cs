@@ -12,17 +12,5 @@ public interface IPharmacyAnalyticsService
         int[]? medicationIds = null,
         CancellationToken ct = default);
 
-    Task<RevenueDataDto> GetMonthlyRevenueAsync(
-        DateTime? startDate,
-        DateTime? endDate,
-        int months = 12,
-        CancellationToken ct = default);
-
-    Task<CategoriesDataDto> GetTopCategoriesAsync(int topCount = 8, CancellationToken ct = default);
-
-    Task<StockTrendsDataDto> GetStockTrendsAsync(
-        int[]? medicationIds = null,
-        CancellationToken ct = default);
-
     void InvalidateAnalyticsCache();
 }

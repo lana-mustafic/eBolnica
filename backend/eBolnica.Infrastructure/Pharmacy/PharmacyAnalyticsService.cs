@@ -85,7 +85,7 @@ public sealed class PharmacyAnalyticsService(
         return response;
     }
 
-    public async Task<RevenueDataDto> GetMonthlyRevenueAsync(
+    private async Task<RevenueDataDto> GetMonthlyRevenueAsync(
         DateTime? startDate,
         DateTime? endDate,
         int months = 12,
@@ -171,7 +171,7 @@ public sealed class PharmacyAnalyticsService(
         return result;
     }
 
-    public async Task<CategoriesDataDto> GetTopCategoriesAsync(int topCount = 8, CancellationToken ct = default)
+    private async Task<CategoriesDataDto> GetTopCategoriesAsync(int topCount = 8, CancellationToken ct = default)
     {
         if (topCount is < 1 or > 50)
             throw new eBolnicaBusinessRuleException("validation.failed", "TopCount must be between 1 and 50.");
@@ -230,7 +230,7 @@ public sealed class PharmacyAnalyticsService(
         return result;
     }
 
-    public async Task<StockTrendsDataDto> GetStockTrendsAsync(
+    private async Task<StockTrendsDataDto> GetStockTrendsAsync(
         int[]? medicationIds = null,
         CancellationToken ct = default)
     {

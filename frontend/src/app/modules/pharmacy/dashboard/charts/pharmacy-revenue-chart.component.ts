@@ -24,14 +24,15 @@ export class PharmacyRevenueChartComponent implements AfterViewInit, OnChanges, 
   @Input() items: MonthlyRevenueItemDto[] = [];
 
   private chart?: Chart;
+  private renderQueued = false;
 
   ngAfterViewInit(): void {
-    this.renderChart();
+    this.queueRender();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['items'] && !changes['items'].firstChange) {
-      this.renderChart();
+    if (changes['items']) {
+      this.queueRender();
     }
   }
 
@@ -39,15 +40,27 @@ export class PharmacyRevenueChartComponent implements AfterViewInit, OnChanges, 
     this.chart?.destroy();
   }
 
+  private queueRender(): void {
+    if (this.renderQueued) {
+      return;
+    }
+
+    this.renderQueued = true;
+    queueMicrotask(() => {
+      this.renderQueued = false;
+      this.renderChart();
+    });
+  }
+
   private renderChart(): void {
-    if (!this.canvas) {
+    if (!this.canvas?.nativeElement) {
       return;
     }
 
     this.chart?.destroy();
+    this.chart = undefined;
 
-    const context = this.canvas.nativeElement.getContext('2d');
-    if (!context) {
+    if (this.items.length === 0) {
       return;
     }
 

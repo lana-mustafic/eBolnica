@@ -35,18 +35,15 @@ export class PharmacyStockChartComponent implements AfterViewInit, OnChanges, On
   @Input() metricType = 'current-stock-snapshot';
 
   private chart?: Chart;
+  private renderQueued = false;
 
   ngAfterViewInit(): void {
-    this.renderChart();
+    this.queueRender();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (!this.canvas) {
-      return;
-    }
-
     if (changes['items'] || changes['timeline'] || changes['medications'] || changes['metricType']) {
-      this.renderChart();
+      this.queueRender();
     }
   }
 
@@ -54,12 +51,29 @@ export class PharmacyStockChartComponent implements AfterViewInit, OnChanges, On
     this.chart?.destroy();
   }
 
+  private queueRender(): void {
+    if (this.renderQueued) {
+      return;
+    }
+
+    this.renderQueued = true;
+    queueMicrotask(() => {
+      this.renderQueued = false;
+      this.renderChart();
+    });
+  }
+
   private renderChart(): void {
-    if (!this.canvas) {
+    if (!this.canvas?.nativeElement) {
       return;
     }
 
     this.chart?.destroy();
+    this.chart = undefined;
+
+    if (this.items.length === 0) {
+      return;
+    }
 
     if (this.metricType === 'stock-history-trend' && this.timeline.length > 0) {
       this.renderTrendChart();
@@ -80,9 +94,7 @@ export class PharmacyStockChartComponent implements AfterViewInit, OnChanges, On
         label: medication.name,
         data: this.timeline.map((day) => {
           const point = this.items.find(
-            (item) =>
-              item.medicationId === medication.id &&
-              item.date.startsWith(day)
+            (item) => item.medicationId === medication.id && item.date.startsWith(day)
           );
           return point?.quantity ?? null;
         }),
