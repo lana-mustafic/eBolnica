@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, forkJoin, of, Subject, switchMap } from 'rxjs';
+import { resolvePharmacyApiErrorMessage } from '../shared/utils/pharmacy-api-error.util';
 import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.service';
 import { PharmacyDashboardCacheService } from '../services/pharmacy-dashboard-cache.service';
 import {
@@ -19,6 +20,7 @@ import {
   StockTrendItemDto,
 } from '../../../api-services/pharmacy/pharmacy-api.models';
 import { PharmacyIconName } from '../shared/pharmacy-icon/pharmacy-icon.component';
+import { ToasterService } from '../../../core/services/toaster.service';
 import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
 import { formatRelativeTime } from '../../../core/utils/relative-time.util';
 import {
@@ -45,6 +47,7 @@ interface DashboardActivityItem {
 export class PharmacyDashboardComponent implements OnInit {
   private pharmacyApi = inject(PharmacyApiService);
   private dashboardCache = inject(PharmacyDashboardCacheService);
+  private toaster = inject(ToasterService);
   private destroyRef = inject(DestroyRef);
   private loadTrigger$ = new Subject<boolean>();
 
@@ -134,7 +137,10 @@ export class PharmacyDashboardComponent implements OnInit {
           this.loadError.set(false);
           return forkJoin({
             stats: this.dashboardCache.getStats(forceRefresh).pipe(
-              catchError(() => of(null))
+              catchError((err) => {
+                this.toaster.error(resolvePharmacyApiErrorMessage(err, 'Greška pri učitavanju dashboard podataka.'));
+                return of(null);
+              })
             ),
             activities: this.pharmacyApi.listRecentActivities({ limit: 10 }).pipe(
               catchError(() => of([] as PharmacyActivityDto[]))

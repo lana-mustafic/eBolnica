@@ -19,7 +19,6 @@ import {
   Observable,
   of,
   shareReplay,
-  startWith,
   Subject,
   switchMap,
   tap,
@@ -31,12 +30,27 @@ import {
   MedicationImportResult,
 } from '../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../core/services/toaster.service';
-import { getApiErrorMessage } from '../../../core/utils/api-error.util';
 import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
 import { DialogButton, DialogType } from '../../shared/models/dialog-config.model';
 import { DialogHelperService } from '../../shared/services/dialog-helper.service';
 import { MedicationImageUrlService } from '../services/medication-image-url.service';
 import { getMedicationCategoryLabel, MEDICATION_CATEGORIES } from '../constants/medication-categories.constant';
+import {
+  buildMedicationListQuery,
+  clearMedicationListFilters,
+  hasMedicationListFilters,
+  MedicationListFilters,
+  MedicationListSort,
+} from '../shared/utils/medication-list-query.util';
+import { pipeListLoad } from '../shared/utils/pharmacy-list-load.util';
+import { resolvePharmacyApiErrorMessage } from '../shared/utils/pharmacy-api-error.util';
+import {
+  canGoToPage,
+  onTableSortKeydown,
+  sortAriaSort,
+  sortIndicator,
+  toggleSortColumn,
+} from '../shared/utils/pharmacy-table.util';
 
 interface MedicationsListViewModel {
   loading: boolean;
@@ -70,19 +84,22 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   readonly categoryLabel = getMedicationCategoryLabel;
   readonly categories = MEDICATION_CATEGORIES;
 
+  isLoading = signal(false);
+  loadError = signal(false);
   currentPage = signal(1);
   totalPages = signal(0);
-  pageSize = 10;
+  readonly pageSize = 10;
   medicationsOnPageCount = signal(0);
 
-  search = '';
-  selectedCategory = '';
-  selectedStockStatus = '';
-  selectedRequiresPrescription = '';
-  showInactive = false;
+  filters: MedicationListFilters = {
+    search: '',
+    selectedCategory: '',
+    selectedStockStatus: '',
+    selectedRequiresPrescription: '',
+    showInactive: false,
+  };
 
-  sortBy = 'createdAt';
-  sortOrder: 'asc' | 'desc' = 'desc';
+  sort: MedicationListSort = { sortBy: 'createdAt', sortOrder: 'desc' };
 
   autocompleteSuggestions = signal<MedicationAutocompleteSuggestion[]>([]);
   showAutocomplete = signal(false);
@@ -107,7 +124,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
       this.currentPage.set(vm.currentPage);
       this.totalPages.set(vm.totalPages);
       this.medicationsOnPageCount.set(vm.medications.length);
-      if (!vm.loading && !vm.error) {
+      if (!this.isLoading() && !this.loadError()) {
         this.loadThumbnailUrls(vm.medications);
       }
     }),
@@ -157,14 +174,15 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   }
 
   private loadMedicationsViewModel(): Observable<MedicationsListViewModel> {
-    return this.pharmacyApi.listMedications(this.buildRequest()).pipe(
-      map((res) => this.toViewModel(res)),
-      catchError((err) => {
+    return pipeListLoad(
+      this.pharmacyApi.listMedications(this.buildRequest()).pipe(map((res) => this.toViewModel(res))),
+      { isLoading: this.isLoading, loadError: this.loadError },
+      (opts) => this.emptyViewModel(opts),
+      'Greška pri učitavanju lijekova.',
+      (message) => {
         this.thumbnailUrls.set(new Map());
-        this.toaster.error(getApiErrorMessage(err, 'Greška pri učitavanju lijekova.'));
-        return of(this.emptyViewModel({ error: true }));
-      }),
-      startWith(this.emptyViewModel({ loading: true }))
+        this.toaster.error(message);
+      }
     );
   }
 
@@ -222,73 +240,41 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   }
 
   onSortKeydown(event: KeyboardEvent, column: string): void {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      this.onSort(column);
-    }
+    onTableSortKeydown(event, column, (col) => this.onSort(col));
   }
 
   private buildRequest() {
-    const requiresPrescription =
-      this.selectedRequiresPrescription === 'true'
-        ? true
-        : this.selectedRequiresPrescription === 'false'
-          ? false
-          : undefined;
-
-    return {
-      search: this.search || undefined,
-      category: this.selectedCategory || undefined,
-      stockStatus: this.selectedStockStatus || undefined,
-      requiresPrescription,
-      isActive: this.showInactive ? undefined : true,
-      includeInactive: this.showInactive,
-      pageNumber: this.currentPage(),
-      pageSize: this.pageSize,
-      sortBy: this.sortBy,
-      sortOrder: this.sortOrder,
-    };
+    return buildMedicationListQuery(
+      this.filters,
+      { pageNumber: this.currentPage(), pageSize: this.pageSize },
+      this.sort,
+      { includeActiveFlags: true }
+    );
   }
 
   clearFilters(): void {
-    this.search = '';
-    this.selectedCategory = '';
-    this.selectedStockStatus = '';
-    this.selectedRequiresPrescription = '';
-    this.showInactive = false;
+    clearMedicationListFilters(this.filters);
     this.currentPage.set(1);
     this.loadTrigger$.next();
   }
 
   hasActiveFilters(): boolean {
-    return !!(
-      this.search ||
-      this.selectedCategory ||
-      this.selectedStockStatus ||
-      this.selectedRequiresPrescription ||
-      this.showInactive
-    );
+    return hasMedicationListFilters(this.filters);
   }
 
   onSort(column: string): void {
-    if (this.sortBy === column) {
-      this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
-    } else {
-      this.sortBy = column;
-      this.sortOrder = 'asc';
-    }
+    this.sort = toggleSortColumn(this.sort, column);
     this.currentPage.set(1);
     this.loadTrigger$.next();
   }
 
   sortIndicator(column: string): string {
-    if (this.sortBy !== column) return '';
-    return this.sortOrder === 'asc' ? ' ▲' : ' ▼';
+    return sortIndicator(this.sort.sortBy, this.sort.sortOrder, column);
   }
 
   onSearchInput(): void {
     this.searchChanged$.next();
-    this.autocompleteQuery$.next(this.search);
+    this.autocompleteQuery$.next(this.filters.search);
   }
 
   onSearchKeydown(event: KeyboardEvent): void {
@@ -335,7 +321,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   }
 
   selectSuggestion(s: MedicationAutocompleteSuggestion): void {
-    this.search = s.name;
+    this.filters.search = s.name;
     this.showAutocomplete.set(false);
     this.selectedSuggestionIndex.set(-1);
     this.activeSuggestionId.set(null);
@@ -347,7 +333,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   }
 
   goToPage(page: number): void {
-    if (page < 1 || page > this.totalPages()) return;
+    if (!canGoToPage(page, this.totalPages())) return;
     this.currentPage.set(page);
     this.loadTrigger$.next();
   }
@@ -369,8 +355,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   }
 
   sortAriaSort(column: string): 'ascending' | 'descending' | 'none' {
-    if (this.sortBy !== column) return 'none';
-    return this.sortOrder === 'asc' ? 'ascending' : 'descending';
+    return sortAriaSort(this.sort.sortBy, this.sort.sortOrder, column);
   }
 
   deleteMedication(medication: MedicationDto): void {
@@ -402,7 +387,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
               this.loadTrigger$.next();
             },
             error: (err) => {
-              this.toaster.error(getApiErrorMessage(err, 'Greška pri deaktivaciji lijeka.'));
+              this.toaster.error(resolvePharmacyApiErrorMessage(err, 'Greška pri deaktivaciji lijeka.'));
             },
           });
       });
@@ -421,7 +406,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
           this.downloadBlob(blob, match?.[1] ?? 'medications-export.csv');
         },
         error: (err) => {
-          this.toaster.error(getApiErrorMessage(err, 'Greška pri exportu CSV.'));
+          this.toaster.error(resolvePharmacyApiErrorMessage(err, 'Greška pri exportu CSV.'));
         },
       });
   }
@@ -435,7 +420,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
           this.pharmacyApi.downloadBlobResponse(res, 'inventory.pdf');
           this.toaster.success('PDF inventar preuzet.');
         },
-        error: (err) => this.toaster.error(getApiErrorMessage(err, 'Greška pri exportu PDF.')),
+        error: (err) => this.toaster.error(resolvePharmacyApiErrorMessage(err, 'Greška pri exportu PDF.')),
       });
   }
 
@@ -449,7 +434,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
           if (!blob) return;
           this.downloadBlob(blob, 'medication-import-template.csv');
         },
-        error: (err) => this.toaster.error(getApiErrorMessage(err, 'Greška pri preuzimanju templatea.')),
+        error: (err) => this.toaster.error(resolvePharmacyApiErrorMessage(err, 'Greška pri preuzimanju templatea.')),
       });
   }
 
@@ -477,7 +462,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           this.isImporting.set(false);
-          this.toaster.error(getApiErrorMessage(err, 'Greška pri importu CSV.'));
+          this.toaster.error(resolvePharmacyApiErrorMessage(err, 'Greška pri importu CSV.'));
         },
       });
   }

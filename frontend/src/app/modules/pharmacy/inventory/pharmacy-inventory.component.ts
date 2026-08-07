@@ -9,13 +9,10 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import {
-  catchError,
   debounceTime,
   map,
   Observable,
-  of,
   shareReplay,
-  startWith,
   Subject,
   switchMap,
   tap,
@@ -24,8 +21,23 @@ import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.
 import { MedicationDto } from '../../../api-services/pharmacy/pharmacy-api.models';
 import { getMedicationCategoryLabel, MEDICATION_CATEGORIES } from '../constants/medication-categories.constant';
 import { ToasterService } from '../../../core/services/toaster.service';
-import { getApiErrorMessage } from '../../../core/utils/api-error.util';
 import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
+import {
+  buildMedicationListQuery,
+  clearMedicationListFilters,
+  hasMedicationListFilters,
+  MedicationListFilters,
+  MedicationListSort,
+} from '../shared/utils/medication-list-query.util';
+import { pipeListLoad } from '../shared/utils/pharmacy-list-load.util';
+import { resolvePharmacyApiErrorMessage } from '../shared/utils/pharmacy-api-error.util';
+import {
+  canGoToPage,
+  onTableSortKeydown,
+  sortAriaSort,
+  sortIndicator,
+  toggleSortColumn,
+} from '../shared/utils/pharmacy-table.util';
 
 interface InventoryListViewModel {
   loading: boolean;
@@ -60,17 +72,21 @@ export class PharmacyInventoryComponent implements OnInit {
 
   readonly categoryLabel = getMedicationCategoryLabel;
   readonly categories = MEDICATION_CATEGORIES;
+  readonly pageSize = 10;
 
+  isLoading = signal(false);
+  loadError = signal(false);
   currentPage = signal(1);
   totalPages = signal(0);
 
-  search = '';
-  selectedCategory = '';
-  selectedStockStatus = '';
-  selectedRequiresPrescription = '';
+  filters: MedicationListFilters = {
+    search: '',
+    selectedCategory: '',
+    selectedStockStatus: '',
+    selectedRequiresPrescription: '',
+  };
 
-  sortBy = 'name';
-  sortOrder: 'asc' | 'desc' = 'asc';
+  sort: MedicationListSort = { sortBy: 'name', sortOrder: 'asc' };
 
   displayedColumns = ['name', 'stock', 'expiry', 'status', 'actions'];
   selectedMedication: MedicationDto | null = null;
@@ -120,12 +136,7 @@ export class PharmacyInventoryComponent implements OnInit {
   }
 
   hasActiveFilters(): boolean {
-    return !!(
-      this.search ||
-      this.selectedCategory ||
-      this.selectedStockStatus ||
-      this.selectedRequiresPrescription
-    );
+    return hasMedicationListFilters(this.filters);
   }
 
   getStockStatus(m: MedicationDto): string {
@@ -170,13 +181,12 @@ export class PharmacyInventoryComponent implements OnInit {
   }
 
   private loadInventoryViewModel(): Observable<InventoryListViewModel> {
-    return this.pharmacyApi.getInventory(this.buildRequest()).pipe(
-      map((res) => this.toViewModel(res)),
-      catchError((err) => {
-        this.toaster.error(getApiErrorMessage(err, 'Greška pri učitavanju inventara.'));
-        return of(this.emptyViewModel({ error: true }));
-      }),
-      startWith(this.emptyViewModel({ loading: true }))
+    return pipeListLoad(
+      this.pharmacyApi.getInventory(this.buildRequest()).pipe(map((res) => this.toViewModel(res))),
+      { isLoading: this.isLoading, loadError: this.loadError },
+      (opts) => this.emptyViewModel(opts),
+      'Greška pri učitavanju inventara.',
+      (message) => this.toaster.error(message)
     );
   }
 
@@ -231,23 +241,11 @@ export class PharmacyInventoryComponent implements OnInit {
   }
 
   private buildRequest() {
-    const requiresPrescription =
-      this.selectedRequiresPrescription === 'true'
-        ? true
-        : this.selectedRequiresPrescription === 'false'
-          ? false
-          : undefined;
-
-    return {
-      search: this.search || undefined,
-      category: this.selectedCategory || undefined,
-      stockStatus: this.selectedStockStatus || undefined,
-      requiresPrescription,
-      pageNumber: this.currentPage(),
-      pageSize: 10,
-      sortBy: this.sortBy,
-      sortOrder: this.sortOrder,
-    };
+    return buildMedicationListQuery(
+      this.filters,
+      { pageNumber: this.currentPage(), pageSize: this.pageSize },
+      this.sort
+    );
   }
 
   onSearchInput(): void {
@@ -272,15 +270,13 @@ export class PharmacyInventoryComponent implements OnInit {
           this.pharmacyApi.downloadBlobResponse(res, 'inventory.pdf');
           this.toaster.success('PDF inventar preuzet.');
         },
-        error: (err) => this.toaster.error(getApiErrorMessage(err, 'Greška pri exportu PDF.')),
+        error: (err) =>
+          this.toaster.error(resolvePharmacyApiErrorMessage(err, 'Greška pri exportu PDF.')),
       });
   }
 
   clearFilters(): void {
-    this.search = '';
-    this.selectedCategory = '';
-    this.selectedStockStatus = '';
-    this.selectedRequiresPrescription = '';
+    clearMedicationListFilters(this.filters);
     this.currentPage.set(1);
     this.loadTrigger$.next();
   }
@@ -290,36 +286,26 @@ export class PharmacyInventoryComponent implements OnInit {
   }
 
   goToPage(page: number): void {
-    if (page < 1 || page > this.totalPages()) return;
+    if (!canGoToPage(page, this.totalPages())) return;
     this.currentPage.set(page);
     this.loadTrigger$.next();
   }
 
   onSort(column: string): void {
-    if (this.sortBy === column) {
-      this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
-    } else {
-      this.sortBy = column;
-      this.sortOrder = 'asc';
-    }
+    this.sort = toggleSortColumn(this.sort, column);
     this.currentPage.set(1);
     this.loadTrigger$.next();
   }
 
   sortIndicator(column: string): string {
-    if (this.sortBy !== column) return '';
-    return this.sortOrder === 'asc' ? ' ▲' : ' ▼';
+    return sortIndicator(this.sort.sortBy, this.sort.sortOrder, column);
   }
 
   sortAriaSort(column: string): 'ascending' | 'descending' | 'none' {
-    if (this.sortBy !== column) return 'none';
-    return this.sortOrder === 'asc' ? 'ascending' : 'descending';
+    return sortAriaSort(this.sort.sortBy, this.sort.sortOrder, column);
   }
 
   onSortKeydown(event: KeyboardEvent, column: string): void {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      this.onSort(column);
-    }
+    onTableSortKeydown(event, column, (col) => this.onSort(col));
   }
 }

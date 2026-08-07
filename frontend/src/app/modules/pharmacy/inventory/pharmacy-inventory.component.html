@@ -58,7 +58,7 @@
           <input
             id="inventory-search"
             type="text"
-            [(ngModel)]="search"
+            [(ngModel)]="filters.search"
             placeholder="Pretraži lijekove..."
             (input)="onSearchInput()"
           />
@@ -69,7 +69,7 @@
         <div class="filter-field">
           <label class="field-label" for="inventory-category">Kategorija</label>
           <mat-form-field appearance="outline" class="compact-field">
-            <mat-select id="inventory-category" [(ngModel)]="selectedCategory">
+            <mat-select id="inventory-category" [(ngModel)]="filters.selectedCategory">
               <mat-option value="">Sve kategorije</mat-option>
               @for (cat of categories; track cat) {
                 <mat-option [value]="cat">{{ cat }}</mat-option>
@@ -81,7 +81,7 @@
         <div class="filter-field">
           <label class="field-label">Status</label>
           <mat-form-field appearance="outline" class="compact-field">
-            <mat-select [(ngModel)]="selectedStockStatus">
+            <mat-select [(ngModel)]="filters.selectedStockStatus">
               <mat-option value="">Sve</mat-option>
               <mat-option value="low stock">Niska zaliha</mat-option>
               <mat-option value="out of stock">Kritično</mat-option>
@@ -93,7 +93,7 @@
         <div class="filter-field">
           <label class="field-label">Recept</label>
           <mat-form-field appearance="outline" class="compact-field">
-            <mat-select [(ngModel)]="selectedRequiresPrescription">
+            <mat-select [(ngModel)]="filters.selectedRequiresPrescription">
               <mat-option value="">Sve</mat-option>
               <mat-option value="true">Na recept</mat-option>
               <mat-option value="false">Bez recepta (OTC)</mat-option>
@@ -146,12 +146,12 @@
       </article>
     </section>
 
-    @if (vm.error) {
+    @if (loadError()) {
       <section class="card error-card">
         <p>Greška pri učitavanju inventara.</p>
         <button type="button" class="btn btn-outline" (click)="retryLoad()">Pokušaj ponovo</button>
       </section>
-    } @else if (vm.loading) {
+    } @else if (isLoading()) {
       <app-fit-table-skeleton [rows]="5" [columns]="5"></app-fit-table-skeleton>
     } @else {
       <section class="card table-card">

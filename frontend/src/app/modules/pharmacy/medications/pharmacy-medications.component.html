@@ -21,7 +21,7 @@
         <app-pharmacy-icon name="download" [size]="16"></app-pharmacy-icon>
         Eksport
       </button>
-      <button type="button" class="btn btn-secondary" (click)="reload()" [disabled]="(listState$ | async)?.loading">
+      <button type="button" class="btn btn-secondary" (click)="reload()" [disabled]="isLoading()">
         <app-pharmacy-icon name="activity" [size]="16"></app-pharmacy-icon>
         Osvježi
       </button>
@@ -128,7 +128,7 @@
             aria-controls="medication-autocomplete-list"
             [attr.aria-expanded]="showAutocomplete()"
             [attr.aria-activedescendant]="activeSuggestionId()"
-            [(ngModel)]="search"
+            [(ngModel)]="filters.search"
             placeholder="Pretraži lijekove..."
             (input)="onSearchInput()"
             (focus)="onSearchInput()"
@@ -158,7 +158,7 @@
         <div class="filter-field">
           <label class="field-label" for="medication-category">Kategorija</label>
           <mat-form-field appearance="outline" class="compact-field">
-            <mat-select id="medication-category" [(ngModel)]="selectedCategory">
+            <mat-select id="medication-category" [(ngModel)]="filters.selectedCategory">
               <mat-option value="">Sve kategorije</mat-option>
               @for (cat of categories; track cat) {
                 <mat-option [value]="cat">{{ cat }}</mat-option>
@@ -170,7 +170,7 @@
         <div class="filter-field">
           <label class="field-label">Recept</label>
           <mat-form-field appearance="outline" class="compact-field">
-            <mat-select [(ngModel)]="selectedRequiresPrescription">
+            <mat-select [(ngModel)]="filters.selectedRequiresPrescription">
               <mat-option value="">Sve</mat-option>
               <mat-option value="true">Na recept</mat-option>
               <mat-option value="false">Bez recepta (OTC)</mat-option>
@@ -179,7 +179,7 @@
         </div>
 
         <div class="filter-field filter-checkbox">
-          <mat-checkbox [(ngModel)]="showInactive">Prikaži neaktivne</mat-checkbox>
+          <mat-checkbox [(ngModel)]="filters.showInactive">Prikaži neaktivne</mat-checkbox>
         </div>
       </div>
 
@@ -189,12 +189,12 @@
       </div>
     </section>
 
-    @if (vm.error) {
+    @if (loadError()) {
       <section class="card error-card">
         <p>Greška pri učitavanju lijekova.</p>
         <button type="button" class="btn btn-outline" (click)="retryLoad()">Pokušaj ponovo</button>
       </section>
-    } @else if (vm.loading) {
+    } @else if (isLoading()) {
       <app-fit-table-skeleton [rows]="5" [columns]="6"></app-fit-table-skeleton>
     } @else if (vm.medications.length === 0) {
       <section class="card empty-card">
