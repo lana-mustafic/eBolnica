@@ -59,7 +59,9 @@ internal static class PrescriptionMapping
             MedicationName = i.Medication?.Name ?? "Obrisan lijek",
             Quantity = i.Quantity,
             Instructions = i.Instructions,
-            UnitPrice = i.UnitPrice
+            UnitPrice = i.UnitPrice,
+            StockQuantity = i.Medication?.StockQuantity,
+            MinimumStockLevel = i.Medication?.MinimumStockLevel
         }).ToList()
     };
 

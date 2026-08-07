@@ -150,6 +150,8 @@ export interface PrescriptionItemDto {
   instructions?: string | null;
   unitPrice: number;
   totalPrice: number;
+  stockQuantity?: number | null;
+  minimumStockLevel?: number | null;
 }
 
 export interface PrescriptionDto {

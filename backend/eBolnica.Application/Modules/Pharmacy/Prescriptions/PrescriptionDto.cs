@@ -42,6 +42,8 @@ public sealed class PrescriptionItemDto
     public string? Instructions { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal TotalPrice => UnitPrice * Quantity;
+    public int? StockQuantity { get; set; }
+    public int? MinimumStockLevel { get; set; }
 }
 
 public sealed class PrescriptionDto

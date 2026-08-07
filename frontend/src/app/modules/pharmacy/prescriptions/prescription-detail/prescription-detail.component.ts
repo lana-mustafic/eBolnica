@@ -1,11 +1,11 @@
 import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
+import { catchError, of, switchMap } from 'rxjs';
 import { PharmacyApiService } from '../../../../api-services/pharmacy/pharmacy-api.service';
 import {
-  MedicationDto,
   PrescriptionDto,
+  PrescriptionItemDto,
 } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../../core/services/toaster.service';
 import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
@@ -28,7 +28,6 @@ export class PrescriptionDetailComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
 
   prescription: PrescriptionDto | null = null;
-  medications: MedicationDto[] = [];
   isLoading = false;
   loadError = false;
   isDispensing = false;
@@ -44,7 +43,6 @@ export class PrescriptionDetailComponent implements OnInit {
             this.loadError = true;
             this.isLoading = false;
             this.prescription = null;
-            this.medications = [];
             return of(null);
           }
 
@@ -52,26 +50,8 @@ export class PrescriptionDetailComponent implements OnInit {
           this.isLoading = true;
           this.loadError = false;
           this.prescription = null;
-          this.medications = [];
 
           return this.pharmacyApi.getPrescriptionById(id).pipe(
-            switchMap((prescription) => {
-              const medicationIds = [...new Set(prescription.prescriptionItems.map((item) => item.medicationId))];
-              if (medicationIds.length === 0) {
-                return of({ prescription, medications: [] as MedicationDto[] });
-              }
-
-              return forkJoin(
-                medicationIds.map((medicationId) =>
-                  this.pharmacyApi.getMedicationById(medicationId).pipe(catchError(() => of(null as MedicationDto | null)))
-                )
-              ).pipe(
-                map((meds) => ({
-                  prescription,
-                  medications: meds.filter((med): med is MedicationDto => med != null),
-                }))
-              );
-            }),
             catchError(() => {
               this.loadError = true;
               this.toaster.error('Greška pri učitavanju recepta.');
@@ -81,14 +61,13 @@ export class PrescriptionDetailComponent implements OnInit {
         }),
         takeUntilDestroyed(this.destroyRef)
       )
-      .subscribe((result) => {
+      .subscribe((prescription) => {
         this.isLoading = false;
-        if (!result) {
+        if (!prescription) {
           return;
         }
 
-        this.prescription = result.prescription;
-        this.medications = result.medications;
+        this.prescription = prescription;
       });
   }
 
@@ -102,28 +81,10 @@ export class PrescriptionDetailComponent implements OnInit {
     this.isLoading = true;
     this.loadError = false;
     this.prescription = null;
-    this.medications = [];
 
     this.pharmacyApi
       .getPrescriptionById(id)
       .pipe(
-        switchMap((prescription) => {
-          const medicationIds = [...new Set(prescription.prescriptionItems.map((item) => item.medicationId))];
-          if (medicationIds.length === 0) {
-            return of({ prescription, medications: [] as MedicationDto[] });
-          }
-
-          return forkJoin(
-            medicationIds.map((medicationId) =>
-              this.pharmacyApi.getMedicationById(medicationId).pipe(catchError(() => of(null as MedicationDto | null)))
-            )
-          ).pipe(
-            map((meds) => ({
-              prescription,
-              medications: meds.filter((med): med is MedicationDto => med != null),
-            }))
-          );
-        }),
         catchError(() => {
           this.loadError = true;
           this.toaster.error('Greška pri učitavanju recepta.');
@@ -131,14 +92,13 @@ export class PrescriptionDetailComponent implements OnInit {
         }),
         takeUntilDestroyed(this.destroyRef)
       )
-      .subscribe((result) => {
+      .subscribe((prescription) => {
         this.isLoading = false;
-        if (!result) {
+        if (!prescription) {
           return;
         }
 
-        this.prescription = result.prescription;
-        this.medications = result.medications;
+        this.prescription = prescription;
       });
   }
 
@@ -193,12 +153,13 @@ export class PrescriptionDetailComponent implements OnInit {
       });
   }
 
-  stockStatus(medicationId: number, required: number): { label: string; css: string } {
-    const med = this.medications.find((m) => m.id === medicationId);
-    if (!med) return { label: 'Nije pronađen', css: 'stock-missing' };
-    if (med.stockQuantity === 0) return { label: 'Nema na stanju', css: 'stock-out' };
-    if (med.stockQuantity < required) return { label: 'Nedovoljno', css: 'stock-low' };
-    if (med.stockQuantity < med.minimumStockLevel) return { label: 'Ispod minimuma', css: 'stock-warn' };
+  stockStatus(item: PrescriptionItemDto): { label: string; css: string } {
+    if (item.stockQuantity == null) return { label: 'Nije pronađen', css: 'stock-missing' };
+    if (item.stockQuantity === 0) return { label: 'Nema na stanju', css: 'stock-out' };
+    if (item.stockQuantity < item.quantity) return { label: 'Nedovoljno', css: 'stock-low' };
+    if (item.minimumStockLevel != null && item.stockQuantity < item.minimumStockLevel) {
+      return { label: 'Ispod minimuma', css: 'stock-warn' };
+    }
     return { label: 'Na stanju', css: 'stock-ok' };
   }
 
@@ -250,8 +211,7 @@ export class PrescriptionDetailComponent implements OnInit {
     if (!this.prescription) return { ok: false, message: 'Recept nije učitan.' };
 
     for (const item of this.prescription.prescriptionItems) {
-      const med = this.medications.find((m) => m.id === item.medicationId);
-      if (!med || med.stockQuantity < item.quantity) {
+      if (item.stockQuantity == null || item.stockQuantity < item.quantity) {
         return {
           ok: false,
           message: `Nedovoljna zaliha za ${item.medicationName}.`,
