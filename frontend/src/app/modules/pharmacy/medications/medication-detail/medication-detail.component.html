@@ -85,30 +85,29 @@
       </section>
 
       <section class="kpi-grid" aria-label="Sažetak lijeka">
-        <article class="kpi-card">
-          <p class="kpi-label">Zaliha</p>
-          <p class="kpi-value">{{ medication.stockQuantity }}</p>
-          <p class="kpi-subtitle">Min. nivo: {{ medication.minimumStockLevel }}</p>
-          <div class="progress-track" aria-hidden="true">
-            <div class="progress-fill" [style.width.%]="stockProgressPercent"></div>
-          </div>
-        </article>
+        <app-pharmacy-kpi-card
+          icon="package"
+          title="Zaliha"
+          [value]="medication.stockQuantity"
+          [subtitle]="'Min. nivo: ' + medication.minimumStockLevel"
+          tone="blue"
+        ></app-pharmacy-kpi-card>
 
-        <article class="kpi-card">
-          <p class="kpi-label">Rok trajanja</p>
-          <p class="kpi-value">
-            {{ medication.expiryDate ? (medication.expiryDate | date:'dd.MM.yyyy') : '—' }}
-          </p>
-          <p class="kpi-subtitle" [class]="expiryHintClass">{{ expiryHint }}</p>
-        </article>
+        <app-pharmacy-kpi-card
+          icon="clock"
+          title="Rok trajanja"
+          [value]="expiryKpiValue"
+          [subtitle]="expiryHint"
+          [tone]="expiryKpiTone"
+        ></app-pharmacy-kpi-card>
 
-        <article class="kpi-card">
-          <p class="kpi-label">Recept</p>
-          <p class="kpi-value">{{ medication.requiresPrescription ? 'Potreban' : 'Nije potreban' }}</p>
-          <p class="kpi-subtitle">
-            {{ medication.requiresPrescription ? 'Zahtijeva recept' : 'Bez recepta (OTC)' }}
-          </p>
-        </article>
+        <app-pharmacy-kpi-card
+          icon="pill"
+          title="Recept"
+          [value]="medication.requiresPrescription ? 'Potreban' : 'Nije potreban'"
+          [subtitle]="medication.requiresPrescription ? 'Zahtijeva recept' : 'Bez recepta (OTC)'"
+          tone="purple"
+        ></app-pharmacy-kpi-card>
       </section>
 
       <section class="card info-card">

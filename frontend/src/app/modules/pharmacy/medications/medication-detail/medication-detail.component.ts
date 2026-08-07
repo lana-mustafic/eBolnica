@@ -20,6 +20,7 @@ import { DialogHelperService } from '../../../shared/services/dialog-helper.serv
 import { getDosageFormLabel } from '../../constants/medication-dosage-forms.constant';
 import { getMedicationCategoryLabel } from '../../constants/medication-categories.constant';
 import { MedicationImageUrlService } from '../../services/medication-image-url.service';
+import { KpiCardTone } from '../../shared/pharmacy-kpi-card/pharmacy-kpi-card.component';
 
 interface StockHistoryRow {
   id: number;
@@ -219,14 +220,24 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
     return `MED-${String(med.id).padStart(3, '0')}`;
   }
 
-  get stockProgressPercent(): number {
+  get expiryKpiValue(): string {
     const med = this.medication();
-    if (!med) {
-      return 0;
+    if (!med?.expiryDate) {
+      return '—';
     }
 
-    const target = Math.max(med.minimumStockLevel * 2, med.minimumStockLevel + 10, 1);
-    return Math.min(100, Math.round((med.stockQuantity / target) * 100));
+    return new Date(med.expiryDate).toLocaleDateString('bs-BA');
+  }
+
+  get expiryKpiTone(): KpiCardTone {
+    const hintClass = this.expiryHintClass;
+    if (hintClass === 'danger') {
+      return 'red';
+    }
+    if (hintClass === 'warn') {
+      return 'orange';
+    }
+    return 'green';
   }
 
   get expiryHint(): string {

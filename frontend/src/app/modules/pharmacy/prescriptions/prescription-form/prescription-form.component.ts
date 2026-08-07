@@ -18,7 +18,7 @@ import {
   PrescriptionFormPatientDto,
 } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../../core/services/toaster.service';
-import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
+import { getApiErrorCode, getApiErrorMessage } from '../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-prescription-form',
@@ -138,6 +138,10 @@ export class PrescriptionFormComponent implements OnInit {
 
   onMedicationSearch(term: string, index: number): void {
     this.activeItemIndex.set(index);
+    const group = this.items.at(index);
+    group.patchValue({ medicationId: null });
+    this.clearMedicationFieldError(group);
+
     if (term.trim().length < 2) {
       this.medicationSuggestions.set([]);
       return;
@@ -151,7 +155,40 @@ export class PrescriptionFormComponent implements OnInit {
       medicationId: suggestion.id,
       medicationName: suggestion.name,
     });
+    this.clearMedicationFieldError(group);
     this.medicationSuggestions.set([]);
+  }
+
+  medicationFieldError(index: number): string | null {
+    const group = this.items.at(index);
+    const control = group.get('medicationName');
+    if (control?.hasError('otc')) {
+      return 'Odabrani lijek ne zahtijeva recept (OTC). Samo lijekovi na recept su dozvoljeni.';
+    }
+    if (control?.hasError('required') && control.touched) {
+      return 'Odaberite lijek s liste (samo Rx).';
+    }
+    if (!group.get('medicationId')?.value && control?.touched && control.value?.trim()) {
+      return 'Odaberite lijek s liste (samo Rx).';
+    }
+    return null;
+  }
+
+  private clearMedicationFieldError(group: ReturnType<FormArray['at']>): void {
+    const control = group.get('medicationName');
+    if (!control?.errors) {
+      return;
+    }
+
+    const { otc: _otc, ...remaining } = control.errors;
+    control.setErrors(Object.keys(remaining).length > 0 ? remaining : null);
+  }
+
+  private markMedicationOtcErrors(): void {
+    this.items.controls.forEach((group) => {
+      group.get('medicationName')?.setErrors({ otc: true });
+      group.get('medicationName')?.markAsTouched();
+    });
   }
 
   reportLabel(report: PrescriptionFormMedicalReportDto): string {
@@ -162,6 +199,12 @@ export class PrescriptionFormComponent implements OnInit {
   }
 
   submit(): void {
+    this.items.controls.forEach((group) => {
+      if (!group.get('medicationId')?.value) {
+        group.get('medicationName')?.setErrors({ required: true });
+      }
+    });
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.toaster.error('Popunite sva obavezna polja.');
@@ -192,6 +235,9 @@ export class PrescriptionFormComponent implements OnInit {
         },
         error: (err) => {
           this.isSaving.set(false);
+          if (getApiErrorCode(err) === 'prescription.medication_otc') {
+            this.markMedicationOtcErrors();
+          }
           this.toaster.error(getApiErrorMessage(err, 'Greška pri kreiranju recepta.'));
         },
       });

@@ -15,41 +15,37 @@
 
   <div class="page-body">
     <section class="kpi-grid" aria-label="Statistike inventara">
-      <article class="kpi-card">
-        <div class="kpi-icon">
-          <app-pharmacy-icon name="package" [size]="20"></app-pharmacy-icon>
-        </div>
-        <p class="kpi-label">Ukupno lijekova</p>
-        <p class="kpi-value">{{ totalMedications() }}</p>
-        <p class="kpi-subtitle">Aktivni lijekovi u sistemu</p>
-      </article>
+      <app-pharmacy-kpi-card
+        icon="package"
+        title="Ukupno lijekova"
+        [value]="totalMedications()"
+        subtitle="Aktivni lijekovi u sistemu"
+        tone="purple"
+      ></app-pharmacy-kpi-card>
 
-      <article class="kpi-card">
-        <div class="kpi-icon">
-          <app-pharmacy-icon name="triangle-alert" [size]="20"></app-pharmacy-icon>
-        </div>
-        <p class="kpi-label">Niska zaliha</p>
-        <p class="kpi-value">{{ lowStockAlertCount() }}</p>
-        <p class="kpi-subtitle">Ispod minimuma</p>
-      </article>
+      <app-pharmacy-kpi-card
+        icon="triangle-alert"
+        title="Niska zaliha"
+        [value]="lowStockAlertCount()"
+        subtitle="Ispod minimuma"
+        tone="orange"
+      ></app-pharmacy-kpi-card>
 
-      <article class="kpi-card">
-        <div class="kpi-icon">
-          <app-pharmacy-icon name="clock" [size]="20"></app-pharmacy-icon>
-        </div>
-        <p class="kpi-label">Ističe uskoro</p>
-        <p class="kpi-value">{{ expiryAlertCount() }}</p>
-        <p class="kpi-subtitle">Sljedećih 30 dana</p>
-      </article>
+      <app-pharmacy-kpi-card
+        icon="clock"
+        title="Ističe uskoro"
+        [value]="expiryAlertCount()"
+        subtitle="Sljedećih 30 dana"
+        tone="red"
+      ></app-pharmacy-kpi-card>
 
-      <article class="kpi-card">
-        <div class="kpi-icon">
-          <app-pharmacy-icon name="wallet" [size]="20"></app-pharmacy-icon>
-        </div>
-        <p class="kpi-label">Vrijednost inventara</p>
-        <p class="kpi-value">{{ inventoryValue() | number:'1.0-0' }} KM</p>
-        <p class="kpi-subtitle">Procijenjena vrijednost zaliha</p>
-      </article>
+      <app-pharmacy-kpi-card
+        icon="wallet"
+        title="Vrijednost inventara"
+        [value]="inventoryValueLabel()"
+        subtitle="Procijenjena vrijednost zaliha"
+        tone="green"
+      ></app-pharmacy-kpi-card>
     </section>
 
     <section class="card filters-card">

@@ -30,41 +30,37 @@
 
   <div class="page-body">
     <section class="kpi-grid" aria-label="Statistike recepata">
-      <article class="kpi-card">
-        <div class="kpi-icon">
-          <app-pharmacy-icon name="clipboard" [size]="20"></app-pharmacy-icon>
-        </div>
-        <p class="kpi-label">Ukupno recepata</p>
-        <p class="kpi-value">{{ totalPrescriptions() }}</p>
-        <p class="kpi-subtitle">Svi recepti u sistemu</p>
-      </article>
+      <app-pharmacy-kpi-card
+        icon="clipboard"
+        title="Ukupno recepata"
+        [value]="totalPrescriptions()"
+        subtitle="Svi recepti u sistemu"
+        tone="blue"
+      ></app-pharmacy-kpi-card>
 
-      <article class="kpi-card">
-        <div class="kpi-icon">
-          <app-pharmacy-icon name="clock" [size]="20"></app-pharmacy-icon>
-        </div>
-        <p class="kpi-label">Na čekanju</p>
-        <p class="kpi-value">{{ pendingPrescriptions() }}</p>
-        <p class="kpi-subtitle">Čekaju izdavanje</p>
-      </article>
+      <app-pharmacy-kpi-card
+        icon="clock"
+        title="Na čekanju"
+        [value]="pendingPrescriptions()"
+        subtitle="Čekaju izdavanje"
+        tone="orange"
+      ></app-pharmacy-kpi-card>
 
-      <article class="kpi-card">
-        <div class="kpi-icon">
-          <app-pharmacy-icon name="check-circle" [size]="20"></app-pharmacy-icon>
-        </div>
-        <p class="kpi-label">Izdani</p>
-        <p class="kpi-value">{{ dispensedPrescriptions() }}</p>
-        <p class="kpi-subtitle">Uspješno izdani</p>
-      </article>
+      <app-pharmacy-kpi-card
+        icon="check-circle"
+        title="Izdani"
+        [value]="dispensedPrescriptions()"
+        subtitle="Uspješno izdani"
+        tone="green"
+      ></app-pharmacy-kpi-card>
 
-      <article class="kpi-card">
-        <div class="kpi-icon">
-          <app-pharmacy-icon name="wallet" [size]="20"></app-pharmacy-icon>
-        </div>
-        <p class="kpi-label">Ukupna vrijednost</p>
-        <p class="kpi-value">{{ totalRevenue() | number:'1.0-0' }} KM</p>
-        <p class="kpi-subtitle">Prihod od izdanih recepata</p>
-      </article>
+      <app-pharmacy-kpi-card
+        icon="wallet"
+        title="Ukupna vrijednost"
+        [value]="totalRevenueLabel()"
+        subtitle="Prihod od izdanih recepata"
+        tone="purple"
+      ></app-pharmacy-kpi-card>
     </section>
 
     <section class="card filters-card">

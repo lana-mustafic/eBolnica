@@ -108,6 +108,8 @@ export class PharmacyPrescriptionsComponent implements OnInit {
     () => this.prescriptions().length === 0 && this.totalCount() > 0 && this.currentPage() > this.totalPages()
   );
 
+  totalRevenueLabel = computed(() => `${Math.round(this.totalRevenue()).toLocaleString('bs-BA')} KM`);
+
   tableEmptyMessage = computed(() => {
     if (this.isOutOfRangePage()) {
       return `Nema recepata na stranici ${this.currentPage()}. Pronađeno ${this.totalCount()} za odabrane filtere.`;

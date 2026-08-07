@@ -88,32 +88,29 @@
     }
 
     <section class="kpi-grid" aria-label="Statistike lijekova">
-      <article class="kpi-card">
-        <div class="kpi-icon kpi-icon-neutral">
-          <app-pharmacy-icon name="package" [size]="20"></app-pharmacy-icon>
-        </div>
-        <p class="kpi-label">Ukupno lijekova</p>
-        <p class="kpi-value">{{ totalCount() }}</p>
-        <p class="kpi-subtitle">Svi lijekovi u sistemu</p>
-      </article>
+      <app-pharmacy-kpi-card
+        icon="package"
+        title="Ukupno lijekova"
+        [value]="totalCount()"
+        subtitle="Svi lijekovi u sistemu"
+        tone="purple"
+      ></app-pharmacy-kpi-card>
 
-      <article class="kpi-card">
-        <div class="kpi-icon kpi-icon-warning">
-          <app-pharmacy-icon name="triangle-alert" [size]="20"></app-pharmacy-icon>
-        </div>
-        <p class="kpi-label">Niska zaliha</p>
-        <p class="kpi-value">{{ lowStockOnPageCount() }}</p>
-        <p class="kpi-subtitle">Na trenutnoj stranici</p>
-      </article>
+      <app-pharmacy-kpi-card
+        icon="triangle-alert"
+        title="Niska zaliha"
+        [value]="lowStockOnPageCount()"
+        subtitle="Na trenutnoj stranici"
+        tone="orange"
+      ></app-pharmacy-kpi-card>
 
-      <article class="kpi-card">
-        <div class="kpi-icon kpi-icon-accent">
-          <app-pharmacy-icon name="clock" [size]="20"></app-pharmacy-icon>
-        </div>
-        <p class="kpi-label">Ističe uskoro</p>
-        <p class="kpi-value">{{ expiringSoonOnPageCount() }}</p>
-        <p class="kpi-subtitle">Sljedećih 30 dana</p>
-      </article>
+      <app-pharmacy-kpi-card
+        icon="clock"
+        title="Ističe uskoro"
+        [value]="expiringSoonOnPageCount()"
+        subtitle="Sljedećih 30 dana"
+        tone="red"
+      ></app-pharmacy-kpi-card>
     </section>
 
     <section class="card filters-card">

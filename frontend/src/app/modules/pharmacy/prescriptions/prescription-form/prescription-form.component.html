@@ -83,6 +83,7 @@
             Dodaj lijek
           </button>
         </div>
+        <p class="field-hint">Samo lijekovi koji zahtijevaju recept (Rx) mogu biti dodani na recept.</p>
 
         <div class="items-list" formArrayName="items">
           @for (item of items.controls; track $index; let i = $index) {
@@ -92,9 +93,12 @@
                 <input
                   type="text"
                   formControlName="medicationName"
-                  placeholder="Pretraži lijek..."
+                  placeholder="Pretraži lijek na recept..."
                   (input)="onMedicationSearch(item.get('medicationName')?.value ?? '', i)"
                 />
+                @if (medicationFieldError(i); as error) {
+                  <p class="field-error" role="alert">{{ error }}</p>
+                }
                 @if (medicationSuggestions().length > 0 && activeItemIndex() === i) {
                   <ul class="option-list">
                     @for (s of medicationSuggestions(); track s.id) {

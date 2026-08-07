@@ -122,6 +122,19 @@
   }
 }
 
+.field-hint {
+  margin: -4px 0 12px;
+  font-size: 0.8125rem;
+  color: $pharmacy-text-secondary;
+}
+
+.field-error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: $pharmacy-danger;
+  font-weight: 500;
+}
+
 .input-with-icon {
   display: flex;
   align-items: center;

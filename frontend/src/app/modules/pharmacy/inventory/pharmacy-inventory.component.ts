@@ -49,6 +49,10 @@ export class PharmacyInventoryComponent implements OnInit {
 
   firstLowStockAlert = computed(() => this.lowStockAlerts()[0] ?? null);
 
+  inventoryValueLabel = computed(
+    () => `${Math.round(this.inventoryValue()).toLocaleString('bs-BA')} KM`
+  );
+
   search = '';
   selectedCategory = '';
   selectedStockStatus = '';
