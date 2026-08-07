@@ -145,14 +145,14 @@
           </button>
         </div>
 
-        @if (visiblePrescriptions.length === 0) {
+        @if (prescriptions.length === 0) {
           <p class="empty-state">Nema recepata za odabrane filtere.</p>
           @if (hasActiveFilters()) {
             <button type="button" class="btn btn-outline" (click)="clearFilters()">Očisti filtere</button>
           }
         } @else {
           <div class="table-scroll">
-            <table mat-table [dataSource]="visiblePrescriptions" class="prescriptions-table">
+            <table mat-table [dataSource]="prescriptions" class="prescriptions-table">
               <ng-container matColumnDef="number">
                 <th
                   mat-header-cell

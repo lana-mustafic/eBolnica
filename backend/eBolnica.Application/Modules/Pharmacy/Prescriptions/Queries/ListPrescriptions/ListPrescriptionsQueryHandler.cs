@@ -12,7 +12,9 @@ public sealed class ListPrescriptionsQueryHandler(IAppDbContext ctx)
         var query = PrescriptionQueryFilters.Apply(
             ctx.Prescriptions.AsNoTracking(),
             request.Status,
-            request.Search);
+            request.Search,
+            request.PrescribedFrom,
+            request.PrescribedTo);
 
         var totalCount = await query.CountAsync(ct);
         var page = Math.Max(1, request.PageNumber);

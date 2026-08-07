@@ -130,28 +130,6 @@ export class PharmacyPrescriptionsComponent implements OnInit {
     this.loadTrigger$.next();
   }
 
-  get visiblePrescriptions(): PrescriptionDto[] {
-    if (this.selectedDateRange === 'all') {
-      return this.prescriptions;
-    }
-
-    const now = new Date();
-    const start = new Date(now);
-
-    if (this.selectedDateRange === 'today') {
-      start.setHours(0, 0, 0, 0);
-    } else if (this.selectedDateRange === 'week') {
-      start.setDate(start.getDate() - 7);
-    } else if (this.selectedDateRange === 'month') {
-      start.setDate(start.getDate() - 30);
-    }
-
-    return this.prescriptions.filter((prescription) => {
-      const date = new Date(prescription.prescribedDate);
-      return date >= start && date <= now;
-    });
-  }
-
   get recentActivities(): PrescriptionActivityItem[] {
     const activities: PrescriptionActivityItem[] = [];
     const now = Date.now();
@@ -242,14 +220,41 @@ export class PharmacyPrescriptionsComponent implements OnInit {
 
   private buildRequest() {
     const searchTerm = this.resolveSearchTerm();
+    const dateRange = this.resolvePrescribedDateRange();
 
     return {
       status: this.selectedStatus === 'All' ? undefined : this.selectedStatus,
       search: searchTerm,
+      prescribedFrom: dateRange.prescribedFrom,
+      prescribedTo: dateRange.prescribedTo,
       pageNumber: this.currentPage,
       pageSize: this.pageSize,
       sortBy: this.sortBy,
       sortOrder: this.sortOrder,
+    };
+  }
+
+  private resolvePrescribedDateRange(): { prescribedFrom?: string; prescribedTo?: string } {
+    if (this.selectedDateRange === 'all') {
+      return {};
+    }
+
+    const now = new Date();
+    const start = new Date(now);
+
+    if (this.selectedDateRange === 'today') {
+      start.setHours(0, 0, 0, 0);
+    } else if (this.selectedDateRange === 'week') {
+      start.setDate(start.getDate() - 7);
+      start.setHours(0, 0, 0, 0);
+    } else if (this.selectedDateRange === 'month') {
+      start.setDate(start.getDate() - 30);
+      start.setHours(0, 0, 0, 0);
+    }
+
+    return {
+      prescribedFrom: start.toISOString(),
+      prescribedTo: now.toISOString(),
     };
   }
 

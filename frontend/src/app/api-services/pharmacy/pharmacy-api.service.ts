@@ -157,6 +157,8 @@ export class PharmacyApiService {
 
     if (request.status) params = params.set('status', request.status);
     if (request.search) params = params.set('search', request.search);
+    if (request.prescribedFrom) params = params.set('prescribedFrom', request.prescribedFrom);
+    if (request.prescribedTo) params = params.set('prescribedTo', request.prescribedTo);
     if (request.sortBy) params = params.set('sortBy', request.sortBy);
     if (request.sortOrder) params = params.set('sortOrder', request.sortOrder);
 
@@ -210,6 +212,8 @@ export class PharmacyApiService {
     let params = new HttpParams();
     if (request.status) params = params.set('status', request.status);
     if (request.search) params = params.set('search', request.search);
+    if (request.prescribedFrom) params = params.set('prescribedFrom', request.prescribedFrom);
+    if (request.prescribedTo) params = params.set('prescribedTo', request.prescribedTo);
     if (request.sortBy) params = params.set('sortBy', request.sortBy);
     if (request.sortOrder) params = params.set('sortOrder', request.sortOrder);
     return this.http.get(`${this.baseUrl}/reports/prescriptions/pdf`, {

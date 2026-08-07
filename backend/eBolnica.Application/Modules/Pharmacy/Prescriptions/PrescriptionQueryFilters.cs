@@ -7,7 +7,9 @@ public static class PrescriptionQueryFilters
     public static IQueryable<PrescriptionEntity> Apply(
         IQueryable<PrescriptionEntity> query,
         string? status,
-        string? search)
+        string? search,
+        DateTime? prescribedFrom = null,
+        DateTime? prescribedTo = null)
     {
         if (!string.IsNullOrWhiteSpace(status) &&
             !string.Equals(status, "All", StringComparison.OrdinalIgnoreCase))
@@ -27,6 +29,12 @@ public static class PrescriptionQueryFilters
                 p.Doctor.LastName.ToLower().Contains(term) ||
                 p.Items.Any(i => i.Medication.Name.ToLower().Contains(term)));
         }
+
+        if (prescribedFrom.HasValue)
+            query = query.Where(p => p.PrescribedDate >= prescribedFrom.Value);
+
+        if (prescribedTo.HasValue)
+            query = query.Where(p => p.PrescribedDate <= prescribedTo.Value);
 
         return query;
     }

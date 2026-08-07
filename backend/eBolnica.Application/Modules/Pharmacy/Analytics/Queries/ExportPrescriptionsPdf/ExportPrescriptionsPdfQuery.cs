@@ -9,6 +9,8 @@ public sealed class ExportPrescriptionsPdfQuery : IRequest<PdfReportResultDto>
 {
     public string? Status { get; set; }
     public string? Search { get; set; }
+    public DateTime? PrescribedFrom { get; set; }
+    public DateTime? PrescribedTo { get; set; }
     public string? SortBy { get; set; }
     public string? SortOrder { get; set; }
 }
@@ -23,7 +25,9 @@ public sealed class ExportPrescriptionsPdfQueryHandler(IAppDbContext ctx, IPharm
         var query = PrescriptionQueryFilters.Apply(
             ctx.Prescriptions.AsNoTracking(),
             request.Status,
-            request.Search);
+            request.Search,
+            request.PrescribedFrom,
+            request.PrescribedTo);
 
         PharmacySortValidator.ValidatePrescriptionSort(request.SortBy);
         query = PrescriptionQueryFilters.ApplySorting(query, request.SortBy, request.SortOrder);

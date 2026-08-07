@@ -166,6 +166,8 @@ export interface PrescriptionDto {
 export interface ListPrescriptionsRequest {
   status?: string;
   search?: string;
+  prescribedFrom?: string;
+  prescribedTo?: string;
   pageNumber?: number;
   pageSize?: number;
   sortBy?: string;
