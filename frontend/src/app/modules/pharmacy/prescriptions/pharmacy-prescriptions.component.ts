@@ -6,6 +6,10 @@ import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.
 import { PrescriptionDto } from '../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../core/services/toaster.service';
 import { getApiErrorMessage } from '../../../core/utils/api-error.util';
+import {
+  getPrescriptionStatusClass,
+  getPrescriptionStatusLabel,
+} from './prescription-status.util';
 import { DialogButton, DialogType } from '../../shared/models/dialog-config.model';
 import { DialogHelperService } from '../../shared/services/dialog-helper.service';
 
@@ -57,7 +61,7 @@ export class PharmacyPrescriptionsComponent implements OnInit {
     { value: 'All', label: 'Svi' },
     { value: 'Pending', label: 'Na čekanju' },
     { value: 'Dispensed', label: 'Izdani' },
-    { value: 'Cancelled', label: 'Odbijeni' },
+    { value: 'Cancelled', label: 'Otkazani' },
   ];
 
   dateRangeFilters = [
@@ -190,33 +194,11 @@ export class PharmacyPrescriptionsComponent implements OnInit {
   }
 
   statusLabel(status: string): string {
-    switch (status) {
-      case 'Pending':
-        return 'Na čekanju';
-      case 'Dispensed':
-        return 'Izdan';
-      case 'Cancelled':
-        return 'Odbijen';
-      case 'Preparing':
-        return 'U pripremi';
-      default:
-        return status;
-    }
+    return getPrescriptionStatusLabel(status);
   }
 
   statusClass(status: string): string {
-    switch (status) {
-      case 'Pending':
-        return 'status-pending';
-      case 'Dispensed':
-        return 'status-dispensed';
-      case 'Cancelled':
-        return 'status-cancelled';
-      case 'Preparing':
-        return 'status-preparing';
-      default:
-        return 'status-preparing';
-    }
+    return getPrescriptionStatusClass(status);
   }
 
   private buildRequest() {

@@ -413,12 +413,12 @@
     }
   }
 
-  &.status-preparing {
-    background: #dbeafe;
-    color: #1e40af;
+  &.status-unknown {
+    background: #f1f5f9;
+    color: #475569;
 
     .status-dot {
-      background: #3b82f6;
+      background: #94a3b8;
     }
   }
 }

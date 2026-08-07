@@ -19,7 +19,7 @@
       <mat-card-header><mat-card-title>{{ prescription.prescriptionNumber }}</mat-card-title></mat-card-header>
       <mat-card-content>
         <dl class="meta-list">
-          <div><dt>Status</dt><dd>{{ prescription.status }}</dd></div>
+          <div><dt>Status</dt><dd>{{ statusLabel(prescription.status) }}</dd></div>
           <div><dt>Pacijent</dt><dd>{{ prescription.patient.firstName }} {{ prescription.patient.lastName }}</dd></div>
           @if (prescription.patient.phoneNumber) {
             <div><dt>Telefon</dt><dd>{{ prescription.patient.phoneNumber }}</dd></div>
