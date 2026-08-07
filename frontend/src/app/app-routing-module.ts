@@ -32,7 +32,7 @@ const routes: Routes = [
   {
     path: 'pharmacy',
     canActivate: [myAuthGuard],
-    data: myAuthData({ requireAuth: true, requirePharmacist: true }),
+    data: myAuthData({ requireAuth: true, requirePharmacyStaff: true }),
     loadChildren: () =>
       import('./modules/pharmacy/pharmacy-module').then(m => m.PharmacyModule)
   },

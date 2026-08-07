@@ -6,6 +6,7 @@ import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.
 import { MedicationDto } from '../../../api-services/pharmacy/pharmacy-api.models';
 import { getMedicationCategoryLabel, MEDICATION_CATEGORIES } from '../constants/medication-categories.constant';
 import { ToasterService } from '../../../core/services/toaster.service';
+import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
 
 @Component({
   selector: 'app-pharmacy-inventory',
@@ -18,6 +19,7 @@ export class PharmacyInventoryComponent implements OnInit {
   private toaster = inject(ToasterService);
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
+  auth = inject(AuthFacadeService);
 
   readonly categoryLabel = getMedicationCategoryLabel;
   readonly categories = MEDICATION_CATEGORIES;

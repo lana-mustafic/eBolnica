@@ -199,7 +199,7 @@
       </section>
 
       <div class="form-actions">
-        @if (isEditMode) {
+        @if (isEditMode && auth.isPharmacist()) {
           <button type="button" class="btn btn-danger" (click)="deleteMedication()">
             <app-pharmacy-icon name="trash-2" [size]="16"></app-pharmacy-icon>
             Obriši

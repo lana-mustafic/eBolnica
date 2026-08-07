@@ -34,7 +34,7 @@
             <app-pharmacy-icon name="pencil" [size]="16"></app-pharmacy-icon>
             Uredi
           </button>
-          @if (medication.isActive) {
+          @if (medication.isActive && auth.isPharmacist()) {
             <button type="button" class="btn btn-danger-outline" (click)="deleteMedication()">
               <app-pharmacy-icon name="trash-2" [size]="16"></app-pharmacy-icon>
               Obriši
@@ -191,7 +191,7 @@
           <app-pharmacy-icon name="package" [size]="16"></app-pharmacy-icon>
           Dodaj zalihu
         </button>
-        @if (medication.isActive) {
+        @if (medication.isActive && auth.isPharmacist()) {
           <button type="button" class="btn btn-outline" (click)="deleteMedication()">
             <app-pharmacy-icon name="clipboard" [size]="16"></app-pharmacy-icon>
             Otpiši lijek

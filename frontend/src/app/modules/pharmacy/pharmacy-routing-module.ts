@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
+import { myAuthData, myAuthGuard } from '../../core/guards/my-auth-guard';
 import { PharmacyLayoutComponent } from './pharmacy-layout/pharmacy-layout.component';
 import { PharmacyDashboardComponent } from './dashboard/pharmacy-dashboard.component';
 import { PharmacyMedicationsComponent } from './medications/pharmacy-medications.component';
@@ -11,21 +12,26 @@ import { PharmacyPrescriptionsComponent } from './prescriptions/pharmacy-prescri
 import { PrescriptionDetailComponent } from './prescriptions/prescription-detail/prescription-detail.component';
 import { PrescriptionFormComponent } from './prescriptions/prescription-form/prescription-form.component';
 
+const pharmacistOnly = {
+  canActivate: [myAuthGuard],
+  data: myAuthData({ requireAuth: true, requirePharmacist: true }),
+};
+
 const routes: Routes = [
   {
     path: '',
     component: PharmacyLayoutComponent,
     children: [
-      { path: 'dashboard', component: PharmacyDashboardComponent },
+      { path: 'dashboard', component: PharmacyDashboardComponent, ...pharmacistOnly },
       { path: 'medications', component: PharmacyMedicationsComponent },
       { path: 'medications/wizard', component: MedicationWizardComponent },
       { path: 'medications/new', component: MedicationFormComponent },
       { path: 'medications/:id/edit', component: MedicationFormComponent },
       { path: 'medications/:id', component: MedicationDetailComponent },
       { path: 'inventory', component: PharmacyInventoryComponent },
-      { path: 'prescriptions', component: PharmacyPrescriptionsComponent },
-      { path: 'prescriptions/new', component: PrescriptionFormComponent },
-      { path: 'prescriptions/:id', component: PrescriptionDetailComponent },
+      { path: 'prescriptions', component: PharmacyPrescriptionsComponent, ...pharmacistOnly },
+      { path: 'prescriptions/new', component: PrescriptionFormComponent, ...pharmacistOnly },
+      { path: 'prescriptions/:id', component: PrescriptionDetailComponent, ...pharmacistOnly },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },

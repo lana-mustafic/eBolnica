@@ -11,6 +11,7 @@ export class CurrentUserService {
   isDoctor = computed(() => this.auth.isDoctor());
   isPatient = computed(() => this.auth.isPatient());
   isPharmacist = computed(() => this.auth.isPharmacist());
+  isPharmacyStaff = computed(() => this.auth.isPharmacyStaff());
   isManager = computed(() => this.auth.isManager());
   isEmployee = computed(() => this.auth.isEmployee());
 

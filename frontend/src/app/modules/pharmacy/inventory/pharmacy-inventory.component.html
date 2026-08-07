@@ -164,9 +164,11 @@
             <button type="button" class="icon-btn" (click)="reload()" aria-label="Osvježi listu">
               <app-pharmacy-icon name="activity" [size]="18"></app-pharmacy-icon>
             </button>
-            <button type="button" class="icon-btn" (click)="exportPdf()" aria-label="Eksport PDF">
-              <app-pharmacy-icon name="download" [size]="18"></app-pharmacy-icon>
-            </button>
+            @if (auth.isPharmacist()) {
+              <button type="button" class="icon-btn" (click)="exportPdf()" aria-label="Eksport PDF">
+                <app-pharmacy-icon name="download" [size]="18"></app-pharmacy-icon>
+              </button>
+            }
           </div>
         </div>
 

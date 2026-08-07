@@ -38,12 +38,14 @@
         Export CSV
       </span>
     </button>
-    <button mat-menu-item type="button" (click)="exportPdf()">
-      <span class="menu-item-content">
-        <app-pharmacy-icon name="file-text" [size]="16"></app-pharmacy-icon>
-        Export PDF
-      </span>
-    </button>
+    @if (auth.isPharmacist()) {
+      <button mat-menu-item type="button" (click)="exportPdf()">
+        <span class="menu-item-content">
+          <app-pharmacy-icon name="file-text" [size]="16"></app-pharmacy-icon>
+          Export PDF
+        </span>
+      </button>
+    }
   </mat-menu>
 
   <mat-menu #moreMenu="matMenu">
@@ -385,7 +387,7 @@
           Dodaj zalihu
         </span>
       </button>
-      @if (m.isActive) {
+      @if (m.isActive && auth.isPharmacist()) {
         <button mat-menu-item type="button" (click)="deleteMedication(m)">
           <span class="menu-item-content">
             <app-pharmacy-icon name="trash-2" [size]="16"></app-pharmacy-icon>

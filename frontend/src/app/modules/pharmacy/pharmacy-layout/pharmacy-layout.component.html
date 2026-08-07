@@ -22,15 +22,17 @@
     </div>
 
     <nav class="sidebar-nav" aria-label="Pharmacy navigation">
-      <a
-        class="nav-link"
-        routerLink="/pharmacy/dashboard"
-        routerLinkActive="active"
-        (click)="closeSidenavOnNavigate()"
-      >
-        <app-pharmacy-icon name="layout-dashboard" [size]="20"></app-pharmacy-icon>
-        <span>Dashboard</span>
-      </a>
+      @if (auth.isPharmacist()) {
+        <a
+          class="nav-link"
+          routerLink="/pharmacy/dashboard"
+          routerLinkActive="active"
+          (click)="closeSidenavOnNavigate()"
+        >
+          <app-pharmacy-icon name="layout-dashboard" [size]="20"></app-pharmacy-icon>
+          <span>Dashboard</span>
+        </a>
+      }
 
       <a
         class="nav-link"
@@ -52,15 +54,17 @@
         <span>Inventar</span>
       </a>
 
-      <a
-        class="nav-link"
-        routerLink="/pharmacy/prescriptions"
-        routerLinkActive="active"
-        (click)="closeSidenavOnNavigate()"
-      >
-        <app-pharmacy-icon name="clipboard" [size]="20"></app-pharmacy-icon>
-        <span>Recepti</span>
-      </a>
+      @if (auth.isPharmacist()) {
+        <a
+          class="nav-link"
+          routerLink="/pharmacy/prescriptions"
+          routerLinkActive="active"
+          (click)="closeSidenavOnNavigate()"
+        >
+          <app-pharmacy-icon name="clipboard" [size]="20"></app-pharmacy-icon>
+          <span>Recepti</span>
+        </a>
+      }
     </nav>
 
     <div class="sidebar-footer">
@@ -70,7 +74,7 @@
           <app-pharmacy-icon name="user" [size]="18"></app-pharmacy-icon>
         </div>
         <div class="user-meta">
-          <span class="user-role">Farmaceut</span>
+          <span class="user-role">{{ auth.isAdmin() ? 'Administrator' : 'Farmaceut' }}</span>
           <span class="user-status">
             <span class="status-dot" aria-hidden="true"></span>
             Online

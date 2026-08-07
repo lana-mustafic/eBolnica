@@ -31,6 +31,9 @@ export class AuthFacadeService {
   isDoctor = computed(() => this._currentUser()?.userType === 'Doctor');
   isPatient = computed(() => this._currentUser()?.userType === 'Patient');
   isPharmacist = computed(() => this._currentUser()?.userType === 'Pharmacist');
+  isPharmacyStaff = computed(
+    () => this._currentUser()?.userType === 'Pharmacist' || (this._currentUser()?.isAdmin ?? false)
+  );
   isManager = computed(() => this._currentUser()?.isManager ?? false);
   isEmployee = computed(() => this._currentUser()?.isEmployee ?? false);
 

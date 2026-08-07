@@ -15,6 +15,7 @@ export const myAuthGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
   const requireDoctor = auth?.requireDoctor === true;
   const requirePatient = auth?.requirePatient === true;
   const requirePharmacist = auth?.requirePharmacist === true;
+  const requirePharmacyStaff = auth?.requirePharmacyStaff === true;
   const requireManager = auth?.requireManager === true;
   const requireEmployee = auth?.requireEmployee === true;
 
@@ -53,8 +54,13 @@ export const myAuthGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
     return false;
   }
 
-  if (requirePharmacist && user.userType !== 'Pharmacist') {
+  if (requirePharmacyStaff && user.userType !== 'Pharmacist' && !user.isAdmin) {
     router.navigate([currentUser.getDefaultRoute()]);
+    return false;
+  }
+
+  if (requirePharmacist && user.userType !== 'Pharmacist') {
+    router.navigate([user.isAdmin ? '/pharmacy/medications' : currentUser.getDefaultRoute()]);
     return false;
   }
 
@@ -77,6 +83,7 @@ export interface MyAuthRouteData {
   requireDoctor?: boolean;
   requirePatient?: boolean;
   requirePharmacist?: boolean;
+  requirePharmacyStaff?: boolean;
   requireManager?: boolean;
   requireEmployee?: boolean;
 }
