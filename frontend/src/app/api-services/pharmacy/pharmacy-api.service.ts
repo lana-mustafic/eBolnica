@@ -11,6 +11,7 @@ import {
   MedicationImageDto,
   MedicationImportResult,
   MedicationNameAvailabilityDto,
+  MedicationStockHistoryDto,
   MedicationUpsertCommand,
   DispensePrescriptionRequest,
   ListPrescriptionsRequest,
@@ -97,6 +98,14 @@ export class PharmacyApiService {
 
   getMedicationById(id: number): Observable<MedicationDto> {
     return this.http.get<MedicationDto>(`${this.baseUrl}/medications/${id}`);
+  }
+
+  getMedicationStockHistory(medicationId: number, limit = 50): Observable<MedicationStockHistoryDto[]> {
+    const params = new HttpParams().set('limit', String(limit));
+    return this.http.get<MedicationStockHistoryDto[]>(
+      `${this.baseUrl}/medications/${medicationId}/stock-history`,
+      { params }
+    );
   }
 
   checkName(name: string, excludeId?: number): Observable<MedicationNameAvailabilityDto> {

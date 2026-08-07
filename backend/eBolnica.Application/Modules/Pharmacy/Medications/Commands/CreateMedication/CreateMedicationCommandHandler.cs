@@ -44,6 +44,14 @@ public sealed class CreateMedicationCommandHandler(IAppDbContext ctx, IPharmacyA
             throw new eBolnicaConflictException("A medication with this name already exists.");
         }
 
+        MedicationStockHistoryWriter.Record(
+            ctx,
+            medication.Id,
+            0,
+            medication.StockQuantity,
+            MedicationStockChangeReasons.InitialStock);
+        await ctx.SaveChangesAsync(ct);
+
         analytics.InvalidateAnalyticsCache();
         return MapToDto(medication);
     }

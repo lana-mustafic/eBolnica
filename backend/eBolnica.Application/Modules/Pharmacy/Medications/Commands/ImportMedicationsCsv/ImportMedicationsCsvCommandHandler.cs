@@ -1,4 +1,5 @@
 using eBolnica.Application.Common;
+using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.CreateMedication;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.ImportMedicationsCsv;
 using eBolnica.Application.Modules.Pharmacy.Medications.Csv;
@@ -90,6 +91,18 @@ public sealed class ImportMedicationsCsvCommandHandler(IAppDbContext ctx, IPharm
         {
             throw new eBolnicaConflictException("One or more medication names already exist.");
         }
+
+        foreach (var medication in toInsert)
+        {
+            MedicationStockHistoryWriter.Record(
+                ctx,
+                medication.Id,
+                0,
+                medication.StockQuantity,
+                MedicationStockChangeReasons.Import);
+        }
+
+        await ctx.SaveChangesAsync(ct);
 
         analytics.InvalidateAnalyticsCache();
 

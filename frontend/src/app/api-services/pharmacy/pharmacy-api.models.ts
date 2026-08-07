@@ -21,6 +21,15 @@ export interface MedicationDto {
   primaryImageId?: number | null;
 }
 
+export interface MedicationStockHistoryDto {
+  id: number;
+  occurredAt: string;
+  changeQuantity: number;
+  stockAfter: number;
+  reason: string;
+  referenceLabel?: string | null;
+}
+
 export interface MedicationUpsertCommand {
   name: string;
   genericName?: string | null;

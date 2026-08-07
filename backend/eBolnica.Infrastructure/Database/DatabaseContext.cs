@@ -16,6 +16,7 @@ public partial class DatabaseContext : DbContext, IAppDbContext
     public DbSet<MedicalReportEntity> MedicalReports => Set<MedicalReportEntity>();
     public DbSet<MedicationEntity> Medications => Set<MedicationEntity>();
     public DbSet<MedicationImageEntity> MedicationImages => Set<MedicationImageEntity>();
+    public DbSet<MedicationStockHistoryEntity> MedicationStockHistory => Set<MedicationStockHistoryEntity>();
     public DbSet<PrescriptionEntity> Prescriptions => Set<PrescriptionEntity>();
     public DbSet<PrescriptionItemEntity> PrescriptionItems => Set<PrescriptionItemEntity>();
 

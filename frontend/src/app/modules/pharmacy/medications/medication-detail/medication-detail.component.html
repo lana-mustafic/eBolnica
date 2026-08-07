@@ -154,7 +154,9 @@
 
       <section class="card history-card">
         <h2 class="section-title">Historija zaliha</h2>
-        @if (stockHistory.length === 0) {
+        @if (isLoadingHistory) {
+          <app-fit-table-skeleton [rows]="3" [columns]="3"></app-fit-table-skeleton>
+        } @else if (stockHistory.length === 0) {
           <p class="empty-state">Nema zabilježenih promjena zaliha.</p>
         } @else {
           <div class="table-scroll">
@@ -164,16 +166,18 @@
                   <th>Datum</th>
                   <th>Promjena</th>
                   <th>Stanje</th>
+                  <th>Napomena</th>
                 </tr>
               </thead>
               <tbody>
-                @for (row of stockHistory; track row.date) {
+                @for (row of stockHistory; track row.id) {
                   <tr>
                     <td>{{ row.date }}</td>
                     <td [class.positive]="row.change.startsWith('+')" [class.negative]="row.change.startsWith('-')">
                       {{ row.change }}
                     </td>
                     <td>{{ row.stock }}</td>
+                    <td>{{ row.note || '—' }}</td>
                   </tr>
                 }
               </tbody>

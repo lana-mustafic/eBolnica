@@ -1,4 +1,5 @@
 using System.Data;
+using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Prescriptions;
 using eBolnica.Domain.Entities.Pharmacy;
 
@@ -73,8 +74,18 @@ public sealed class DispensePrescriptionCommandHandler(IAppDbContext ctx, IAppCu
             var now = DateTime.UtcNow;
             foreach (var medication in medications)
             {
-                medication.StockQuantity -= requiredByMedication[medication.Id];
+                var required = requiredByMedication[medication.Id];
+                var previousStock = medication.StockQuantity;
+                medication.StockQuantity -= required;
                 medication.ModifiedAtUtc = now;
+
+                MedicationStockHistoryWriter.Record(
+                    ctx,
+                    medication.Id,
+                    previousStock,
+                    medication.StockQuantity,
+                    MedicationStockChangeReasons.PrescriptionDispensed,
+                    prescription.Id);
             }
 
             prescription.Status = PrescriptionStatuses.Dispensed;

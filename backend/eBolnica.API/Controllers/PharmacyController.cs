@@ -20,6 +20,7 @@ using eBolnica.Application.Modules.Pharmacy.Medications.Queries.ExportMedication
 using eBolnica.Application.Modules.Pharmacy.Medications.Queries.GetInventory;
 using eBolnica.Application.Modules.Pharmacy.Medications.Queries.GetMedicationAutocomplete;
 using eBolnica.Application.Modules.Pharmacy.Medications.Queries.GetMedicationById;
+using eBolnica.Application.Modules.Pharmacy.Medications.Queries.GetMedicationStockHistory;
 using eBolnica.Application.Modules.Pharmacy.Medications.Queries.GetMedicationImageFile;
 using eBolnica.Application.Modules.Pharmacy.Medications.Queries.GetMedicationImportTemplate;
 using eBolnica.Application.Modules.Pharmacy.Medications.Queries.ListMedicationImages;
@@ -116,6 +117,14 @@ public sealed class PharmacyController(IMediator mediator) : ControllerBase
     [Authorize(Policy = "PharmacyStaff")]
     public async Task<ActionResult<MedicationDto>> GetMedication(int id, CancellationToken ct)
         => Ok(await mediator.Send(new GetMedicationByIdQuery { Id = id }, ct));
+
+    [HttpGet("medications/{id:int}/stock-history")]
+    [Authorize(Policy = "PharmacyStaff")]
+    public async Task<ActionResult<IReadOnlyList<MedicationStockHistoryDto>>> GetMedicationStockHistory(
+        int id,
+        [FromQuery] int limit = 50,
+        CancellationToken ct = default)
+        => Ok(await mediator.Send(new GetMedicationStockHistoryQuery { MedicationId = id, Limit = limit }, ct));
 
     [HttpGet("medications/{id:int}/images")]
     [Authorize(Policy = "PharmacyStaff")]

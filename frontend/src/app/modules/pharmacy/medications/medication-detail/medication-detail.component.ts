@@ -1,9 +1,9 @@
 import { Component, DestroyRef, inject, OnDestroy, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { EMPTY, catchError, switchMap } from 'rxjs';
+import { EMPTY, catchError, map, of, switchMap } from 'rxjs';
 import { PharmacyApiService } from '../../../../api-services/pharmacy/pharmacy-api.service';
-import { MedicationDto } from '../../../../api-services/pharmacy/pharmacy-api.models';
+import { MedicationDto, MedicationStockHistoryDto } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../../core/services/toaster.service';
 import { DialogButton, DialogType } from '../../../shared/models/dialog-config.model';
 import { DialogHelperService } from '../../../shared/services/dialog-helper.service';
@@ -12,9 +12,11 @@ import { getMedicationCategoryLabel } from '../../constants/medication-categorie
 import { MedicationImageUrlService } from '../../services/medication-image-url.service';
 
 interface StockHistoryRow {
+  id: number;
   date: string;
   change: string;
   stock: number;
+  note?: string;
 }
 
 @Component({
@@ -37,6 +39,7 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
   loadError = false;
   imageUrl: string | null = null;
   stockHistory: StockHistoryRow[] = [];
+  isLoadingHistory = false;
 
   ngOnInit(): void {
     this.route.paramMap
@@ -47,27 +50,39 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
             this.loadError = true;
             this.isLoading = false;
             this.medication = null;
+            this.stockHistory = [];
             return EMPTY;
           }
 
           this.isLoading = true;
+          this.isLoadingHistory = true;
           this.loadError = false;
           this.clearImageUrl(this.medication);
           this.medication = null;
+          this.stockHistory = [];
 
           return this.pharmacyApi.getMedicationById(id).pipe(
+            switchMap((medication) =>
+              this.pharmacyApi.getMedicationStockHistory(id).pipe(
+                map((history) => ({ medication, history })),
+                catchError(() => of({ medication, history: [] as MedicationStockHistoryDto[] }))
+              )
+            ),
             catchError(() => {
               this.loadError = true;
               this.isLoading = false;
+              this.isLoadingHistory = false;
               return EMPTY;
             })
           );
         }),
         takeUntilDestroyed(this.destroyRef)
       )
-      .subscribe((medication) => {
+      .subscribe(({ medication, history }) => {
         this.medication = medication;
+        this.stockHistory = history.map((row) => this.mapStockHistoryRow(row));
         this.isLoading = false;
+        this.isLoadingHistory = false;
         this.loadImageUrl(medication);
       });
   }
@@ -83,22 +98,34 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
     }
 
     this.isLoading = true;
+    this.isLoadingHistory = true;
     this.loadError = false;
     const previous = this.medication;
     this.clearImageUrl(previous);
 
     this.pharmacyApi
       .getMedicationById(id)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        switchMap((medication) =>
+          this.pharmacyApi.getMedicationStockHistory(id).pipe(
+            map((history) => ({ medication, history })),
+            catchError(() => of({ medication, history: [] as MedicationStockHistoryDto[] }))
+          )
+        ),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe({
-        next: (medication) => {
+        next: ({ medication, history }) => {
           this.medication = medication;
+          this.stockHistory = history.map((row) => this.mapStockHistoryRow(row));
           this.isLoading = false;
+          this.isLoadingHistory = false;
           this.loadImageUrl(medication);
         },
         error: () => {
           this.loadError = true;
           this.isLoading = false;
+          this.isLoadingHistory = false;
         },
       });
   }
@@ -234,6 +261,46 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
 
   back(): void {
     this.router.navigate(['/pharmacy/medications']);
+  }
+
+  formatStockChange(changeQuantity: number): string {
+    if (changeQuantity > 0) {
+      return `+${changeQuantity}`;
+    }
+
+    return String(changeQuantity);
+  }
+
+  private mapStockHistoryRow(row: MedicationStockHistoryDto): StockHistoryRow {
+    const note = this.stockHistoryNote(row);
+    return {
+      id: row.id,
+      date: new Date(row.occurredAt).toLocaleString('bs-BA', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+      change: this.formatStockChange(row.changeQuantity),
+      stock: row.stockAfter,
+      note,
+    };
+  }
+
+  private stockHistoryNote(row: MedicationStockHistoryDto): string | undefined {
+    switch (row.reason) {
+      case 'InitialStock':
+        return 'Početna zaliha';
+      case 'ManualAdjustment':
+        return 'Ručna izmjena';
+      case 'PrescriptionDispensed':
+        return row.referenceLabel ? `Recept ${row.referenceLabel}` : 'Izdavanje recepta';
+      case 'Import':
+        return 'CSV import';
+      default:
+        return row.referenceLabel ?? undefined;
+    }
   }
 
   private loadImageUrl(medication: MedicationDto): void {

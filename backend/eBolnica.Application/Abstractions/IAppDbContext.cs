@@ -17,6 +17,7 @@ public interface IAppDbContext
     DbSet<MedicalReportEntity> MedicalReports { get; }
     DbSet<MedicationEntity> Medications { get; }
     DbSet<MedicationImageEntity> MedicationImages { get; }
+    DbSet<MedicationStockHistoryEntity> MedicationStockHistory { get; }
     DbSet<PrescriptionEntity> Prescriptions { get; }
     DbSet<PrescriptionItemEntity> PrescriptionItems { get; }
 

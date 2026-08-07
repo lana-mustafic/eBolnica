@@ -2,6 +2,7 @@ using eBolnica.Application.Common;
 using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.UpdateMedication;
 using eBolnica.Domain.Entities.Pharmacy;
+using eBolnica.Domain.Entities.Pharmacy;
 using Microsoft.EntityFrameworkCore;
 
 public sealed class UpdateMedicationCommandHandler(IAppDbContext ctx, IPharmacyAnalyticsService analytics)
@@ -22,6 +23,8 @@ public sealed class UpdateMedicationCommandHandler(IAppDbContext ctx, IPharmacyA
 
         if (!request.IsActive && medication.IsActive)
             await MedicationWorkflowGuard.EnsureNoPendingPrescriptionsAsync(ctx, request.Id, ct);
+
+        var previousStock = medication.StockQuantity;
 
         medication.Name = request.Name.Trim();
         medication.NormalizedName = normalized;
@@ -60,6 +63,15 @@ public sealed class UpdateMedicationCommandHandler(IAppDbContext ctx, IPharmacyA
         {
             throw new eBolnicaConflictException("A medication with this name already exists.");
         }
+
+        MedicationStockHistoryWriter.Record(
+            ctx,
+            medication.Id,
+            previousStock,
+            medication.StockQuantity,
+            MedicationStockChangeReasons.ManualAdjustment);
+        if (previousStock != medication.StockQuantity)
+            await ctx.SaveChangesAsync(ct);
 
         analytics.InvalidateAnalyticsCache();
         return new MedicationDto
