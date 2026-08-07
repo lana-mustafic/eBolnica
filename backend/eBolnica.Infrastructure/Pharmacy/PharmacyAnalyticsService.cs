@@ -234,41 +234,192 @@ public sealed class PharmacyAnalyticsService(
         int[]? medicationIds = null,
         CancellationToken ct = default)
     {
-        var cacheKey = $"current_stock_snapshot_{string.Join(',', medicationIds ?? [])}";
+        const int trendDays = 30;
+        var endDate = DateTime.UtcNow.Date;
+        var startDate = endDate.AddDays(-(trendDays - 1));
+
+        var cacheKey = $"stock_history_trends_{startDate:yyyyMMdd}_{string.Join(',', medicationIds ?? [])}";
         if (cache.TryGetValue(cacheKey, out StockTrendsDataDto? cached))
             return cached!;
 
-        IQueryable<MedicationEntity> query = ctx.Medications.AsNoTracking().Where(m => m.IsActive);
-        if (medicationIds is { Length: > 0 })
-            query = query.Where(m => medicationIds.Contains(m.Id));
-        else
-            query = query.OrderByDescending(m => m.StockQuantity).Take(5);
+        var medIds = await ResolveTrendMedicationIdsAsync(medicationIds, startDate, ct);
+        if (medIds.Count == 0)
+            return BuildCurrentStockSnapshot(Array.Empty<MedicationTrendSource>(), cacheKey);
 
-        var meds = await query.Select(m => new { m.Id, m.Name, m.StockQuantity, m.MinimumStockLevel }).ToListAsync(ct);
+        var meds = await ctx.Medications
+            .AsNoTracking()
+            .Where(m => medIds.Contains(m.Id))
+            .Select(m => new MedicationTrendSource(m.Id, m.Name, m.StockQuantity, m.MinimumStockLevel))
+            .ToListAsync(ct);
+
+        var history = await ctx.MedicationStockHistory
+            .AsNoTracking()
+            .Where(h => medIds.Contains(h.MedicationId) && !h.IsDeleted && h.CreatedAtUtc >= startDate)
+            .OrderBy(h => h.CreatedAtUtc)
+            .Select(h => new StockHistoryPoint(h.MedicationId, h.CreatedAtUtc, h.StockAfter))
+            .ToListAsync(ct);
+
+        if (history.Count < 2)
+        {
+            var snapshotMeds = meds.Count > 0
+                ? meds
+                : await ctx.Medications.AsNoTracking()
+                    .Where(m => m.IsActive)
+                    .OrderByDescending(m => m.StockQuantity)
+                    .Take(5)
+                    .Select(m => new MedicationTrendSource(m.Id, m.Name, m.StockQuantity, m.MinimumStockLevel))
+                    .ToListAsync(ct);
+
+            return BuildCurrentStockSnapshot(snapshotMeds, cacheKey);
+        }
+
+        var timeline = Enumerable.Range(0, trendDays)
+            .Select(offset => startDate.AddDays(offset))
+            .ToList();
+
+        var data = new List<StockTrendItemDto>();
+        var summaries = new List<MedicationSummaryDto>();
+
+        for (var i = 0; i < meds.Count; i++)
+        {
+            var medication = meds[i];
+            var medicationHistory = history
+                .Where(h => h.MedicationId == medication.Id)
+                .OrderBy(h => h.OccurredAtUtc)
+                .ToList();
+
+            if (medicationHistory.Count == 0)
+                continue;
+
+            int? stockAtEndOfDay = null;
+            var pointsForMedication = new List<StockTrendItemDto>();
+
+            foreach (var day in timeline)
+            {
+                var dayEnd = day.AddDays(1);
+                var entriesOnDay = medicationHistory
+                    .Where(h => h.OccurredAtUtc >= day && h.OccurredAtUtc < dayEnd)
+                    .ToList();
+
+                if (entriesOnDay.Count > 0)
+                    stockAtEndOfDay = entriesOnDay[^1].StockAfter;
+
+                if (!stockAtEndOfDay.HasValue)
+                    continue;
+
+                var capacity = Math.Max(medication.MinimumStockLevel * 3, stockAtEndOfDay.Value);
+                var level = capacity > 0
+                    ? Math.Round((decimal)stockAtEndOfDay.Value / capacity * 100, 2)
+                    : 0m;
+
+                pointsForMedication.Add(new StockTrendItemDto
+                {
+                    Date = day,
+                    MedicationId = medication.Id,
+                    MedicationName = medication.Name,
+                    StockLevel = level,
+                    Quantity = stockAtEndOfDay.Value,
+                    Status = DetermineStockStatus(level)
+                });
+            }
+
+            if (pointsForMedication.Count == 0)
+                continue;
+
+            data.AddRange(pointsForMedication);
+
+            var firstQuantity = pointsForMedication[0].Quantity;
+            var lastQuantity = pointsForMedication[^1].Quantity;
+            summaries.Add(new MedicationSummaryDto
+            {
+                Id = medication.Id,
+                Name = medication.Name,
+                Color = ChartColors[i % ChartColors.Length],
+                CurrentStock = medication.CurrentStock,
+                TrendDirection = lastQuantity - firstQuantity
+            });
+        }
+
+        if (data.Count < 2)
+            return BuildCurrentStockSnapshot(meds, cacheKey);
+
+        var result = new StockTrendsDataDto
+        {
+            Data = data,
+            Medications = summaries,
+            Timeline = timeline.Select(d => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)).ToList(),
+            MetricType = "stock-history-trend",
+            SnapshotAt = DateTime.UtcNow,
+            Note = $"Promjene zaliha na osnovu historije za zadnjih {trendDays} dana."
+        };
+
+        cache.Set(cacheKey, result, CreateCacheEntryOptions());
+        return result;
+    }
+
+    private async Task<List<int>> ResolveTrendMedicationIdsAsync(
+        int[]? medicationIds,
+        DateTime startDate,
+        CancellationToken ct)
+    {
+        if (medicationIds is { Length: > 0 })
+            return medicationIds.Distinct().Take(5).ToList();
+
+        var idsFromHistory = await ctx.MedicationStockHistory
+            .AsNoTracking()
+            .Where(h => !h.IsDeleted && h.CreatedAtUtc >= startDate)
+            .GroupBy(h => h.MedicationId)
+            .OrderByDescending(g => g.Count())
+            .ThenBy(g => g.Key)
+            .Select(g => g.Key)
+            .Take(5)
+            .ToListAsync(ct);
+
+        if (idsFromHistory.Count > 0)
+            return idsFromHistory;
+
+        return await ctx.Medications
+            .AsNoTracking()
+            .Where(m => m.IsActive)
+            .OrderByDescending(m => m.StockQuantity)
+            .Select(m => m.Id)
+            .Take(5)
+            .ToListAsync(ct);
+    }
+
+    private StockTrendsDataDto BuildCurrentStockSnapshot(
+        IReadOnlyList<MedicationTrendSource> meds,
+        string cacheKey)
+    {
         var snapshotAt = DateTime.UtcNow;
         var data = new List<StockTrendItemDto>();
         var summaries = new List<MedicationSummaryDto>();
 
         for (var i = 0; i < meds.Count; i++)
         {
-            var m = meds[i];
-            var capacity = Math.Max(m.MinimumStockLevel * 3, m.StockQuantity);
-            var level = capacity > 0 ? Math.Round((decimal)m.StockQuantity / capacity * 100, 2) : 0m;
+            var medication = meds[i];
+            var capacity = Math.Max(medication.MinimumStockLevel * 3, medication.CurrentStock);
+            var level = capacity > 0
+                ? Math.Round((decimal)medication.CurrentStock / capacity * 100, 2)
+                : 0m;
+
             data.Add(new StockTrendItemDto
             {
                 Date = snapshotAt,
-                MedicationId = m.Id,
-                MedicationName = m.Name,
+                MedicationId = medication.Id,
+                MedicationName = medication.Name,
                 StockLevel = level,
-                Quantity = m.StockQuantity,
+                Quantity = medication.CurrentStock,
                 Status = DetermineStockStatus(level)
             });
+
             summaries.Add(new MedicationSummaryDto
             {
-                Id = m.Id,
-                Name = m.Name,
+                Id = medication.Id,
+                Name = medication.Name,
                 Color = ChartColors[i % ChartColors.Length],
-                CurrentStock = m.StockQuantity
+                CurrentStock = medication.CurrentStock,
+                TrendDirection = 0
             });
         }
 
@@ -276,14 +427,23 @@ public sealed class PharmacyAnalyticsService(
         {
             Data = data,
             Medications = summaries,
+            Timeline = Array.Empty<string>(),
             MetricType = "current-stock-snapshot",
             SnapshotAt = snapshotAt,
-            Note = "Snapshot of current stock levels; historical trend data is not yet tracked."
+            Note = "Trenutni nivoi zaliha. Trend će biti dostupan nakon više zabilježenih promjena."
         };
 
         cache.Set(cacheKey, result, CreateCacheEntryOptions());
         return result;
     }
+
+    private sealed record MedicationTrendSource(
+        int Id,
+        string Name,
+        int CurrentStock,
+        int MinimumStockLevel);
+
+    private sealed record StockHistoryPoint(int MedicationId, DateTime OccurredAtUtc, int StockAfter);
 
     public void InvalidateAnalyticsCache()
     {

@@ -265,9 +265,17 @@ export interface StockTrendItemDto {
 
 export interface StockTrendsDataDto {
   data: StockTrendItemDto[];
-  medications: { id: number; name: string; color: string; currentStock: number }[];
+  medications: {
+    id: number;
+    name: string;
+    color: string;
+    currentStock: number;
+    trendDirection?: number;
+  }[];
+  timeline?: string[];
   metricType: string;
   snapshotAt: string;
+  note?: string | null;
 }
 
 export interface StatisticsSummaryDto {

@@ -37,6 +37,10 @@ export class PharmacyDashboardComponent implements OnInit {
   revenueItems: MonthlyRevenueItemDto[] = [];
   categories: CategoryItemDto[] = [];
   stockItems: StockTrendItemDto[] = [];
+  stockTimeline: string[] = [];
+  stockMedications: { id: number; name: string; color: string; currentStock: number }[] = [];
+  stockMetricType = 'current-stock-snapshot';
+  stockNote?: string;
   revenueChange = 0;
   todayShortLabel = this.formatTodayShort();
 
@@ -64,6 +68,10 @@ export class PharmacyDashboardComponent implements OnInit {
         this.revenueItems = stats.monthlyRevenue.data.slice(-6);
         this.categories = stats.topCategories.data;
         this.stockItems = stats.stockTrends.data;
+        this.stockTimeline = stats.stockTrends.timeline ?? [];
+        this.stockMedications = stats.stockTrends.medications ?? [];
+        this.stockMetricType = stats.stockTrends.metricType;
+        this.stockNote = stats.stockTrends.note ?? undefined;
         this.revenueChange = stats.monthlyRevenue.revenueChangePercentage;
       });
 
@@ -72,6 +80,20 @@ export class PharmacyDashboardComponent implements OnInit {
 
   reload(): void {
     this.loadTrigger$.next();
+  }
+
+  get stockChartTitle(): string {
+    return this.stockMetricType === 'stock-history-trend' ? 'Trend zaliha' : 'Stanje zaliha';
+  }
+
+  get stockChartSubtitle(): string {
+    if (this.stockNote) {
+      return this.stockNote;
+    }
+
+    return this.stockMetricType === 'stock-history-trend'
+      ? 'Promjene zaliha u zadnjih 30 dana'
+      : 'Trenutni nivoi zaliha po lijekovima';
   }
 
   get revenueTrendLabel(): string | undefined {
