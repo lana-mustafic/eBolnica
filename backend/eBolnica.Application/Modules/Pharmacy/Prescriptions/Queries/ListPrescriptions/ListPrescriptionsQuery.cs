@@ -16,9 +16,18 @@ public sealed class ListPrescriptionsQuery : IRequest<ListPrescriptionsQueryDto>
     public string? SortOrder { get; set; }
 }
 
+public sealed class PrescriptionListSummaryDto
+{
+    public int TotalPrescriptions { get; set; }
+    public int PendingPrescriptions { get; set; }
+    public int DispensedPrescriptions { get; set; }
+    public decimal TotalRevenue { get; set; }
+}
+
 public sealed class ListPrescriptionsQueryDto
 {
     public IReadOnlyList<PrescriptionDto> Items { get; set; } = Array.Empty<PrescriptionDto>();
+    public PrescriptionListSummaryDto Summary { get; set; } = new();
     public int TotalCount { get; set; }
     public int CurrentPage { get; set; }
     public int PageSize { get; set; }

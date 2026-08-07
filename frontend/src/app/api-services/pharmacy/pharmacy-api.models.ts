@@ -96,6 +96,8 @@ export interface InventoryResponse {
   expiryAlerts: MedicationDto[];
   lowStockAlertCount: number;
   expiryAlertCount: number;
+  totalMedications: number;
+  inventoryValue: number;
   totalCount: number;
   currentPage: number;
   pageSize: number;
@@ -187,8 +189,16 @@ export interface ListPrescriptionsRequest {
   sortOrder?: 'asc' | 'desc';
 }
 
+export interface PrescriptionListSummaryDto {
+  totalPrescriptions: number;
+  pendingPrescriptions: number;
+  dispensedPrescriptions: number;
+  totalRevenue: number;
+}
+
 export interface ListPrescriptionsResponse {
   items: PrescriptionDto[];
+  summary: PrescriptionListSummaryDto;
   totalCount: number;
   currentPage: number;
   pageSize: number;

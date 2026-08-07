@@ -18,6 +18,18 @@ public sealed class ListPrescriptionsQueryHandler(IAppDbContext ctx)
             request.PatientSearch,
             request.DoctorSearch);
 
+        var summary = await ctx.Prescriptions
+            .AsNoTracking()
+            .GroupBy(_ => 1)
+            .Select(g => new PrescriptionListSummaryDto
+            {
+                TotalPrescriptions = g.Count(),
+                PendingPrescriptions = g.Count(p => p.Status == PrescriptionStatuses.Pending),
+                DispensedPrescriptions = g.Count(p => p.Status == PrescriptionStatuses.Dispensed),
+                TotalRevenue = g.Where(p => p.Status == PrescriptionStatuses.Dispensed).Sum(p => p.TotalAmount)
+            })
+            .FirstOrDefaultAsync(ct) ?? new PrescriptionListSummaryDto();
+
         var totalCount = await query.CountAsync(ct);
         var page = Math.Max(1, request.PageNumber);
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
@@ -34,6 +46,7 @@ public sealed class ListPrescriptionsQueryHandler(IAppDbContext ctx)
         return new ListPrescriptionsQueryDto
         {
             Items = items.Select(PrescriptionMapping.MapToDto).ToList(),
+            Summary = summary,
             TotalCount = totalCount,
             CurrentPage = page,
             PageSize = pageSize,

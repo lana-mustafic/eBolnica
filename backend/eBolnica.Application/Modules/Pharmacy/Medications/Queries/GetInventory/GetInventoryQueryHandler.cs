@@ -40,6 +40,17 @@ public sealed class GetInventoryQueryHandler(IAppDbContext ctx)
             })
             .FirstOrDefaultAsync(ct);
 
+        var globalStats = await ctx.Medications
+            .AsNoTracking()
+            .Where(m => m.IsActive)
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                TotalMedications = g.Count(),
+                InventoryValue = g.Sum(m => m.Price * m.StockQuantity)
+            })
+            .FirstOrDefaultAsync(ct);
+
         var totalCount = stats?.TotalCount ?? 0;
         var lowStockAlertCount = stats?.LowStockAlertCount ?? 0;
         var expiryAlertCount = stats?.ExpiryAlertCount ?? 0;
@@ -77,6 +88,8 @@ public sealed class GetInventoryQueryHandler(IAppDbContext ctx)
             ExpiryAlerts = expiryAlerts,
             LowStockAlertCount = lowStockAlertCount,
             ExpiryAlertCount = expiryAlertCount,
+            TotalMedications = globalStats?.TotalMedications ?? 0,
+            InventoryValue = globalStats?.InventoryValue ?? 0,
             TotalCount = totalCount,
             CurrentPage = page,
             PageSize = pageSize,

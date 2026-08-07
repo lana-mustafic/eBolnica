@@ -77,28 +77,6 @@ export class PharmacyPrescriptionsComponent implements OnInit {
   private loadTrigger$ = new Subject<void>();
 
   ngOnInit(): void {
-    this.pharmacyApi
-      .getDashboardStats()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (res) => {
-          const summary = res.metadata.summary;
-          this.totalPrescriptions = summary.totalPrescriptions;
-          this.pendingPrescriptions = summary.pendingPrescriptions;
-          this.dispensedPrescriptions = Math.max(
-            0,
-            summary.totalPrescriptions - summary.pendingPrescriptions
-          );
-          this.totalRevenue = summary.totalRevenue;
-        },
-        error: () => {
-          this.totalPrescriptions = 0;
-          this.pendingPrescriptions = 0;
-          this.dispensedPrescriptions = 0;
-          this.totalRevenue = 0;
-        },
-      });
-
     this.loadTrigger$
       .pipe(
         switchMap(() => {
@@ -120,6 +98,10 @@ export class PharmacyPrescriptionsComponent implements OnInit {
         if (!res) return;
 
         this.prescriptions = res.items;
+        this.totalPrescriptions = res.summary.totalPrescriptions;
+        this.pendingPrescriptions = res.summary.pendingPrescriptions;
+        this.dispensedPrescriptions = res.summary.dispensedPrescriptions;
+        this.totalRevenue = res.summary.totalRevenue;
         this.totalCount = res.totalCount;
         this.totalPages = res.totalPages;
         this.currentPage = res.currentPage;
@@ -252,21 +234,6 @@ export class PharmacyPrescriptionsComponent implements OnInit {
   }
 
   reload(): void {
-    this.pharmacyApi
-      .getDashboardStats()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (res) => {
-          const summary = res.metadata.summary;
-          this.totalPrescriptions = summary.totalPrescriptions;
-          this.pendingPrescriptions = summary.pendingPrescriptions;
-          this.dispensedPrescriptions = Math.max(
-            0,
-            summary.totalPrescriptions - summary.pendingPrescriptions
-          );
-          this.totalRevenue = summary.totalRevenue;
-        },
-      });
     this.loadTrigger$.next();
   }
 

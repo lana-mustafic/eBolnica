@@ -50,20 +50,6 @@ export class PharmacyInventoryComponent implements OnInit {
   private loadTrigger$ = new Subject<void>();
 
   ngOnInit(): void {
-    this.pharmacyApi
-      .getDashboardStats()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (res) => {
-          this.inventoryValue = res.metadata.summary.inventoryValue;
-          this.totalMedications = res.metadata.summary.totalMedications;
-        },
-        error: () => {
-          this.inventoryValue = 0;
-          this.totalMedications = 0;
-        },
-      });
-
     this.loadTrigger$
       .pipe(
         switchMap(() => {
@@ -93,6 +79,8 @@ export class PharmacyInventoryComponent implements OnInit {
         this.expiryAlerts = res.expiryAlerts;
         this.lowStockAlertCount = res.lowStockAlertCount ?? res.lowStockAlerts.length;
         this.expiryAlertCount = res.expiryAlertCount ?? res.expiryAlerts.length;
+        this.totalMedications = res.totalMedications;
+        this.inventoryValue = res.inventoryValue;
         this.totalCount = res.totalCount;
         this.totalPages = res.totalPages;
         this.currentPage = res.currentPage;
@@ -213,15 +201,6 @@ export class PharmacyInventoryComponent implements OnInit {
   }
 
   reload(): void {
-    this.pharmacyApi
-      .getDashboardStats()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (res) => {
-          this.inventoryValue = res.metadata.summary.inventoryValue;
-          this.totalMedications = res.metadata.summary.totalMedications;
-        },
-      });
     this.loadTrigger$.next();
   }
 
