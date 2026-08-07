@@ -480,6 +480,16 @@
   color: $pharmacy-text-secondary;
 }
 
+.table-empty-state {
+  padding: 8px 0 4px;
+}
+
+.empty-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .error-card p {
   margin: 0 0 12px;
   color: $pharmacy-danger;

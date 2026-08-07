@@ -104,6 +104,22 @@ export class PharmacyPrescriptionsComponent implements OnInit {
     }))
   );
 
+  isOutOfRangePage = computed(
+    () => this.prescriptions().length === 0 && this.totalCount() > 0 && this.currentPage() > this.totalPages()
+  );
+
+  tableEmptyMessage = computed(() => {
+    if (this.isOutOfRangePage()) {
+      return `Nema recepata na stranici ${this.currentPage()}. Pronađeno ${this.totalCount()} za odabrane filtere.`;
+    }
+
+    if (this.hasActiveFilters()) {
+      return 'Nema recepata koji odgovaraju odabranim filterima.';
+    }
+
+    return 'Još nema unesenih recepata.';
+  });
+
   ngOnInit(): void {
     this.activitiesLoadTrigger$
       .pipe(
@@ -135,6 +151,14 @@ export class PharmacyPrescriptionsComponent implements OnInit {
       .subscribe((res) => {
         this.isLoading.set(false);
         if (!res) return;
+
+        if (res.items.length === 0 && res.totalCount > 0 && res.currentPage > res.totalPages) {
+          this.totalCount.set(res.totalCount);
+          this.totalPages.set(res.totalPages);
+          this.currentPage.set(1);
+          this.loadTrigger$.next();
+          return;
+        }
 
         this.prescriptions.set(res.items);
         this.totalPrescriptions.set(res.summary.totalPrescriptions);
@@ -278,6 +302,12 @@ export class PharmacyPrescriptionsComponent implements OnInit {
   goToPage(page: number): void {
     if (page < 1 || page > this.totalPages()) return;
     this.currentPage.set(page);
+    this.loadTrigger$.next();
+  }
+
+  goToFirstPage(): void {
+    if (this.currentPage() <= 1) return;
+    this.currentPage.set(1);
     this.loadTrigger$.next();
   }
 

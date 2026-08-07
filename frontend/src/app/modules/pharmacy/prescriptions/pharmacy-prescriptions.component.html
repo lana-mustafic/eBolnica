@@ -146,10 +146,19 @@
         </div>
 
         @if (prescriptions().length === 0) {
-          <p class="empty-state">Nema recepata za odabrane filtere.</p>
-          @if (hasActiveFilters()) {
-            <button type="button" class="btn btn-outline" (click)="clearFilters()">Očisti filtere</button>
-          }
+          <div class="table-empty-state">
+            <p class="empty-state">{{ tableEmptyMessage() }}</p>
+            <div class="empty-state-actions">
+              @if (isOutOfRangePage()) {
+                <button type="button" class="btn btn-primary" (click)="goToFirstPage()">
+                  Idi na prvu stranicu
+                </button>
+              }
+              @if (hasActiveFilters()) {
+                <button type="button" class="btn btn-outline" (click)="clearFilters()">Očisti filtere</button>
+              }
+            </div>
+          </div>
         } @else {
           <div class="table-scroll">
             <table mat-table [dataSource]="prescriptions()" class="prescriptions-table">
