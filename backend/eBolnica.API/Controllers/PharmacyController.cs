@@ -2,9 +2,6 @@ using eBolnica.Application.Modules.Pharmacy.Analytics;
 using eBolnica.Application.Modules.Pharmacy.Analytics.Queries.ExportInventoryPdf;
 using eBolnica.Application.Modules.Pharmacy.Analytics.Queries.ExportPrescriptionsPdf;
 using eBolnica.Application.Modules.Pharmacy.Analytics.Queries.GetDashboardStats;
-using eBolnica.Application.Modules.Pharmacy.Analytics.Queries.GetMonthlyRevenue;
-using eBolnica.Application.Modules.Pharmacy.Analytics.Queries.GetStockTrends;
-using eBolnica.Application.Modules.Pharmacy.Analytics.Queries.GetTopCategories;
 using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.CreateMedication;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.DeleteMedication;
@@ -289,27 +286,6 @@ public sealed class PharmacyController(IMediator mediator) : ControllerBase
     [Authorize(Policy = "PharmacistOnly")]
     public async Task<ActionResult<DashboardStatsResponseDto>> GetDashboardStats(
         [FromQuery] GetDashboardStatsQuery query,
-        CancellationToken ct)
-        => Ok(await mediator.Send(query, ct));
-
-    [HttpGet("analytics/monthly-revenue")]
-    [Authorize(Policy = "PharmacistOnly")]
-    public async Task<ActionResult<RevenueDataDto>> GetMonthlyRevenue(
-        [FromQuery] GetMonthlyRevenueQuery query,
-        CancellationToken ct)
-        => Ok(await mediator.Send(query, ct));
-
-    [HttpGet("analytics/top-categories")]
-    [Authorize(Policy = "PharmacistOnly")]
-    public async Task<ActionResult<CategoriesDataDto>> GetTopCategories(
-        [FromQuery] GetTopCategoriesQuery query,
-        CancellationToken ct)
-        => Ok(await mediator.Send(query, ct));
-
-    [HttpGet("analytics/stock-trends")]
-    [Authorize(Policy = "PharmacistOnly")]
-    public async Task<ActionResult<StockTrendsDataDto>> GetStockTrends(
-        [FromQuery] GetStockTrendsQuery query,
         CancellationToken ct)
         => Ok(await mediator.Send(query, ct));
 
