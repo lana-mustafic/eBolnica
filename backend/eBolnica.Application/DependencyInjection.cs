@@ -1,4 +1,6 @@
+using eBolnica.Application.Abstractions;
 using eBolnica.Application.Common.Behaviors;
+using eBolnica.Application.Modules.Pharmacy.Prescriptions;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
@@ -21,6 +23,8 @@ public static class DependencyInjection
 
         // TimeProvider — if used by handlers
         services.AddSingleton(TimeProvider.System);
+
+        services.AddScoped<IPrescriptionCreationService, PrescriptionCreationService>();
 
         return services;
     }
