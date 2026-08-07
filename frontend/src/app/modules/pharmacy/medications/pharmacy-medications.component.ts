@@ -109,11 +109,11 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
           this.isLoading.set(true);
           this.loadError.set(false);
           return this.pharmacyApi.listMedications(this.buildRequest()).pipe(
-            catchError(() => {
+            catchError((err) => {
               this.loadError.set(true);
               this.medications.set([]);
               this.thumbnailUrls.set(new Map());
-              this.toaster.error('Greška pri učitavanju lijekova.');
+              this.toaster.error(getApiErrorMessage(err, 'Greška pri učitavanju lijekova.'));
               return of(null);
             })
           );
@@ -391,7 +391,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
           this.pharmacyApi.downloadBlobResponse(res, 'inventory.pdf');
           this.toaster.success('PDF inventar preuzet.');
         },
-        error: () => this.toaster.error('Greška pri exportu PDF.'),
+        error: (err) => this.toaster.error(getApiErrorMessage(err, 'Greška pri exportu PDF.')),
       });
   }
 
@@ -405,7 +405,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
           if (!blob) return;
           this.downloadBlob(blob, 'medication-import-template.csv');
         },
-        error: () => this.toaster.error('Greška pri preuzimanju templatea.'),
+        error: (err) => this.toaster.error(getApiErrorMessage(err, 'Greška pri preuzimanju templatea.')),
       });
   }
 

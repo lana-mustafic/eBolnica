@@ -14,6 +14,7 @@ import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.
 import { MedicationDto } from '../../../api-services/pharmacy/pharmacy-api.models';
 import { getMedicationCategoryLabel, MEDICATION_CATEGORIES } from '../constants/medication-categories.constant';
 import { ToasterService } from '../../../core/services/toaster.service';
+import { getApiErrorMessage } from '../../../core/utils/api-error.util';
 import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
 
 @Component({
@@ -69,12 +70,12 @@ export class PharmacyInventoryComponent implements OnInit {
           this.isLoading.set(true);
           this.loadError.set(false);
           return this.pharmacyApi.getInventory(this.buildRequest()).pipe(
-            catchError(() => {
+            catchError((err) => {
               this.loadError.set(true);
               this.items.set([]);
               this.lowStockAlerts.set([]);
               this.expiryAlerts.set([]);
-              this.toaster.error('Greška pri učitavanju inventara.');
+              this.toaster.error(getApiErrorMessage(err, 'Greška pri učitavanju inventara.'));
               return of(null);
             })
           );
@@ -222,7 +223,7 @@ export class PharmacyInventoryComponent implements OnInit {
           this.pharmacyApi.downloadBlobResponse(res, 'inventory.pdf');
           this.toaster.success('PDF inventar preuzet.');
         },
-        error: () => this.toaster.error('Greška pri exportu PDF.'),
+        error: (err) => this.toaster.error(getApiErrorMessage(err, 'Greška pri exportu PDF.')),
       });
   }
 

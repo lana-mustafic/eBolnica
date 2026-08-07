@@ -122,10 +122,10 @@ export class PharmacyPrescriptionsComponent implements OnInit {
           this.isLoading.set(true);
           this.loadError.set(false);
           return this.pharmacyApi.listPrescriptions(this.buildRequest()).pipe(
-            catchError(() => {
+            catchError((err) => {
               this.loadError.set(true);
               this.prescriptions.set([]);
-              this.toaster.error('Greška pri učitavanju recepata.');
+              this.toaster.error(getApiErrorMessage(err, 'Greška pri učitavanju recepata.'));
               return of(null);
             })
           );
@@ -380,7 +380,7 @@ export class PharmacyPrescriptionsComponent implements OnInit {
           this.pharmacyApi.downloadBlobResponse(res, 'prescriptions.pdf');
           this.toaster.success('PDF recepata preuzet.');
         },
-        error: () => this.toaster.error('Greška pri exportu PDF.'),
+        error: (err) => this.toaster.error(getApiErrorMessage(err, 'Greška pri exportu PDF.')),
       });
   }
 

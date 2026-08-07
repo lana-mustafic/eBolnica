@@ -8,15 +8,29 @@ export interface ApiErrorBody {
 }
 
 const PHARMACY_ERROR_MESSAGES: Record<string, string> = {
+  'auth.not_authenticated': 'Niste prijavljeni.',
+  'auth.not_approved': 'Vaš nalog nije odobren.',
+  'validation.failed': 'Neispravan zahtjev.',
+  'validation.error': 'Validacija nije uspjela.',
+  'not_found': 'Traženi resurs nije pronađen.',
+  'conflict': 'Operacija nije moguća zbog konflikta stanja.',
+  'export.limit_exceeded': 'Previše stavki za PDF izvoz. Sužite filtere ili koristite CSV izvoz.',
+  'import.limit_exceeded': 'CSV import prelazi dozvoljeni broj redova.',
+  'upload.no_file': 'Datoteka nije odabrana.',
+  'upload.file_too_large': 'Datoteka prelazi limit od 5 MB.',
   'prescription.insufficient_stock': 'Nedovoljna zaliha za izdavanje recepta.',
   'prescription.medication_otc': 'Odabrani lijek ne zahtijeva recept.',
   'prescription.already_processed': 'Recept je već obrađen.',
   'prescription.medication_inactive': 'Jedan od lijekova na receptu nije aktivan.',
   'prescription.medication_expired': 'Jedan od lijekova na receptu je istekao.',
+  'prescription.medication_missing': 'Jedan ili više lijekova nije pronađen.',
+  'prescription.no_items': 'Recept nema stavki za izdavanje.',
+  'prescription.report_access': 'Medicinski izvještaj vam ne pripada.',
+  'prescription.report_patient_mismatch': 'Medicinski izvještaj ne pripada odabranom pacijentu.',
+  'prescription.patient_access': 'Pacijent vam nije dodijeljen.',
   'medication.pending_prescriptions': 'Lijek ima recepte na čekanju i ne može biti deaktiviran.',
-  'upload.no_file': 'Datoteka nije odabrana.',
-  'upload.file_too_large': 'Datoteka prelazi limit od 5 MB.',
-  'export.limit_exceeded': 'Previše stavki za PDF izvoz. Sužite filtere ili koristite CSV izvoz.',
+  'medication.prescription_history': 'Lijek se ne može obrisati jer postoji u historiji recepata.',
+  'image.reorder_invalid': 'Neispravan redoslijed slika.',
 };
 
 export function getApiErrorBody(error: HttpErrorResponse): ApiErrorBody | null {
@@ -25,7 +39,13 @@ export function getApiErrorBody(error: HttpErrorResponse): ApiErrorBody | null {
     return null;
   }
 
-  return body as ApiErrorBody;
+  const record = body as Record<string, unknown>;
+  return {
+    code: readString(record, 'code', 'Code'),
+    message: readString(record, 'message', 'Message'),
+    traceId: readString(record, 'traceId', 'TraceId'),
+    details: readString(record, 'details', 'Details'),
+  };
 }
 
 export function getApiErrorCode(error: HttpErrorResponse): string | undefined {
@@ -67,10 +87,21 @@ export function getApiErrorMessage(error: HttpErrorResponse, fallback = 'Došlo 
     case 404:
       return 'Traženi resurs nije pronađen.';
     case 409:
-      return 'Operacija nije moguća zbog konflikta stanja.';
+      return PHARMACY_ERROR_MESSAGES['conflict'];
     case 500:
       return 'Greška na serveru.';
     default:
       return fallback;
   }
+}
+
+function readString(record: Record<string, unknown>, ...keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value;
+    }
+  }
+
+  return undefined;
 }
