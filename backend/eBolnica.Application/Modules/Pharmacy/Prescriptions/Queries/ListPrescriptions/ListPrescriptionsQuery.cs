@@ -6,6 +6,8 @@ public sealed class ListPrescriptionsQuery : IRequest<ListPrescriptionsQueryDto>
 {
     public string? Status { get; set; }
     public string? Search { get; set; }
+    public string? PatientSearch { get; set; }
+    public string? DoctorSearch { get; set; }
     public DateTime? PrescribedFrom { get; set; }
     public DateTime? PrescribedTo { get; set; }
     public int PageNumber { get; set; } = 1;

@@ -219,12 +219,13 @@ export class PharmacyPrescriptionsComponent implements OnInit {
   }
 
   private buildRequest() {
-    const searchTerm = this.resolveSearchTerm();
     const dateRange = this.resolvePrescribedDateRange();
 
     return {
       status: this.selectedStatus === 'All' ? undefined : this.selectedStatus,
-      search: searchTerm,
+      search: this.search.trim() || undefined,
+      patientSearch: this.patientFilter.trim() || undefined,
+      doctorSearch: this.doctorFilter.trim() || undefined,
       prescribedFrom: dateRange.prescribedFrom,
       prescribedTo: dateRange.prescribedTo,
       pageNumber: this.currentPage,
@@ -256,22 +257,6 @@ export class PharmacyPrescriptionsComponent implements OnInit {
       prescribedFrom: start.toISOString(),
       prescribedTo: now.toISOString(),
     };
-  }
-
-  private resolveSearchTerm(): string | undefined {
-    if (this.search.trim()) {
-      return this.search.trim();
-    }
-
-    if (this.patientFilter.trim()) {
-      return this.patientFilter.trim();
-    }
-
-    if (this.doctorFilter.trim()) {
-      return this.doctorFilter.trim();
-    }
-
-    return undefined;
   }
 
   onSearchInput(): void {

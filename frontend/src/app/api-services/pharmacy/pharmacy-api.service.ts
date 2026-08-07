@@ -164,6 +164,8 @@ export class PharmacyApiService {
 
     if (request.status) params = params.set('status', request.status);
     if (request.search) params = params.set('search', request.search);
+    if (request.patientSearch) params = params.set('patientSearch', request.patientSearch);
+    if (request.doctorSearch) params = params.set('doctorSearch', request.doctorSearch);
     if (request.prescribedFrom) params = params.set('prescribedFrom', request.prescribedFrom);
     if (request.prescribedTo) params = params.set('prescribedTo', request.prescribedTo);
     if (request.sortBy) params = params.set('sortBy', request.sortBy);
@@ -219,6 +221,8 @@ export class PharmacyApiService {
     let params = new HttpParams();
     if (request.status) params = params.set('status', request.status);
     if (request.search) params = params.set('search', request.search);
+    if (request.patientSearch) params = params.set('patientSearch', request.patientSearch);
+    if (request.doctorSearch) params = params.set('doctorSearch', request.doctorSearch);
     if (request.prescribedFrom) params = params.set('prescribedFrom', request.prescribedFrom);
     if (request.prescribedTo) params = params.set('prescribedTo', request.prescribedTo);
     if (request.sortBy) params = params.set('sortBy', request.sortBy);

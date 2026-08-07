@@ -9,7 +9,9 @@ public static class PrescriptionQueryFilters
         string? status,
         string? search,
         DateTime? prescribedFrom = null,
-        DateTime? prescribedTo = null)
+        DateTime? prescribedTo = null,
+        string? patientSearch = null,
+        string? doctorSearch = null)
     {
         if (!string.IsNullOrWhiteSpace(status) &&
             !string.Equals(status, "All", StringComparison.OrdinalIgnoreCase))
@@ -23,11 +25,23 @@ public static class PrescriptionQueryFilters
             var term = search.Trim().ToLowerInvariant();
             query = query.Where(p =>
                 p.PrescriptionNumber.ToLower().Contains(term) ||
-                p.Patient.FirstName.ToLower().Contains(term) ||
-                p.Patient.LastName.ToLower().Contains(term) ||
-                p.Doctor.FirstName.ToLower().Contains(term) ||
-                p.Doctor.LastName.ToLower().Contains(term) ||
                 p.Items.Any(i => i.Medication.Name.ToLower().Contains(term)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(patientSearch))
+        {
+            var term = patientSearch.Trim().ToLowerInvariant();
+            query = query.Where(p =>
+                p.Patient.FirstName.ToLower().Contains(term) ||
+                p.Patient.LastName.ToLower().Contains(term));
+        }
+
+        if (!string.IsNullOrWhiteSpace(doctorSearch))
+        {
+            var term = doctorSearch.Trim().ToLowerInvariant();
+            query = query.Where(p =>
+                p.Doctor.FirstName.ToLower().Contains(term) ||
+                p.Doctor.LastName.ToLower().Contains(term));
         }
 
         if (prescribedFrom.HasValue)
