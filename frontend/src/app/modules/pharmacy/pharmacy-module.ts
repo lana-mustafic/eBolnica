@@ -5,6 +5,7 @@ import { PharmacyDashboardComponent } from './dashboard/pharmacy-dashboard.compo
 import { PharmacyRevenueChartComponent } from './dashboard/charts/pharmacy-revenue-chart.component';
 import { PharmacyCategoriesChartComponent } from './dashboard/charts/pharmacy-categories-chart.component';
 import { PharmacyStockChartComponent } from './dashboard/charts/pharmacy-stock-chart.component';
+import { PharmacyAnalyticsChartsComponent } from './dashboard/charts/pharmacy-analytics-charts.component';
 import { PharmacyMedicationsComponent } from './medications/pharmacy-medications.component';
 import { MedicationFormComponent } from './medications/medication-form/medication-form.component';
 import { MedicationDetailComponent } from './medications/medication-detail/medication-detail.component';
@@ -25,6 +26,7 @@ import { SharedModule } from '../shared/shared-module';
     PharmacyRevenueChartComponent,
     PharmacyCategoriesChartComponent,
     PharmacyStockChartComponent,
+    PharmacyAnalyticsChartsComponent,
     PharmacyMedicationsComponent,
     MedicationFormComponent,
     MedicationDetailComponent,

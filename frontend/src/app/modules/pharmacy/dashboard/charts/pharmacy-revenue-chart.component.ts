@@ -32,9 +32,14 @@ import {
 export class PharmacyRevenueChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('canvas') canvas?: ElementRef<HTMLCanvasElement>;
   @Input() items: MonthlyRevenueItemDto[] = [];
+  @Input() emptyMessage = 'Nema podataka za prikaz grafikona.';
 
   @HostBinding('style.--chart-host-height')
   readonly chartHostHeight = '320px';
+
+  get hasData(): boolean {
+    return this.items.length > 0;
+  }
 
   private readonly host = inject(ElementRef<HTMLElement>);
   private chart?: Chart;

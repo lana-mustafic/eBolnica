@@ -35,9 +35,14 @@ const CHART_COLORS = ['#7C3AED', '#22C55E', '#3B82F6', '#F59E0B', '#EF4444', '#0
 export class PharmacyCategoriesChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('canvas') canvas?: ElementRef<HTMLCanvasElement>;
   @Input() items: CategoryItemDto[] = [];
+  @Input() emptyMessage = 'Nema podataka za prikaz grafikona.';
 
   @HostBinding('style.--chart-host-height')
   readonly chartHostHeight = '300px';
+
+  get hasData(): boolean {
+    return this.items.length > 0;
+  }
 
   private readonly host = inject(ElementRef<HTMLElement>);
   private chart?: Chart;

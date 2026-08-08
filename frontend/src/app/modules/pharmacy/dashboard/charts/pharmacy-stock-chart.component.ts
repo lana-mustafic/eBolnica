@@ -43,6 +43,7 @@ export class PharmacyStockChartComponent implements AfterViewInit, OnChanges, On
   @Input() timeline: string[] = [];
   @Input() medications: StockChartMedication[] = [];
   @Input() metricType = 'current-stock-snapshot';
+  @Input() emptyMessage = 'Nema podataka za prikaz grafikona.';
 
   @HostBinding('style.--chart-host-height')
   get chartHostHeight(): string {
@@ -53,6 +54,10 @@ export class PharmacyStockChartComponent implements AfterViewInit, OnChanges, On
     const count = Math.max(this.items.length, 1);
     const height = Math.min(520, Math.max(280, count * 36 + 56));
     return `${height}px`;
+  }
+
+  get hasData(): boolean {
+    return this.items.length > 0;
   }
 
   private readonly host = inject(ElementRef<HTMLElement>);

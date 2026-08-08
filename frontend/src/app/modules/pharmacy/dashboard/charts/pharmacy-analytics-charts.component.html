@@ -1,0 +1,54 @@
+<section class="analytics-charts-grid" aria-label="Analitički grafikoni">
+  <article class="card chart-card">
+    <div class="card-heading">
+      <h2>Prihod po mjesecima</h2>
+      <p>
+        {{ revenueChartSubtitle }}
+        @if (revenueTrendLabel) {
+          <span
+            class="inline-trend"
+            [class.positive]="revenueChange >= 0"
+            [class.negative]="revenueChange < 0"
+          >
+            {{ revenueChange >= 0 ? '▲' : '▼' }} {{ revenueTrendLabel }}
+          </span>
+        }
+      </p>
+    </div>
+    <div class="card-body">
+      <app-pharmacy-revenue-chart
+        [items]="revenueItems"
+        emptyMessage="Nema podataka o prihodu (izdaj recepte za prikaz)."
+      ></app-pharmacy-revenue-chart>
+    </div>
+  </article>
+
+  <article class="card chart-card">
+    <div class="card-heading">
+      <h2>Kategorije lijekova</h2>
+      <p>{{ categoriesChartSubtitle }}</p>
+    </div>
+    <div class="card-body">
+      <app-pharmacy-categories-chart
+        [items]="categories"
+        emptyMessage="Nema podataka o kategorijama."
+      ></app-pharmacy-categories-chart>
+    </div>
+  </article>
+
+  <article class="card chart-card">
+    <div class="card-heading">
+      <h2>{{ stockChartTitle }}</h2>
+      <p>{{ stockChartSubtitle }}</p>
+    </div>
+    <div class="card-body">
+      <app-pharmacy-stock-chart
+        [items]="stockItems"
+        [timeline]="stockTimeline"
+        [medications]="stockMedications"
+        [metricType]="stockMetricType"
+        emptyMessage="Nema podataka o zalihama."
+      ></app-pharmacy-stock-chart>
+    </div>
+  </article>
+</section>

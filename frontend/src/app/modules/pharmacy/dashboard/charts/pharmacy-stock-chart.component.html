@@ -1,3 +1,8 @@
-<div class="chart-host">
-  <canvas #canvas aria-label="Grafikon nivoa zaliha"></canvas>
+<div class="chart-shell">
+  @if (!hasData) {
+    <p class="chart-empty">{{ emptyMessage }}</p>
+  }
+  <div class="chart-host" [class.chart-host-hidden]="!hasData">
+    <canvas #canvas aria-label="Grafikon nivoa zaliha"></canvas>
+  </div>
 </div>

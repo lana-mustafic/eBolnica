@@ -1,7 +1,27 @@
+@use '../../styles/pharmacy-tokens' as *;
+
 :host {
   display: block;
   width: 100%;
   min-width: 0;
+}
+
+.chart-shell {
+  position: relative;
+  width: 100%;
+  min-height: var(--chart-host-height, 300px);
+}
+
+.chart-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 0 12px;
+  text-align: center;
+  color: $pharmacy-text-secondary;
+  font-size: 0.875rem;
 }
 
 .chart-host {
@@ -10,6 +30,11 @@
   min-height: 240px;
   width: 100%;
   animation: chartFadeIn 0.45s ease;
+
+  &.chart-host-hidden {
+    visibility: hidden;
+    pointer-events: none;
+  }
 }
 
 @keyframes chartFadeIn {

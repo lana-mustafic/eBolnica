@@ -79,21 +79,6 @@ export class PharmacyDashboardComponent implements OnInit {
     year: 'numeric',
   });
 
-  stockChartTitle = computed(() =>
-    this.stockMetricType() === 'stock-history-trend' ? 'Trend zaliha' : 'Stanje zaliha'
-  );
-
-  stockChartSubtitle = computed(() => {
-    const note = this.stockNote();
-    if (note) {
-      return note;
-    }
-
-    return this.stockMetricType() === 'stock-history-trend'
-      ? 'Promjene zaliha u zadnjih 30 dana'
-      : 'Trenutni nivoi zaliha po lijekovima';
-  });
-
   revenueTrendLabel = computed(() => {
     const change = this.revenueChange();
     if (change === 0) {
@@ -119,26 +104,6 @@ export class PharmacyDashboardComponent implements OnInit {
     }
 
     return `${summary.totalPrescriptions} ukupno recepta`;
-  });
-
-  revenueChartSubtitle = computed(() => {
-    const total = this.totalRevenue();
-    const average = this.averageMonthlyRevenue();
-    if (total <= 0) {
-      return 'Pregled mjesečnog prihoda apoteke';
-    }
-
-    return `Ukupno ${total.toFixed(2)} KM · prosjek ${average.toFixed(2)} KM/mj.`;
-  });
-
-  categoriesChartSubtitle = computed(() => {
-    const categories = this.categoriesTotal();
-    const medications = this.categoriesMedicationTotal();
-    if (categories <= 0) {
-      return 'Raspodjela inventara po kategorijama';
-    }
-
-    return `${categories} kategorija · ${medications} lijekova u prikazu`;
   });
 
   analyticsFreshnessLabel = computed(() => {
