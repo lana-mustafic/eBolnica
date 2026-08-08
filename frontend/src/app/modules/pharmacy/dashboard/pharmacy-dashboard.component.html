@@ -76,7 +76,7 @@
         <p class="analytics-meta">{{ freshness }}</p>
       }
 
-      <section class="split-grid">
+      <section class="analytics-charts-grid" aria-label="Analitički grafikoni">
         <article class="card chart-card">
           <div class="card-heading">
             <h2>Prihod po mjesecima</h2>
@@ -102,35 +102,6 @@
           </div>
         </article>
 
-        <article class="card activity-card">
-          <div class="card-heading">
-            <h2>Najnovije aktivnosti</h2>
-          </div>
-          <ul class="activity-list">
-            @if (recentActivities().length === 0) {
-              <li class="activity-item">
-                <div class="activity-copy">
-                  <span class="activity-text">Nema zabilježenih aktivnosti.</span>
-                </div>
-              </li>
-            } @else {
-              @for (activity of recentActivities(); track activity.id) {
-                <li class="activity-item">
-                  <span class="activity-icon">
-                    <app-pharmacy-icon [name]="activity.icon" [size]="20"></app-pharmacy-icon>
-                  </span>
-                  <div class="activity-copy">
-                    <span class="activity-text">{{ activity.text }}</span>
-                    <span class="activity-time">{{ activity.time }}</span>
-                  </div>
-                </li>
-              }
-            }
-          </ul>
-        </article>
-      </section>
-
-      <section class="charts-grid">
         <article class="card chart-card">
           <div class="card-heading">
             <h2>Kategorije lijekova</h2>
@@ -163,6 +134,33 @@
             }
           </div>
         </article>
+      </section>
+
+      <section class="card activity-card">
+        <div class="card-heading">
+          <h2>Najnovije aktivnosti</h2>
+        </div>
+        <ul class="activity-list">
+          @if (recentActivities().length === 0) {
+            <li class="activity-item">
+              <div class="activity-copy">
+                <span class="activity-text">Nema zabilježenih aktivnosti.</span>
+              </div>
+            </li>
+          } @else {
+            @for (activity of recentActivities(); track activity.id) {
+              <li class="activity-item">
+                <span class="activity-icon">
+                  <app-pharmacy-icon [name]="activity.icon" [size]="20"></app-pharmacy-icon>
+                </span>
+                <div class="activity-copy">
+                  <span class="activity-text">{{ activity.text }}</span>
+                  <span class="activity-time">{{ activity.time }}</span>
+                </div>
+              </li>
+            }
+          }
+        </ul>
       </section>
     }
   </div>

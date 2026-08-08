@@ -4,6 +4,7 @@ import {
   Component,
   ElementRef,
   HostBinding,
+  inject,
   Input,
   OnChanges,
   OnDestroy,
@@ -13,7 +14,13 @@ import {
 import type { Chart, TooltipItem } from 'chart.js';
 import { MonthlyRevenueItemDto } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { loadChartJs } from './chart-js-loader';
-import { ChartRenderQueue, observeChartResize } from './chart-render.util';
+import {
+  ChartRenderQueue,
+  chartHostHasLayout,
+  PharmacyChartHostBindings,
+  scheduleChartRender,
+  setupPharmacyChartHost,
+} from './chart-render.util';
 
 @Component({
   selector: 'app-pharmacy-revenue-chart',
@@ -29,19 +36,18 @@ export class PharmacyRevenueChartComponent implements AfterViewInit, OnChanges, 
   @HostBinding('style.--chart-host-height')
   readonly chartHostHeight = '320px';
 
+  private readonly host = inject(ElementRef<HTMLElement>);
   private chart?: Chart;
-  private disconnectResize?: () => void;
+  private hostBindings?: PharmacyChartHostBindings;
   private readonly renderQueue = new ChartRenderQueue(() => this.renderChart());
 
   ngAfterViewInit(): void {
-    this.disconnectResize = observeChartResize(
+    this.hostBindings = setupPharmacyChartHost(
+      this.host.nativeElement,
       this.canvas?.nativeElement?.parentElement ?? undefined,
       () => this.chart,
-      () => {
-        this.disconnectResize = undefined;
-      }
+      this.renderQueue
     );
-    this.renderQueue.markViewReady();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -52,13 +58,20 @@ export class PharmacyRevenueChartComponent implements AfterViewInit, OnChanges, 
 
   ngOnDestroy(): void {
     this.renderQueue.invalidate();
-    this.disconnectResize?.();
+    this.hostBindings?.disconnect();
     this.chart?.destroy();
     this.chart = undefined;
   }
 
   private async renderChart(): Promise<void> {
-    if (!this.canvas?.nativeElement) {
+    const canvas = this.canvas?.nativeElement;
+    const chartHost = canvas?.parentElement;
+    if (!canvas) {
+      return;
+    }
+
+    if (!chartHostHasLayout(chartHost)) {
+      scheduleChartRender(() => this.renderQueue.queueRender());
       return;
     }
 

@@ -4,6 +4,7 @@ import {
   Component,
   ElementRef,
   HostBinding,
+  inject,
   Input,
   OnChanges,
   OnDestroy,
@@ -14,7 +15,13 @@ import type { Chart, TooltipItem } from 'chart.js';
 import { getMedicationCategoryLabel } from '../../constants/medication-categories.constant';
 import { CategoryItemDto } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { loadChartJs } from './chart-js-loader';
-import { ChartRenderQueue, observeChartResize } from './chart-render.util';
+import {
+  ChartRenderQueue,
+  chartHostHasLayout,
+  PharmacyChartHostBindings,
+  scheduleChartRender,
+  setupPharmacyChartHost,
+} from './chart-render.util';
 
 const CHART_COLORS = ['#7C3AED', '#22C55E', '#3B82F6', '#F59E0B', '#EF4444', '#06B6D4', '#EC4899', '#84CC16'];
 
@@ -32,19 +39,18 @@ export class PharmacyCategoriesChartComponent implements AfterViewInit, OnChange
   @HostBinding('style.--chart-host-height')
   readonly chartHostHeight = '300px';
 
+  private readonly host = inject(ElementRef<HTMLElement>);
   private chart?: Chart;
-  private disconnectResize?: () => void;
+  private hostBindings?: PharmacyChartHostBindings;
   private readonly renderQueue = new ChartRenderQueue(() => this.renderChart());
 
   ngAfterViewInit(): void {
-    this.disconnectResize = observeChartResize(
+    this.hostBindings = setupPharmacyChartHost(
+      this.host.nativeElement,
       this.canvas?.nativeElement?.parentElement ?? undefined,
       () => this.chart,
-      () => {
-        this.disconnectResize = undefined;
-      }
+      this.renderQueue
     );
-    this.renderQueue.markViewReady();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -55,13 +61,20 @@ export class PharmacyCategoriesChartComponent implements AfterViewInit, OnChange
 
   ngOnDestroy(): void {
     this.renderQueue.invalidate();
-    this.disconnectResize?.();
+    this.hostBindings?.disconnect();
     this.chart?.destroy();
     this.chart = undefined;
   }
 
   private async renderChart(): Promise<void> {
-    if (!this.canvas?.nativeElement) {
+    const canvas = this.canvas?.nativeElement;
+    const chartHost = canvas?.parentElement;
+    if (!canvas) {
+      return;
+    }
+
+    if (!chartHostHasLayout(chartHost)) {
+      scheduleChartRender(() => this.renderQueue.queueRender());
       return;
     }
 

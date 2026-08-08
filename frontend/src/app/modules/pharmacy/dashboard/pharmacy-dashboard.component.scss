@@ -80,16 +80,14 @@
   color: $pharmacy-text-secondary;
 }
 
-.split-grid {
+.analytics-charts-grid {
   display: grid;
-  grid-template-columns: 3fr 2fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
 }
 
-.charts-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px;
+.activity-card {
+  min-width: 0;
 }
 
 .inline-trend {
@@ -213,13 +211,18 @@
   }
 }
 
+@media (max-width: 1200px) {
+  .analytics-charts-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 1100px) {
   .kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .split-grid,
-  .charts-grid {
+  .analytics-charts-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -250,8 +253,7 @@
   }
 
   .kpi-grid,
-  .split-grid,
-  .charts-grid {
+  .analytics-charts-grid {
     gap: 16px;
   }
 

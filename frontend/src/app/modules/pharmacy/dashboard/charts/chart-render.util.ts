@@ -71,3 +71,71 @@ export function observeChartResize(
     onDisconnect();
   };
 }
+
+/** Re-render charts that mount below the fold once their card enters the viewport. */
+export function observeChartVisibility(
+  element: HTMLElement | undefined,
+  onVisible: () => void
+): (() => void) | undefined {
+  if (!element) {
+    onVisible();
+    return undefined;
+  }
+
+  if (typeof IntersectionObserver === 'undefined') {
+    onVisible();
+    return undefined;
+  }
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        onVisible();
+      }
+    },
+    { rootMargin: '48px', threshold: 0.01 }
+  );
+  observer.observe(element);
+
+  return () => observer.disconnect();
+}
+
+export interface PharmacyChartHostBindings {
+  disconnect(): void;
+}
+
+export function setupPharmacyChartHost(
+  hostElement: HTMLElement | undefined,
+  chartHostElement: HTMLElement | null | undefined,
+  getChart: () => Chart | undefined,
+  renderQueue: ChartRenderQueue
+): PharmacyChartHostBindings {
+  const cleanups: Array<() => void> = [];
+
+  const disconnectResize = observeChartResize(chartHostElement ?? undefined, getChart, () => undefined);
+  if (disconnectResize) {
+    cleanups.push(disconnectResize);
+  }
+
+  const triggerRender = (): void => {
+    renderQueue.markViewReady();
+    renderQueue.queueRender();
+  };
+
+  const disconnectVisibility = observeChartVisibility(hostElement, triggerRender);
+  if (disconnectVisibility) {
+    cleanups.push(disconnectVisibility);
+  }
+
+  scheduleChartRender(triggerRender);
+
+  return {
+    disconnect() {
+      cleanups.forEach((cleanup) => cleanup());
+    },
+  };
+}
+
+export function chartHostHasLayout(chartHostElement: HTMLElement | null | undefined): boolean {
+  return (chartHostElement?.clientHeight ?? 0) > 0 && (chartHostElement?.clientWidth ?? 0) > 0;
+}
