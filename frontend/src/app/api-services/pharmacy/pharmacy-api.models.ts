@@ -78,6 +78,7 @@ export interface MedicationAutocompleteSuggestion {
   name: string;
   category?: string | null;
   manufacturer?: string | null;
+  requiresPrescription?: boolean;
 }
 
 export interface MedicationImportResult {

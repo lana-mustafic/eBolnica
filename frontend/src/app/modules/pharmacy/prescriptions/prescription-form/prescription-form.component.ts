@@ -9,7 +9,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { debounceTime, distinctUntilChanged, Subject, switchMap } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, of, Subject, switchMap, tap } from 'rxjs';
 import { PharmacyApiService } from '../../../../api-services/pharmacy/pharmacy-api.service';
 import {
   CreatePrescriptionRequest,
@@ -19,6 +19,10 @@ import {
 } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../../core/services/toaster.service';
 import { isPharmacyErrorCode, resolvePharmacyApiErrorMessage } from '../../shared/utils/pharmacy-api-error.util';
+import { getMedicationCategoryLabel } from '../../constants/medication-categories.constant';
+
+/** Prescription items may only include medications that require a prescription (Rx). */
+const PRESCRIPTION_AUTOCOMPLETE_RX_ONLY = true;
 
 @Component({
   selector: 'app-prescription-form',
@@ -46,12 +50,18 @@ export class PrescriptionFormComponent implements OnInit {
   selectedPatient = signal<PrescriptionFormPatientDto | null>(null);
   medicalReports = signal<PrescriptionFormMedicalReportDto[]>([]);
   medicationSuggestions = signal<MedicationAutocompleteSuggestion[]>([]);
+  showMedicationAutocomplete = signal(false);
+  isMedicationAutocompleteLoading = signal(false);
+  medicationAutocompleteEmpty = signal(false);
+  selectedMedicationSuggestionIndex = signal(-1);
+  activeMedicationSuggestionId = signal<string | null>(null);
   activeItemIndex = signal(0);
   isSaving = signal(false);
   isLoadingReports = signal(false);
 
   private patientSearch$ = new Subject<string>();
   private medicationSearch$ = new Subject<string>();
+  private medicationSearchBlurTimeoutId?: ReturnType<typeof setTimeout>;
 
   ngOnInit(): void {
     this.patientSearch$
@@ -69,11 +79,31 @@ export class PrescriptionFormComponent implements OnInit {
       .pipe(
         debounceTime(250),
         distinctUntilChanged(),
-        switchMap((term) => this.pharmacyApi.getAutocomplete(term, 10, true)),
+        tap(() => {
+          this.isMedicationAutocompleteLoading.set(true);
+          this.showMedicationAutocomplete.set(true);
+          this.medicationAutocompleteEmpty.set(false);
+        }),
+        switchMap((term) =>
+          this.pharmacyApi
+            .getAutocomplete(term, 10, PRESCRIPTION_AUTOCOMPLETE_RX_ONLY)
+            .pipe(catchError(() => of([] as MedicationAutocompleteSuggestion[])))
+        ),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe((suggestions) => {
-        this.medicationSuggestions.set(suggestions);
+        const rxOnlySuggestions = suggestions.filter(
+          (suggestion) => suggestion.requiresPrescription !== false
+        );
+
+        this.isMedicationAutocompleteLoading.set(false);
+        this.medicationSuggestions.set(rxOnlySuggestions);
+        this.showMedicationAutocomplete.set(true);
+        this.medicationAutocompleteEmpty.set(rxOnlySuggestions.length === 0);
+        this.selectedMedicationSuggestionIndex.set(rxOnlySuggestions.length > 0 ? 0 : -1);
+        this.activeMedicationSuggestionId.set(
+          rxOnlySuggestions.length > 0 ? 'rx-medication-suggestion-0' : null
+        );
       });
 
     this.patientSearch$.next('');
@@ -101,6 +131,9 @@ export class PrescriptionFormComponent implements OnInit {
       return;
     }
     this.items.removeAt(index);
+    if (this.activeItemIndex() === index) {
+      this.closeMedicationAutocomplete();
+    }
   }
 
   onPatientSearchInput(): void {
@@ -142,21 +175,86 @@ export class PrescriptionFormComponent implements OnInit {
     group.patchValue({ medicationId: null });
     this.clearMedicationFieldError(group);
 
-    if (term.trim().length < 2) {
-      this.medicationSuggestions.set([]);
+    const trimmed = term.trim();
+    if (trimmed.length < 2) {
+      this.closeMedicationAutocomplete();
       return;
     }
-    this.medicationSearch$.next(term);
+
+    this.medicationSearch$.next(trimmed);
+  }
+
+  onMedicationSearchFocus(index: number): void {
+    this.activeItemIndex.set(index);
+    const term = this.items.at(index).get('medicationName')?.value?.trim() ?? '';
+    if (term.length >= 2 && this.medicationSuggestions().length > 0) {
+      this.showMedicationAutocomplete.set(true);
+    }
+  }
+
+  onMedicationSearchBlur(): void {
+    this.clearMedicationSearchBlurTimeout();
+    this.medicationSearchBlurTimeoutId = window.setTimeout(() => {
+      this.closeMedicationAutocomplete();
+      this.medicationSearchBlurTimeoutId = undefined;
+    }, 150);
+  }
+
+  onMedicationSearchKeydown(event: KeyboardEvent, index: number): void {
+    if (this.activeItemIndex() !== index || !this.showMedicationAutocomplete()) {
+      return;
+    }
+
+    const suggestions = this.medicationSuggestions();
+    if (this.isMedicationAutocompleteLoading() || suggestions.length === 0) {
+      if (event.key === 'Escape') {
+        this.closeMedicationAutocomplete();
+      }
+      return;
+    }
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      const nextIndex = Math.min(this.selectedMedicationSuggestionIndex() + 1, suggestions.length - 1);
+      this.selectedMedicationSuggestionIndex.set(nextIndex);
+      this.activeMedicationSuggestionId.set(`rx-medication-suggestion-${nextIndex}`);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      const nextIndex = Math.max(this.selectedMedicationSuggestionIndex() - 1, 0);
+      this.selectedMedicationSuggestionIndex.set(nextIndex);
+      this.activeMedicationSuggestionId.set(`rx-medication-suggestion-${nextIndex}`);
+    } else if (event.key === 'Enter' && this.selectedMedicationSuggestionIndex() >= 0) {
+      event.preventDefault();
+      this.selectMedication(suggestions[this.selectedMedicationSuggestionIndex()], index);
+    } else if (event.key === 'Escape') {
+      this.closeMedicationAutocomplete();
+    }
   }
 
   selectMedication(suggestion: MedicationAutocompleteSuggestion, index: number): void {
+    if (suggestion.requiresPrescription === false) {
+      const group = this.items.at(index);
+      group.get('medicationName')?.setErrors({ otc: true });
+      group.get('medicationName')?.markAsTouched();
+      this.closeMedicationAutocomplete();
+      return;
+    }
+
     const group = this.items.at(index);
     group.patchValue({
       medicationId: suggestion.id,
       medicationName: suggestion.name,
     });
     this.clearMedicationFieldError(group);
-    this.medicationSuggestions.set([]);
+    this.closeMedicationAutocomplete();
+  }
+
+  medicationSuggestionMeta(suggestion: MedicationAutocompleteSuggestion): string {
+    const parts = [getMedicationCategoryLabel(suggestion.category)];
+    if (suggestion.manufacturer) {
+      parts.push(suggestion.manufacturer);
+    }
+    return parts.filter(Boolean).join(' · ');
   }
 
   medicationFieldError(index: number): string | null {
@@ -172,6 +270,22 @@ export class PrescriptionFormComponent implements OnInit {
       return 'Odaberite lijek s liste (samo Rx).';
     }
     return null;
+  }
+
+  private closeMedicationAutocomplete(): void {
+    this.showMedicationAutocomplete.set(false);
+    this.isMedicationAutocompleteLoading.set(false);
+    this.medicationAutocompleteEmpty.set(false);
+    this.medicationSuggestions.set([]);
+    this.selectedMedicationSuggestionIndex.set(-1);
+    this.activeMedicationSuggestionId.set(null);
+  }
+
+  private clearMedicationSearchBlurTimeout(): void {
+    if (this.medicationSearchBlurTimeoutId != null) {
+      clearTimeout(this.medicationSearchBlurTimeoutId);
+      this.medicationSearchBlurTimeoutId = undefined;
+    }
   }
 
   private clearMedicationFieldError(group: ReturnType<FormArray['at']>): void {

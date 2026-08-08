@@ -13,4 +13,5 @@ public sealed class MedicationAutocompleteSuggestionDto
     public string Name { get; init; } = string.Empty;
     public string? Category { get; init; }
     public string? Manufacturer { get; init; }
+    public bool RequiresPrescription { get; init; }
 }

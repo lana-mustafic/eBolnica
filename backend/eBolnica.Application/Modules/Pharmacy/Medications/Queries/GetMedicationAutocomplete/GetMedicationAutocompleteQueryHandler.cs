@@ -33,7 +33,8 @@ public sealed class GetMedicationAutocompleteQueryHandler(IAppDbContext ctx)
                 Id = m.Id,
                 Name = m.Name,
                 Category = m.Category,
-                Manufacturer = m.Manufacturer
+                Manufacturer = m.Manufacturer,
+                RequiresPrescription = m.RequiresPrescription
             })
             .ToListAsync(ct);
     }

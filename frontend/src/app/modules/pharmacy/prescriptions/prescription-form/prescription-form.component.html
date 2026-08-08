@@ -93,26 +93,57 @@
         <div class="items-list" formArrayName="items">
           @for (item of items.controls; track $index; let i = $index) {
             <div class="item-row" [formGroupName]="i">
-              <div class="field flex-grow">
-                <label>Lijek</label>
+              <div class="field flex-grow search-wrap">
+                <label [for]="'medication-search-' + i">Lijek</label>
                 <input
+                  [id]="'medication-search-' + i"
                   type="text"
+                  role="combobox"
+                  aria-autocomplete="list"
+                  [attr.aria-controls]="'rx-medication-autocomplete-' + i"
+                  [attr.aria-expanded]="showMedicationAutocomplete() && activeItemIndex() === i"
+                  [attr.aria-activedescendant]="
+                    showMedicationAutocomplete() && activeItemIndex() === i
+                      ? activeMedicationSuggestionId()
+                      : null
+                  "
                   formControlName="medicationName"
                   placeholder="Pretraži lijek na recept..."
                   (input)="onMedicationSearch(item.get('medicationName')?.value ?? '', i)"
+                  (focus)="onMedicationSearchFocus(i)"
+                  (blur)="onMedicationSearchBlur()"
+                  (keydown)="onMedicationSearchKeydown($event, i)"
                 />
                 @if (medicationFieldError(i); as error) {
                   <p class="field-error" role="alert">{{ error }}</p>
                 }
-                @if (medicationSuggestions().length > 0 && activeItemIndex() === i) {
-                  <ul class="option-list">
-                    @for (s of medicationSuggestions(); track s.id) {
-                      <li>
-                        <button type="button" (click)="selectMedication(s, i)">
-                          <strong>{{ s.name }}</strong>
-                          <span>{{ s.manufacturer }}</span>
-                        </button>
-                      </li>
+                @if (showMedicationAutocomplete() && activeItemIndex() === i) {
+                  <ul
+                    [id]="'rx-medication-autocomplete-' + i"
+                    class="autocomplete-list"
+                    role="listbox"
+                    aria-label="Prijedlozi lijekova na recept"
+                  >
+                    @if (isMedicationAutocompleteLoading()) {
+                      <li class="autocomplete-status" role="status">Pretraga...</li>
+                    } @else if (medicationAutocompleteEmpty()) {
+                      <li class="autocomplete-status">Nema lijekova na recept.</li>
+                    } @else {
+                      @for (s of medicationSuggestions(); track s.id; let si = $index) {
+                        <li
+                          [id]="'rx-medication-suggestion-' + si"
+                          role="option"
+                          [class.selected]="si === selectedMedicationSuggestionIndex()"
+                          [attr.aria-selected]="si === selectedMedicationSuggestionIndex()"
+                          (mousedown)="selectMedication(s, i)"
+                        >
+                          <span class="suggestion-title">
+                            <strong>{{ s.name }}</strong>
+                            <span class="rx-badge">Rx</span>
+                          </span>
+                          <span>{{ medicationSuggestionMeta(s) }}</span>
+                        </li>
+                      }
                     }
                   </ul>
                 }
