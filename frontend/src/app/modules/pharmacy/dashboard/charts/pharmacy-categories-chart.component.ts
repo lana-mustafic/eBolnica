@@ -117,7 +117,18 @@ export class PharmacyCategoriesChartComponent implements AfterViewInit, OnChange
             padding: 12,
             cornerRadius: 8,
             callbacks: {
-              label: (ctx: TooltipItem<'doughnut'>) => ` ${ctx.label}: ${ctx.parsed} lijekova`,
+              label: (ctx: TooltipItem<'doughnut'>) => {
+                const item = this.items[ctx.dataIndex];
+                const count = ctx.parsed ?? 0;
+                const lines = [` ${ctx.label}: ${count} lijekova`];
+                if (item?.percentage != null) {
+                  lines.push(` ${item.percentage.toFixed(1)}% udjela`);
+                }
+                if (item?.totalValue != null) {
+                  lines.push(` ${item.totalValue.toFixed(2)} KM vrijednosti`);
+                }
+                return lines;
+              },
             },
           },
         },

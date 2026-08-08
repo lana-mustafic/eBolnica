@@ -302,11 +302,25 @@ export interface StatisticsSummaryDto {
   inventoryValue: number;
 }
 
+export interface AnalyticsMetadataDto {
+  generatedAt: string;
+  dateRange?: { startDate: string; endDate: string } | null;
+  summary: StatisticsSummaryDto;
+}
+
+export interface GetDashboardStatsRequest {
+  startDate?: string;
+  endDate?: string;
+  revenueMonths?: number;
+  topCategoriesCount?: number;
+  medicationIds?: number[];
+}
+
 export interface DashboardStatsResponseDto {
   monthlyRevenue: RevenueDataDto;
   topCategories: CategoriesDataDto;
   stockTrends: StockTrendsDataDto;
-  metadata: { generatedAt: string; summary: StatisticsSummaryDto };
+  metadata: AnalyticsMetadataDto;
 }
 
 export interface PharmacyActivityDto {

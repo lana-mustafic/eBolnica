@@ -21,6 +21,7 @@ import {
   PrescriptionFormPatientDto,
   PrescriptionDto,
   DashboardStatsResponseDto,
+  GetDashboardStatsRequest,
   PharmacyActivityDto,
   ListRecentActivitiesRequest,
 } from './pharmacy-api.models';
@@ -215,8 +216,22 @@ export class PharmacyApiService {
     );
   }
 
-  getDashboardStats(): Observable<DashboardStatsResponseDto> {
-    return this.http.get<DashboardStatsResponseDto>(`${this.baseUrl}/analytics/dashboard-stats`);
+  getDashboardStats(request: GetDashboardStatsRequest = {}): Observable<DashboardStatsResponseDto> {
+    let params = new HttpParams();
+    if (request.startDate) params = params.set('startDate', request.startDate);
+    if (request.endDate) params = params.set('endDate', request.endDate);
+    if (request.revenueMonths != null) {
+      params = params.set('revenueMonths', String(request.revenueMonths));
+    }
+    if (request.topCategoriesCount != null) {
+      params = params.set('topCategoriesCount', String(request.topCategoriesCount));
+    }
+    if (request.medicationIds?.length) {
+      request.medicationIds.forEach((id) => {
+        params = params.append('medicationIds', String(id));
+      });
+    }
+    return this.http.get<DashboardStatsResponseDto>(`${this.baseUrl}/analytics/dashboard-stats`, { params });
   }
 
   listRecentActivities(request: ListRecentActivitiesRequest = {}): Observable<PharmacyActivityDto[]> {

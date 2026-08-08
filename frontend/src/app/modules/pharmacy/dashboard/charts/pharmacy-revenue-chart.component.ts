@@ -109,8 +109,13 @@ export class PharmacyRevenueChartComponent implements AfterViewInit, OnChanges, 
             cornerRadius: 8,
             callbacks: {
               label: (ctx: TooltipItem<'bar'>) => {
+                const item = this.items[ctx.dataIndex];
                 const value = ctx.parsed.y ?? 0;
-                return ` ${value.toFixed(2)} KM`;
+                const lines = [` ${value.toFixed(2)} KM`];
+                if (item?.prescriptionCount != null) {
+                  lines.push(` ${item.prescriptionCount} recepta`);
+                }
+                return lines;
               },
             },
           },

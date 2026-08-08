@@ -58,15 +58,21 @@ export class PharmacyDashboardComponent implements OnInit {
   summary = signal<StatisticsSummaryDto | null>(null);
   activities = signal<PharmacyActivityDto[]>([]);
   revenueItems = signal<MonthlyRevenueItemDto[]>([]);
+  totalRevenue = signal(0);
+  averageMonthlyRevenue = signal(0);
   categories = signal<CategoryItemDto[]>([]);
+  categoriesTotal = signal(0);
+  categoriesMedicationTotal = signal(0);
   stockItems = signal<StockTrendItemDto[]>([]);
   stockTimeline = signal<string[]>([]);
-  stockMedications = signal<{ id: number; name: string; color: string; currentStock: number }[]>(
-    []
-  );
+  stockMedications = signal<
+    { id: number; name: string; color: string; currentStock: number; trendDirection?: number }[]
+  >([]);
   stockMetricType = signal('current-stock-snapshot');
   stockNote = signal<string | undefined>(undefined);
   revenueChange = signal(0);
+  generatedAt = signal<string | null>(null);
+  analyticsDateRange = signal<{ startDate: string; endDate: string } | null>(null);
   readonly todayShortLabel = new Date().toLocaleDateString('bs-BA', {
     day: '2-digit',
     month: '2-digit',
@@ -112,11 +118,50 @@ export class PharmacyDashboardComponent implements OnInit {
       return 'Trenutna procjena';
     }
 
-    if (this.revenueTrendLabel()) {
-      return `Prihod: ${summary.totalRevenue.toFixed(2)} KM`;
+    return `${summary.totalPrescriptions} ukupno recepta`;
+  });
+
+  revenueChartSubtitle = computed(() => {
+    const total = this.totalRevenue();
+    const average = this.averageMonthlyRevenue();
+    if (total <= 0) {
+      return 'Pregled mjesečnog prihoda apoteke';
     }
 
-    return 'Trenutna procjena';
+    return `Ukupno ${total.toFixed(2)} KM · prosjek ${average.toFixed(2)} KM/mj.`;
+  });
+
+  categoriesChartSubtitle = computed(() => {
+    const categories = this.categoriesTotal();
+    const medications = this.categoriesMedicationTotal();
+    if (categories <= 0) {
+      return 'Raspodjela inventara po kategorijama';
+    }
+
+    return `${categories} kategorija · ${medications} lijekova u prikazu`;
+  });
+
+  analyticsFreshnessLabel = computed(() => {
+    const generated = this.generatedAt();
+    if (!generated) {
+      return null;
+    }
+
+    const when = new Date(generated).toLocaleString('bs-BA', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    const range = this.analyticsDateRange();
+    if (!range) {
+      return `Podaci ažurirani ${when}`;
+    }
+
+    const from = new Date(range.startDate).toLocaleDateString('bs-BA');
+    const to = new Date(range.endDate).toLocaleDateString('bs-BA');
+    return `Podaci za ${from} – ${to} · ažurirano ${when}`;
   });
 
   recentActivities = computed((): DashboardActivityItem[] =>
@@ -161,9 +206,15 @@ export class PharmacyDashboardComponent implements OnInit {
 
         this.loadError.set(false);
         this.summary.set(stats.metadata.summary);
+        this.generatedAt.set(stats.metadata.generatedAt ?? null);
+        this.analyticsDateRange.set(stats.metadata.dateRange ?? null);
         this.activities.set(activities);
-        this.revenueItems.set(stats.monthlyRevenue.data.slice(-6));
+        this.revenueItems.set(stats.monthlyRevenue.data ?? []);
+        this.totalRevenue.set(stats.monthlyRevenue.totalRevenue ?? 0);
+        this.averageMonthlyRevenue.set(stats.monthlyRevenue.averageMonthlyRevenue ?? 0);
         this.categories.set(stats.topCategories.data ?? []);
+        this.categoriesTotal.set(stats.topCategories.totalCategories ?? 0);
+        this.categoriesMedicationTotal.set(stats.topCategories.totalMedications ?? 0);
         this.stockItems.set(stats.stockTrends.data ?? []);
         this.stockTimeline.set(stats.stockTrends.timeline ?? []);
         this.stockMedications.set(stats.stockTrends.medications ?? []);

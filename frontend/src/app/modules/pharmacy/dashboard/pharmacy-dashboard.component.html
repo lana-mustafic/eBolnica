@@ -46,6 +46,22 @@
         ></app-pharmacy-kpi-card>
 
         <app-pharmacy-kpi-card
+          icon="clock"
+          title="Ističe uskoro"
+          [value]="summary()!.expiringSoon"
+          subtitle="U narednih 30 dana"
+          tone="blue"
+        ></app-pharmacy-kpi-card>
+
+        <app-pharmacy-kpi-card
+          icon="triangle-alert"
+          title="Istekli lijekovi"
+          [value]="summary()!.expiredMedications"
+          subtitle="Rok trajanja prošao"
+          tone="red"
+        ></app-pharmacy-kpi-card>
+
+        <app-pharmacy-kpi-card
           icon="wallet"
           title="Vrijednost inventara"
           [value]="inventoryValueLabel()"
@@ -56,12 +72,16 @@
         ></app-pharmacy-kpi-card>
       </section>
 
+      @if (analyticsFreshnessLabel(); as freshness) {
+        <p class="analytics-meta">{{ freshness }}</p>
+      }
+
       <section class="split-grid">
         <article class="card chart-card">
           <div class="card-heading">
             <h2>Prihod po mjesecima</h2>
             <p>
-              Pregled mjesečnog prihoda apoteke
+              {{ revenueChartSubtitle() }}
               @if (revenueTrendLabel()) {
                 <span
                   class="inline-trend"
@@ -114,7 +134,7 @@
         <article class="card chart-card">
           <div class="card-heading">
             <h2>Kategorije lijekova</h2>
-            <p>Raspodjela inventara po kategorijama</p>
+            <p>{{ categoriesChartSubtitle() }}</p>
           </div>
           <div class="card-body">
             @if (categories().length === 0) {
