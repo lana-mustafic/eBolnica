@@ -126,6 +126,12 @@
 
 .card-body {
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.chart-card {
+  min-width: 0;
 }
 
 .activity-list {
@@ -218,6 +224,20 @@
   }
 }
 
+@media (max-width: 768px) {
+  .header-copy h1 {
+    font-size: 1.25rem;
+  }
+
+  .card-heading h2 {
+    font-size: 0.9375rem;
+  }
+
+  .card-heading p {
+    font-size: 0.8125rem;
+  }
+}
+
 @media (max-width: 640px) {
   .page-top-bar,
   .dashboard-body {
@@ -225,7 +245,25 @@
     padding-right: $pharmacy-space-sm;
   }
 
+  .dashboard-body {
+    gap: 16px;
+  }
+
+  .kpi-grid,
+  .split-grid,
+  .charts-grid {
+    gap: 16px;
+  }
+
   .kpi-grid {
     grid-template-columns: 1fr;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  .activity-item {
+    padding: 10px 0;
   }
 }

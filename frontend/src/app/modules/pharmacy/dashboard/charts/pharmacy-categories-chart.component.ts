@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  HostBinding,
   Input,
   OnChanges,
   OnDestroy,
@@ -13,7 +14,7 @@ import type { Chart, TooltipItem } from 'chart.js';
 import { getMedicationCategoryLabel } from '../../constants/medication-categories.constant';
 import { CategoryItemDto } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { loadChartJs } from './chart-js-loader';
-import { scheduleChartRender } from './chart-render.util';
+import { ChartRenderQueue, observeChartResize } from './chart-render.util';
 
 const CHART_COLORS = ['#7C3AED', '#22C55E', '#3B82F6', '#F59E0B', '#EF4444', '#06B6D4', '#EC4899', '#84CC16'];
 
@@ -28,37 +29,35 @@ export class PharmacyCategoriesChartComponent implements AfterViewInit, OnChange
   @ViewChild('canvas') canvas?: ElementRef<HTMLCanvasElement>;
   @Input() items: CategoryItemDto[] = [];
 
+  @HostBinding('style.--chart-host-height')
+  readonly chartHostHeight = '300px';
+
   private chart?: Chart;
-  private viewReady = false;
-  private renderQueued = false;
-  private renderGeneration = 0;
+  private disconnectResize?: () => void;
+  private readonly renderQueue = new ChartRenderQueue(() => this.renderChart());
 
   ngAfterViewInit(): void {
-    this.viewReady = true;
-    this.queueRender();
+    this.disconnectResize = observeChartResize(
+      this.canvas?.nativeElement?.parentElement ?? undefined,
+      () => this.chart,
+      () => {
+        this.disconnectResize = undefined;
+      }
+    );
+    this.renderQueue.markViewReady();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['items']) {
-      this.queueRender();
+      this.renderQueue.queueRender();
     }
   }
 
   ngOnDestroy(): void {
-    this.renderGeneration++;
+    this.renderQueue.invalidate();
+    this.disconnectResize?.();
     this.chart?.destroy();
-  }
-
-  private queueRender(): void {
-    if (!this.viewReady || this.renderQueued) {
-      return;
-    }
-
-    this.renderQueued = true;
-    scheduleChartRender(() => {
-      this.renderQueued = false;
-      void this.renderChart();
-    });
+    this.chart = undefined;
   }
 
   private async renderChart(): Promise<void> {
@@ -73,9 +72,8 @@ export class PharmacyCategoriesChartComponent implements AfterViewInit, OnChange
       return;
     }
 
-    const generation = ++this.renderGeneration;
     const { Chart: ChartCtor } = await loadChartJs();
-    if (generation !== this.renderGeneration || !this.canvas?.nativeElement) {
+    if (!this.canvas?.nativeElement) {
       return;
     }
 
@@ -108,8 +106,9 @@ export class PharmacyCategoriesChartComponent implements AfterViewInit, OnChange
               color: '#6B7280',
               boxWidth: 12,
               boxHeight: 12,
-              padding: 16,
+              padding: 12,
               font: { size: 12, weight: 500 },
+              usePointStyle: true,
             },
           },
           tooltip: {

@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  HostBinding,
   Input,
   OnChanges,
   OnDestroy,
@@ -12,6 +13,7 @@ import {
 import type { Chart, TooltipItem } from 'chart.js';
 import { MonthlyRevenueItemDto } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { loadChartJs } from './chart-js-loader';
+import { ChartRenderQueue, observeChartResize } from './chart-render.util';
 
 @Component({
   selector: 'app-pharmacy-revenue-chart',
@@ -24,35 +26,35 @@ export class PharmacyRevenueChartComponent implements AfterViewInit, OnChanges, 
   @ViewChild('canvas') canvas?: ElementRef<HTMLCanvasElement>;
   @Input() items: MonthlyRevenueItemDto[] = [];
 
+  @HostBinding('style.--chart-host-height')
+  readonly chartHostHeight = '320px';
+
   private chart?: Chart;
-  private renderQueued = false;
-  private renderGeneration = 0;
+  private disconnectResize?: () => void;
+  private readonly renderQueue = new ChartRenderQueue(() => this.renderChart());
 
   ngAfterViewInit(): void {
-    this.queueRender();
+    this.disconnectResize = observeChartResize(
+      this.canvas?.nativeElement?.parentElement ?? undefined,
+      () => this.chart,
+      () => {
+        this.disconnectResize = undefined;
+      }
+    );
+    this.renderQueue.markViewReady();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['items']) {
-      this.queueRender();
+      this.renderQueue.queueRender();
     }
   }
 
   ngOnDestroy(): void {
-    this.renderGeneration++;
+    this.renderQueue.invalidate();
+    this.disconnectResize?.();
     this.chart?.destroy();
-  }
-
-  private queueRender(): void {
-    if (this.renderQueued) {
-      return;
-    }
-
-    this.renderQueued = true;
-    queueMicrotask(() => {
-      this.renderQueued = false;
-      void this.renderChart();
-    });
+    this.chart = undefined;
   }
 
   private async renderChart(): Promise<void> {
@@ -67,9 +69,8 @@ export class PharmacyRevenueChartComponent implements AfterViewInit, OnChanges, 
       return;
     }
 
-    const generation = ++this.renderGeneration;
     const { Chart: ChartCtor } = await loadChartJs();
-    if (generation !== this.renderGeneration || !this.canvas?.nativeElement) {
+    if (!this.canvas?.nativeElement) {
       return;
     }
 
@@ -123,7 +124,13 @@ export class PharmacyRevenueChartComponent implements AfterViewInit, OnChanges, 
         scales: {
           x: {
             grid: { display: false },
-            ticks: { color: '#6B7280', font: { size: 12, weight: 500 } },
+            ticks: {
+              color: '#6B7280',
+              font: { size: 12, weight: 500 },
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 12,
+            },
             border: { display: false },
           },
           y: {

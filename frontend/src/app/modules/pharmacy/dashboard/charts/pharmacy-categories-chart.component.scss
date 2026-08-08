@@ -1,6 +1,14 @@
+:host {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
 .chart-host {
   position: relative;
-  height: 300px;
+  height: var(--chart-host-height, 300px);
+  min-height: 240px;
+  width: 100%;
   animation: chartFadeIn 0.45s ease;
 }
 
@@ -13,5 +21,11 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (max-width: 640px) {
+  .chart-host {
+    min-height: 260px;
   }
 }

@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  HostBinding,
   Input,
   OnChanges,
   OnDestroy,
@@ -12,7 +13,7 @@ import {
 import type { Chart, TooltipItem } from 'chart.js';
 import { StockTrendItemDto } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { loadChartJs } from './chart-js-loader';
-import { scheduleChartRender } from './chart-render.util';
+import { ChartRenderQueue, observeChartResize } from './chart-render.util';
 
 interface StockChartMedication {
   id: number;
@@ -36,37 +37,43 @@ export class PharmacyStockChartComponent implements AfterViewInit, OnChanges, On
   @Input() medications: StockChartMedication[] = [];
   @Input() metricType = 'current-stock-snapshot';
 
+  @HostBinding('style.--chart-host-height')
+  get chartHostHeight(): string {
+    if (this.metricType === 'stock-history-trend') {
+      return '300px';
+    }
+
+    const count = Math.max(this.items.length, 1);
+    const height = Math.min(520, Math.max(280, count * 36 + 56));
+    return `${height}px`;
+  }
+
   private chart?: Chart;
-  private viewReady = false;
-  private renderQueued = false;
-  private renderGeneration = 0;
+  private disconnectResize?: () => void;
+  private readonly renderQueue = new ChartRenderQueue(() => this.renderChart());
 
   ngAfterViewInit(): void {
-    this.viewReady = true;
-    this.queueRender();
+    this.disconnectResize = observeChartResize(
+      this.canvas?.nativeElement?.parentElement ?? undefined,
+      () => this.chart,
+      () => {
+        this.disconnectResize = undefined;
+      }
+    );
+    this.renderQueue.markViewReady();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['items'] || changes['timeline'] || changes['medications'] || changes['metricType']) {
-      this.queueRender();
+      this.renderQueue.queueRender();
     }
   }
 
   ngOnDestroy(): void {
-    this.renderGeneration++;
+    this.renderQueue.invalidate();
+    this.disconnectResize?.();
     this.chart?.destroy();
-  }
-
-  private queueRender(): void {
-    if (!this.viewReady || this.renderQueued) {
-      return;
-    }
-
-    this.renderQueued = true;
-    scheduleChartRender(() => {
-      this.renderQueued = false;
-      void this.renderChart();
-    });
+    this.chart = undefined;
   }
 
   private async renderChart(): Promise<void> {
@@ -81,9 +88,8 @@ export class PharmacyStockChartComponent implements AfterViewInit, OnChanges, On
       return;
     }
 
-    const generation = ++this.renderGeneration;
     const { Chart: ChartCtor } = await loadChartJs();
-    if (generation !== this.renderGeneration || !this.canvas?.nativeElement) {
+    if (!this.canvas?.nativeElement) {
       return;
     }
 
@@ -171,8 +177,9 @@ export class PharmacyStockChartComponent implements AfterViewInit, OnChanges, On
             color: '#6B7280',
             boxWidth: 12,
             boxHeight: 12,
-            padding: 16,
+            padding: 12,
             font: { size: 12, weight: 500 as const },
+            usePointStyle: true,
           },
         },
         tooltip: {
@@ -200,7 +207,11 @@ export class PharmacyStockChartComponent implements AfterViewInit, OnChanges, On
             color: 'rgba(148, 163, 184, 0.18)',
             display: type === 'line' || type === 'bar',
           },
-          ticks: { color: '#374151', font: { size: 12, weight: 500 } },
+          ticks: {
+            color: '#374151',
+            font: { size: 12, weight: 500 },
+            autoSkip: type === 'bar',
+          },
           border: { display: false },
         },
       },
