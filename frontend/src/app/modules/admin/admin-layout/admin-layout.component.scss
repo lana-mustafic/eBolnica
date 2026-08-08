@@ -1,3 +1,5 @@
+@use 'sass:color';
+
 // Colors
 $primary-color: #4976b5;
 $primary-light: #6b92c9;
@@ -489,8 +491,8 @@ $sidebar-width: 280px;
       .sidebar-header {
         background: linear-gradient(
           135deg,
-          darken($primary-color, 15%) 0%,
-          darken($primary-dark, 15%) 100%
+          color.adjust($primary-color, $lightness: -15%) 0%,
+          color.adjust($primary-dark, $lightness: -15%) 100%
         );
       }
 
@@ -540,29 +542,29 @@ $sidebar-width: 280px;
         // Active state overrides
         &.active {
           .mdc-list-item__primary-text {
-            color: lighten($primary-color, 20%) !important;
+            color: color.adjust($primary-color, $lightness: 20%) !important;
           }
 
           mat-icon[matListItemIcon] {
-            color: lighten($primary-color, 20%) !important;
+            color: color.adjust($primary-color, $lightness: 20%) !important;
           }
         }
 
         // Hover state
         &:hover:not(.active) {
           mat-icon[matListItemIcon] {
-            color: lighten($primary-color, 15%) !important;
+            color: color.adjust($primary-color, $lightness: 15%) !important;
           }
         }
 
         // Logout item
         &.logout-item {
           .mdc-list-item__primary-text {
-            color: lighten($error-color, 10%) !important;
+            color: color.adjust($error-color, $lightness: 10%) !important;
           }
 
           mat-icon[matListItemIcon] {
-            color: lighten($error-color, 10%) !important;
+            color: color.adjust($error-color, $lightness: 10%) !important;
           }
         }
       }
