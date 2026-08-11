@@ -18,8 +18,7 @@ public sealed class ListPrescriptionsQueryHandler(IAppDbContext ctx)
             request.PatientSearch,
             request.DoctorSearch);
 
-        var summary = await ctx.Prescriptions
-            .AsNoTracking()
+        var summary = await query
             .GroupBy(_ => 1)
             .Select(g => new PrescriptionListSummaryDto
             {
