@@ -487,8 +487,26 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
         next: (summary) => {
           this.isImporting.set(false);
           this.importSummary.set(summary);
-          if (summary.successCount > 0) this.loadTrigger$.next();
-          this.toaster.success(`Import: ${summary.successCount} uspješno, ${summary.failureCount} grešaka.`);
+          if (summary.successCount > 0) {
+            this.loadTrigger$.next();
+          }
+
+          if (!summary.committed) {
+            this.toaster.error(
+              summary.batchError ??
+                `Import nije sačuvao nijedan lijek (${summary.failureCount} grešaka).`
+            );
+            return;
+          }
+
+          if (summary.isPartialImport) {
+            this.toaster.warning(
+              `Djelomičan import: ${summary.successCount} uspješno, ${summary.failureCount} preskočeno.`
+            );
+            return;
+          }
+
+          this.toaster.success(`Import završen: ${summary.successCount} lijek(ova) uvezeno.`);
         },
         error: (err) => {
           this.isImporting.set(false);

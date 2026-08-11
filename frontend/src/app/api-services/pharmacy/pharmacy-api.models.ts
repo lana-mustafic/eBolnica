@@ -86,6 +86,7 @@ export interface MedicationImportResult {
   failureCount: number;
   totalRows: number;
   committed: boolean;
+  isPartialImport: boolean;
   importedMedicationIds: number[];
   errors: { rowNumber: number; reason: string; field?: string | null; value?: string | null }[];
   batchError?: string | null;

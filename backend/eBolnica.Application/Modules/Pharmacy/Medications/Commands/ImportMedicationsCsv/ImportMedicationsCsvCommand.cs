@@ -10,7 +10,10 @@ public sealed class MedicationImportResultDto
     public int SuccessCount { get; set; }
     public int FailureCount { get; set; }
     public int TotalRows { get; set; }
+    /// <summary>True only when at least one medication row was persisted.</summary>
     public bool Committed { get; set; }
+    /// <summary>True when some rows were saved and others were skipped due to validation errors.</summary>
+    public bool IsPartialImport { get; set; }
     public List<int> ImportedMedicationIds { get; set; } = [];
     public List<MedicationImportRowErrorDto> Errors { get; set; } = [];
     public string? BatchError { get; set; }

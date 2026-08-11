@@ -1,7 +1,6 @@
 using eBolnica.Application.Common;
 using eBolnica.Application.Modules.Pharmacy.Activities;
 using eBolnica.Application.Modules.Pharmacy.Medications;
-using eBolnica.Application.Modules.Pharmacy.Medications.Commands.CreateMedication;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.ImportMedicationsCsv;
 using eBolnica.Application.Modules.Pharmacy.Medications.Csv;
 using eBolnica.Domain.Entities.Pharmacy;
@@ -32,8 +31,8 @@ public sealed class ImportMedicationsCsvCommandHandler(IAppDbContext ctx, IAppCu
 
         if (dataRows.Count == 0)
         {
-            result.Committed = true;
-            return result;
+            result.BatchError = "CSV file contains no data rows.";
+            return FinalizeResult(result);
         }
 
         var existingNames = await ctx.Medications
@@ -79,45 +78,53 @@ public sealed class ImportMedicationsCsvCommandHandler(IAppDbContext ctx, IAppCu
 
         if (toInsert.Count == 0)
         {
-            result.Committed = true;
-            return result;
+            result.BatchError = "No valid rows to import.";
+            return FinalizeResult(result);
         }
 
-        ctx.Medications.AddRange(toInsert);
+        await using var transaction = await ctx.Database.BeginTransactionAsync(ct);
         try
         {
+            ctx.Medications.AddRange(toInsert);
             await ctx.SaveChangesAsync(ct);
+
+            foreach (var medication in toInsert)
+            {
+                MedicationStockHistoryWriter.Record(
+                    ctx,
+                    medication.Id,
+                    0,
+                    medication.StockQuantity,
+                    MedicationStockChangeReasons.Import);
+            }
+
+            PharmacyActivityWriter.Record(
+                ctx,
+                PharmacyActivityEventTypes.MedicationsImported,
+                PharmacyActivityCategories.Medication,
+                PharmacyActivitySeverities.Success,
+                $"Uvezeno {toInsert.Count} lijek(ova) iz CSV-a",
+                currentUser.UserId);
+
+            await ctx.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
         }
         catch (DbUpdateException ex) when (DbUpdateExceptionHelper.IsUniqueConstraintViolation(ex))
         {
             throw new eBolnicaConflictException("One or more medication names already exist.");
         }
 
-        foreach (var medication in toInsert)
-        {
-            MedicationStockHistoryWriter.Record(
-                ctx,
-                medication.Id,
-                0,
-                medication.StockQuantity,
-                MedicationStockChangeReasons.Import);
-        }
-
-        PharmacyActivityWriter.Record(
-            ctx,
-            PharmacyActivityEventTypes.MedicationsImported,
-            PharmacyActivityCategories.Medication,
-            PharmacyActivitySeverities.Success,
-            $"Uvezeno {toInsert.Count} lijek(ova) iz CSV-a",
-            currentUser.UserId);
-
-        await ctx.SaveChangesAsync(ct);
-
         analytics.InvalidateAnalyticsCache();
 
         result.SuccessCount = toInsert.Count;
         result.ImportedMedicationIds = toInsert.Select(m => m.Id).ToList();
-        result.Committed = true;
+        return FinalizeResult(result);
+    }
+
+    private static MedicationImportResultDto FinalizeResult(MedicationImportResultDto result)
+    {
+        result.Committed = result.SuccessCount > 0;
+        result.IsPartialImport = result.SuccessCount > 0 && result.FailureCount > 0;
         return result;
     }
 }

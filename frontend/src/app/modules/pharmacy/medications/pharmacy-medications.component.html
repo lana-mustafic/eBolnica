@@ -75,8 +75,16 @@
     @if (importSummary(); as summary) {
       <section class="card import-summary">
         <strong>Import rezultat:</strong>
-        {{ summary.successCount }} uspješno, {{ summary.failureCount }} grešaka
-        ({{ summary.totalRows }} redova).
+        @if (!summary.committed) {
+          <p>{{ summary.batchError ?? 'Nijedan lijek nije sačuvan.' }}</p>
+        } @else if (summary.isPartialImport) {
+          <p>
+            Djelomičan import: {{ summary.successCount }} sačuvano,
+            {{ summary.failureCount }} preskočeno ({{ summary.totalRows }} redova).
+          </p>
+        } @else {
+          <p>Uspješan import: {{ summary.successCount }} lijek(ova).</p>
+        }
         @if (summary.errors.length) {
           <ul>
             @for (e of summary.errors.slice(0, 5); track e.rowNumber) {
