@@ -130,30 +130,41 @@
       </div>
 
       <section class="image-step">
-        <h3>Slike lijeka</h3>
+        <h3>Slike lijeka ({{ pendingImages().length }}/{{ maxMedicationImages }})</h3>
         <p class="image-step-hint">Odaberite slike prije čuvanja. Upload će se izvršiti nakon kreiranja lijeka.</p>
 
         <div
           class="drop-zone"
           [class.drag-over]="isDragOver()"
+          [class.drop-zone--disabled]="!canAddMoreImages"
           (dragover)="onDragOver($event)"
           (dragleave)="onDragLeave($event)"
           (drop)="onDrop($event)"
         >
           <app-pharmacy-icon name="upload" [size]="28"></app-pharmacy-icon>
-          <p>Povucite slike ovdje ili odaberite fajlove</p>
+          @if (canAddMoreImages) {
+            <p>Povucite slike ovdje ili odaberite fajlove</p>
+          } @else {
+            <p>Dostignut limit od {{ maxMedicationImages }} slika po lijeku.</p>
+          }
           <input
             #fileInput
             type="file"
             accept="image/jpeg,image/png,image/webp"
             multiple
             hidden
+            [disabled]="!canAddMoreImages"
             (change)="onImageSelected($event)"
           />
-          <button mat-stroked-button type="button" (click)="fileInput.click()" [disabled]="isProcessingQueue() || isSaving()">
+          <button
+            mat-stroked-button
+            type="button"
+            (click)="fileInput.click()"
+            [disabled]="isProcessingQueue() || isSaving() || !canAddMoreImages"
+          >
             Odaberi slike
           </button>
-          <small>Slike se kompresuju prije uploada (max širina 1280px).</small>
+          <small>Slike se kompresuju prije uploada (max širina 1280px, do {{ maxMedicationImages }} slika).</small>
         </div>
 
         @if (pendingImages().length) {

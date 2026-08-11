@@ -96,6 +96,11 @@
     border-color: #7c3aed;
     background: rgba(124, 58, 237, 0.06);
   }
+
+  &.drop-zone--disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
 }
 
 .pending-queue {

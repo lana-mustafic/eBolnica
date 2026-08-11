@@ -28,6 +28,7 @@ import {
   MEDICATION_CATEGORIES,
 } from '../../constants/medication-categories.constant';
 import { MEDICATION_DOSAGE_FORMS } from '../../constants/medication-dosage-forms.constant';
+import { MAX_MEDICATION_IMAGES } from '../../constants/medication-image-limits.constant';
 import {
   buildMedicationWizardDraftRestoreState,
   buildMedicationWizardDraftSavePayload,
@@ -78,6 +79,11 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   dosageForms = [...MEDICATION_DOSAGE_FORMS];
 
   readonly categoryLabel = getMedicationCategoryLabel;
+  readonly maxMedicationImages = MAX_MEDICATION_IMAGES;
+
+  get canAddMoreImages(): boolean {
+    return this.pendingImages().length < MAX_MEDICATION_IMAGES;
+  }
 
   form = this.fb.group({
     name: [
@@ -276,6 +282,9 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   }
 
   onDragOver(event: DragEvent): void {
+    if (!this.canAddMoreImages) {
+      return;
+    }
     event.preventDefault();
     this.isDragOver.set(true);
   }
@@ -291,6 +300,10 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
     if (!event.dataTransfer?.files?.length) {
       return;
     }
+    if (!this.canAddMoreImages) {
+      this.toaster.warning(`Maksimalno ${MAX_MEDICATION_IMAGES} slika po lijeku.`);
+      return;
+    }
     void this.queueFiles(Array.from(event.dataTransfer.files));
   }
 
@@ -299,6 +312,10 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
     const files = input.files;
     input.value = '';
     if (!files?.length) {
+      return;
+    }
+    if (!this.canAddMoreImages) {
+      this.toaster.warning(`Maksimalno ${MAX_MEDICATION_IMAGES} slika po lijeku.`);
       return;
     }
     void this.queueFiles(Array.from(files));
@@ -388,9 +405,19 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   }
 
   private async queueFiles(files: File[]): Promise<void> {
+    if (!this.canAddMoreImages) {
+      this.toaster.warning(`Maksimalno ${MAX_MEDICATION_IMAGES} slika po lijeku.`);
+      return;
+    }
+
     this.isProcessingQueue.set(true);
     try {
       for (const original of files) {
+        if (this.pendingImages().length >= MAX_MEDICATION_IMAGES) {
+          this.toaster.warning(`Dodano do limita od ${MAX_MEDICATION_IMAGES} slika.`);
+          break;
+        }
+
         if (!original.type.startsWith('image/')) {
           this.toaster.error(`Preskočeno: ${original.name} nije slika.`);
           continue;
@@ -418,7 +445,7 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   }
 
   private uploadPendingImages(medicationId: number) {
-    const images = this.pendingImages();
+    const images = this.pendingImages().slice(0, MAX_MEDICATION_IMAGES);
     if (images.length === 0) {
       return of(false);
     }

@@ -1,0 +1,1 @@
+export const MAX_MEDICATION_IMAGES = 10;

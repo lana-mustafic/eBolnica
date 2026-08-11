@@ -225,30 +225,43 @@
       <section class="form-card card-images">
         <h2>
           <app-pharmacy-icon name="upload" [size]="20"></app-pharmacy-icon>
-          Slike lijeka
+          Slike lijeka ({{ imageSlotsUsed }}/{{ maxMedicationImages }})
         </h2>
 
         <div
           class="drop-zone"
           [class.drag-over]="isDragOver()"
+          [class.drop-zone--disabled]="!canAddMoreImages"
           (dragover)="onDragOver($event)"
           (dragleave)="onDragLeave($event)"
           (drop)="onDrop($event)"
         >
           <app-pharmacy-icon name="upload" [size]="28"></app-pharmacy-icon>
-          <p>Povucite slike ovdje ili odaberite fajlove</p>
+          @if (canAddMoreImages) {
+            <p>Povucite slike ovdje ili odaberite fajlove</p>
+          } @else {
+            <p>Dostignut limit od {{ maxMedicationImages }} slika po lijeku.</p>
+          }
           <input
             #fileInput
             type="file"
             accept="image/jpeg,image/png,image/webp"
             multiple
             hidden
+            [disabled]="!canAddMoreImages"
             (change)="onImageSelected($event)"
           />
-          <button type="button" class="btn btn-secondary" (click)="fileInput.click()" [disabled]="isProcessingQueue()">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="fileInput.click()"
+            [disabled]="isProcessingQueue() || !canAddMoreImages"
+          >
             Odaberi slike
           </button>
-          <small>Slike se kompresuju prije uploada (max širina 1280px).</small>
+          <small>
+            Slike se kompresuju prije uploada (max širina 1280px, do {{ maxMedicationImages }} slika).
+          </small>
         </div>
 
         @if (pendingUploads().length) {

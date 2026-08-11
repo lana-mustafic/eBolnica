@@ -29,6 +29,7 @@ import {
   MEDICATION_DOSAGE_FORMS,
   normalizeDosageForm,
 } from '../../constants/medication-dosage-forms.constant';
+import { MAX_MEDICATION_IMAGES } from '../../constants/medication-image-limits.constant';
 import { MedicationImageUrlService } from '../../services/medication-image-url.service';
 import {
   MedicationImageLightboxComponent,
@@ -73,6 +74,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   auth = inject(AuthFacadeService);
 
   readonly strengthPresets = ['5mg', '10mg', '20mg', '50mg', '100mg', '250mg', '500mg'];
+  readonly maxMedicationImages = MAX_MEDICATION_IMAGES;
 
   medication = signal<MedicationDto | null>(null);
   isEditMode = signal(false);
@@ -283,6 +285,21 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
     return keys.filter((key) => this.form.get(key)?.invalid).length;
   }
 
+  get imageSlotsUsed(): number {
+    return (
+      this.images().length +
+      this.pendingUploads().filter((entry) => entry.status !== 'error').length
+    );
+  }
+
+  get canAddMoreImages(): boolean {
+    return this.imageSlotsUsed < MAX_MEDICATION_IMAGES;
+  }
+
+  get remainingImageSlots(): number {
+    return Math.max(0, MAX_MEDICATION_IMAGES - this.imageSlotsUsed);
+  }
+
   deleteMedication(): void {
     const id = this.medicationId();
     if (!this.isEditMode() || !id) {
@@ -402,6 +419,9 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   }
 
   onDragOver(event: DragEvent): void {
+    if (!this.canAddMoreImages) {
+      return;
+    }
     event.preventDefault();
     this.isDragOver.set(true);
   }
@@ -414,7 +434,10 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   onDrop(event: DragEvent): void {
     event.preventDefault();
     this.isDragOver.set(false);
-    if (!this.medicationId() || !event.dataTransfer?.files?.length) {
+    if (!this.medicationId() || !event.dataTransfer?.files?.length || !this.canAddMoreImages) {
+      if (!this.canAddMoreImages) {
+        this.toaster.warning(`Maksimalno ${MAX_MEDICATION_IMAGES} slika po lijeku.`);
+      }
       return;
     }
     void this.queueFiles(Array.from(event.dataTransfer.files));
@@ -425,6 +448,10 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
     const files = input.files;
     input.value = '';
     if (!files?.length || !this.medicationId()) {
+      return;
+    }
+    if (!this.canAddMoreImages) {
+      this.toaster.warning(`Maksimalno ${MAX_MEDICATION_IMAGES} slika po lijeku.`);
       return;
     }
     void this.queueFiles(Array.from(files));
@@ -439,14 +466,21 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   }
 
   uploadPending(item: PendingImageUpload): void {
-    if (!this.medicationId() || item.status === 'uploading') {
+    if (!this.medicationId() || item.status === 'uploading' || !this.canAddMoreImages) {
       return;
     }
     this.uploadFile(item);
   }
 
   uploadAllPending(): void {
+    if (!this.canAddMoreImages) {
+      this.toaster.warning(`Maksimalno ${MAX_MEDICATION_IMAGES} slika po lijeku.`);
+      return;
+    }
     for (const item of this.pendingUploads().filter((entry) => entry.status !== 'uploading')) {
+      if (!this.canAddMoreImages) {
+        break;
+      }
       this.uploadFile(item);
     }
   }
@@ -546,9 +580,19 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (!this.canAddMoreImages) {
+      this.toaster.warning(`Maksimalno ${MAX_MEDICATION_IMAGES} slika po lijeku.`);
+      return;
+    }
+
     this.isProcessingQueue.set(true);
     try {
       for (const original of files) {
+        if (this.imageSlotsUsed >= MAX_MEDICATION_IMAGES) {
+          this.toaster.warning(`Dodano do limita od ${MAX_MEDICATION_IMAGES} slika.`);
+          break;
+        }
+
         if (!original.type.startsWith('image/')) {
           this.toaster.error(`Preskočeno: ${original.name} nije slika.`);
           continue;
@@ -582,6 +626,16 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   private uploadFile(item: PendingImageUpload): void {
     const targetMedicationId = this.medicationId();
     if (!targetMedicationId) {
+      return;
+    }
+
+    if (this.images().length >= MAX_MEDICATION_IMAGES) {
+      item.status = 'error';
+      item.progress = 0;
+      item.progressKnown = false;
+      item.errorMessage = `Limit od ${MAX_MEDICATION_IMAGES} slika je dostignut.`;
+      this.pendingUploads.update((entries) => [...entries]);
+      this.toaster.warning(item.errorMessage);
       return;
     }
 

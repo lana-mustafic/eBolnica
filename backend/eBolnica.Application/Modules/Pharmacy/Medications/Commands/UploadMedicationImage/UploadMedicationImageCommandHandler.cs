@@ -21,6 +21,16 @@ public sealed class UploadMedicationImageCommandHandler(
         if (!medicationExists)
             throw new eBolnicaNotFoundException("Medication not found.");
 
+        var activeImageCount = await ctx.MedicationImages
+            .CountAsync(i => i.MedicationId == request.MedicationId && !i.IsDeleted, ct);
+
+        if (activeImageCount >= MedicationImageLimits.MaxPerMedication)
+        {
+            throw new eBolnicaBusinessRuleException(
+                "medication.image_limit_reached",
+                $"A medication can have at most {MedicationImageLimits.MaxPerMedication} images.");
+        }
+
         string? relativeUrl = null;
         long fileSize;
 
@@ -47,6 +57,13 @@ public sealed class UploadMedicationImageCommandHandler(
                 throw new eBolnicaNotFoundException("Medication not found.");
 
             var activeImages = medication.Images.Where(i => !i.IsDeleted).ToList();
+            if (activeImages.Count >= MedicationImageLimits.MaxPerMedication)
+            {
+                throw new eBolnicaBusinessRuleException(
+                    "medication.image_limit_reached",
+                    $"A medication can have at most {MedicationImageLimits.MaxPerMedication} images.");
+            }
+
             var isFirst = activeImages.Count == 0;
             var image = new MedicationImageEntity
             {
