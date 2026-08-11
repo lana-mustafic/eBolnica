@@ -79,15 +79,6 @@ export class PharmacyDashboardComponent implements OnInit {
     year: 'numeric',
   });
 
-  revenueTrendLabel = computed(() => {
-    const change = this.revenueChange();
-    if (change === 0) {
-      return undefined;
-    }
-
-    return `${Math.abs(change).toFixed(1)}% u odnosu na prethodni mjesec`;
-  });
-
   inventoryValueLabel = computed(() => {
     const summary = this.summary();
     if (!summary) {
@@ -100,10 +91,10 @@ export class PharmacyDashboardComponent implements OnInit {
   inventoryKpiSubtitle = computed(() => {
     const summary = this.summary();
     if (!summary) {
-      return 'Trenutna procjena';
+      return 'Procijenjena vrijednost zaliha';
     }
 
-    return `${summary.totalPrescriptions} ukupno recepta`;
+    return `${summary.totalMedications} aktivnih lijekova`;
   });
 
   analyticsFreshnessLabel = computed(() => {
