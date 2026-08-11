@@ -175,7 +175,7 @@
             <button type="button" class="btn btn-outline" (click)="clearFilters()">Očisti filtere</button>
           }
         } @else {
-          <div class="table-scroll">
+          <div class="table-scroll desktop-table">
             <table mat-table [dataSource]="vm.items" class="inventory-table">
               <ng-container matColumnDef="name">
                 <th
@@ -284,6 +284,65 @@
               <tr mat-row *matRowDef="let row; columns: displayedColumns" class="data-row"></tr>
             </table>
           </div>
+
+          <ul class="mobile-card-list" aria-label="Lista inventara">
+            @for (m of vm.items; track m.id) {
+              <li class="inventory-card">
+                <div class="card-row card-row-name">
+                  <span class="thumb-placeholder" aria-hidden="true">
+                    <app-pharmacy-icon name="pill" [size]="18"></app-pharmacy-icon>
+                  </span>
+                  <div class="card-name-copy">
+                    <strong>{{ m.name }}</strong>
+                    @if (m.category) {
+                      <div class="sub">{{ categoryLabel(m.category) }}</div>
+                    }
+                  </div>
+                </div>
+                <div class="card-row">
+                  <span class="card-label">Zaliha</span>
+                  <div class="card-value metric-cell">
+                    <span class="metric-value">{{ m.stockQuantity }}</span>
+                    <span class="metric-hint" [class]="getStockStatusClass(m)">
+                      <span class="hint-dot" aria-hidden="true"></span>
+                      {{ getStockStatus(m) }}
+                    </span>
+                  </div>
+                </div>
+                <div class="card-row">
+                  <span class="card-label">Rok</span>
+                  <div class="card-value metric-cell">
+                    <span class="metric-value">{{ m.expiryDate ? (m.expiryDate | date:'dd.MM.yyyy') : '—' }}</span>
+                    @if (m.expiryDate) {
+                      <span class="metric-hint" [class]="getExpiryStatusClass(m)">
+                        <span class="hint-dot" aria-hidden="true"></span>
+                        {{ getExpiryStatus(m) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+                <div class="card-row">
+                  <span class="card-label">Status</span>
+                  <span class="status-badge" [class]="getDisplayStatusClass(m)">
+                    <span class="status-dot" aria-hidden="true"></span>
+                    {{ getDisplayStatus(m) }}
+                  </span>
+                </div>
+                <div class="card-actions">
+                  <button type="button" class="btn btn-primary btn-sm" (click)="viewMedication(m.id)">Detalj</button>
+                  <button
+                    type="button"
+                    class="icon-action menu"
+                    [matMenuTriggerFor]="rowMenu"
+                    (click)="selectedMedication = m"
+                    aria-label="Akcije za {{ m.name }}"
+                  >
+                    <app-pharmacy-icon name="more-vertical" [size]="18"></app-pharmacy-icon>
+                  </button>
+                </div>
+              </li>
+            }
+          </ul>
 
           @if (vm.totalPages > 1) {
             <div class="pagination">

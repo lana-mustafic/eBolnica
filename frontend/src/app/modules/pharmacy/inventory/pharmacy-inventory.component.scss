@@ -348,6 +348,72 @@
   overflow-x: auto;
   margin: 0 -4px;
   padding: 0 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-card-list {
+  display: none;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.inventory-card {
+  @include pharmacy-card;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.card-row-name {
+  align-items: center;
+}
+
+.card-name-copy {
+  flex: 1;
+  min-width: 0;
+
+  strong {
+    font-size: 1rem;
+    font-weight: 600;
+    color: $pharmacy-text;
+  }
+}
+
+.card-label {
+  flex: 0 0 88px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: $pharmacy-text-secondary;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.card-value {
+  flex: 1;
+  text-align: right;
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid $pharmacy-border;
+}
+
+.btn-sm {
+  padding: 8px 12px;
+  font-size: 0.8125rem;
 }
 
 .inventory-table {
@@ -592,10 +658,34 @@
     padding-right: $pharmacy-space-sm;
   }
 
+  .card {
+    padding: 16px;
+  }
+
   .kpi-grid,
   .filters-grid,
   .alert-grid {
     grid-template-columns: 1fr;
+  }
+
+  .desktop-table {
+    display: none;
+  }
+
+  .mobile-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .table-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .table-header-actions {
+    justify-content: flex-end;
   }
 
   .filters-actions {
