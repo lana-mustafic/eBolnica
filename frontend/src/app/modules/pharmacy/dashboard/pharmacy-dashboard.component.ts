@@ -183,6 +183,7 @@ export class PharmacyDashboardComponent implements OnInit {
   }
 
   reload(): void {
+    this.dashboardCache.invalidate();
     this.loadTrigger$.next(true);
   }
 }

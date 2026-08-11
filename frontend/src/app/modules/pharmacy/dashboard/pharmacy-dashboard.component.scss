@@ -11,14 +11,17 @@
 }
 
 .page-top-bar {
+  padding: $pharmacy-space-md $pharmacy-space-lg;
+  background: $pharmacy-card;
+  border-bottom: 1px solid $pharmacy-border;
+}
+
+.page-top-row {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: $pharmacy-space-sm;
   flex-wrap: wrap;
-  padding: $pharmacy-space-md $pharmacy-space-lg;
-  background: $pharmacy-card;
-  border-bottom: 1px solid $pharmacy-border;
 }
 
 .header-copy {
@@ -158,16 +161,30 @@
   color: $pharmacy-danger;
 }
 
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
 .btn-secondary {
   border: 1px solid $pharmacy-border;
   background: $pharmacy-card;
-  border-radius: 8px;
-  padding: 8px 14px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
+  color: $pharmacy-text;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: #f8fafc;
   }
 }
