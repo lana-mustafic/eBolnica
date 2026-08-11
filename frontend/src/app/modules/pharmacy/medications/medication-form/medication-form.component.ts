@@ -329,6 +329,13 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const id = this.medicationId();
+    if (this.isEditMode() && id && !this.medicationRowVersion) {
+      this.toaster.error('Verzija lijeka nije učitana. Osvježavam podatke...');
+      this.reloadMedication(id);
+      return;
+    }
+
     const raw = this.form.getRawValue();
     const body: MedicationUpsertCommand = {
       name: raw.name!,
@@ -345,11 +352,10 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
       category: raw.category!,
       dosageForm: raw.dosageForm || null,
       strength: raw.strength || null,
-      rowVersion: this.isEditMode() ? this.medicationRowVersion : null,
+      rowVersion: this.isEditMode() ? this.medicationRowVersion! : null,
     };
 
     this.isSaving.set(true);
-    const id = this.medicationId();
     const request$ =
       this.isEditMode() && id
         ? this.pharmacyApi.updateMedication(id, body)
@@ -365,7 +371,11 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.isSaving.set(false);
-        this.toaster.error(getApiErrorMessage(err, 'Greška pri čuvanju lijeka.'));
+        const message =
+          err?.status === 409
+            ? 'Lijek je u međuvremenu izmijenjen. Podaci su osvježeni — provjerite i pokušajte ponovo.'
+            : getApiErrorMessage(err, 'Greška pri čuvanju lijeka.');
+        this.toaster.error(message);
         if (err?.status === 409 && id) {
           this.reloadMedication(id);
         }

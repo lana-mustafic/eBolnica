@@ -16,6 +16,10 @@ public sealed class UpdateMedicationCommandValidator : AbstractValidator<UpdateM
         RuleFor(x => x.Category).NotEmpty().MaximumLength(50);
         RuleFor(x => x.DosageForm).MaximumLength(50);
         RuleFor(x => x.Strength).MaximumLength(50);
+        RuleFor(x => x.RowVersion)
+            .NotNull()
+            .Must(rv => rv!.Length > 0)
+            .WithMessage("RowVersion is required for medication updates.");
         RuleFor(x => x)
             .Must(x => !x.IsActive || x.ExpiryDate.Date > DateTime.UtcNow.Date)
             .WithMessage("Expiry date must be in the future for active medications.");

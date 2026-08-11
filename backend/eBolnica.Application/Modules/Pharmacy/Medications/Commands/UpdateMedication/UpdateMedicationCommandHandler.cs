@@ -16,6 +16,12 @@ public sealed class UpdateMedicationCommandHandler(IAppDbContext ctx, IAppCurren
         if (medication is null || (!medication.IsActive && !request.IsActive))
             throw new eBolnicaNotFoundException("Medication not found.");
 
+        if (!request.RowVersion!.AsSpan().SequenceEqual(medication.RowVersion))
+        {
+            throw new eBolnicaConflictException(
+                "Medication was modified by another operation. Refresh and try again.");
+        }
+
         var normalized = MedicationEntity.NormalizeName(request.Name);
         if (await ctx.Medications.AnyAsync(
                 m => !m.IsDeleted && m.NormalizedName == normalized && m.Id != request.Id, ct))
@@ -42,13 +48,6 @@ public sealed class UpdateMedicationCommandHandler(IAppDbContext ctx, IAppCurren
         medication.DosageForm = request.DosageForm?.Trim();
         medication.Strength = request.Strength?.Trim();
         medication.ModifiedAtUtc = DateTime.UtcNow;
-
-        if (request.RowVersion is { Length: > 0 }
-            && !request.RowVersion.AsSpan().SequenceEqual(medication.RowVersion))
-        {
-            throw new eBolnicaConflictException(
-                "Medication was modified by another operation. Refresh and try again.");
-        }
 
         try
         {
