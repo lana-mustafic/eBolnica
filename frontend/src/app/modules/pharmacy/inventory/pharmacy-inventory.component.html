@@ -311,18 +311,20 @@
                   Uredi
                 </span>
               </button>
-              <button mat-menu-item type="button" (click)="editMedication(m.id)">
+              <button mat-menu-item type="button" (click)="addStock(m.id)">
                 <span class="menu-item-content">
                   <app-pharmacy-icon name="plus" [size]="16"></app-pharmacy-icon>
                   Dodaj zalihu
                 </span>
               </button>
-              <button mat-menu-item type="button" (click)="editMedication(m.id)">
-                <span class="menu-item-content">
-                  <app-pharmacy-icon name="trash-2" [size]="16"></app-pharmacy-icon>
-                  Otpiši
-                </span>
-              </button>
+              @if (m.isActive && auth.isPharmacist()) {
+                <button mat-menu-item type="button" (click)="deleteMedication(m)">
+                  <span class="menu-item-content">
+                    <app-pharmacy-icon name="trash-2" [size]="16"></app-pharmacy-icon>
+                    Otpiši
+                  </span>
+                </button>
+              }
             }
           </mat-menu>
         }

@@ -22,6 +22,8 @@ import { MedicationDto } from '../../../api-services/pharmacy/pharmacy-api.model
 import { getMedicationCategoryLabel, MEDICATION_CATEGORIES } from '../constants/medication-categories.constant';
 import { ToasterService } from '../../../core/services/toaster.service';
 import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
+import { DialogButton, DialogType } from '../../shared/models/dialog-config.model';
+import { DialogHelperService } from '../../shared/services/dialog-helper.service';
 import {
   buildMedicationListQuery,
   clearMedicationListFilters,
@@ -67,6 +69,7 @@ export class PharmacyInventoryComponent implements OnInit {
   private pharmacyApi = inject(PharmacyApiService);
   private toaster = inject(ToasterService);
   private router = inject(Router);
+  private dialog = inject(DialogHelperService);
   private destroyRef = inject(DestroyRef);
   auth = inject(AuthFacadeService);
 
@@ -178,6 +181,42 @@ export class PharmacyInventoryComponent implements OnInit {
 
   editMedication(id: number): void {
     this.router.navigate(['/pharmacy/medications', id, 'edit']);
+  }
+
+  addStock(id: number): void {
+    this.router.navigate(['/pharmacy/medications', id]);
+  }
+
+  deleteMedication(medication: MedicationDto): void {
+    this.dialog
+      .showCustom({
+        type: DialogType.WARNING,
+        title: 'Deaktiviraj lijek',
+        message: `Jeste li sigurni da želite deaktivirati lijek "${medication.name}"?`,
+        buttons: [
+          { type: DialogButton.CANCEL, label: 'Odustani' },
+          { type: DialogButton.DELETE, label: 'Deaktiviraj', color: 'warn' },
+        ],
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result) => {
+        if (result?.button !== DialogButton.DELETE) {
+          return;
+        }
+
+        this.pharmacyApi
+          .deleteMedication(medication.id)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            next: () => {
+              this.toaster.success('Lijek deaktiviran.');
+              this.loadTrigger$.next();
+            },
+            error: (err) => {
+              this.toaster.error(resolvePharmacyApiErrorMessage(err, 'Greška pri deaktivaciji lijeka.'));
+            },
+          });
+      });
   }
 
   private loadInventoryViewModel(): Observable<InventoryListViewModel> {
