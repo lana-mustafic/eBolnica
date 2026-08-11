@@ -34,6 +34,8 @@ import { DialogButton, DialogType } from '../../shared/models/dialog-config.mode
 import { DialogHelperService } from '../../shared/services/dialog-helper.service';
 import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
 import { mapPrescriptionActivityType } from '../shared/pharmacy-activity.util';
+import { resolvePharmacyApiErrorMessage } from '../shared/utils/pharmacy-api-error.util';
+import { validatePrescriptionStock } from '../shared/utils/prescription-dispense.util';
 
 interface PrescriptionActivityItem {
   id: number;
@@ -377,11 +379,17 @@ export class PharmacyPrescriptionsComponent implements OnInit {
       return;
     }
 
+    const validation = validatePrescriptionStock(prescription);
+    if (!validation.ok) {
+      this.toaster.error(validation.message);
+      return;
+    }
+
     this.dialog
       .showCustom({
         type: DialogType.QUESTION,
         title: 'Izdaj recept',
-        message: `Potvrdite izdavanje recepta ${prescription.prescriptionNumber}.`,
+        message: 'Potvrdite izdavanje recepta i smanjenje zaliha.',
         buttons: [
           { type: DialogButton.CANCEL, label: 'Odustani' },
           { type: DialogButton.OK, label: 'Izdaj', color: 'primary' },
@@ -406,7 +414,10 @@ export class PharmacyPrescriptionsComponent implements OnInit {
             },
             error: (err) => {
               this.dispensingId.set(null);
-              this.toaster.error(getApiErrorMessage(err, 'Greška pri izdavanju recepta.'));
+              this.toaster.error(
+                resolvePharmacyApiErrorMessage(err, 'Greška pri izdavanju recepta.')
+              );
+              this.loadTrigger$.next();
             },
           });
       });

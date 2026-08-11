@@ -19,6 +19,8 @@ import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
 import { getPrescriptionStatusLabel } from '../prescription-status.util';
 import { DialogButton, DialogType } from '../../../shared/models/dialog-config.model';
 import { DialogHelperService } from '../../../shared/services/dialog-helper.service';
+import { resolvePharmacyApiErrorMessage } from '../../shared/utils/pharmacy-api-error.util';
+import { validatePrescriptionStock } from '../../shared/utils/prescription-dispense.util';
 
 @Component({
   selector: 'app-prescription-detail',
@@ -176,7 +178,7 @@ export class PrescriptionDetailComponent implements OnInit {
     const id = this.prescriptionId();
     if (!id || !this.canDispense()) return;
 
-    const validation = this.validateStock();
+    const validation = validatePrescriptionStock(this.prescription());
     if (!validation.ok) {
       this.toaster.error(validation.message);
       return;
@@ -211,26 +213,13 @@ export class PrescriptionDetailComponent implements OnInit {
             },
             error: (err) => {
               this.isDispensing.set(false);
-              this.toaster.error(getApiErrorMessage(err, 'Greška pri izdavanju recepta.'));
+              this.toaster.error(
+                resolvePharmacyApiErrorMessage(err, 'Greška pri izdavanju recepta.')
+              );
+              this.reload();
             },
           });
       });
-  }
-
-  private validateStock(): { ok: boolean; message: string } {
-    const rx = this.prescription();
-    if (!rx) return { ok: false, message: 'Recept nije učitan.' };
-
-    for (const item of rx.prescriptionItems) {
-      if (item.stockQuantity == null || item.stockQuantity < item.quantity) {
-        return {
-          ok: false,
-          message: `Nedovoljna zaliha za ${item.medicationName}.`,
-        };
-      }
-    }
-
-    return { ok: true, message: '' };
   }
 
   back(): void {
