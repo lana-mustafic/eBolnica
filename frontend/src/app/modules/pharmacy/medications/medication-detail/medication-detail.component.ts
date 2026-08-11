@@ -366,26 +366,22 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
   }
 
   private loadImageUrl(medication: MedicationDto): void {
-    if (medication.primaryImageId) {
-      this.imageUrlService
-        .getAuthenticatedUrl(medication.id, medication.primaryImageId)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          next: (url) => {
-            this.imageUrl.set(url);
-          },
-          error: () => {
-            if (medication.primaryImageUrl) {
-              this.imageUrl.set(this.imageUrlService.getLegacyUrl(medication.primaryImageUrl));
-            }
-          },
-        });
+    if (!medication.primaryImageId) {
+      this.imageUrl.set(null);
       return;
     }
 
-    if (medication.primaryImageUrl) {
-      this.imageUrl.set(this.imageUrlService.getLegacyUrl(medication.primaryImageUrl));
-    }
+    this.imageUrlService
+      .getAuthenticatedUrl(medication.id, medication.primaryImageId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (url) => {
+          this.imageUrl.set(url);
+        },
+        error: () => {
+          this.imageUrl.set(null);
+        },
+      });
   }
 
   private clearImageUrl(medication?: MedicationDto | null): void {

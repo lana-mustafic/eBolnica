@@ -155,14 +155,6 @@ export class PharmacyApiService {
     return this.http.put<void>(`${this.baseUrl}/medications/${medicationId}/images/reorder`, { imageIds });
   }
 
-  imageFullUrl(relativeUrl: string): string {
-    if (relativeUrl.startsWith('http')) {
-      return relativeUrl;
-    }
-    const path = relativeUrl.startsWith('/') ? relativeUrl : `/${relativeUrl}`;
-    return `${environment.apiUrl}${path}`;
-  }
-
   getMedicationImageBlob(medicationId: number, imageId: number): Observable<Blob> {
     return this.http.get(`${this.baseUrl}/medications/${medicationId}/images/${imageId}/file`, {
       responseType: 'blob',

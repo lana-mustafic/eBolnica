@@ -21,13 +21,6 @@ export class MedicationImageUrlService {
     );
   }
 
-  getLegacyUrl(relativeUrl: string | null | undefined): string | null {
-    if (!relativeUrl) {
-      return null;
-    }
-    return this.pharmacyApi.imageFullUrl(relativeUrl);
-  }
-
   revoke(medicationId: number, imageId: number): void {
     const key = `${medicationId}:${imageId}`;
     const url = this.cache.get(key);

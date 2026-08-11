@@ -566,7 +566,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   }
 
   imageUrl(image: MedicationImageDto): string | null {
-    return this.imageUrls().get(image.id) ?? this.imageUrlService.getLegacyUrl(image.relativeUrl);
+    return this.imageUrls().get(image.id) ?? null;
   }
 
   formatBytes(bytes: number): string {
@@ -722,14 +722,6 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
           error: () => {
             if (generation !== this.imageLoadGeneration) {
               return;
-            }
-            const legacy = this.imageUrlService.getLegacyUrl(image.relativeUrl);
-            if (legacy) {
-              this.imageUrls.update((map) => {
-                const next = new Map(map);
-                next.set(image.id, legacy);
-                return next;
-              });
             }
           },
         });

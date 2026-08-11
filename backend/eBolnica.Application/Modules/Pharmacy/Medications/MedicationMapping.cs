@@ -6,7 +6,7 @@ namespace eBolnica.Application.Modules.Pharmacy.Medications;
 internal static class MedicationMapping
 {
     /// <summary>
-    /// List/inventory projection using denormalized ImageUrl only — no correlated image subqueries.
+    /// List/inventory projection with primary image id for authenticated file access.
     /// </summary>
     public static readonly Expression<Func<MedicationEntity, MedicationDto>> ToListDtoExpression = m =>
         new MedicationDto
@@ -30,7 +30,12 @@ internal static class MedicationMapping
             UpdatedAt = m.ModifiedAtUtc,
             RowVersion = m.RowVersion,
             PrimaryImageUrl = m.ImageUrl,
-            PrimaryImageId = null
+            PrimaryImageId = m.Images
+                .Where(i => !i.IsDeleted)
+                .OrderByDescending(i => i.IsPrimary)
+                .ThenBy(i => i.SortOrder)
+                .Select(i => (int?)i.Id)
+                .FirstOrDefault()
         };
 
     /// <summary>

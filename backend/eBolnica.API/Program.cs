@@ -80,17 +80,6 @@ public partial class Program
 
             app.UseHttpsRedirection();
 
-            if (app.Environment.IsDevelopment())
-            {
-                var uploadsPath = Path.Combine(app.Environment.ContentRootPath, "uploads");
-                Directory.CreateDirectory(uploadsPath);
-                app.UseStaticFiles(new StaticFileOptions
-                {
-                    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsPath),
-                    RequestPath = "/uploads"
-                });
-            }
-
             // UseCors ide prije UseAuthorization i UseAuthentification
             app.UseCors("AllowAnyOrigin");
 

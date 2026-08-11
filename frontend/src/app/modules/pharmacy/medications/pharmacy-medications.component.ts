@@ -516,14 +516,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   }
 
   imageUrl(m: MedicationDto): string | null {
-    const cached = this.thumbnailUrls().get(m.id);
-    if (cached) {
-      return cached;
-    }
-    if (m.primaryImageUrl) {
-      return this.imageUrlService.getLegacyUrl(m.primaryImageUrl);
-    }
-    return null;
+    return this.thumbnailUrls().get(m.id) ?? null;
   }
 
   onImageError(medicationId: number): void {
@@ -614,16 +607,6 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
           error: () => {
             if (generation !== this.thumbnailLoadGeneration) {
               return;
-            }
-            if (medication.primaryImageUrl) {
-              const legacy = this.imageUrlService.getLegacyUrl(medication.primaryImageUrl);
-              if (legacy) {
-                this.thumbnailUrls.update((map) => {
-                  const next = new Map(map);
-                  next.set(medication.id, legacy);
-                  return next;
-                });
-              }
             }
           },
         });
