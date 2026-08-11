@@ -39,7 +39,7 @@ public sealed class PharmacyPdfReportService : IPharmacyPdfReportService
 
     public byte[] GenerateInventoryPdf(
         InventoryPdfSummary summary,
-        Func<int, int, IReadOnlyList<MedicationEntity>> fetchBatch)
+        IReadOnlyList<MedicationEntity> items)
     {
         var generatedAt = DateTime.UtcNow;
 
@@ -64,7 +64,7 @@ public sealed class PharmacyPdfReportService : IPharmacyPdfReportService
                         summary.ExpiringSoonCount));
 
                 page.Content().PaddingTop(12).Element(content =>
-                    ComposeInventoryTable(content, summary.TotalCount, fetchBatch));
+                    ComposeInventoryTable(content, items));
 
                 page.Footer().Element(footer => ComposeFooter(footer, generatedAt));
             });
@@ -73,7 +73,7 @@ public sealed class PharmacyPdfReportService : IPharmacyPdfReportService
 
     public byte[] GeneratePrescriptionsPdf(
         PrescriptionsPdfSummary summary,
-        Func<int, int, IReadOnlyList<PrescriptionEntity>> fetchBatch)
+        IReadOnlyList<PrescriptionEntity> items)
     {
         var generatedAt = DateTime.UtcNow;
 
@@ -92,7 +92,7 @@ public sealed class PharmacyPdfReportService : IPharmacyPdfReportService
                     ComposePrescriptionsHeader(header, generatedAt, summary.TotalCount));
 
                 page.Content().PaddingTop(12).Element(content =>
-                    ComposePrescriptionsTable(content, summary.TotalCount, fetchBatch));
+                    ComposePrescriptionsTable(content, items));
 
                 page.Footer().Element(footer => ComposeFooter(footer, generatedAt));
             });
@@ -188,8 +188,7 @@ public sealed class PharmacyPdfReportService : IPharmacyPdfReportService
 
     private static void ComposeInventoryTable(
         IContainer container,
-        int totalCount,
-        Func<int, int, IReadOnlyList<MedicationEntity>> fetchBatch)
+        IReadOnlyList<MedicationEntity> items)
     {
         container.Background(Colors.White).Border(1).BorderColor(Border).Padding(12).Table(table =>
         {
@@ -217,33 +216,27 @@ public sealed class PharmacyPdfReportService : IPharmacyPdfReportService
                 RenderHeaderCell(header.Cell(), "Rok");
             });
 
-            var rowIndex = 0;
-            for (var skip = 0; skip < totalCount; skip += PharmacyExportLimits.PdfFetchBatchSize)
+            for (var rowIndex = 0; rowIndex < items.Count; rowIndex++)
             {
-                var batch = fetchBatch(skip, PharmacyExportLimits.PdfFetchBatchSize);
-                foreach (var medication in batch)
-                {
-                    var rowBg = rowIndex % 2 == 0 ? Colors.White : RowAlt;
-                    var status = GetStockStatus(medication);
+                var medication = items[rowIndex];
+                var rowBg = rowIndex % 2 == 0 ? Colors.White : RowAlt;
+                var status = GetStockStatus(medication);
 
-                    RenderBodyCell(table.Cell(), rowBg, (rowIndex + 1).ToString(), TextSecondary);
-                    RenderNameCell(table.Cell(), rowBg, medication);
-                    RenderBodyCell(table.Cell(), rowBg, medication.Category ?? "-");
-                    RenderBodyCell(table.Cell(), rowBg, FormatDosageForm(medication.DosageForm));
-                    RenderBodyCell(table.Cell(), rowBg, $"{medication.Price:F2} KM", TextPrimary, true);
-                    RenderBodyCell(table.Cell(), rowBg, medication.StockQuantity.ToString(), TextPrimary, true);
-                    RenderStatusCell(table.Cell(), rowBg, status);
-                    RenderBodyCell(table.Cell(), rowBg, medication.ExpiryDate?.ToString("dd.MM.yyyy") ?? "-");
-                    rowIndex++;
-                }
+                RenderBodyCell(table.Cell(), rowBg, (rowIndex + 1).ToString(), TextSecondary);
+                RenderNameCell(table.Cell(), rowBg, medication);
+                RenderBodyCell(table.Cell(), rowBg, medication.Category ?? "-");
+                RenderBodyCell(table.Cell(), rowBg, FormatDosageForm(medication.DosageForm));
+                RenderBodyCell(table.Cell(), rowBg, $"{medication.Price:F2} KM", TextPrimary, true);
+                RenderBodyCell(table.Cell(), rowBg, medication.StockQuantity.ToString(), TextPrimary, true);
+                RenderStatusCell(table.Cell(), rowBg, status);
+                RenderBodyCell(table.Cell(), rowBg, medication.ExpiryDate?.ToString("dd.MM.yyyy") ?? "-");
             }
         });
     }
 
     private static void ComposePrescriptionsTable(
         IContainer container,
-        int totalCount,
-        Func<int, int, IReadOnlyList<PrescriptionEntity>> fetchBatch)
+        IReadOnlyList<PrescriptionEntity> items)
     {
         container.Background(Colors.White).Border(1).BorderColor(Border).Padding(12).Table(table =>
         {
@@ -269,23 +262,18 @@ public sealed class PharmacyPdfReportService : IPharmacyPdfReportService
                 RenderHeaderCell(header.Cell(), "Datum");
             });
 
-            var rowIndex = 0;
-            for (var skip = 0; skip < totalCount; skip += PharmacyExportLimits.PdfFetchBatchSize)
+            for (var rowIndex = 0; rowIndex < items.Count; rowIndex++)
             {
-                var batch = fetchBatch(skip, PharmacyExportLimits.PdfFetchBatchSize);
-                foreach (var prescription in batch)
-                {
-                    var rowBg = rowIndex % 2 == 0 ? Colors.White : RowAlt;
+                var prescription = items[rowIndex];
+                var rowBg = rowIndex % 2 == 0 ? Colors.White : RowAlt;
 
-                    RenderBodyCell(table.Cell(), rowBg, (rowIndex + 1).ToString(), TextSecondary);
-                    RenderBodyCell(table.Cell(), rowBg, prescription.PrescriptionNumber, TextPrimary, true);
-                    RenderBodyCell(table.Cell(), rowBg, FormatPatientName(prescription.Patient));
-                    RenderBodyCell(table.Cell(), rowBg, FormatDoctorName(prescription.Doctor));
-                    RenderBodyCell(table.Cell(), rowBg, prescription.Status);
-                    RenderBodyCell(table.Cell(), rowBg, $"{prescription.TotalAmount:F2} KM", TextPrimary, true);
-                    RenderBodyCell(table.Cell(), rowBg, prescription.PrescribedDate.ToString("dd.MM.yyyy"));
-                    rowIndex++;
-                }
+                RenderBodyCell(table.Cell(), rowBg, (rowIndex + 1).ToString(), TextSecondary);
+                RenderBodyCell(table.Cell(), rowBg, prescription.PrescriptionNumber, TextPrimary, true);
+                RenderBodyCell(table.Cell(), rowBg, FormatPatientName(prescription.Patient));
+                RenderBodyCell(table.Cell(), rowBg, FormatDoctorName(prescription.Doctor));
+                RenderBodyCell(table.Cell(), rowBg, prescription.Status);
+                RenderBodyCell(table.Cell(), rowBg, $"{prescription.TotalAmount:F2} KM", TextPrimary, true);
+                RenderBodyCell(table.Cell(), rowBg, prescription.PrescribedDate.ToString("dd.MM.yyyy"));
             }
         });
     }

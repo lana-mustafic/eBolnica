@@ -43,10 +43,14 @@ public sealed class ExportPrescriptionsPdfQueryHandler(IAppDbContext ctx, IPharm
 
         var summary = new PrescriptionsPdfSummary { TotalCount = total };
 
-        IReadOnlyList<PrescriptionEntity> FetchBatch(int skip, int take) =>
-            query.Skip(skip).Take(take).WithDetails().ToListAsync(ct).GetAwaiter().GetResult();
+        var items = new List<PrescriptionEntity>(total);
+        for (var skip = 0; skip < total; skip += PharmacyExportLimits.PdfFetchBatchSize)
+        {
+            var take = Math.Min(PharmacyExportLimits.PdfFetchBatchSize, total - skip);
+            items.AddRange(await query.Skip(skip).Take(take).WithDetails().ToListAsync(ct));
+        }
 
-        var content = pdf.GeneratePrescriptionsPdf(summary, FetchBatch);
+        var content = pdf.GeneratePrescriptionsPdf(summary, items);
 
         return new PdfReportResultDto
         {

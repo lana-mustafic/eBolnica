@@ -58,10 +58,14 @@ public sealed class ExportInventoryPdfQueryHandler(IAppDbContext ctx, IPharmacyP
                 ct)
         };
 
-        IReadOnlyList<MedicationEntity> FetchBatch(int skip, int take) =>
-            query.Skip(skip).Take(take).ToListAsync(ct).GetAwaiter().GetResult();
+        var items = new List<MedicationEntity>(total);
+        for (var skip = 0; skip < total; skip += PharmacyExportLimits.PdfFetchBatchSize)
+        {
+            var take = Math.Min(PharmacyExportLimits.PdfFetchBatchSize, total - skip);
+            items.AddRange(await query.Skip(skip).Take(take).ToListAsync(ct));
+        }
 
-        var content = pdf.GenerateInventoryPdf(summary, FetchBatch);
+        var content = pdf.GenerateInventoryPdf(summary, items);
 
         return new PdfReportResultDto
         {

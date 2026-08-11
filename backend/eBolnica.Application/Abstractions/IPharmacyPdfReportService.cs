@@ -7,9 +7,9 @@ public interface IPharmacyPdfReportService
 {
     byte[] GenerateInventoryPdf(
         InventoryPdfSummary summary,
-        Func<int, int, IReadOnlyList<MedicationEntity>> fetchBatch);
+        IReadOnlyList<MedicationEntity> items);
 
     byte[] GeneratePrescriptionsPdf(
         PrescriptionsPdfSummary summary,
-        Func<int, int, IReadOnlyList<PrescriptionEntity>> fetchBatch);
+        IReadOnlyList<PrescriptionEntity> items);
 }
