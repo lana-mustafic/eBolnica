@@ -32,7 +32,7 @@ public sealed class GetInventoryQueryHandler(IAppDbContext ctx)
         PharmacySortValidator.ValidateMedicationSort(request.SortBy);
         var sortedQuery = MedicationQueryFilters.ApplySorting(query, request.SortBy, request.SortOrder);
 
-        var filteredStatsTask = query
+        var stats = await query
             .GroupBy(_ => 1)
             .Select(g => new FilteredInventoryStats
             {
@@ -45,7 +45,7 @@ public sealed class GetInventoryQueryHandler(IAppDbContext ctx)
             })
             .FirstOrDefaultAsync(ct);
 
-        var globalStatsTask = ctx.Medications
+        var globalStats = await ctx.Medications
             .AsNoTracking()
             .Where(m => m.IsActive)
             .GroupBy(_ => 1)
@@ -56,42 +56,33 @@ public sealed class GetInventoryQueryHandler(IAppDbContext ctx)
             })
             .FirstOrDefaultAsync(ct);
 
-        var lowStockAlertsTask = lowStockQuery
+        var lowStockAlerts = await lowStockQuery
             .OrderBy(m => m.StockQuantity)
             .ThenBy(m => m.Name)
             .Take(MaxAlertItems)
             .Select(MedicationMapping.ToListDtoExpression)
             .ToListAsync(ct);
 
-        var expiryAlertsTask = expiryQuery
+        var expiryAlerts = await expiryQuery
             .OrderBy(m => m.ExpiryDate)
             .ThenBy(m => m.Name)
             .Take(MaxAlertItems)
             .Select(MedicationMapping.ToListDtoExpression)
             .ToListAsync(ct);
 
-        var itemsTask = sortedQuery
+        var items = await sortedQuery
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(MedicationMapping.ToListDtoExpression)
             .ToListAsync(ct);
 
-        await Task.WhenAll(
-            filteredStatsTask,
-            globalStatsTask,
-            lowStockAlertsTask,
-            expiryAlertsTask,
-            itemsTask);
-
-        var stats = await filteredStatsTask;
-        var globalStats = await globalStatsTask;
         var totalCount = stats?.TotalCount ?? 0;
 
         return new GetInventoryQueryDto
         {
-            Items = await itemsTask,
-            LowStockAlerts = await lowStockAlertsTask,
-            ExpiryAlerts = await expiryAlertsTask,
+            Items = items,
+            LowStockAlerts = lowStockAlerts,
+            ExpiryAlerts = expiryAlerts,
             LowStockAlertCount = stats?.LowStockAlertCount ?? 0,
             ExpiryAlertCount = stats?.ExpiryAlertCount ?? 0,
             TotalMedications = globalStats?.TotalMedications ?? 0,
