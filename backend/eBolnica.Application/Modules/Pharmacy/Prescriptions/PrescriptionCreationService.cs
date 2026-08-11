@@ -51,6 +51,26 @@ public sealed class PrescriptionCreationService(
                 "prescription.medication_otc",
                 $"Medication {medication.Name} does not require a prescription and cannot be added to a prescription.");
 
+        var requiredByMedication = itemCommands
+            .GroupBy(i => i.MedicationId)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
+
+        var todayUtc = DateTime.UtcNow.Date;
+        foreach (var medication in medications)
+        {
+            var required = requiredByMedication[medication.Id];
+
+            if (medication.ExpiryDate.HasValue && medication.ExpiryDate.Value.Date < todayUtc)
+                throw new eBolnicaBusinessRuleException(
+                    "prescription.medication_expired",
+                    $"Medication {medication.Name} is expired.");
+
+            if (medication.StockQuantity < required)
+                throw new eBolnicaBusinessRuleException(
+                    "prescription.insufficient_stock",
+                    $"Insufficient stock for {medication.Name}. Available: {medication.StockQuantity}, Required: {required}.");
+        }
+
         var medicationsById = medications.ToDictionary(m => m.Id);
         const int maxAttempts = 3;
 
