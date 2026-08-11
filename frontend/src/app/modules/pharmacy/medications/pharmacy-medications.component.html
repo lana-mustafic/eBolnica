@@ -176,6 +176,18 @@
         </div>
 
         <div class="filter-field">
+          <label class="field-label" for="medication-stock-status">Status zalihe</label>
+          <mat-form-field appearance="outline" class="compact-field">
+            <mat-select id="medication-stock-status" [(ngModel)]="filters.selectedStockStatus">
+              <mat-option value="">Sve</mat-option>
+              <mat-option value="low stock">Niska zaliha</mat-option>
+              <mat-option value="out of stock">Kritično</mat-option>
+              <mat-option value="normal stock">Dostupno</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="filter-field">
           <label class="field-label">Recept</label>
           <mat-form-field appearance="outline" class="compact-field">
             <mat-select [(ngModel)]="filters.selectedRequiresPrescription">
