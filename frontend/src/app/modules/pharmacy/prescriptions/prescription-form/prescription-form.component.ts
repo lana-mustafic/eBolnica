@@ -68,7 +68,11 @@ export class PrescriptionFormComponent implements OnInit {
       .pipe(
         debounceTime(250),
         distinctUntilChanged(),
-        switchMap((term) => this.pharmacyApi.searchPrescriptionPatients(term)),
+        switchMap((term) =>
+          this.pharmacyApi
+            .searchPrescriptionPatients(term)
+            .pipe(catchError(() => of([] as PrescriptionFormPatientDto[])))
+        ),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe((patients) => {
