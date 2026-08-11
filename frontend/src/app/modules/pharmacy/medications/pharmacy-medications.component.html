@@ -17,9 +17,9 @@
         <app-pharmacy-icon name="plus" [size]="18"></app-pharmacy-icon>
         Novi lijek
       </button>
-      <button type="button" class="btn btn-secondary" [matMenuTriggerFor]="exportMenu">
+      <button type="button" class="btn btn-secondary" [matMenuTriggerFor]="exportMenu" [disabled]="isExporting()">
         <app-pharmacy-icon name="download" [size]="16"></app-pharmacy-icon>
-        Eksport
+        {{ isExporting() ? 'Preuzimanje...' : 'Eksport' }}
       </button>
       <button type="button" class="btn btn-secondary" (click)="reload()" [disabled]="isLoading()">
         <app-pharmacy-icon name="activity" [size]="16"></app-pharmacy-icon>
@@ -32,14 +32,14 @@
   </header>
 
   <mat-menu #exportMenu="matMenu">
-    <button mat-menu-item type="button" (click)="exportCsv()">
+    <button mat-menu-item type="button" (click)="exportCsv()" [disabled]="isExporting()">
       <span class="menu-item-content">
         <app-pharmacy-icon name="download" [size]="16"></app-pharmacy-icon>
         Export CSV
       </span>
     </button>
     @if (auth.isPharmacist()) {
-      <button mat-menu-item type="button" (click)="exportPdf()">
+      <button mat-menu-item type="button" (click)="exportPdf()" [disabled]="isExporting()">
         <span class="menu-item-content">
           <app-pharmacy-icon name="file-text" [size]="16"></app-pharmacy-icon>
           Export PDF
@@ -55,7 +55,7 @@
         Import CSV
       </span>
     </button>
-    <button mat-menu-item type="button" (click)="downloadTemplate()">
+    <button mat-menu-item type="button" (click)="downloadTemplate()" [disabled]="isExporting()">
       <span class="menu-item-content">
         <app-pharmacy-icon name="file-text" [size]="16"></app-pharmacy-icon>
         Template
@@ -211,7 +211,7 @@
             <button type="button" class="icon-btn" (click)="reload()" aria-label="Osvježi listu">
               <app-pharmacy-icon name="activity" [size]="18"></app-pharmacy-icon>
             </button>
-            <button type="button" class="icon-btn" (click)="exportCsv()" aria-label="Eksport CSV">
+            <button type="button" class="icon-btn" (click)="exportCsv()" [disabled]="isExporting()" aria-label="Eksport CSV" [attr.aria-busy]="isExporting()">
               <app-pharmacy-icon name="download" [size]="18"></app-pharmacy-icon>
             </button>
           </div>

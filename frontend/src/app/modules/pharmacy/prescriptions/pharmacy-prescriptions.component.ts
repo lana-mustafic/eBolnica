@@ -19,6 +19,7 @@ import {
   Subject,
   switchMap,
   tap,
+  finalize,
 } from 'rxjs';
 import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.service';
 import { PharmacyActivityDto, PrescriptionDto } from '../../../api-services/pharmacy/pharmacy-api.models';
@@ -78,6 +79,7 @@ export class PharmacyPrescriptionsComponent implements OnInit {
   pageSize = 10;
 
   dispensingId = signal<number | null>(null);
+  isExporting = signal(false);
 
   search = '';
   selectedStatus = 'All';
@@ -453,9 +455,17 @@ export class PharmacyPrescriptionsComponent implements OnInit {
   }
 
   exportPdf(): void {
+    if (this.isExporting()) {
+      return;
+    }
+
+    this.isExporting.set(true);
     this.pharmacyApi
       .exportPrescriptionsPdf(this.buildRequest())
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        finalize(() => this.isExporting.set(false)),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe({
         next: (res) => {
           this.pharmacyApi.downloadBlobResponse(res, 'prescriptions.pdf');

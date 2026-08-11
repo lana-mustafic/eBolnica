@@ -16,6 +16,7 @@ import {
   Subject,
   switchMap,
   tap,
+  finalize,
 } from 'rxjs';
 import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.service';
 import { MedicationDto } from '../../../api-services/pharmacy/pharmacy-api.models';
@@ -78,6 +79,7 @@ export class PharmacyInventoryComponent implements OnInit {
   readonly pageSize = 10;
 
   isLoading = signal(false);
+  isExporting = signal(false);
   loadError = signal(false);
   currentPage = signal(1);
   totalPages = signal(0);
@@ -301,9 +303,17 @@ export class PharmacyInventoryComponent implements OnInit {
   }
 
   exportPdf(): void {
+    if (this.isExporting()) {
+      return;
+    }
+
+    this.isExporting.set(true);
     this.pharmacyApi
       .exportInventoryPdf(this.buildRequest())
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        finalize(() => this.isExporting.set(false)),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe({
         next: (res) => {
           this.pharmacyApi.downloadBlobResponse(res, 'inventory.pdf');

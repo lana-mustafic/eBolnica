@@ -162,7 +162,7 @@
               <app-pharmacy-icon name="activity" [size]="18"></app-pharmacy-icon>
             </button>
             @if (auth.isPharmacist()) {
-              <button type="button" class="icon-btn" (click)="exportPdf()" aria-label="Eksport PDF">
+              <button type="button" class="icon-btn" (click)="exportPdf()" [disabled]="isExporting()" aria-label="Eksport PDF" [attr.aria-busy]="isExporting()">
                 <app-pharmacy-icon name="download" [size]="18"></app-pharmacy-icon>
               </button>
             }

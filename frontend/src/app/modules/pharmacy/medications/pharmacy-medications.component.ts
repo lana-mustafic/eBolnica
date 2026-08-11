@@ -23,6 +23,7 @@ import {
   Subject,
   switchMap,
   tap,
+  finalize,
 } from 'rxjs';
 import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.service';
 import {
@@ -108,6 +109,7 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   showAutocomplete = signal(false);
   selectedSuggestionIndex = signal(-1);
   isImporting = signal(false);
+  isExporting = signal(false);
   importSummary = signal<MedicationImportResult | null>(null);
   selectedMedication = signal<MedicationDto | null>(null);
 
@@ -398,9 +400,17 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   }
 
   exportCsv(): void {
+    if (this.isExporting()) {
+      return;
+    }
+
+    this.isExporting.set(true);
     this.pharmacyApi
       .exportMedicationsCsv(this.buildRequest())
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        finalize(() => this.isExporting.set(false)),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe({
         next: (res) => {
           const blob = res.body;
@@ -416,9 +426,17 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   }
 
   exportPdf(): void {
+    if (this.isExporting()) {
+      return;
+    }
+
+    this.isExporting.set(true);
     this.pharmacyApi
       .exportInventoryPdf(this.buildRequest())
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        finalize(() => this.isExporting.set(false)),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe({
         next: (res) => {
           this.pharmacyApi.downloadBlobResponse(res, 'inventory.pdf');
@@ -429,9 +447,17 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   }
 
   downloadTemplate(): void {
+    if (this.isExporting()) {
+      return;
+    }
+
+    this.isExporting.set(true);
     this.pharmacyApi
       .downloadImportTemplate()
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        finalize(() => this.isExporting.set(false)),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe({
         next: (res) => {
           const blob = res.body;

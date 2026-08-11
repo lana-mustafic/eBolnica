@@ -17,9 +17,9 @@
         <app-pharmacy-icon name="plus" [size]="18"></app-pharmacy-icon>
         Novi recept
       </button>
-      <button type="button" class="btn btn-secondary" (click)="exportPdf()">
+      <button type="button" class="btn btn-secondary" (click)="exportPdf()" [disabled]="isExporting()">
         <app-pharmacy-icon name="download" [size]="16"></app-pharmacy-icon>
-        Eksport
+        {{ isExporting() ? 'Preuzimanje...' : 'Eksport' }}
       </button>
       <button type="button" class="btn btn-secondary" (click)="reload()" [disabled]="(listState$ | async)?.loading">
         <app-pharmacy-icon name="activity" [size]="16"></app-pharmacy-icon>
@@ -136,9 +136,9 @@
       <section class="card table-card">
         <div class="table-header">
           <h2>Aktivni recepti ({{ vm.totalCount }})</h2>
-          <button type="button" class="btn btn-outline btn-sm" (click)="exportPdf()">
+          <button type="button" class="btn btn-outline btn-sm" (click)="exportPdf()" [disabled]="isExporting()">
             <app-pharmacy-icon name="file-text" [size]="16"></app-pharmacy-icon>
-            Export PDF
+            {{ isExporting() ? 'Preuzimanje...' : 'Export PDF' }}
           </button>
         </div>
 
