@@ -15,6 +15,7 @@ import {
   catchError,
   debounceTime,
   distinctUntilChanged,
+  forkJoin,
   map,
   Observable,
   of,
@@ -25,6 +26,7 @@ import {
 } from 'rxjs';
 import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.service';
 import {
+  InventoryResponse,
   MedicationAutocompleteSuggestion,
   MedicationDto,
   MedicationImportResult,
@@ -59,8 +61,9 @@ interface MedicationsListViewModel {
   totalCount: number;
   totalPages: number;
   currentPage: number;
-  lowStockOnPageCount: number;
-  expiringSoonOnPageCount: number;
+  totalMedications: number;
+  lowStockAlertCount: number;
+  expiryAlertCount: number;
 }
 
 @Component({
@@ -175,7 +178,12 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
 
   private loadMedicationsViewModel(): Observable<MedicationsListViewModel> {
     return pipeListLoad(
-      this.pharmacyApi.listMedications(this.buildRequest()).pipe(map((res) => this.toViewModel(res))),
+      forkJoin({
+        list: this.pharmacyApi.listMedications(this.buildRequest()),
+        stats: this.pharmacyApi
+          .getInventory({ pageNumber: 1, pageSize: 1 })
+          .pipe(catchError(() => of(null as InventoryResponse | null))),
+      }).pipe(map(({ list, stats }) => this.toViewModel(list, stats))),
       { isLoading: this.isLoading, loadError: this.loadError },
       (opts) => this.emptyViewModel(opts),
       'Greška pri učitavanju lijekova.',
@@ -186,15 +194,15 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
     );
   }
 
-  private toViewModel(res: {
-    items: MedicationDto[];
-    totalCount: number;
-    totalPages: number;
-    currentPage: number;
-  }): MedicationsListViewModel {
-    const now = new Date();
-    const horizon = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-
+  private toViewModel(
+    res: {
+      items: MedicationDto[];
+      totalCount: number;
+      totalPages: number;
+      currentPage: number;
+    },
+    stats: InventoryResponse | null
+  ): MedicationsListViewModel {
     return {
       loading: false,
       error: false,
@@ -202,14 +210,9 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
       totalCount: res.totalCount,
       totalPages: res.totalPages,
       currentPage: res.currentPage,
-      lowStockOnPageCount: res.items.filter(
-        (m) => m.isActive && m.stockQuantity > 0 && m.stockQuantity < m.minimumStockLevel
-      ).length,
-      expiringSoonOnPageCount: res.items.filter((m) => {
-        if (!m.expiryDate) return false;
-        const expiry = new Date(m.expiryDate);
-        return expiry >= now && expiry <= horizon;
-      }).length,
+      totalMedications: stats?.totalMedications ?? 0,
+      lowStockAlertCount: stats?.lowStockAlertCount ?? 0,
+      expiryAlertCount: stats?.expiryAlertCount ?? 0,
     };
   }
 
@@ -221,8 +224,9 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
       totalCount: 0,
       totalPages: 0,
       currentPage: this.currentPage(),
-      lowStockOnPageCount: 0,
-      expiringSoonOnPageCount: 0,
+      totalMedications: 0,
+      lowStockAlertCount: 0,
+      expiryAlertCount: 0,
     };
   }
 

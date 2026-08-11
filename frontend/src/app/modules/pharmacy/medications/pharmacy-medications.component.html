@@ -92,23 +92,23 @@
       <app-pharmacy-kpi-card
         icon="package"
         title="Ukupno lijekova"
-        [value]="vm.totalCount"
-        subtitle="Svi lijekovi u sistemu"
+        [value]="vm.totalMedications"
+        subtitle="Aktivni lijekovi u sistemu"
         tone="purple"
       ></app-pharmacy-kpi-card>
 
       <app-pharmacy-kpi-card
         icon="triangle-alert"
         title="Niska zaliha"
-        [value]="vm.lowStockOnPageCount"
-        subtitle="Na trenutnoj stranici"
+        [value]="vm.lowStockAlertCount"
+        subtitle="Ispod minimuma"
         tone="orange"
       ></app-pharmacy-kpi-card>
 
       <app-pharmacy-kpi-card
         icon="clock"
         title="Ističe uskoro"
-        [value]="vm.expiringSoonOnPageCount"
+        [value]="vm.expiryAlertCount"
         subtitle="Sljedećih 30 dana"
         tone="red"
       ></app-pharmacy-kpi-card>
