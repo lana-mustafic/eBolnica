@@ -1,10 +1,14 @@
+using eBolnica.Application.Abstractions;
 using eBolnica.Application.Modules.Pharmacy.Activities;
 using eBolnica.Application.Modules.Pharmacy.Prescriptions;
 using eBolnica.Domain.Entities.Pharmacy;
 
 namespace eBolnica.Application.Modules.Pharmacy.Prescriptions.Commands.CancelPrescription;
 
-public sealed class CancelPrescriptionCommandHandler(IAppDbContext ctx, IAppCurrentUser currentUser)
+public sealed class CancelPrescriptionCommandHandler(
+    IAppDbContext ctx,
+    IAppCurrentUser currentUser,
+    IPharmacyAnalyticsService analytics)
     : IRequestHandler<CancelPrescriptionCommand, PrescriptionDto>
 {
     public async Task<PrescriptionDto> Handle(CancelPrescriptionCommand request, CancellationToken ct)
@@ -49,6 +53,7 @@ public sealed class CancelPrescriptionCommandHandler(IAppDbContext ctx, IAppCurr
             .WithDetails()
             .FirstAsync(p => p.Id == prescription.Id, ct);
 
+        analytics.InvalidateAnalyticsCache();
         return PrescriptionMapping.MapToDto(result);
     }
 }

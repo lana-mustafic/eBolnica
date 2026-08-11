@@ -12,6 +12,7 @@ public sealed class PrescriptionCreationService(
     IAppDbContext ctx,
     IAppCurrentUser currentUser,
     IPrescriptionNumberGenerator prescriptionNumberGenerator,
+    IPharmacyAnalyticsService analytics,
     ILogger<PrescriptionCreationService> logger) : IPrescriptionCreationService
 {
     public async Task<PrescriptionDto> CreateAsync(PrescriptionCreationRequest request, CancellationToken ct = default)
@@ -140,6 +141,7 @@ public sealed class PrescriptionCreationService(
                     request.PatientId,
                     currentUser.UserId);
 
+                analytics.InvalidateAnalyticsCache();
                 return PrescriptionMapping.MapToDto(created);
             }
             catch (DbUpdateException ex) when (attempt < maxAttempts && DbUpdateExceptionHelper.IsUniqueConstraintViolation(ex))
