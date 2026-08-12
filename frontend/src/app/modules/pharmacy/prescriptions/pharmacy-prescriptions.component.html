@@ -21,7 +21,7 @@
         <app-pharmacy-icon name="download" [size]="16"></app-pharmacy-icon>
         {{ isExporting() ? 'Preuzimanje...' : 'Eksport' }}
       </button>
-      <button type="button" class="btn btn-secondary" (click)="reload()" [disabled]="(listState$ | async)?.loading">
+      <button type="button" class="btn btn-secondary" (click)="reload()" [disabled]="listState().loading">
         <app-pharmacy-icon name="activity" [size]="16"></app-pharmacy-icon>
         Osvježi
       </button>
@@ -29,7 +29,7 @@
   </header>
 
   <div class="page-body">
-    @if (listState$ | async; as vm) {
+    @if (listState(); as vm) {
     <section class="kpi-grid" aria-label="Statistike recepata">
       <app-pharmacy-kpi-card
         icon="clipboard"
@@ -158,7 +158,7 @@
           </div>
         } @else {
           <div class="table-scroll desktop-table">
-            <table mat-table [dataSource]="vm.prescriptions" class="prescriptions-table">
+            <table mat-table [dataSource]="tableDataSource" class="prescriptions-table">
               <ng-container matColumnDef="number">
                 <th
                   mat-header-cell

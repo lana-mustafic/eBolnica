@@ -6,7 +6,7 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import {
   catchError,
@@ -35,6 +35,7 @@ import { DialogHelperService } from '../../shared/services/dialog-helper.service
 import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
 import { resolvePharmacyApiErrorMessage } from '../shared/utils/pharmacy-api-error.util';
 import { validatePrescriptionStock } from '../shared/utils/prescription-dispense.util';
+import { MatTableDataSource } from '@angular/material/table';
 
 interface PrescriptionActivityItem {
   id: number;
@@ -74,6 +75,8 @@ export class PharmacyPrescriptionsComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
 
   auth = inject(AuthFacadeService);
+
+  readonly tableDataSource = new MatTableDataSource<PrescriptionDto>([]);
 
   currentPage = signal(1);
   totalPages = signal(0);
@@ -135,9 +138,14 @@ export class PharmacyPrescriptionsComponent implements OnInit {
     tap((vm) => {
       this.currentPage.set(vm.currentPage);
       this.totalPages.set(vm.totalPages);
+      this.tableDataSource.data = vm.prescriptions;
     }),
     shareReplay({ bufferSize: 1, refCount: true })
   );
+
+  readonly listState = toSignal(this.listState$, {
+    initialValue: this.emptyViewModel({ loading: true }),
+  });
 
   ngOnInit(): void {
     this.filterChanged$
@@ -176,7 +184,8 @@ export class PharmacyPrescriptionsComponent implements OnInit {
   private loadPrescriptionsViewModel(): Observable<PrescriptionsListViewModel> {
     return this.pharmacyApi.listPrescriptions(this.buildRequest()).pipe(
       switchMap((res) => {
-        if (res.items.length === 0 && res.totalCount > 0 && res.currentPage > res.totalPages) {
+        const items = res.items ?? [];
+        if (items.length === 0 && res.totalCount > 0 && res.currentPage > res.totalPages) {
           this.currentPage.set(1);
           return this.pharmacyApi.listPrescriptions({ ...this.buildRequest(), pageNumber: 1 });
         }
@@ -203,23 +212,30 @@ export class PharmacyPrescriptionsComponent implements OnInit {
       totalRevenue: number;
     };
   }): PrescriptionsListViewModel {
+    const items = res.items ?? [];
+    const summary = res.summary ?? {
+      totalPrescriptions: 0,
+      pendingPrescriptions: 0,
+      dispensedPrescriptions: 0,
+      totalRevenue: 0,
+    };
     const isOutOfRangePage =
-      res.items.length === 0 && res.totalCount > 0 && res.currentPage > res.totalPages;
+      items.length === 0 && res.totalCount > 0 && res.currentPage > res.totalPages;
 
     return {
       loading: false,
       error: false,
-      prescriptions: res.items,
-      totalCount: res.totalCount,
-      totalPages: res.totalPages,
-      currentPage: res.currentPage,
-      totalPrescriptions: res.summary.totalPrescriptions,
-      pendingPrescriptions: res.summary.pendingPrescriptions,
-      dispensedPrescriptions: res.summary.dispensedPrescriptions,
-      totalRevenue: res.summary.totalRevenue,
-      totalRevenueLabel: `${Math.round(res.summary.totalRevenue).toLocaleString('bs-BA')} KM`,
+      prescriptions: items,
+      totalCount: res.totalCount ?? items.length,
+      totalPages: res.totalPages ?? 1,
+      currentPage: res.currentPage ?? 1,
+      totalPrescriptions: summary.totalPrescriptions,
+      pendingPrescriptions: summary.pendingPrescriptions,
+      dispensedPrescriptions: summary.dispensedPrescriptions,
+      totalRevenue: summary.totalRevenue,
+      totalRevenueLabel: `${Math.round(summary.totalRevenue).toLocaleString('bs-BA')} KM`,
       isOutOfRangePage,
-      tableEmptyMessage: this.buildTableEmptyMessage(isOutOfRangePage, res.totalCount, res.currentPage),
+      tableEmptyMessage: this.buildTableEmptyMessage(isOutOfRangePage, res.totalCount ?? 0, res.currentPage ?? 1),
     };
   }
 
