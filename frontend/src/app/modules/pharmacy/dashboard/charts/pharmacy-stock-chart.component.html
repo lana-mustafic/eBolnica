@@ -2,7 +2,65 @@
   @if (!hasData) {
     <p class="chart-empty">{{ emptyMessage }}</p>
   }
-  <div class="chart-host" [class.chart-host-hidden]="!hasData">
-    <canvas #canvas aria-label="Grafikon nivoa zaliha"></canvas>
-  </div>
+  <figure class="chart-figure">
+    <div class="chart-host" [class.chart-host-hidden]="!hasData">
+      <canvas
+        #canvas
+        role="img"
+        [attr.aria-label]="
+          metricType === 'stock-history-trend'
+            ? 'Grafikon trenda zaliha'
+            : 'Grafikon trenutnog stanja zaliha'
+        "
+        [attr.aria-describedby]="hasData ? 'pharmacy-stock-chart-data' : null"
+      ></canvas>
+    </div>
+    @if (hasData) {
+      <figcaption class="chart-sr-only">
+        @if (metricType === 'stock-history-trend' && timeline.length > 0) {
+          <table id="pharmacy-stock-chart-data" class="chart-data-table">
+            <caption>Trend zaliha po danima</caption>
+            <thead>
+              <tr>
+                <th scope="col">Datum</th>
+                <th scope="col">Lijek</th>
+                <th scope="col">Količina</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (day of timeline; track day) {
+                @for (medication of medications; track medication.id) {
+                  <tr>
+                    <td>{{ formatTrendDate(day) }}</td>
+                    <td>{{ medication.name }}</td>
+                    <td>{{ trendQuantity(day, medication.id) }}</td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        } @else {
+          <table id="pharmacy-stock-chart-data" class="chart-data-table">
+            <caption>Trenutno stanje zaliha po lijekovima</caption>
+            <thead>
+              <tr>
+                <th scope="col">Lijek</th>
+                <th scope="col">Količina</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of items; track item.medicationId) {
+                <tr>
+                  <td>{{ item.medicationName }}</td>
+                  <td>{{ item.quantity }}</td>
+                  <td>{{ item.status }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </figcaption>
+    }
+  </figure>
 </div>

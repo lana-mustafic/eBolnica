@@ -44,6 +44,8 @@ export class PharmacyCategoriesChartComponent implements AfterViewInit, OnChange
     return this.items.length > 0;
   }
 
+  protected readonly categoryLabel = getMedicationCategoryLabel;
+
   private readonly host = inject(ElementRef<HTMLElement>);
   private chart?: Chart;
   private hostBindings?: PharmacyChartHostBindings;

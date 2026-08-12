@@ -60,6 +60,20 @@ export class PharmacyStockChartComponent implements AfterViewInit, OnChanges, On
     return this.items.length > 0;
   }
 
+  formatTrendDate(day: string): string {
+    return new Date(`${day}T00:00:00`).toLocaleDateString('bs-BA', {
+      day: '2-digit',
+      month: '2-digit',
+    });
+  }
+
+  trendQuantity(day: string, medicationId: number): number {
+    const point = this.items.find(
+      (item) => item.medicationId === medicationId && item.date.startsWith(day)
+    );
+    return point?.quantity ?? 0;
+  }
+
   private readonly host = inject(ElementRef<HTMLElement>);
   private chart?: Chart;
   private hostBindings?: PharmacyChartHostBindings;

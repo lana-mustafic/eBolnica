@@ -2,7 +2,37 @@
   @if (!hasData) {
     <p class="chart-empty">{{ emptyMessage }}</p>
   }
-  <div class="chart-host" [class.chart-host-hidden]="!hasData">
-    <canvas #canvas aria-label="Grafikon prihoda po mjesecima"></canvas>
-  </div>
+  <figure class="chart-figure">
+    <div class="chart-host" [class.chart-host-hidden]="!hasData">
+      <canvas
+        #canvas
+        role="img"
+        aria-label="Grafikon prihoda po mjesecima"
+        [attr.aria-describedby]="hasData ? 'pharmacy-revenue-chart-data' : null"
+      ></canvas>
+    </div>
+    @if (hasData) {
+      <figcaption class="chart-sr-only">
+        <table id="pharmacy-revenue-chart-data" class="chart-data-table">
+          <caption>Prihod po mjesecima</caption>
+          <thead>
+            <tr>
+              <th scope="col">Mjesec</th>
+              <th scope="col">Prihod (KM)</th>
+              <th scope="col">Broj recepata</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of items; track item.yearMonth) {
+              <tr>
+                <td>{{ item.monthShort }}</td>
+                <td>{{ item.revenue | number: '1.2-2' }}</td>
+                <td>{{ item.prescriptionCount }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </figcaption>
+    }
+  </figure>
 </div>

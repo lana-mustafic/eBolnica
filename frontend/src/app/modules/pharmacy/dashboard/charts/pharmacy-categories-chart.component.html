@@ -2,7 +2,39 @@
   @if (!hasData) {
     <p class="chart-empty">{{ emptyMessage }}</p>
   }
-  <div class="chart-host" [class.chart-host-hidden]="!hasData">
-    <canvas #canvas aria-label="Grafikon top kategorija"></canvas>
-  </div>
+  <figure class="chart-figure">
+    <div class="chart-host" [class.chart-host-hidden]="!hasData">
+      <canvas
+        #canvas
+        role="img"
+        aria-label="Grafikon top kategorija lijekova"
+        [attr.aria-describedby]="hasData ? 'pharmacy-categories-chart-data' : null"
+      ></canvas>
+    </div>
+    @if (hasData) {
+      <figcaption class="chart-sr-only">
+        <table id="pharmacy-categories-chart-data" class="chart-data-table">
+          <caption>Raspodjela lijekova po kategorijama</caption>
+          <thead>
+            <tr>
+              <th scope="col">Kategorija</th>
+              <th scope="col">Broj lijekova</th>
+              <th scope="col">Udio (%)</th>
+              <th scope="col">Vrijednost (KM)</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of items; track item.category) {
+              <tr>
+                <td>{{ categoryLabel(item.category) }}</td>
+                <td>{{ item.medicationCount }}</td>
+                <td>{{ item.percentage | number: '1.1-1' }}</td>
+                <td>{{ item.totalValue | number: '1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </figcaption>
+    }
+  </figure>
 </div>
