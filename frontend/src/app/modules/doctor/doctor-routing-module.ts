@@ -5,6 +5,9 @@ import { DoctorDashboardComponent } from './dashboard/doctor-dashboard.component
 import { DoctorProfileComponent } from './profile/doctor-profile.component';
 import { DoctorPatientsComponent } from './patients/doctor-patients.component';
 import { MedicalRecordComponent } from './medical-record/medical-record.component';
+import { DoctorPrescriptionsComponent } from './prescriptions/doctor-prescriptions.component';
+import { DoctorPrescriptionFormComponent } from './prescriptions/doctor-prescription-form.component';
+import { DoctorPrescriptionDetailComponent } from './prescriptions/doctor-prescription-detail.component';
 
 const routes: Routes = [
   {
@@ -15,6 +18,9 @@ const routes: Routes = [
       { path: 'profile', component: DoctorProfileComponent },
       { path: 'patients', component: DoctorPatientsComponent },
       { path: 'medical-record/:patientId', component: MedicalRecordComponent },
+      { path: 'prescriptions', component: DoctorPrescriptionsComponent },
+      { path: 'prescriptions/new', component: DoctorPrescriptionFormComponent },
+      { path: 'prescriptions/:id', component: DoctorPrescriptionDetailComponent },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },

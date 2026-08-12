@@ -1,9 +1,10 @@
 import { Location } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { DoctorApiService } from '../../../api-services/doctor/doctor-api.service';
 import { MedicalRecordApiService } from '../../../api-services/doctor/medical-record-api.service';
-import { MedicalRecordDto } from '../../../api-services/doctor/medical-record-api.models';
+import { MedicalRecordDto, MedicalReportItemDto } from '../../../api-services/doctor/medical-record-api.models';
 import { ToasterService } from '../../../core/services/toaster.service';
 
 @Component({
@@ -14,13 +15,16 @@ import { ToasterService } from '../../../core/services/toaster.service';
 })
 export class MedicalRecordComponent implements OnInit {
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private medicalRecordApi = inject(MedicalRecordApiService);
+  private doctorApi = inject(DoctorApiService);
   private fb = inject(FormBuilder);
   private location = inject(Location);
   private toaster = inject(ToasterService);
 
   patientId!: number;
   record: MedicalRecordDto | null = null;
+  doctorId = signal<number | null>(null);
   isLoading = true;
   isSaving = false;
 
@@ -33,6 +37,10 @@ export class MedicalRecordComponent implements OnInit {
 
   ngOnInit(): void {
     this.patientId = Number(this.route.snapshot.paramMap.get('patientId'));
+    this.doctorApi.getProfile().subscribe({
+      next: (profile) => this.doctorId.set(profile.id),
+      error: () => this.doctorId.set(null),
+    });
     this.loadRecord();
   }
 
@@ -52,6 +60,32 @@ export class MedicalRecordComponent implements OnInit {
 
   goBack(): void {
     this.location.back();
+  }
+
+  canCreatePrescription(report: MedicalReportItemDto): boolean {
+    const doctorId = this.doctorId();
+    return doctorId != null && report.doctorId === doctorId;
+  }
+
+  reportSummary(report: MedicalReportItemDto): string {
+    const date = new Date(report.createdAt).toLocaleDateString('bs-BA');
+    const diagnosis = report.diagnosis ? ` — ${report.diagnosis}` : '';
+    return `${date}${diagnosis}`;
+  }
+
+  createPrescription(report: MedicalReportItemDto): void {
+    if (!this.record || !this.canCreatePrescription(report)) {
+      return;
+    }
+
+    void this.router.navigate(['/doctor/prescriptions/new'], {
+      queryParams: {
+        patientId: this.patientId,
+        medicalReportId: report.id,
+        patientName: `${this.record.firstName} ${this.record.lastName}`,
+        reportSummary: this.reportSummary(report),
+      },
+    });
   }
 
   submitReport(): void {

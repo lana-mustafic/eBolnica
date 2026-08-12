@@ -1,0 +1,71 @@
+<div class="page-header">
+  <h1>Recepti</h1>
+  <span class="count">{{ totalCount() }} ukupno · {{ pendingCount() }} na čekanju</span>
+</div>
+
+<p class="intro">
+  Recepti koje ste propisali pacijentima. Farmaceut ih vidi u apoteci i izdaje lijekove.
+</p>
+
+<div class="filters">
+  <mat-form-field appearance="outline">
+    <mat-label>Status</mat-label>
+    <mat-select [value]="selectedStatus()" (selectionChange)="selectedStatus.set($event.value); applyFilters()">
+      @for (f of statusFilters; track f.value) {
+        <mat-option [value]="f.value">{{ f.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="search-field">
+    <mat-label>Pretraga</mat-label>
+    <input matInput [(ngModel)]="search" (keyup.enter)="applyFilters()" placeholder="Broj recepta ili pacijent" />
+  </mat-form-field>
+
+  <button mat-raised-button color="primary" type="button" (click)="applyFilters()">Primijeni</button>
+</div>
+
+@if (isLoading()) {
+  <app-fit-table-skeleton [rows]="5" [columns]="4"></app-fit-table-skeleton>
+} @else if (prescriptions().length === 0) {
+  <mat-card>
+    <mat-card-content>
+      <p class="empty">Nema recepata za odabrane filtere.</p>
+      <p class="hint">Kreirajte recept iz medicinskog kartona pacijenta nakon unosa izvještaja.</p>
+    </mat-card-content>
+  </mat-card>
+} @else {
+  <table mat-table [dataSource]="prescriptions()" class="prescriptions-table">
+    <ng-container matColumnDef="number">
+      <th mat-header-cell *matHeaderCellDef>Broj</th>
+      <td mat-cell *matCellDef="let p">{{ p.prescriptionNumber }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="patient">
+      <th mat-header-cell *matHeaderCellDef>Pacijent</th>
+      <td mat-cell *matCellDef="let p">{{ p.patient.firstName }} {{ p.patient.lastName }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="status">
+      <th mat-header-cell *matHeaderCellDef>Status</th>
+      <td mat-cell *matCellDef="let p">
+        <span class="status-badge" [ngClass]="statusClass(p.status)">{{ statusLabel(p.status) }}</span>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="date">
+      <th mat-header-cell *matHeaderCellDef>Datum</th>
+      <td mat-cell *matCellDef="let p">{{ p.prescribedDate | date:'dd.MM.yyyy HH:mm' }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef></th>
+      <td mat-cell *matCellDef="let p">
+        <button mat-button color="primary" type="button" (click)="openDetail(p.id)">Detalj</button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="['number', 'patient', 'status', 'date', 'actions']"></tr>
+    <tr mat-row *matRowDef="let row; columns: ['number', 'patient', 'status', 'date', 'actions']"></tr>
+  </table>
+}

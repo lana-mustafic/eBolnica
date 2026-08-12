@@ -63,9 +63,17 @@
         <p class="empty">Nema izvještaja.</p>
       } @else {
         <div class="report-list">
-          @for (report of record.reports; track report.createdAt) {
+          @for (report of record.reports; track report.id) {
             <div class="report-item">
-              <div class="report-date">{{ report.createdAt | date:'dd.MM.yyyy HH:mm' }}</div>
+              <div class="report-header">
+                <div class="report-date">{{ report.createdAt | date:'dd.MM.yyyy HH:mm' }}</div>
+                @if (canCreatePrescription(report)) {
+                  <button mat-stroked-button color="primary" type="button" (click)="createPrescription(report)">
+                    <mat-icon>medication</mat-icon>
+                    Kreiraj recept
+                  </button>
+                }
+              </div>
               <div><strong>Simptomi:</strong> {{ report.symptoms }}</div>
               <div><strong>Dijagnoza:</strong> {{ report.diagnosis }}</div>
               <div><strong>Terapija:</strong> {{ report.therapy }}</div>

@@ -31,6 +31,7 @@ public sealed class GetMedicalRecordByPatientIdQueryHandler(IAppDbContext ctx, I
             .OrderByDescending(r => r.CreatedAtUtc)
             .Select(r => new MedicalReportItemDto
             {
+                Id = r.Id,
                 DoctorId = r.DoctorId,
                 CreatedAt = r.CreatedAtUtc,
                 Diagnosis = r.Diagnosis,

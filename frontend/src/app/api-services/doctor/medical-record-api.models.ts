@@ -1,4 +1,5 @@
 export interface MedicalReportItemDto {
+  id: number;
   doctorId: number;
   createdAt: string;
   diagnosis?: string | null;

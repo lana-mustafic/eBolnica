@@ -1,4 +1,5 @@
 export interface DoctorProfileDto {
+  id: number;
   firstName: string;
   lastName: string;
   phoneNumber: string;

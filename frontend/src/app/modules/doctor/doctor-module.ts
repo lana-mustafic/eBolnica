@@ -6,6 +6,9 @@ import { DoctorProfileComponent } from './profile/doctor-profile.component';
 import { DoctorProfileEditDialogComponent } from './profile/doctor-profile-edit-dialog/doctor-profile-edit-dialog.component';
 import { DoctorPatientsComponent } from './patients/doctor-patients.component';
 import { MedicalRecordComponent } from './medical-record/medical-record.component';
+import { DoctorPrescriptionsComponent } from './prescriptions/doctor-prescriptions.component';
+import { DoctorPrescriptionFormComponent } from './prescriptions/doctor-prescription-form.component';
+import { DoctorPrescriptionDetailComponent } from './prescriptions/doctor-prescription-detail.component';
 import { SharedModule } from '../shared/shared-module';
 
 @NgModule({
@@ -16,6 +19,9 @@ import { SharedModule } from '../shared/shared-module';
     DoctorProfileEditDialogComponent,
     DoctorPatientsComponent,
     MedicalRecordComponent,
+    DoctorPrescriptionsComponent,
+    DoctorPrescriptionFormComponent,
+    DoctorPrescriptionDetailComponent,
   ],
   imports: [DoctorRoutingModule, SharedModule],
 })

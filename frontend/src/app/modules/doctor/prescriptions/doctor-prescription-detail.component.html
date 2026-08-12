@@ -1,0 +1,64 @@
+<div class="page-header">
+  <button mat-button type="button" (click)="back()">
+    <mat-icon>arrow_back</mat-icon>
+    Nazad
+  </button>
+  <h1>Detalj recepta</h1>
+</div>
+
+@if (isLoading()) {
+  <app-fit-table-skeleton [rows]="4" [columns]="3"></app-fit-table-skeleton>
+} @else if (prescription(); as p) {
+  <div class="detail-grid">
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>{{ p.prescriptionNumber }}</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <dl class="meta-list">
+          <div>
+            <dt>Status</dt>
+            <dd><span class="status-badge" [ngClass]="statusClass(p.status)">{{ statusLabel(p.status) }}</span></dd>
+          </div>
+          <div><dt>Pacijent</dt><dd>{{ p.patient.firstName }} {{ p.patient.lastName }}</dd></div>
+          <div><dt>Propisan</dt><dd>{{ p.prescribedDate | date:'dd.MM.yyyy HH:mm' }}</dd></div>
+          @if (p.dispensedDate) {
+            <div><dt>Izdano u apoteci</dt><dd>{{ p.dispensedDate | date:'dd.MM.yyyy HH:mm' }}</dd></div>
+          }
+          @if (p.pharmacist) {
+            <div><dt>Farmaceut</dt><dd>{{ p.pharmacist.firstName }} {{ p.pharmacist.lastName }}</dd></div>
+          }
+          <div><dt>Ukupno</dt><dd>{{ p.totalAmount | number:'1.2-2' }} KM</dd></div>
+          @if (p.notes) {
+            <div><dt>Napomena</dt><dd>{{ p.notes }}</dd></div>
+          }
+        </dl>
+        @if (p.status === 'Pending') {
+          <p class="hint">Recept čeka izdavanje u apoteci.</p>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card>
+      <mat-card-header><mat-card-title>Stavke</mat-card-title></mat-card-header>
+      <mat-card-content>
+        <table mat-table [dataSource]="p.prescriptionItems" class="items-table">
+          <ng-container matColumnDef="medication">
+            <th mat-header-cell *matHeaderCellDef>Lijek</th>
+            <td mat-cell *matCellDef="let item">{{ item.medicationName }}</td>
+          </ng-container>
+          <ng-container matColumnDef="quantity">
+            <th mat-header-cell *matHeaderCellDef>Količina</th>
+            <td mat-cell *matCellDef="let item">{{ item.quantity }}</td>
+          </ng-container>
+          <ng-container matColumnDef="instructions">
+            <th mat-header-cell *matHeaderCellDef>Upute</th>
+            <td mat-cell *matCellDef="let item">{{ item.instructions || '—' }}</td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="['medication', 'quantity', 'instructions']"></tr>
+          <tr mat-row *matRowDef="let row; columns: ['medication', 'quantity', 'instructions']"></tr>
+        </table>
+      </mat-card-content>
+    </mat-card>
+  </div>
+}

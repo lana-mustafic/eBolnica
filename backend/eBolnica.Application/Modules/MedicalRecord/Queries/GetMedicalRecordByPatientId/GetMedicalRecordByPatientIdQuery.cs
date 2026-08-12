@@ -24,6 +24,7 @@ public sealed class GetMedicalRecordByPatientIdQueryDto
 
 public sealed class MedicalReportItemDto
 {
+    public int Id { get; init; }
     public int DoctorId { get; init; }
     public DateTime CreatedAt { get; init; }
     public string? Diagnosis { get; init; }

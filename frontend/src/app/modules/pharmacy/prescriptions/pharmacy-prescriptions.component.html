@@ -3,7 +3,7 @@
     <div class="page-top-row">
       <div class="header-copy">
         <h1>Recepti</h1>
-        <p class="header-meta">Pregledajte i upravljajte receptima pacijenata</p>
+        <p class="header-meta">Pregledajte i izdajte recepte koje su propisali doktori</p>
       </div>
       <div class="header-actions">
         <div class="avatar-chip" [attr.aria-label]="'Korisnički profil: ' + (auth.currentUser()?.email ?? '')">
@@ -13,9 +13,9 @@
     </div>
 
     <div class="page-toolbar">
-      <button type="button" class="btn btn-primary" (click)="createNew()">
+      <button type="button" class="btn btn-primary" (click)="createNew()" title="Za hitne slučajeve ako doktor nije poslao recept">
         <app-pharmacy-icon name="plus" [size]="18"></app-pharmacy-icon>
-        Novi recept
+        Novi recept (apoteka)
       </button>
       <button type="button" class="btn btn-secondary" (click)="exportPdf()" [disabled]="isExporting()">
         <app-pharmacy-icon name="download" [size]="16"></app-pharmacy-icon>

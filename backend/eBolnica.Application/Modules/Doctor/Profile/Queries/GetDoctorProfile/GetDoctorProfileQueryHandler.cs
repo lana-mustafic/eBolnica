@@ -17,6 +17,7 @@ public sealed class GetDoctorProfileQueryHandler(IAppDbContext ctx, IAppCurrentU
 
         return new GetDoctorProfileQueryDto
         {
+            Id = doctor.Id,
             FirstName = doctor.FirstName,
             LastName = doctor.LastName,
             PhoneNumber = doctor.PhoneNumber ?? "N/A",
