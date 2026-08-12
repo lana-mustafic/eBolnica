@@ -27,6 +27,7 @@ export class PharmacyLayoutComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
 
   isHandset = signal(false);
+  isOnline = signal(typeof navigator !== 'undefined' ? navigator.onLine : true);
 
   ngOnInit(): void {
     this.breakpointObserver
@@ -35,6 +36,18 @@ export class PharmacyLayoutComponent implements OnInit {
       .subscribe((result) => {
         this.isHandset.set(result.matches);
       });
+
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const syncOnlineStatus = () => this.isOnline.set(navigator.onLine);
+    window.addEventListener('online', syncOnlineStatus);
+    window.addEventListener('offline', syncOnlineStatus);
+    this.destroyRef.onDestroy(() => {
+      window.removeEventListener('online', syncOnlineStatus);
+      window.removeEventListener('offline', syncOnlineStatus);
+    });
   }
 
   closeSidenavOnNavigate(): void {

@@ -129,6 +129,14 @@
   background: $pharmacy-success;
 }
 
+.user-status--offline {
+  color: $pharmacy-danger;
+
+  .status-dot {
+    background: $pharmacy-danger;
+  }
+}
+
 .sidebar-divider {
   height: 1px;
   margin: 0 $pharmacy-space-md $pharmacy-space-xs;

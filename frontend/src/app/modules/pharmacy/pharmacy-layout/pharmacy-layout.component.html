@@ -75,9 +75,9 @@
         </div>
         <div class="user-meta">
           <span class="user-role">{{ auth.isAdmin() ? 'Administrator' : 'Farmaceut' }}</span>
-          <span class="user-status">
+          <span class="user-status" [class.user-status--offline]="!isOnline()">
             <span class="status-dot" aria-hidden="true"></span>
-            Online
+            {{ isOnline() ? 'Online' : 'Offline' }}
           </span>
         </div>
       </div>
