@@ -25,13 +25,34 @@ export class DoctorPrescriptionDetailComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
 
   isLoading = signal(true);
+  loadError = signal(false);
   prescription = signal<PrescriptionDto | null>(null);
 
   readonly statusLabel = getPrescriptionStatusLabel;
   readonly statusClass = getPrescriptionStatusClass;
+  readonly itemColumns = ['medication', 'quantity', 'price', 'instructions'];
 
   ngOnInit(): void {
-    const id = Number(this.route.snapshot.paramMap.get('id'));
+    this.loadPrescription(Number(this.route.snapshot.paramMap.get('id')));
+  }
+
+  reload(): void {
+    this.loadPrescription(Number(this.route.snapshot.paramMap.get('id')));
+  }
+
+  back(): void {
+    void this.router.navigate(['/doctor/prescriptions']);
+  }
+
+  private loadPrescription(id: number): void {
+    if (!id) {
+      this.loadError.set(true);
+      this.isLoading.set(false);
+      return;
+    }
+
+    this.isLoading.set(true);
+    this.loadError.set(false);
     this.doctorApi
       .getPrescription(id)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -42,12 +63,10 @@ export class DoctorPrescriptionDetailComponent implements OnInit {
         },
         error: (err) => {
           this.isLoading.set(false);
+          this.loadError.set(true);
+          this.prescription.set(null);
           this.toaster.error(getApiErrorMessage(err, 'Recept nije moguće učitati.'));
         },
       });
-  }
-
-  back(): void {
-    void this.router.navigate(['/doctor/prescriptions']);
   }
 }
