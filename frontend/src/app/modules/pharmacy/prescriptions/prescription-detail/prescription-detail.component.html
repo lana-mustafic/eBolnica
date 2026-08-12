@@ -1,92 +1,176 @@
-<div class="page-header">
-  <button mat-icon-button class="no-print" (click)="back()" aria-label="Nazad"><mat-icon>arrow_back</mat-icon></button>
-  <h1>Detalj recepta</h1>
-</div>
+<div class="detail-page">
+  @if (isLoading()) {
+    <div class="page-body">
+      <app-fit-table-skeleton [rows]="4" [columns]="3"></app-fit-table-skeleton>
+    </div>
+  } @else if (loadError()) {
+    <div class="page-body">
+      <section class="card error-card">
+        <p>Recept nije moguće učitati.</p>
+        <div class="error-actions no-print">
+          <button type="button" class="btn btn-outline" (click)="reload()">Pokušaj ponovo</button>
+          <button type="button" class="btn btn-primary" (click)="back()">Nazad na listu</button>
+        </div>
+      </section>
+    </div>
+  } @else if (prescription(); as p) {
+    <header class="page-top-bar no-print">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a routerLink="/pharmacy/prescriptions">Recepti</a>
+        <span aria-hidden="true">/</span>
+        <span class="breadcrumb-current">{{ p.prescriptionNumber }}</span>
+      </nav>
 
-@if (isLoading()) {
-  <app-fit-table-skeleton [rows]="4" [columns]="3"></app-fit-table-skeleton>
-} @else if (loadError()) {
-  <mat-card class="error-card">
-    <mat-card-content>
-      <p>Recept nije moguće učitati.</p>
-      <button mat-stroked-button type="button" (click)="reload()">Pokušaj ponovo</button>
-      <button mat-button type="button" (click)="back()">Nazad na listu</button>
-    </mat-card-content>
-  </mat-card>
-} @else if (prescription(); as prescription) {
-  <div class="detail-grid">
-    <mat-card>
-      <mat-card-header><mat-card-title>{{ prescription.prescriptionNumber }}</mat-card-title></mat-card-header>
-      <mat-card-content>
-        <dl class="meta-list">
-          <div><dt>Status</dt><dd>{{ statusLabel(prescription.status) }}</dd></div>
-          <div><dt>Pacijent</dt><dd>{{ prescription.patient.firstName }} {{ prescription.patient.lastName }}</dd></div>
-          @if (prescription.patient.phoneNumber) {
-            <div><dt>Telefon</dt><dd>{{ prescription.patient.phoneNumber }}</dd></div>
-          }
-          <div><dt>Doktor</dt><dd>Dr. {{ prescription.doctor.firstName }} {{ prescription.doctor.lastName }}</dd></div>
-          <div><dt>Propisan</dt><dd>{{ prescription.prescribedDate | date:'dd.MM.yyyy HH:mm' }}</dd></div>
-          @if (prescription.dispensedDate) {
-            <div><dt>Izdano</dt><dd>{{ prescription.dispensedDate | date:'dd.MM.yyyy HH:mm' }}</dd></div>
-          }
-          <div><dt>Ukupno</dt><dd>{{ prescription.totalAmount | number:'1.2-2' }} KM</dd></div>
-          @if (prescription.notes) {
-            <div><dt>Napomena</dt><dd>{{ prescription.notes }}</dd></div>
-          }
-        </dl>
+      <div class="page-top-row">
+        <div class="header-copy">
+          <h1>
+            <app-pharmacy-icon name="clipboard" [size]="24"></app-pharmacy-icon>
+            {{ p.prescriptionNumber }}
+          </h1>
+          <p class="header-meta">
+            {{ p.patient.firstName }} {{ p.patient.lastName }} · Dr. {{ p.doctor.firstName }} {{ p.doctor.lastName }}
+          </p>
+        </div>
 
-        <div class="detail-actions no-print">
+        <div class="header-actions">
           @if (canDispense()) {
-            <button mat-raised-button color="primary" (click)="dispense()" [disabled]="isDispensing()">
+            <button type="button" class="btn btn-primary" (click)="dispense()" [disabled]="isDispensing()">
+              <app-pharmacy-icon name="check-circle" [size]="16"></app-pharmacy-icon>
               {{ isDispensing() ? 'Izdavanje...' : 'Izdaj recept' }}
             </button>
           }
           @if (canCancel()) {
-            <button mat-stroked-button color="warn" type="button" (click)="cancel()" [disabled]="isCancelling()">
-              {{ isCancelling() ? 'Otkazivanje...' : 'Otkaži recept' }}
+            <button type="button" class="btn btn-danger-outline" (click)="cancel()" [disabled]="isCancelling()">
+              <app-pharmacy-icon name="clipboard" [size]="16"></app-pharmacy-icon>
+              {{ isCancelling() ? 'Otkazivanje...' : 'Otkaži' }}
             </button>
           }
-          <button mat-stroked-button type="button" (click)="print()">
-            <mat-icon>print</mat-icon>
+          <button type="button" class="btn btn-outline" (click)="print()">
+            <app-pharmacy-icon name="printer" [size]="16"></app-pharmacy-icon>
             Štampaj
           </button>
         </div>
-      </mat-card-content>
-    </mat-card>
+      </div>
+    </header>
 
-    <mat-card>
-      <mat-card-header><mat-card-title>Stavke</mat-card-title></mat-card-header>
-      <mat-card-content>
-        <table mat-table [dataSource]="prescription.prescriptionItems" class="items-table">
-          <ng-container matColumnDef="medication">
-            <th mat-header-cell *matHeaderCellDef>Lijek</th>
-            <td mat-cell *matCellDef="let item">{{ item.medicationName }}</td>
-          </ng-container>
-          <ng-container matColumnDef="qty">
-            <th mat-header-cell *matHeaderCellDef>Količina</th>
-            <td mat-cell *matCellDef="let item">{{ item.quantity }}</td>
-          </ng-container>
-          <ng-container matColumnDef="price">
-            <th mat-header-cell *matHeaderCellDef>Cijena</th>
-            <td mat-cell *matCellDef="let item">{{ item.unitPrice | number:'1.2-2' }} KM</td>
-          </ng-container>
-          <ng-container matColumnDef="stock">
-            <th mat-header-cell *matHeaderCellDef class="no-print">Zaliha</th>
-            <td mat-cell *matCellDef="let item" class="no-print">
-              <span [ngClass]="stockStatus(item).css">
-                {{ stockStatus(item).label }}
-              </span>
-            </td>
-          </ng-container>
-          <ng-container matColumnDef="instructions">
-            <th mat-header-cell *matHeaderCellDef>Upute</th>
-            <td mat-cell *matCellDef="let item">{{ item.instructions || '-' }}</td>
-          </ng-container>
+    <div class="page-body">
+      <section class="card">
+        <h2 class="section-title">Pregled recepta</h2>
+        <div class="summary-grid">
+          <div class="summary-field">
+            <span class="field-label">Status</span>
+            <span class="status-badge" [ngClass]="statusClass(p.status)" [class.pulse]="p.status === 'Pending'">
+              <span class="status-dot" aria-hidden="true"></span>
+              {{ statusLabel(p.status) }}
+            </span>
+          </div>
 
-          <tr mat-header-row *matHeaderRowDef="['medication','qty','price','stock','instructions']"></tr>
-          <tr mat-row *matRowDef="let row; columns: ['medication','qty','price','stock','instructions']"></tr>
-        </table>
-      </mat-card-content>
-    </mat-card>
-  </div>
-}
+          <div class="summary-field">
+            <span class="field-label">Pacijent</span>
+            <span class="field-value stack-value">
+              <span>{{ p.patient.firstName }} {{ p.patient.lastName }}</span>
+              @if (p.patient.phoneNumber) {
+                <span class="field-sub">
+                  <app-pharmacy-icon name="phone" [size]="12"></app-pharmacy-icon>
+                  {{ p.patient.phoneNumber }}
+                </span>
+              }
+            </span>
+          </div>
+
+          <div class="summary-field">
+            <span class="field-label">Doktor</span>
+            <span class="field-value stack-value">
+              <span>Dr. {{ p.doctor.firstName }} {{ p.doctor.lastName }}</span>
+              @if (p.doctor.specialization) {
+                <span class="field-sub">{{ p.doctor.specialization }}</span>
+              }
+            </span>
+          </div>
+
+          <div class="summary-field">
+            <span class="field-label">Propisan</span>
+            <span class="field-value">{{ p.prescribedDate | date:'dd.MM.yyyy HH:mm' }}</span>
+          </div>
+
+          @if (p.dispensedDate) {
+            <div class="summary-field">
+              <span class="field-label">Izdano</span>
+              <span class="field-value">{{ p.dispensedDate | date:'dd.MM.yyyy HH:mm' }}</span>
+            </div>
+          }
+
+          @if (p.pharmacist) {
+            <div class="summary-field">
+              <span class="field-label">Farmaceut</span>
+              <span class="field-value">{{ p.pharmacist.firstName }} {{ p.pharmacist.lastName }}</span>
+            </div>
+          }
+
+          <div class="summary-field">
+            <span class="field-label">Ukupno</span>
+            <span class="field-value amount">{{ p.totalAmount | number:'1.2-2' }} KM</span>
+          </div>
+
+          @if (p.notes) {
+            <div class="summary-field full-width">
+              <span class="field-label">Napomena</span>
+              <span class="field-value">{{ p.notes }}</span>
+            </div>
+          }
+        </div>
+      </section>
+
+      <section class="card table-card">
+        <div class="table-header">
+          <h2>Stavke recepta</h2>
+          <span class="item-count">{{ p.prescriptionItems.length }} stavki</span>
+        </div>
+
+        @if (p.prescriptionItems.length === 0) {
+          <p class="empty-state">Nema stavki na receptu.</p>
+        } @else {
+          <div class="table-scroll desktop-table">
+            <table mat-table [dataSource]="p.prescriptionItems" class="prescriptions-table items-table">
+              <ng-container matColumnDef="medication">
+                <th mat-header-cell *matHeaderCellDef>Lijek</th>
+                <td mat-cell *matCellDef="let item">
+                  <span class="cell-main">{{ item.medicationName }}</span>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="qty">
+                <th mat-header-cell *matHeaderCellDef>Količina</th>
+                <td mat-cell *matCellDef="let item">{{ item.quantity }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="price">
+                <th mat-header-cell *matHeaderCellDef>Cijena</th>
+                <td mat-cell *matCellDef="let item">
+                  <strong class="amount">{{ item.unitPrice | number:'1.2-2' }} KM</strong>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="stock">
+                <th mat-header-cell *matHeaderCellDef class="no-print">Zaliha</th>
+                <td mat-cell *matCellDef="let item" class="no-print">
+                  <span class="stock-badge" [ngClass]="stockStatus(item).css">
+                    {{ stockStatus(item).label }}
+                  </span>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="instructions">
+                <th mat-header-cell *matHeaderCellDef>Upute</th>
+                <td mat-cell *matCellDef="let item">{{ item.instructions || '—' }}</td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="['medication','qty','price','stock','instructions']"></tr>
+              <tr mat-row *matRowDef="let row; columns: ['medication','qty','price','stock','instructions']" class="data-row"></tr>
+            </table>
+          </div>
+        }
+      </section>
+    </div>
+  }
+</div>

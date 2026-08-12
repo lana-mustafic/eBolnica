@@ -16,7 +16,7 @@ import {
 } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../../core/services/toaster.service';
 import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
-import { getPrescriptionStatusLabel } from '../prescription-status.util';
+import { getPrescriptionStatusLabel, getPrescriptionStatusClass } from '../prescription-status.util';
 import { DialogButton, DialogType } from '../../../shared/models/dialog-config.model';
 import { DialogHelperService } from '../../../shared/services/dialog-helper.service';
 import { resolvePharmacyApiErrorMessage } from '../../shared/utils/pharmacy-api-error.util';
@@ -124,6 +124,10 @@ export class PrescriptionDetailComponent implements OnInit {
 
   statusLabel(status: string): string {
     return getPrescriptionStatusLabel(status);
+  }
+
+  statusClass(status: string): string {
+    return getPrescriptionStatusClass(status);
   }
 
   cancel(): void {
