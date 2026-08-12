@@ -77,11 +77,10 @@ public sealed class UploadMedicationImageCommandHandler(
             };
 
             ctx.MedicationImages.Add(image);
-
-            if (isFirst)
-                medication.ImageUrl = relativeUrl;
-
             medication.ModifiedAtUtc = DateTime.UtcNow;
+            await ctx.SaveChangesAsync(ct);
+
+            MedicationPrimaryImageSync.Apply(medication);
             await ctx.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
 

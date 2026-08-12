@@ -192,9 +192,13 @@
                 </th>
                 <td mat-cell *matCellDef="let m">
                   <div class="name-cell">
-                    <span class="thumb-placeholder" aria-hidden="true">
-                      <app-pharmacy-icon name="pill" [size]="18"></app-pharmacy-icon>
-                    </span>
+                    @if (imageUrl(m); as img) {
+                      <img [src]="img" alt="" class="thumb" (error)="onImageError(m.id)" />
+                    } @else {
+                      <span class="thumb-placeholder" aria-hidden="true">
+                        <app-pharmacy-icon name="pill" [size]="18"></app-pharmacy-icon>
+                      </span>
+                    }
                     <div>
                       <strong>{{ m.name }}</strong>
                       @if (m.category) {
@@ -289,9 +293,13 @@
             @for (m of vm.items; track m.id) {
               <li class="inventory-card">
                 <div class="card-row card-row-name">
-                  <span class="thumb-placeholder" aria-hidden="true">
-                    <app-pharmacy-icon name="pill" [size]="18"></app-pharmacy-icon>
-                  </span>
+                  @if (imageUrl(m); as img) {
+                    <img [src]="img" alt="" class="thumb" (error)="onImageError(m.id)" />
+                  } @else {
+                    <span class="thumb-placeholder" aria-hidden="true">
+                      <app-pharmacy-icon name="pill" [size]="18"></app-pharmacy-icon>
+                    </span>
+                  }
                   <div class="card-name-copy">
                     <strong>{{ m.name }}</strong>
                     @if (m.category) {

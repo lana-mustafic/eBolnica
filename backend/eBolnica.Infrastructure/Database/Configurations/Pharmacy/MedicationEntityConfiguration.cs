@@ -21,6 +21,11 @@ public sealed class MedicationEntityConfiguration : IEntityTypeConfiguration<Med
         b.Property(x => x.Strength).HasMaxLength(50);
         b.Property(x => x.ImageUrl).HasMaxLength(2048);
 
+        b.HasOne<MedicationImageEntity>()
+            .WithMany()
+            .HasForeignKey(x => x.PrimaryImageId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         b.Property(x => x.RowVersion).IsRowVersion();
 
         b.HasIndex(x => x.NormalizedName)

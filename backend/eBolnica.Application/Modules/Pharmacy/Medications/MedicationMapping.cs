@@ -30,12 +30,7 @@ internal static class MedicationMapping
             UpdatedAt = m.ModifiedAtUtc,
             RowVersion = m.RowVersion,
             PrimaryImageUrl = m.ImageUrl,
-            PrimaryImageId = m.Images
-                .Where(i => !i.IsDeleted)
-                .OrderByDescending(i => i.IsPrimary)
-                .ThenBy(i => i.SortOrder)
-                .Select(i => (int?)i.Id)
-                .FirstOrDefault()
+            PrimaryImageId = m.PrimaryImageId
         };
 
     /// <summary>
@@ -68,7 +63,7 @@ internal static class MedicationMapping
                 .ThenBy(i => i.SortOrder)
                 .Select(i => i.RelativeUrl)
                 .FirstOrDefault(),
-            PrimaryImageId = m.Images
+            PrimaryImageId = m.PrimaryImageId ?? m.Images
                 .Where(i => !i.IsDeleted)
                 .OrderByDescending(i => i.IsPrimary)
                 .ThenBy(i => i.SortOrder)

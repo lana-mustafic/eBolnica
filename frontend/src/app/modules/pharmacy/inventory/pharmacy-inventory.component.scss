@@ -469,10 +469,20 @@
   }
 }
 
+.thumb,
 .thumb-placeholder {
   width: 40px;
   height: 40px;
   border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.thumb {
+  object-fit: cover;
+  border: 1px solid $pharmacy-border;
+}
+
+.thumb-placeholder {
   background: rgba(59, 130, 246, 0.08);
   color: $pharmacy-accent;
   display: grid;

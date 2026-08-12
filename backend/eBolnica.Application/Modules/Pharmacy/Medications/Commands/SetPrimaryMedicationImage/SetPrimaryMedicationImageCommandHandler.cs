@@ -1,5 +1,6 @@
 using eBolnica.Application.Modules.Pharmacy;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.SetPrimaryMedicationImage;
+using eBolnica.Application.Modules.Pharmacy.Medications.Images;
 using Microsoft.Extensions.Logging;
 
 public sealed class SetPrimaryMedicationImageCommandHandler(
@@ -23,7 +24,7 @@ public sealed class SetPrimaryMedicationImageCommandHandler(
         foreach (var img in medication.Images.Where(i => !i.IsDeleted))
             img.IsPrimary = img.Id == target.Id;
 
-        medication.ImageUrl = target.RelativeUrl;
+        MedicationPrimaryImageSync.Apply(medication);
         medication.ModifiedAtUtc = DateTime.UtcNow;
         await ctx.SaveChangesAsync(ct);
 

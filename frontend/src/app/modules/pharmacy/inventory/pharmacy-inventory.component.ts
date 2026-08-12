@@ -34,6 +34,7 @@ import {
 } from '../shared/utils/medication-list-query.util';
 import { pipeListLoad } from '../shared/utils/pharmacy-list-load.util';
 import { resolvePharmacyApiErrorMessage } from '../shared/utils/pharmacy-api-error.util';
+import { MedicationImageUrlService } from '../services/medication-image-url.service';
 import {
   canGoToPage,
   onTableSortKeydown,
@@ -72,6 +73,7 @@ export class PharmacyInventoryComponent implements OnInit {
   private router = inject(Router);
   private dialog = inject(DialogHelperService);
   private destroyRef = inject(DestroyRef);
+  private imageUrlService = inject(MedicationImageUrlService);
   auth = inject(AuthFacadeService);
 
   readonly categoryLabel = getMedicationCategoryLabel;
@@ -96,6 +98,9 @@ export class PharmacyInventoryComponent implements OnInit {
   displayedColumns = ['name', 'stock', 'expiry', 'status', 'actions'];
   selectedMedication: MedicationDto | null = null;
 
+  private thumbnailUrls = signal(new Map<number, string>());
+  private thumbnailLoadGeneration = 0;
+
   private filterChanged$ = new Subject<void>();
   private loadTrigger$ = new Subject<void>();
 
@@ -104,6 +109,9 @@ export class PharmacyInventoryComponent implements OnInit {
     tap((vm) => {
       this.currentPage.set(vm.currentPage);
       this.totalPages.set(vm.totalPages);
+      if (!this.isLoading() && !this.loadError()) {
+        this.loadThumbnailUrls(vm.items);
+      }
     }),
     shareReplay({ bufferSize: 1, refCount: true })
   );
@@ -175,6 +183,18 @@ export class PharmacyInventoryComponent implements OnInit {
     if (status === 'Niska zaliha') return 'low';
     if (status === 'Kritično') return 'critical';
     return 'ok';
+  }
+
+  imageUrl(m: MedicationDto): string | null {
+    return this.thumbnailUrls().get(m.id) ?? null;
+  }
+
+  onImageError(medicationId: number): void {
+    this.thumbnailUrls.update((map) => {
+      const next = new Map(map);
+      next.delete(medicationId);
+      return next;
+    });
   }
 
   viewMedication(id: number): void {
@@ -356,5 +376,38 @@ export class PharmacyInventoryComponent implements OnInit {
 
   onSortKeydown(event: KeyboardEvent, column: string): void {
     onTableSortKeydown(event, column, (col) => this.onSort(col));
+  }
+
+  private loadThumbnailUrls(medications: MedicationDto[]): void {
+    const generation = ++this.thumbnailLoadGeneration;
+    this.imageUrlService.revokeAll();
+    this.thumbnailUrls.set(new Map());
+
+    for (const medication of medications) {
+      if (!medication.primaryImageId) {
+        continue;
+      }
+
+      this.imageUrlService
+        .getAuthenticatedUrl(medication.id, medication.primaryImageId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (url) => {
+            if (generation !== this.thumbnailLoadGeneration) {
+              return;
+            }
+            this.thumbnailUrls.update((map) => {
+              const next = new Map(map);
+              next.set(medication.id, url);
+              return next;
+            });
+          },
+          error: () => {
+            if (generation !== this.thumbnailLoadGeneration) {
+              return;
+            }
+          },
+        });
+    }
   }
 }

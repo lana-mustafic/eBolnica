@@ -1,6 +1,7 @@
 using eBolnica.Application.Abstractions;
 using eBolnica.Application.Modules.Pharmacy;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.DeleteMedicationImage;
+using eBolnica.Application.Modules.Pharmacy.Medications.Images;
 using Microsoft.Extensions.Logging;
 
 public sealed class DeleteMedicationImageCommandHandler(
@@ -37,16 +38,10 @@ public sealed class DeleteMedicationImageCommandHandler(
                 .FirstOrDefault();
 
             if (next is not null)
-            {
                 next.IsPrimary = true;
-                medication.ImageUrl = next.RelativeUrl;
-            }
-            else
-            {
-                medication.ImageUrl = null;
-            }
         }
 
+        MedicationPrimaryImageSync.Apply(medication);
         medication.ModifiedAtUtc = now;
         await ctx.SaveChangesAsync(ct);
 
