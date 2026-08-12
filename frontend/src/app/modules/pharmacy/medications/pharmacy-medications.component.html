@@ -95,7 +95,7 @@
       </section>
     }
 
-    @if (listState$ | async; as vm) {
+    @if (listState(); as vm) {
     <section class="kpi-grid" aria-label="Statistike lijekova">
       <app-pharmacy-kpi-card
         icon="package"
@@ -209,20 +209,13 @@
       </div>
     </section>
 
-    @if (loadError()) {
+    @if (vm.error) {
       <section class="card error-card">
         <p>Greška pri učitavanju lijekova.</p>
         <button type="button" class="btn btn-outline" (click)="retryLoad()">Pokušaj ponovo</button>
       </section>
-    } @else if (isLoading()) {
+    } @else if (vm.loading) {
       <app-fit-table-skeleton [rows]="5" [columns]="6"></app-fit-table-skeleton>
-    } @else if (vm.medications.length === 0) {
-      <section class="card empty-card">
-        <p class="empty">Nema lijekova za odabrane filtere.</p>
-        @if (hasActiveFilters()) {
-          <button type="button" class="btn btn-outline" (click)="clearFilters()">Očisti filtere</button>
-        }
-      </section>
     } @else {
       <section class="card table-card">
         <div class="table-header">
@@ -237,8 +230,14 @@
           </div>
         </div>
 
+        @if (vm.medications.length === 0) {
+          <p class="empty">Nema lijekova za odabrane filtere.</p>
+          @if (hasActiveFilters()) {
+            <button type="button" class="btn btn-outline" (click)="clearFilters()">Očisti filtere</button>
+          }
+        } @else {
         <div class="table-scroll desktop-table">
-          <table mat-table [dataSource]="vm.medications" class="medications-table">
+          <table mat-table [dataSource]="tableDataSource" class="medications-table">
             <ng-container matColumnDef="name">
               <th
                 mat-header-cell
@@ -461,6 +460,7 @@
               Sljedeća
             </button>
           </div>
+        }
         }
       </section>
     }

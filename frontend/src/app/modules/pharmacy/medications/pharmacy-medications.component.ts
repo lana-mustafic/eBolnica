@@ -9,7 +9,7 @@ import {
   signal,
   ViewChild,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import {
   catchError,
@@ -54,6 +54,7 @@ import {
   sortIndicator,
   toggleSortColumn,
 } from '../shared/utils/pharmacy-table.util';
+import { MatTableDataSource } from '@angular/material/table';
 
 interface MedicationsListViewModel {
   loading: boolean;
@@ -84,6 +85,8 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
   private dialog = inject(DialogHelperService);
   private destroyRef = inject(DestroyRef);
   auth = inject(AuthFacadeService);
+
+  readonly tableDataSource = new MatTableDataSource<MedicationDto>([]);
 
   readonly categoryLabel = getMedicationCategoryLabel;
   readonly categories = MEDICATION_CATEGORIES;
@@ -129,12 +132,17 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
       this.currentPage.set(vm.currentPage);
       this.totalPages.set(vm.totalPages);
       this.medicationsOnPageCount.set(vm.medications.length);
-      if (!this.isLoading() && !this.loadError()) {
+      this.tableDataSource.data = vm.medications;
+      if (!vm.loading && !vm.error) {
         this.loadThumbnailUrls(vm.medications);
       }
     }),
     shareReplay({ bufferSize: 1, refCount: true })
   );
+
+  readonly listState = toSignal(this.listState$, {
+    initialValue: this.emptyViewModel({ loading: true }),
+  });
 
   displayedColumns = ['name', 'category', 'stockQuantity', 'expiryDate', 'createdAt', 'status', 'actions'];
 
@@ -205,14 +213,15 @@ export class PharmacyMedicationsComponent implements OnInit, OnDestroy {
     },
     stats: InventoryResponse | null
   ): MedicationsListViewModel {
+    const medications = res.items ?? [];
     return {
       loading: false,
       error: false,
-      medications: res.items,
-      totalCount: res.totalCount,
-      totalPages: res.totalPages,
-      currentPage: res.currentPage,
-      totalMedications: stats?.totalMedications ?? 0,
+      medications,
+      totalCount: res.totalCount ?? medications.length,
+      totalPages: res.totalPages ?? 1,
+      currentPage: res.currentPage ?? 1,
+      totalMedications: stats?.totalMedications ?? res.totalCount ?? medications.length,
       lowStockAlertCount: stats?.lowStockAlertCount ?? 0,
       expiryAlertCount: stats?.expiryAlertCount ?? 0,
     };
