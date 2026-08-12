@@ -487,6 +487,8 @@ export class PharmacyPrescriptionsComponent implements OnInit {
   }
 
   printPrescription(prescription: PrescriptionDto): void {
-    this.router.navigate(['/pharmacy/prescriptions', prescription.id]);
+    this.router.navigate(['/pharmacy/prescriptions', prescription.id], {
+      queryParams: { print: '1' },
+    });
   }
 }

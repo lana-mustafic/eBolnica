@@ -78,6 +78,7 @@ export class PrescriptionDetailComponent implements OnInit {
         }
 
         this.prescription.set(prescription);
+        this.schedulePrintIfRequested();
       });
   }
 
@@ -109,6 +110,7 @@ export class PrescriptionDetailComponent implements OnInit {
         }
 
         this.prescription.set(prescription);
+        this.schedulePrintIfRequested();
       });
   }
 
@@ -222,7 +224,26 @@ export class PrescriptionDetailComponent implements OnInit {
       });
   }
 
+  print(): void {
+    window.print();
+  }
+
   back(): void {
     this.router.navigate(['/pharmacy/prescriptions']);
+  }
+
+  private schedulePrintIfRequested(): void {
+    if (this.route.snapshot.queryParamMap.get('print') !== '1') {
+      return;
+    }
+
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { print: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+
+    setTimeout(() => window.print(), 0);
   }
 }

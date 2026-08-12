@@ -46,3 +46,27 @@
 .stock-low { color: #c0392b; }
 .stock-out { color: #c0392b; font-weight: 600; }
 .stock-missing { color: #666; }
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .page-header {
+    margin-bottom: 1rem;
+  }
+
+  .detail-grid {
+    gap: 1rem;
+  }
+
+  mat-card {
+    box-shadow: none;
+  }
+}
