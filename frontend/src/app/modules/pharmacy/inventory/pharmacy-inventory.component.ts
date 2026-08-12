@@ -6,7 +6,7 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import {
   debounceTime,
@@ -42,6 +42,7 @@ import {
   sortIndicator,
   toggleSortColumn,
 } from '../shared/utils/pharmacy-table.util';
+import { MatTableDataSource } from '@angular/material/table';
 
 interface InventoryListViewModel {
   loading: boolean;
@@ -76,6 +77,8 @@ export class PharmacyInventoryComponent implements OnInit {
   private imageUrlService = inject(MedicationImageUrlService);
   auth = inject(AuthFacadeService);
 
+  readonly tableDataSource = new MatTableDataSource<MedicationDto>([]);
+
   readonly categoryLabel = getMedicationCategoryLabel;
   readonly categories = MEDICATION_CATEGORIES;
   readonly pageSize = 10;
@@ -109,12 +112,17 @@ export class PharmacyInventoryComponent implements OnInit {
     tap((vm) => {
       this.currentPage.set(vm.currentPage);
       this.totalPages.set(vm.totalPages);
-      if (!this.isLoading() && !this.loadError()) {
+      this.tableDataSource.data = vm.items;
+      if (!vm.loading && !vm.error) {
         this.loadThumbnailUrls(vm.items);
       }
     }),
     shareReplay({ bufferSize: 1, refCount: true })
   );
+
+  readonly listState = toSignal(this.listState$, {
+    initialValue: this.emptyViewModel({ loading: true }),
+  });
 
   ngOnInit(): void {
     this.filterChanged$
@@ -247,7 +255,10 @@ export class PharmacyInventoryComponent implements OnInit {
       { isLoading: this.isLoading, loadError: this.loadError },
       (opts) => this.emptyViewModel(opts),
       'Greška pri učitavanju inventara.',
-      (message) => this.toaster.error(message)
+      (message) => {
+        this.thumbnailUrls.set(new Map());
+        this.toaster.error(message);
+      }
     );
   }
 
@@ -263,22 +274,25 @@ export class PharmacyInventoryComponent implements OnInit {
     totalPages: number;
     currentPage: number;
   }): InventoryListViewModel {
-    const inventoryValue = res.inventoryValue;
+    const inventoryValue = res.inventoryValue ?? 0;
+    const items = res.items ?? [];
+    const lowStockAlerts = res.lowStockAlerts ?? [];
+    const expiryAlerts = res.expiryAlerts ?? [];
     return {
       loading: false,
       error: false,
-      items: res.items,
-      lowStockAlerts: res.lowStockAlerts,
-      expiryAlerts: res.expiryAlerts,
-      lowStockAlertCount: res.lowStockAlertCount ?? res.lowStockAlerts.length,
-      expiryAlertCount: res.expiryAlertCount ?? res.expiryAlerts.length,
+      items,
+      lowStockAlerts,
+      expiryAlerts,
+      lowStockAlertCount: res.lowStockAlertCount ?? lowStockAlerts.length,
+      expiryAlertCount: res.expiryAlertCount ?? expiryAlerts.length,
       inventoryValue,
       inventoryValueLabel: `${Math.round(inventoryValue).toLocaleString('bs-BA')} KM`,
-      totalMedications: res.totalMedications,
-      totalCount: res.totalCount,
-      currentPage: res.currentPage,
-      totalPages: res.totalPages,
-      firstLowStockAlert: res.lowStockAlerts[0] ?? null,
+      totalMedications: res.totalMedications ?? items.length,
+      totalCount: res.totalCount ?? items.length,
+      currentPage: res.currentPage ?? 1,
+      totalPages: res.totalPages ?? 1,
+      firstLowStockAlert: lowStockAlerts[0] ?? null,
     };
   }
 

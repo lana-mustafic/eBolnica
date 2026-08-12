@@ -14,7 +14,7 @@
   </header>
 
   <div class="page-body">
-    @if (listState$ | async; as vm) {
+    @if (listState(); as vm) {
     <section class="kpi-grid" aria-label="Statistike inventara">
       <app-pharmacy-kpi-card
         icon="package"
@@ -146,12 +146,12 @@
       </article>
     </section>
 
-    @if (loadError()) {
+    @if (vm.error) {
       <section class="card error-card">
         <p>Greška pri učitavanju inventara.</p>
         <button type="button" class="btn btn-outline" (click)="retryLoad()">Pokušaj ponovo</button>
       </section>
-    } @else if (isLoading()) {
+    } @else if (vm.loading) {
       <app-fit-table-skeleton [rows]="5" [columns]="5"></app-fit-table-skeleton>
     } @else {
       <section class="card table-card">
@@ -176,7 +176,7 @@
           }
         } @else {
           <div class="table-scroll desktop-table">
-            <table mat-table [dataSource]="vm.items" class="inventory-table">
+            <table mat-table [dataSource]="tableDataSource" class="inventory-table">
               <ng-container matColumnDef="name">
                 <th
                   mat-header-cell
