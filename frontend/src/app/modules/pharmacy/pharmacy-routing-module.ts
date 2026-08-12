@@ -1,7 +1,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { myAuthData, myAuthGuard } from '../../core/guards/my-auth-guard';
-import { pharmacyDefaultRedirectGuard } from '../../core/guards/pharmacy-default-redirect.guard';
 import { PharmacyLayoutComponent } from './pharmacy-layout/pharmacy-layout.component';
 import { PharmacyDashboardComponent } from './dashboard/pharmacy-dashboard.component';
 import { PharmacyMedicationsComponent } from './medications/pharmacy-medications.component';
@@ -38,7 +37,7 @@ const routes: Routes = [
       { path: 'prescriptions', component: PharmacyPrescriptionsComponent, ...pharmacistOnly },
       { path: 'prescriptions/new', component: PrescriptionFormComponent, ...pharmacistOnly },
       { path: 'prescriptions/:id', component: PrescriptionDetailComponent, ...pharmacistOnly },
-      { path: '', pathMatch: 'full', canActivate: [pharmacyDefaultRedirectGuard] },
+      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],
   },
 ];

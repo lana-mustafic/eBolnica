@@ -31,7 +31,7 @@ export class CurrentUserService {
       case 'Patient':
         return '/patient';
       case 'Pharmacist':
-        return '/pharmacy';
+        return '/pharmacy/dashboard';
       default:
         return '/';
     }

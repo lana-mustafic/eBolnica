@@ -14,7 +14,7 @@ import {
 
 import { AuthStorageService } from './auth-storage.service';
 import { CurrentUserDto } from './current-user.dto';
-import { JwtPayloadDto, resolveUserType } from './jwt-payload.dto';
+import { JwtPayloadDto, resolveUserType, resolveJwtEmail } from './jwt-payload.dto';
 import { getUserInitials } from '../../utils/user-initials.util';
 
 @Injectable({ providedIn: 'root' })
@@ -101,12 +101,12 @@ export class AuthFacadeService {
 
       const user: CurrentUserDto = {
         userId: Number(payload.sub),
-        email: payload.email,
+        email: resolveJwtEmail(payload),
         userType,
         isAdmin: userType === 'Admin' || payload.is_admin === 'true',
         isManager: payload.is_manager === 'true',
         isEmployee: payload.is_employee === 'true',
-        tokenVersion: Number(payload.ver),
+        tokenVersion: Number(payload.ver ?? 0),
       };
 
       this._currentUser.set(user);
