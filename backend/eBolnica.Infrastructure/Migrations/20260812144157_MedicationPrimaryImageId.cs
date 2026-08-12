@@ -42,7 +42,7 @@ namespace eBolnica.Infrastructure.Migrations
                 column: "PrimaryImageId",
                 principalTable: "MedicationImages",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.SetNull);
+                onDelete: ReferentialAction.NoAction);
         }
 
         /// <inheritdoc />

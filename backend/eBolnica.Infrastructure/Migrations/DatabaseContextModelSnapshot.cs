@@ -895,7 +895,7 @@ namespace eBolnica.Infrastructure.Migrations
                     b.HasOne("eBolnica.Domain.Entities.Pharmacy.MedicationImageEntity", null)
                         .WithMany()
                         .HasForeignKey("PrimaryImageId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
                 });
 
             modelBuilder.Entity("eBolnica.Domain.Entities.Pharmacy.MedicationImageEntity", b =>

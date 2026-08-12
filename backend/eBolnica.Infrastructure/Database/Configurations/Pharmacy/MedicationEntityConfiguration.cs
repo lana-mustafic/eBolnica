@@ -24,7 +24,7 @@ public sealed class MedicationEntityConfiguration : IEntityTypeConfiguration<Med
         b.HasOne<MedicationImageEntity>()
             .WithMany()
             .HasForeignKey(x => x.PrimaryImageId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.NoAction);
 
         b.Property(x => x.RowVersion).IsRowVersion();
 
