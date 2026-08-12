@@ -25,7 +25,7 @@ import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.
 import { PharmacyActivityDto, PrescriptionDto } from '../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../core/services/toaster.service';
 import { getApiErrorMessage } from '../../../core/utils/api-error.util';
-import { formatRelativeTime } from '../../../core/utils/relative-time.util';
+import { formatPharmacyActivityMeta, mapPrescriptionActivityType } from '../shared/pharmacy-activity.util';
 import {
   getPrescriptionStatusClass,
   getPrescriptionStatusLabel,
@@ -33,7 +33,6 @@ import {
 import { DialogButton, DialogType } from '../../shared/models/dialog-config.model';
 import { DialogHelperService } from '../../shared/services/dialog-helper.service';
 import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
-import { mapPrescriptionActivityType } from '../shared/pharmacy-activity.util';
 import { resolvePharmacyApiErrorMessage } from '../shared/utils/pharmacy-api-error.util';
 import { validatePrescriptionStock } from '../shared/utils/prescription-dispense.util';
 
@@ -125,7 +124,7 @@ export class PharmacyPrescriptionsComponent implements OnInit {
         id: activity.id,
         type: mapPrescriptionActivityType(activity),
         message: activity.message,
-        timeLabel: formatRelativeTime(activity.occurredAt),
+        timeLabel: formatPharmacyActivityMeta(activity),
       }))
     ),
     shareReplay({ bufferSize: 1, refCount: true })

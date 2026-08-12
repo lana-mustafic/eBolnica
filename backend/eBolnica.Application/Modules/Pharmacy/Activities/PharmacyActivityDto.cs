@@ -8,4 +8,5 @@ public sealed class PharmacyActivityDto
     public string Severity { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
     public DateTime OccurredAt { get; set; }
+    public string? ActorName { get; set; }
 }

@@ -39,7 +39,13 @@ public sealed class ListRecentActivitiesQueryHandler(IAppDbContext ctx)
                 Category = a.Category,
                 Severity = a.Severity,
                 Message = a.Message,
-                OccurredAt = a.CreatedAtUtc
+                OccurredAt = a.CreatedAtUtc,
+                ActorName = a.ActorUserId == null
+                    ? null
+                    : ctx.Users
+                        .Where(u => u.Id == a.ActorUserId && !u.IsDeleted)
+                        .Select(u => u.Firstname + " " + u.Lastname)
+                        .FirstOrDefault()
             })
             .ToListAsync(ct);
     }

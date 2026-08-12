@@ -22,8 +22,8 @@ import {
 import { PharmacyIconName } from '../shared/pharmacy-icon/pharmacy-icon.component';
 import { ToasterService } from '../../../core/services/toaster.service';
 import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
-import { formatRelativeTime } from '../../../core/utils/relative-time.util';
 import {
+  formatPharmacyActivityMeta,
   mapPharmacyActivityIcon,
   mapPharmacyActivityTone,
   PharmacyActivityTone,
@@ -126,7 +126,7 @@ export class PharmacyDashboardComponent implements OnInit {
       icon: mapPharmacyActivityIcon(activity),
       tone: mapPharmacyActivityTone(activity),
       text: activity.message,
-      time: formatRelativeTime(activity.occurredAt),
+      time: formatPharmacyActivityMeta(activity),
     }))
   );
 

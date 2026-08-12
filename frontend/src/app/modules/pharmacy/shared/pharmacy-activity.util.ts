@@ -1,4 +1,5 @@
 import { PharmacyActivityDto } from '../../../api-services/pharmacy/pharmacy-api.models';
+import { formatRelativeTime } from '../../../core/utils/relative-time.util';
 import { PharmacyIconName } from './pharmacy-icon/pharmacy-icon.component';
 
 export type PharmacyActivityTone = 'success' | 'warning' | 'info';
@@ -47,4 +48,9 @@ export function mapPrescriptionActivityType(
     default:
       return mapPharmacyActivityTone(activity) === 'warning' ? 'warning' : 'success';
   }
+}
+
+export function formatPharmacyActivityMeta(activity: PharmacyActivityDto): string {
+  const time = formatRelativeTime(activity.occurredAt);
+  return activity.actorName ? `${activity.actorName} · ${time}` : time;
 }

@@ -332,6 +332,7 @@ export interface PharmacyActivityDto {
   severity: 'info' | 'success' | 'warning';
   message: string;
   occurredAt: string;
+  actorName?: string | null;
 }
 
 export interface ListRecentActivitiesRequest {
