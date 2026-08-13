@@ -194,13 +194,13 @@ public sealed class PharmacyPdfReportService : IPharmacyPdfReportService
         {
             table.ColumnsDefinition(columns =>
             {
-                columns.ConstantColumn(22);
-                columns.RelativeColumn(3.2f);
+                columns.ConstantColumn(20);
+                columns.RelativeColumn(2.8f);
+                columns.RelativeColumn(2.0f);
+                columns.RelativeColumn(1.6f);
+                columns.RelativeColumn(1.3f);
+                columns.RelativeColumn(1.2f);
                 columns.RelativeColumn(1.8f);
-                columns.RelativeColumn(1.4f);
-                columns.RelativeColumn(1.1f);
-                columns.RelativeColumn(1.1f);
-                columns.RelativeColumn(1.5f);
                 columns.RelativeColumn(1.3f);
             });
 
@@ -226,7 +226,7 @@ public sealed class PharmacyPdfReportService : IPharmacyPdfReportService
                 RenderNameCell(table.Cell(), rowBg, medication);
                 RenderBodyCell(table.Cell(), rowBg, medication.Category ?? "-");
                 RenderBodyCell(table.Cell(), rowBg, FormatDosageForm(medication.DosageForm));
-                RenderBodyCell(table.Cell(), rowBg, $"{medication.Price:F2} KM", TextPrimary, true);
+                RenderBodyCell(table.Cell(), rowBg, $"{medication.Price:F2}\u00A0KM", TextPrimary, true);
                 RenderBodyCell(table.Cell(), rowBg, medication.StockQuantity.ToString(), TextPrimary, true);
                 RenderStatusCell(table.Cell(), rowBg, status);
                 RenderBodyCell(table.Cell(), rowBg, medication.ExpiryDate?.ToString("dd.MM.yyyy") ?? "-");
@@ -300,8 +300,9 @@ public sealed class PharmacyPdfReportService : IPharmacyPdfReportService
     }
 
     private static void RenderHeaderCell(IContainer cell, string label) =>
-        cell.Background(TextPrimary).BorderBottom(1).BorderColor(Border).PaddingVertical(8).PaddingHorizontal(6)
-            .Text(label.ToUpperInvariant()).FontSize(7).SemiBold().FontColor(Colors.White).LetterSpacing(0.4f);
+        cell.Background(TextPrimary).BorderBottom(1).BorderColor(Border).PaddingVertical(8).PaddingHorizontal(5)
+            .AlignMiddle()
+            .Text(label.ToUpperInvariant()).FontSize(7.5f).SemiBold().FontColor(Colors.White);
 
     private static void RenderBodyCell(
         IContainer cell,
@@ -336,11 +337,12 @@ public sealed class PharmacyPdfReportService : IPharmacyPdfReportService
             _ => ("Neaktivan", TextSecondary),
         };
 
-        cell.Background(rowBg).BorderBottom(1).BorderColor(Border).PaddingVertical(7).PaddingHorizontal(6).AlignMiddle()
+        cell.Background(rowBg).BorderBottom(1).BorderColor(Border).PaddingVertical(7).PaddingHorizontal(5).AlignMiddle()
             .Element(container =>
             {
-                container.Background(color).CornerRadius(10).PaddingVertical(3).PaddingHorizontal(8).Text(label)
-                    .FontSize(7).SemiBold().FontColor(Colors.White);
+                container.Background(color).CornerRadius(10).PaddingVertical(3).PaddingHorizontal(6)
+                    .AlignMiddle()
+                    .Text(label).FontSize(7).SemiBold().FontColor(Colors.White).ClampLines(1);
             });
     }
 
