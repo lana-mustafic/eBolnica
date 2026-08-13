@@ -12,6 +12,7 @@ import {
   catchError,
   debounceTime,
   map,
+  merge,
   Observable,
   of,
   shareReplay,
@@ -116,21 +117,23 @@ export class PharmacyPrescriptionsComponent implements OnInit {
   private loadTrigger$ = new Subject<void>();
   private activitiesLoadTrigger$ = new Subject<void>();
 
-  readonly activities$ = this.activitiesLoadTrigger$.pipe(
-    switchMap(() =>
-      this.pharmacyApi.listRecentActivities({ limit: 6, category: 'prescription' }).pipe(
-        catchError(() => of([] as PharmacyActivityDto[]))
+  readonly activities = toSignal(
+    merge(of(undefined), this.activitiesLoadTrigger$).pipe(
+      switchMap(() =>
+        this.pharmacyApi.listRecentActivities({ limit: 6, category: 'prescription' }).pipe(
+          catchError(() => of([] as PharmacyActivityDto[]))
+        )
+      ),
+      map((activities) =>
+        activities.map((activity) => ({
+          id: activity.id,
+          type: mapPrescriptionActivityType(activity),
+          message: activity.message,
+          timeLabel: formatPharmacyActivityMeta(activity),
+        }))
       )
     ),
-    map((activities) =>
-      activities.map((activity) => ({
-        id: activity.id,
-        type: mapPrescriptionActivityType(activity),
-        message: activity.message,
-        timeLabel: formatPharmacyActivityMeta(activity),
-      }))
-    ),
-    shareReplay({ bufferSize: 1, refCount: true })
+    { initialValue: [] as PrescriptionActivityItem[] }
   );
 
   readonly listState$ = this.loadTrigger$.pipe(
@@ -156,7 +159,6 @@ export class PharmacyPrescriptionsComponent implements OnInit {
       });
 
     this.loadTrigger$.next();
-    this.activitiesLoadTrigger$.next();
   }
 
   private reloadActivities(): void {
@@ -325,6 +327,7 @@ export class PharmacyPrescriptionsComponent implements OnInit {
 
   reload(): void {
     this.loadTrigger$.next();
+    this.reloadActivities();
   }
 
   clearFilters(): void {

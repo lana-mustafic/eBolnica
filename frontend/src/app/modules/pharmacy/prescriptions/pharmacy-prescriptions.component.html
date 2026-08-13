@@ -372,9 +372,8 @@
 
       <section class="card activity-card">
         <h2 class="section-title">Najnovije aktivnosti</h2>
-        @if (activities$ | async; as activities) {
         <ul class="activity-list">
-          @if (activities.length === 0) {
+          @if (activities().length === 0) {
             <li class="activity-item success">
               <div class="activity-copy">
                 <span class="activity-text">Nema zabilježenih aktivnosti.</span>
@@ -382,7 +381,7 @@
               </div>
             </li>
           } @else {
-            @for (activity of activities; track activity.id) {
+            @for (activity of activities(); track activity.id) {
               <li class="activity-item" [class]="activity.type">
                 <span class="activity-icon">
                   @switch (activity.type) {
@@ -405,7 +404,6 @@
             }
           }
         </ul>
-        }
       </section>
     }
     }
