@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "eBolnica.Domain", "eBolnica
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "eBolnica.Application", "eBolnica.Application\eBolnica.Application.csproj", "{EADBF014-BCDB-4D43-9E49-02DB418F4834}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "eBolnica.Tests", "eBolnica.Tests\eBolnica.Tests.csproj", "{B7E2C4A1-9D18-4F6E-8A31-2C5D9E4F7012}"
+EndProject
 
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -40,6 +42,10 @@ Global
 		{EADBF014-BCDB-4D43-9E49-02DB418F4834}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EADBF014-BCDB-4D43-9E49-02DB418F4834}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EADBF014-BCDB-4D43-9E49-02DB418F4834}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B7E2C4A1-9D18-4F6E-8A31-2C5D9E4F7012}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7E2C4A1-9D18-4F6E-8A31-2C5D9E4F7012}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7E2C4A1-9D18-4F6E-8A31-2C5D9E4F7012}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7E2C4A1-9D18-4F6E-8A31-2C5D9E4F7012}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C6818B64-0B3F-4F4D-8747-14AA594E8502}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C6818B64-0B3F-4F4D-8747-14AA594E8502}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C6818B64-0B3F-4F4D-8747-14AA594E8502}.Release|Any CPU.ActiveCfg = Release|Any CPU
