@@ -15,6 +15,7 @@ import { catchError, debounceTime, filter, forkJoin, map, of, Subscription, swit
 import { PharmacyApiService } from '../../../../api-services/pharmacy/pharmacy-api.service';
 import { MedicationUpsertCommand } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../../core/services/toaster.service';
+import { AuthFacadeService } from '../../../../core/services/auth/auth-facade.service';
 import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
 import { medicationNameAsyncValidator } from '../../../shared/validators/medication-name-async.validator';
 import { DialogButton, DialogType } from '../../../shared/models/dialog-config.model';
@@ -60,6 +61,8 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
   private draftService = inject(MedicationWizardDraftService);
   private dialog = inject(DialogHelperService);
   private destroyRef = inject(DestroyRef);
+
+  auth = inject(AuthFacadeService);
 
   step = signal(1);
   readonly totalSteps = 3;

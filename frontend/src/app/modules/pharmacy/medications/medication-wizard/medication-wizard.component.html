@@ -1,204 +1,304 @@
-<div class="page-header">
-  <h1>Novi lijek — Wizard</h1>
-  <button mat-button (click)="cancel()">Odustani</button>
-</div>
-
-@if (showDraftBanner()) {
-  <mat-card class="draft-banner">
-    <mat-card-content>
-      <div class="draft-banner-body">
-        <div>
-          <strong>Imate sačuvani draft</strong>
-          <p>
-            Nastavite gdje ste stali ili odbacite draft i krenite ispočetka.
-            @if (getDraftSavedAtLabel(); as savedAt) {
-              <span class="draft-saved-at">Posljednje čuvanje: {{ savedAt }}.</span>
-            }
-          </p>
-        </div>
-        <div class="draft-banner-actions">
-          <button mat-raised-button color="primary" type="button" (click)="continueDraft()">Nastavi draft</button>
-          <button mat-stroked-button color="warn" type="button" (click)="discardDraft()">Odbaci draft</button>
-        </div>
-      </div>
-    </mat-card-content>
-  </mat-card>
-}
-
-@if (isSaving()) {
-  <app-fit-table-skeleton [rows]="5" [columns]="2" [showActions]="false"></app-fit-table-skeleton>
-} @else {
-<mat-stepper [linear]="true" [selectedIndex]="step() - 1">
-  <mat-step label="Osnovno" [editable]="false">
-    <div [formGroup]="form" class="step-body">
-      <mat-form-field appearance="outline">
-        <mat-label>Naziv</mat-label>
-        <input matInput formControlName="name" />
-        @if (nameControl?.pending) {
-          <div class="compact-skeleton" aria-busy="true" aria-label="Provjera naziva">
-            <app-fit-table-skeleton [rows]="1" [columns]="1" [showActions]="false"></app-fit-table-skeleton>
-          </div>
-        }
-        @if (nameControl?.hasError('required') && nameControl?.touched) {
-          <mat-error>Naziv je obavezan</mat-error>
-        }
-        @if (nameControl?.hasError('minlength') && nameControl?.touched) {
-          <mat-error>Naziv mora imati najmanje 3 karaktera</mat-error>
-        }
-        @if (nameControl?.hasError('medicationNameExists') && nameControl?.touched) {
-          <mat-error>Naziv već postoji</mat-error>
-        }
-        @if (nameControl?.hasError('medicationNameCheckUnavailable') && nameControl?.touched) {
-          <mat-error>Provjera naziva nije dostupna. Pokušajte ponovo.</mat-error>
-        }
-      </mat-form-field>
-      <mat-form-field appearance="outline"><mat-label>Generički naziv</mat-label><input matInput formControlName="genericName" /></mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>Kategorija</mat-label>
-        <mat-select formControlName="category">
-          @for (c of categories; track c) { <mat-option [value]="c">{{ c }}</mat-option> }
-        </mat-select>
-        @if (categoryControl?.hasError('required') && categoryControl?.touched) {
-          <mat-error>Kategorija je obavezna</mat-error>
-        }
-      </mat-form-field>
-      <mat-form-field appearance="outline"><mat-label>Proizvođač</mat-label><input matInput formControlName="manufacturer" /></mat-form-field>
-      <mat-form-field appearance="outline" class="full"><mat-label>Opis</mat-label><textarea matInput rows="3" formControlName="description"></textarea></mat-form-field>
+<div class="medication-wizard-page">
+  <header class="page-header">
+    <div class="header-copy">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a routerLink="/pharmacy/medications">Lijekovi</a>
+        <span aria-hidden="true">/</span>
+        <span class="current">Wizard</span>
+      </nav>
+      <h1>Novi lijek — Wizard</h1>
+      <p class="page-subtitle">Unos lijeka u 3 koraka: osnovno, zaliha, slike</p>
     </div>
-  </mat-step>
-
-  <mat-step label="Zaliha i cijena" [editable]="false">
-    <div [formGroup]="form" class="step-body">
-      <mat-form-field appearance="outline">
-        <mat-label>Cijena</mat-label>
-        <input matInput type="number" formControlName="price" />
-        @if (priceControl?.hasError('required') && priceControl?.touched) {
-          <mat-error>Cijena je obavezna</mat-error>
-        }
-        @if (priceControl?.hasError('min') && priceControl?.touched) {
-          <mat-error>Cijena mora biti veća od 0</mat-error>
-        }
-      </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>Zaliha</mat-label>
-        <input matInput type="number" formControlName="stockQuantity" />
-        @if (stockQuantityControl?.hasError('required') && stockQuantityControl?.touched) {
-          <mat-error>Zaliha je obavezna</mat-error>
-        }
-        @if (stockQuantityControl?.hasError('min') && stockQuantityControl?.touched) {
-          <mat-error>Zaliha ne može biti negativna</mat-error>
-        }
-      </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>Min. zaliha</mat-label>
-        <input matInput type="number" formControlName="minimumStockLevel" />
-        @if (minimumStockLevelControl?.hasError('required') && minimumStockLevelControl?.touched) {
-          <mat-error>Min. zaliha je obavezna</mat-error>
-        }
-        @if (minimumStockLevelControl?.hasError('min') && minimumStockLevelControl?.touched) {
-          <mat-error>Min. zaliha ne može biti negativna</mat-error>
-        }
-      </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>Rok trajanja</mat-label>
-        <input matInput type="date" formControlName="expiryDate" />
-        @if (expiryDateControl?.hasError('required') && expiryDateControl?.touched) {
-          <mat-error>Rok trajanja je obavezan</mat-error>
-        }
-      </mat-form-field>
-      <mat-form-field appearance="outline"><mat-label>Serija</mat-label><input matInput formControlName="batchNumber" /></mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>Oblik</mat-label>
-        <mat-select formControlName="dosageForm">
-          <mat-option value="">-</mat-option>
-          @for (d of dosageForms; track d) { <mat-option [value]="d">{{ d }}</mat-option> }
-        </mat-select>
-      </mat-form-field>
-      <mat-form-field appearance="outline"><mat-label>Jačina</mat-label><input matInput formControlName="strength" /></mat-form-field>
-      <mat-checkbox formControlName="requiresPrescription">Zahtijeva recept</mat-checkbox>
-    </div>
-  </mat-step>
-
-  <mat-step label="Slike i pregled" [editable]="false">
-    <div class="step-review">
-      <div class="review">
-        <h3>Pregled</h3>
-        <p><strong>Naziv:</strong> {{ form.value.name }}</p>
-        <p><strong>Kategorija:</strong> {{ categoryLabel(form.value.category) }}</p>
-        <p><strong>Cijena:</strong> {{ form.value.price | number:'1.2-2' }} KM</p>
-        <p><strong>Zaliha:</strong> {{ form.value.stockQuantity }}</p>
+    <div class="profile-chip">
+      <div class="profile-avatar">{{ auth.userInitials() }}</div>
+      <div class="profile-meta">
+        <span class="profile-role">Farmaceut</span>
+        <span class="profile-email">{{ auth.currentUser()?.email }}</span>
       </div>
+    </div>
+  </header>
 
-      <section class="image-step">
-        <h3>Slike lijeka ({{ pendingImages().length }}/{{ maxMedicationImages }})</h3>
-        <p class="image-step-hint">Odaberite slike prije čuvanja. Upload će se izvršiti nakon kreiranja lijeka.</p>
-
-        <div
-          class="drop-zone"
-          [class.drag-over]="isDragOver()"
-          [class.drop-zone--disabled]="!canAddMoreImages"
-          (dragover)="onDragOver($event)"
-          (dragleave)="onDragLeave($event)"
-          (drop)="onDrop($event)"
-        >
-          <app-pharmacy-icon name="upload" [size]="28"></app-pharmacy-icon>
-          @if (canAddMoreImages) {
-            <p>Povucite slike ovdje ili odaberite fajlove</p>
-          } @else {
-            <p>Dostignut limit od {{ maxMedicationImages }} slika po lijeku.</p>
+  @if (showDraftBanner()) {
+    <section class="draft-banner">
+      <div class="draft-banner-copy">
+        <strong>Imate sačuvani draft</strong>
+        <p>
+          Nastavite gdje ste stali ili odbacite draft i krenite ispočetka.
+          @if (getDraftSavedAtLabel(); as savedAt) {
+            <span class="draft-saved-at">Posljednje čuvanje: {{ savedAt }}.</span>
           }
-          <input
-            #fileInput
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            multiple
-            hidden
-            [disabled]="!canAddMoreImages"
-            (change)="onImageSelected($event)"
-          />
-          <button
-            mat-stroked-button
-            type="button"
-            (click)="fileInput.click()"
-            [disabled]="isProcessingQueue() || isSaving() || !canAddMoreImages"
-          >
-            Odaberi slike
-          </button>
-          <small>Slike se kompresuju prije uploada (max širina 1280px, do {{ maxMedicationImages }} slika).</small>
-        </div>
+        </p>
+      </div>
+      <div class="draft-banner-actions">
+        <button type="button" class="btn btn-primary" (click)="continueDraft()">Nastavi draft</button>
+        <button type="button" class="btn btn-danger" (click)="discardDraft()">Odbaci draft</button>
+      </div>
+    </section>
+  }
 
-        @if (pendingImages().length) {
-          <div class="pending-queue">
-            <strong>Pripremljeno za upload ({{ pendingImages().length }})</strong>
-            @for (item of pendingImages(); track item.key) {
-              <div class="pending-item">
-                <img [src]="item.previewUrl" [alt]="item.file.name" />
-                <div class="pending-meta">
-                  <span>{{ item.file.name }}</span>
-                  <span>{{ formatBytes(item.originalSize) }} → {{ formatBytes(item.compressedSize) }}</span>
+  @if (isSaving()) {
+    <app-fit-table-skeleton [rows]="8" [columns]="2" [showActions]="false"></app-fit-table-skeleton>
+  } @else {
+    <mat-stepper class="wizard-stepper" [linear]="true" [selectedIndex]="step() - 1">
+      <mat-step label="Osnovno" [editable]="false">
+        <section class="form-card card-basic" [formGroup]="form">
+          <h2>
+            <app-pharmacy-icon name="clipboard" [size]="20"></app-pharmacy-icon>
+            Osnovne informacije
+          </h2>
+
+          <div class="form-grid cols-2">
+            <div class="field">
+              <label for="wiz-name">Naziv <span class="required">*</span></label>
+              <input id="wiz-name" class="field-input" formControlName="name" placeholder="Unesite naziv lijeka" />
+              @if (nameControl?.pending) {
+                <div class="compact-skeleton" aria-busy="true" aria-label="Provjera naziva">
+                  <app-fit-table-skeleton [rows]="1" [columns]="1" [showActions]="false"></app-fit-table-skeleton>
                 </div>
-                <button mat-icon-button type="button" (click)="removePendingImage(item.key)" aria-label="Ukloni sliku">
-                  <app-pharmacy-icon name="trash-2" [size]="18"></app-pharmacy-icon>
-                </button>
+              }
+              @if (nameControl?.hasError('required') && nameControl?.touched) {
+                <span class="field-error">Naziv je obavezan</span>
+              }
+              @if (nameControl?.hasError('minlength') && nameControl?.touched) {
+                <span class="field-error">Naziv mora imati najmanje 3 karaktera</span>
+              }
+              @if (nameControl?.hasError('medicationNameExists') && nameControl?.touched) {
+                <span class="field-error">Naziv već postoji</span>
+              }
+              @if (nameControl?.hasError('medicationNameCheckUnavailable') && nameControl?.touched) {
+                <span class="field-error">Provjera naziva nije dostupna. Pokušajte ponovo.</span>
+              }
+            </div>
+
+            <div class="field">
+              <label for="wiz-generic">Generički naziv</label>
+              <input id="wiz-generic" class="field-input" formControlName="genericName" placeholder="Generički naziv" />
+            </div>
+
+            <div class="field">
+              <label for="wiz-category">Kategorija <span class="required">*</span></label>
+              <select id="wiz-category" class="field-input" formControlName="category">
+                <option value="">Odaberite kategoriju</option>
+                @for (c of categories; track c) {
+                  <option [value]="c">{{ c }}</option>
+                }
+              </select>
+              @if (categoryControl?.hasError('required') && categoryControl?.touched) {
+                <span class="field-error">Kategorija je obavezna</span>
+              }
+            </div>
+
+            <div class="field">
+              <label for="wiz-manufacturer">Proizvođač</label>
+              <input id="wiz-manufacturer" class="field-input" formControlName="manufacturer" placeholder="Naziv proizvođača" />
+            </div>
+
+            <div class="field span-full">
+              <label for="wiz-description">Opis</label>
+              <textarea id="wiz-description" class="field-input field-textarea" rows="4" formControlName="description" placeholder="Opis lijeka"></textarea>
+            </div>
+          </div>
+        </section>
+      </mat-step>
+
+      <mat-step label="Zaliha i cijena" [editable]="false">
+        <section class="form-card card-inventory" [formGroup]="form">
+          <h2>
+            <app-pharmacy-icon name="wallet" [size]="20"></app-pharmacy-icon>
+            Inventar i cijene
+          </h2>
+
+          <div class="form-grid cols-3">
+            <div class="field">
+              <label for="wiz-price">Cijena (KM) <span class="required">*</span></label>
+              <div class="input-prefix-wrap">
+                <span class="input-prefix">KM</span>
+                <input id="wiz-price" class="field-input prefixed" type="number" step="0.01" formControlName="price" />
+              </div>
+              @if (priceControl?.hasError('required') && priceControl?.touched) {
+                <span class="field-error">Cijena je obavezna</span>
+              }
+              @if (priceControl?.hasError('min') && priceControl?.touched) {
+                <span class="field-error">Cijena mora biti veća od 0</span>
+              }
+            </div>
+
+            <div class="field">
+              <label for="wiz-stock">Količina na stanju <span class="required">*</span></label>
+              <input id="wiz-stock" class="field-input" type="number" formControlName="stockQuantity" />
+              @if (stockQuantityControl?.hasError('required') && stockQuantityControl?.touched) {
+                <span class="field-error">Zaliha je obavezna</span>
+              }
+              @if (stockQuantityControl?.hasError('min') && stockQuantityControl?.touched) {
+                <span class="field-error">Zaliha ne može biti negativna</span>
+              }
+            </div>
+
+            <div class="field">
+              <label for="wiz-min-stock">Min. nivo zaliha <span class="required">*</span></label>
+              <input id="wiz-min-stock" class="field-input" type="number" formControlName="minimumStockLevel" />
+              @if (minimumStockLevelControl?.hasError('required') && minimumStockLevelControl?.touched) {
+                <span class="field-error">Min. zaliha je obavezna</span>
+              }
+              @if (minimumStockLevelControl?.hasError('min') && minimumStockLevelControl?.touched) {
+                <span class="field-error">Min. zaliha ne može biti negativna</span>
+              }
+            </div>
+          </div>
+
+          <div class="form-grid cols-2">
+            <div class="field">
+              <label for="wiz-expiry">Rok trajanja <span class="required">*</span></label>
+              <input id="wiz-expiry" class="field-input" type="date" formControlName="expiryDate" />
+              @if (expiryDateControl?.hasError('required') && expiryDateControl?.touched) {
+                <span class="field-error">Rok trajanja je obavezan</span>
+              }
+            </div>
+
+            <div class="field">
+              <label for="wiz-batch">Broj serije</label>
+              <input id="wiz-batch" class="field-input" formControlName="batchNumber" placeholder="SN-2026-001" />
+            </div>
+
+            <div class="field">
+              <label for="wiz-dosage">Oblik doze</label>
+              <select id="wiz-dosage" class="field-input" formControlName="dosageForm">
+                <option value="">Odaberite oblik</option>
+                @for (d of dosageForms; track d) {
+                  <option [value]="d">{{ d }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="wiz-strength">Jačina / doziranje</label>
+              <input id="wiz-strength" class="field-input" formControlName="strength" placeholder="npr. 500mg" />
+            </div>
+          </div>
+        </section>
+
+        <section class="form-card card-options" [formGroup]="form">
+          <h2>
+            <app-pharmacy-icon name="settings" [size]="20"></app-pharmacy-icon>
+            Dodatne opcije
+          </h2>
+          <div class="toggle-row">
+            <mat-slide-toggle formControlName="requiresPrescription" color="primary">Zahtijeva recept</mat-slide-toggle>
+            <mat-slide-toggle formControlName="isActive" color="primary">Aktivan</mat-slide-toggle>
+          </div>
+        </section>
+      </mat-step>
+
+      <mat-step label="Slike i pregled" [editable]="false">
+        <div class="step-review">
+          <section class="form-card card-review">
+            <h2>
+              <app-pharmacy-icon name="clipboard" [size]="20"></app-pharmacy-icon>
+              Pregled
+            </h2>
+            <dl class="review-grid">
+              <div>
+                <dt>Naziv</dt>
+                <dd>{{ form.value.name }}</dd>
+              </div>
+              <div>
+                <dt>Kategorija</dt>
+                <dd>{{ categoryLabel(form.value.category) }}</dd>
+              </div>
+              <div>
+                <dt>Cijena</dt>
+                <dd>{{ form.value.price | number:'1.2-2' }} KM</dd>
+              </div>
+              <div>
+                <dt>Zaliha</dt>
+                <dd>{{ form.value.stockQuantity }}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="form-card card-images">
+            <h2>
+              <app-pharmacy-icon name="upload" [size]="20"></app-pharmacy-icon>
+              Slike lijeka ({{ pendingImages().length }}/{{ maxMedicationImages }})
+            </h2>
+            <p class="image-step-hint">Odaberite slike prije čuvanja. Upload ide nakon kreiranja lijeka.</p>
+
+            <div
+              class="drop-zone"
+              [class.drag-over]="isDragOver()"
+              [class.drop-zone--disabled]="!canAddMoreImages"
+              (dragover)="onDragOver($event)"
+              (dragleave)="onDragLeave($event)"
+              (drop)="onDrop($event)"
+            >
+              <app-pharmacy-icon name="upload" [size]="28"></app-pharmacy-icon>
+              @if (canAddMoreImages) {
+                <p>Povucite slike ovdje ili odaberite fajlove</p>
+              } @else {
+                <p>Dostignut limit od {{ maxMedicationImages }} slika po lijeku.</p>
+              }
+              <input
+                #fileInput
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                hidden
+                [disabled]="!canAddMoreImages"
+                (change)="onImageSelected($event)"
+              />
+              <button
+                type="button"
+                class="btn btn-secondary"
+                (click)="fileInput.click()"
+                [disabled]="isProcessingQueue() || isSaving() || !canAddMoreImages"
+              >
+                Odaberi slike
+              </button>
+              <small>Slike se kompresuju prije uploada (max širina 1280px, do {{ maxMedicationImages }} slika).</small>
+            </div>
+
+            @if (pendingImages().length) {
+              <div class="pending-queue">
+                <strong>Pripremljeno za upload ({{ pendingImages().length }})</strong>
+                @for (item of pendingImages(); track item.key) {
+                  <div class="pending-item">
+                    <img [src]="item.previewUrl" [alt]="item.file.name" />
+                    <div class="pending-meta">
+                      <span>{{ item.file.name }}</span>
+                      <span>{{ formatBytes(item.originalSize) }} → {{ formatBytes(item.compressedSize) }}</span>
+                    </div>
+                    <button type="button" class="btn btn-danger btn-sm" (click)="removePendingImage(item.key)" aria-label="Ukloni sliku">
+                      Ukloni
+                    </button>
+                  </div>
+                }
               </div>
             }
-          </div>
-        }
-      </section>
-    </div>
-  </mat-step>
-</mat-stepper>
-}
+          </section>
+        </div>
+      </mat-step>
+    </mat-stepper>
+  }
 
-<div class="wizard-actions">
-  @if (step() > 1) {
-    <button mat-stroked-button type="button" (click)="back()">Nazad</button>
-  }
-  @if (step() < totalSteps) {
-    <button mat-raised-button color="primary" type="button" (click)="next()">Dalje</button>
-  } @else {
-    <button mat-raised-button color="primary" type="button" (click)="submit()" [disabled]="isSaving() || isProcessingQueue() || form.invalid || form.pending">
-      {{ isSaving() ? 'Čuvanje...' : 'Sačuvaj' }}
-    </button>
-  }
+  <div class="wizard-actions">
+    <button type="button" class="btn btn-secondary" (click)="cancel()">Odustani</button>
+    <div class="actions-right">
+      @if (step() > 1) {
+        <button type="button" class="btn btn-secondary" (click)="back()">Nazad</button>
+      }
+      @if (step() < totalSteps) {
+        <button type="button" class="btn btn-primary" (click)="next()">Dalje</button>
+      } @else {
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="submit()"
+          [disabled]="isSaving() || isProcessingQueue() || form.invalid || form.pending"
+        >
+          <app-pharmacy-icon name="save" [size]="16"></app-pharmacy-icon>
+          {{ isSaving() ? 'Čuvanje...' : 'Sačuvaj' }}
+        </button>
+      }
+    </div>
+  </div>
 </div>
