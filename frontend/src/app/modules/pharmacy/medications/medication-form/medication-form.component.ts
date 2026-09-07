@@ -12,7 +12,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, Router } from '@angular/router';
-import { EMPTY, catchError, map, switchMap } from 'rxjs';
+import { HttpEventType } from '@angular/common/http';
+import { EMPTY, catchError, filter, forkJoin, map, of, switchMap } from 'rxjs';
 import { PharmacyApiService } from '../../../../api-services/pharmacy/pharmacy-api.service';
 import { MedicationDto, MedicationImageDto, MedicationUpsertCommand } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../../core/services/toaster.service';
@@ -383,7 +384,31 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
         if (saved?.rowVersion) {
           this.medicationRowVersion = saved.rowVersion;
         }
-        this.toaster.success(this.isEditMode() ? 'Lijek ažuriran.' : 'Lijek kreiran.');
+
+        if (!this.isEditMode()) {
+          this.medicationId.set(saved.id);
+          this.uploadQueuedImagesAfterCreate(saved.id)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+              next: (uploadFailed) => {
+                this.toaster.success(
+                  uploadFailed
+                    ? 'Lijek kreiran, ali neke slike nisu uploadovane.'
+                    : 'Lijek kreiran.'
+                );
+                this.router.navigate(['/pharmacy/medications', saved.id]);
+              },
+              error: () => {
+                this.isSaving.set(false);
+                this.toaster.success('Lijek kreiran, ali slike nisu uploadovane.');
+                this.router.navigate(['/pharmacy/medications', saved.id]);
+              },
+            });
+          return;
+        }
+
+        this.isSaving.set(false);
+        this.toaster.success('Lijek ažuriran.');
         this.router.navigate(['/pharmacy/medications']);
       },
       error: (err) => {
@@ -434,7 +459,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   onDrop(event: DragEvent): void {
     event.preventDefault();
     this.isDragOver.set(false);
-    if (!this.medicationId() || !event.dataTransfer?.files?.length || !this.canAddMoreImages) {
+    if (!event.dataTransfer?.files?.length || !this.canAddMoreImages) {
       if (!this.canAddMoreImages) {
         this.toaster.warning(`Maksimalno ${MAX_MEDICATION_IMAGES} slika po lijeku.`);
       }
@@ -447,7 +472,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
     const input = event.target as HTMLInputElement;
     const files = input.files;
     input.value = '';
-    if (!files?.length || !this.medicationId()) {
+    if (!files?.length) {
       return;
     }
     if (!this.canAddMoreImages) {
@@ -576,10 +601,6 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   }
 
   private async queueFiles(files: File[]): Promise<void> {
-    if (!this.medicationId()) {
-      return;
-    }
-
     if (!this.canAddMoreImages) {
       this.toaster.warning(`Maksimalno ${MAX_MEDICATION_IMAGES} slika po lijeku.`);
       return;
@@ -697,6 +718,29 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
     }
 
     this.loadImages(targetMedicationId);
+  }
+
+  private uploadQueuedImagesAfterCreate(medicationId: number) {
+    const images = this.pendingUploads()
+      .filter((entry) => entry.status !== 'error')
+      .slice(0, MAX_MEDICATION_IMAGES);
+    if (images.length === 0) {
+      return of(false);
+    }
+
+    let uploadFailed = false;
+    return forkJoin(
+      images.map((item) =>
+        this.pharmacyApi.uploadImage(medicationId, item.file).pipe(
+          filter((event) => event.type === HttpEventType.Response),
+          map(() => undefined),
+          catchError(() => {
+            uploadFailed = true;
+            return of(undefined);
+          })
+        )
+      )
+    ).pipe(map(() => uploadFailed));
   }
 
   private loadImageUrls(medicationId: number, images: MedicationImageDto[]): void {

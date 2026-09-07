@@ -170,6 +170,12 @@
   }
 }
 
+.image-create-hint {
+  margin: 0 0 $pharmacy-space-sm;
+  color: $pharmacy-text-secondary;
+  font-size: 0.9rem;
+}
+
 .form-grid {
   display: grid;
   gap: $pharmacy-space-sm;

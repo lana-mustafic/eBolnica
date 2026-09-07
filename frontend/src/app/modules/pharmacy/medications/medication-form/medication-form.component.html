@@ -202,31 +202,14 @@
         </div>
       </section>
 
-      <div class="form-actions">
-        @if (isEditMode() && auth.isPharmacist()) {
-          <button type="button" class="btn btn-danger" (click)="deleteMedication()">
-            <app-pharmacy-icon name="trash-2" [size]="16"></app-pharmacy-icon>
-            Obriši
-          </button>
-        }
-        <div class="actions-right">
-          <button type="button" class="btn btn-secondary" (click)="cancel()">
-            Otkaži
-          </button>
-          <button type="submit" class="btn btn-primary" [disabled]="form.invalid || form.pending || isSaving()">
-            <app-pharmacy-icon name="save" [size]="16"></app-pharmacy-icon>
-            Sačuvaj
-          </button>
-        </div>
-      </div>
-    </form>
-
-    @if (isEditMode() && medicationId()) {
       <section class="form-card card-images">
         <h2>
           <app-pharmacy-icon name="upload" [size]="20"></app-pharmacy-icon>
           Slike lijeka ({{ imageSlotsUsed }}/{{ maxMedicationImages }})
         </h2>
+        @if (!isEditMode()) {
+          <p class="image-create-hint">Slike se uploaduju nakon što sačuvate lijek.</p>
+        }
 
         <div
           class="drop-zone"
@@ -268,7 +251,9 @@
           <div class="pending-queue">
             <div class="pending-header">
               <strong>Pregled prije uploada ({{ pendingUploads().length }})</strong>
-              <button type="button" class="btn btn-secondary" (click)="uploadAllPending()">Upload sve</button>
+              @if (isEditMode()) {
+                <button type="button" class="btn btn-secondary" (click)="uploadAllPending()">Upload sve</button>
+              }
             </div>
             @for (item of pendingUploads(); track item.key) {
               <div class="pending-item">
@@ -287,7 +272,7 @@
                   }
                 </div>
                 <div class="pending-actions">
-                  @if (item.status === 'pending') {
+                  @if (isEditMode() && item.status === 'pending') {
                     <button type="button" class="btn btn-secondary btn-sm" (click)="uploadPending(item)">Upload</button>
                   }
                   @if (item.status === 'error') {
@@ -300,35 +285,55 @@
           </div>
         }
 
-        <div
-          class="image-grid"
-          cdkDropList
-          cdkDropListOrientation="horizontal"
-          (cdkDropListDropped)="dropGallery($event)"
-        >
-          @for (img of images(); track img.id) {
-            <div class="image-item" cdkDrag [class.primary]="img.isPrimary">
-              <button
-                type="button"
-                class="image-preview-button"
-                (click)="openLightbox(img)"
-                [attr.aria-label]="'Pregled slike ' + img.fileName"
-              >
-                <img [src]="imageUrl(img)" [alt]="img.fileName" />
-              </button>
-              <div class="image-actions">
-                @if (!img.isPrimary) {
-                  <button type="button" class="btn btn-secondary btn-sm" (click)="setPrimary(img)">Primarna</button>
-                } @else {
-                  <span class="primary-label">Primarna</span>
-                }
-                <button type="button" class="btn btn-danger btn-sm" (click)="deleteImage(img)">Obriši</button>
+        @if (isEditMode()) {
+          <div
+            class="image-grid"
+            cdkDropList
+            cdkDropListOrientation="horizontal"
+            (cdkDropListDropped)="dropGallery($event)"
+          >
+            @for (img of images(); track img.id) {
+              <div class="image-item" cdkDrag [class.primary]="img.isPrimary">
+                <button
+                  type="button"
+                  class="image-preview-button"
+                  (click)="openLightbox(img)"
+                  [attr.aria-label]="'Pregled slike ' + img.fileName"
+                >
+                  <img [src]="imageUrl(img)" [alt]="img.fileName" />
+                </button>
+                <div class="image-actions">
+                  @if (!img.isPrimary) {
+                    <button type="button" class="btn btn-secondary btn-sm" (click)="setPrimary(img)">Primarna</button>
+                  } @else {
+                    <span class="primary-label">Primarna</span>
+                  }
+                  <button type="button" class="btn btn-danger btn-sm" (click)="deleteImage(img)">Obriši</button>
+                </div>
+                <span class="drag-hint">Prevuci za reorder</span>
               </div>
-              <span class="drag-hint">Prevuci za reorder</span>
-            </div>
-          }
-        </div>
+            }
+          </div>
+        }
       </section>
-    }
+
+      <div class="form-actions">
+        @if (isEditMode() && auth.isPharmacist()) {
+          <button type="button" class="btn btn-danger" (click)="deleteMedication()">
+            <app-pharmacy-icon name="trash-2" [size]="16"></app-pharmacy-icon>
+            Obriši
+          </button>
+        }
+        <div class="actions-right">
+          <button type="button" class="btn btn-secondary" (click)="cancel()">
+            Otkaži
+          </button>
+          <button type="submit" class="btn btn-primary" [disabled]="form.invalid || form.pending || isSaving() || isProcessingQueue()">
+            <app-pharmacy-icon name="save" [size]="16"></app-pharmacy-icon>
+            Sačuvaj
+          </button>
+        </div>
+      </div>
+    </form>
   }
 </div>
