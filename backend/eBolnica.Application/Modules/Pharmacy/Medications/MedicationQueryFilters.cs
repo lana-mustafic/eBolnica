@@ -32,7 +32,10 @@ internal static class MedicationQueryFilters
         }
 
         if (!string.IsNullOrWhiteSpace(category))
-            query = query.Where(m => m.Category == category);
+        {
+            var aliases = MedicationCategoryAliases.Expand(category);
+            query = query.Where(m => m.Category != null && aliases.Contains(m.Category));
+        }
 
         if (!string.IsNullOrWhiteSpace(stockStatus))
         {
