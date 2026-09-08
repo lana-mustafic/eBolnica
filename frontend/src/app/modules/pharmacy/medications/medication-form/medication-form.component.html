@@ -257,8 +257,8 @@
               <div class="pending-item">
                 <img [src]="item.previewUrl" [alt]="item.file.name" />
                 <div class="pending-meta">
-                  <span>{{ item.file.name }}</span>
-                  <span>{{ formatBytes(item.originalSize) }} → {{ formatBytes(item.compressedSize) }}</span>
+                  <span class="file-name">{{ item.file.name }}</span>
+                  <span class="file-size">{{ formatBytes(item.originalSize) }} → {{ formatBytes(item.compressedSize) }}</span>
                   @if (item.status === 'uploading') {
                     <mat-progress-bar
                       [mode]="item.progressKnown ? 'determinate' : 'indeterminate'"

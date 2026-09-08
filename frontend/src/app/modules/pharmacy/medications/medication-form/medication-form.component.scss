@@ -395,10 +395,10 @@
 }
 
 .pending-item {
-  display: grid;
-  grid-template-columns: 72px 1fr auto;
-  gap: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  gap: 0.75rem;
   padding: 0.75rem;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
@@ -409,6 +409,7 @@
     height: 72px;
     object-fit: cover;
     border-radius: 4px;
+    flex: 0 0 72px;
   }
 }
 
@@ -416,7 +417,19 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  flex: 1 1 180px;
+  min-width: 160px;
   font-size: 0.875rem;
+}
+
+.file-name {
+  font-weight: 600;
+  color: $pharmacy-text;
+  overflow-wrap: anywhere;
+}
+
+.file-size {
+  color: $pharmacy-text-secondary;
 }
 
 .pending-actions {
