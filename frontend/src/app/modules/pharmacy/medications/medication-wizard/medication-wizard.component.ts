@@ -11,7 +11,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, Validators } from '@angular/forms';
 import { HttpEventType } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { catchError, debounceTime, filter, forkJoin, map, of, Subscription, switchMap } from 'rxjs';
+import { catchError, debounceTime, filter, forkJoin, map, of, Subscription, switchMap, tap } from 'rxjs';
 import { PharmacyApiService } from '../../../../api-services/pharmacy/pharmacy-api.service';
 import { MedicationUpsertCommand } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../../core/services/toaster.service';
@@ -37,6 +37,8 @@ import {
   pickMedicationWizardDraftFormPatch,
 } from '../medication-wizard-autosave.util';
 import { compressMedicationImage } from '../utils/medication-image-compress.util';
+import { extractMedicationImageUploadResponse } from '../utils/medication-image-upload-progress.util';
+import { MedicationImageUrlService } from '../../services/medication-image-url.service';
 
 interface PendingWizardImage {
   key: string;
@@ -56,6 +58,7 @@ interface PendingWizardImage {
 export class MedicationWizardComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private pharmacyApi = inject(PharmacyApiService);
+  private imageUrlService = inject(MedicationImageUrlService);
   private router = inject(Router);
   private toaster = inject(ToasterService);
   private draftService = inject(MedicationWizardDraftService);
@@ -457,6 +460,12 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
     return forkJoin(
       images.map((item) =>
         this.pharmacyApi.uploadImage(medicationId, item.file).pipe(
+          tap((event) => {
+            const uploaded = extractMedicationImageUploadResponse(event);
+            if (uploaded) {
+              this.imageUrlService.prime(medicationId, uploaded.id, item.previewUrl);
+            }
+          }),
           filter((event) => event.type === HttpEventType.Response),
           map(() => undefined),
           catchError(() => {
@@ -470,7 +479,9 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
 
   private clearPendingImagePreviews(): void {
     for (const item of this.pendingImages()) {
-      URL.revokeObjectURL(item.previewUrl);
+      if (!this.imageUrlService.owns(item.previewUrl)) {
+        URL.revokeObjectURL(item.previewUrl);
+      }
     }
   }
 }

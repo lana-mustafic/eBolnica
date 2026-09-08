@@ -13,7 +13,7 @@ import { FormBuilder, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpEventType } from '@angular/common/http';
-import { EMPTY, catchError, filter, forkJoin, map, of, switchMap } from 'rxjs';
+import { EMPTY, catchError, filter, forkJoin, map, of, switchMap, tap } from 'rxjs';
 import { PharmacyApiService } from '../../../../api-services/pharmacy/pharmacy-api.service';
 import { MedicationDto, MedicationImageDto, MedicationUpsertCommand } from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../../core/services/toaster.service';
@@ -574,6 +574,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
         this.pharmacyApi.deleteImage(this.medicationId()!, image.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: () => {
             this.toaster.success('Slika obrisana.');
+            this.imageUrlService.revoke(id, image.id);
             this.loadImages(this.medicationId()!);
           },
           error: () => this.toaster.error('Greška pri brisanju slike.'),
@@ -683,7 +684,13 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
           return;
         }
 
-        URL.revokeObjectURL(item.previewUrl);
+        this.imageUrlService.prime(targetMedicationId, uploaded.id, item.previewUrl);
+        this.images.update((list) => (list.some((image) => image.id === uploaded.id) ? list : [...list, uploaded]));
+        this.imageUrls.update((map) => {
+          const next = new Map(map);
+          next.set(uploaded.id, item.previewUrl);
+          return next;
+        });
         this.pendingUploads.update((entries) => entries.filter((entry) => entry.key !== item.key));
         if (uploadSession === this.uploadSessionGeneration) {
           this.toaster.success('Slika uploadovana.');
@@ -732,6 +739,12 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
     return forkJoin(
       images.map((item) =>
         this.pharmacyApi.uploadImage(medicationId, item.file).pipe(
+          tap((event) => {
+            const uploaded = extractMedicationImageUploadResponse(event);
+            if (uploaded) {
+              this.imageUrlService.prime(medicationId, uploaded.id, item.previewUrl);
+            }
+          }),
           filter((event) => event.type === HttpEventType.Response),
           map(() => undefined),
           catchError(() => {
@@ -745,8 +758,16 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
 
   private loadImageUrls(medicationId: number, images: MedicationImageDto[]): void {
     const generation = ++this.imageLoadGeneration;
-    this.imageUrlService.revokeAll();
-    this.imageUrls.set(new Map());
+    const keepIds = new Set(images.map((image) => image.id));
+    this.imageUrls.update((map) => {
+      const next = new Map<number, string>();
+      for (const [id, url] of map) {
+        if (keepIds.has(id)) {
+          next.set(id, url);
+        }
+      }
+      return next;
+    });
 
     for (const image of images) {
       this.imageUrlService
@@ -774,7 +795,9 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
 
   private clearPendingUploads(): void {
     for (const item of this.pendingUploads()) {
-      URL.revokeObjectURL(item.previewUrl);
+      if (!this.imageUrlService.owns(item.previewUrl)) {
+        URL.revokeObjectURL(item.previewUrl);
+      }
     }
     this.pendingUploads.set([]);
   }

@@ -384,11 +384,7 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
       });
   }
 
-  private clearImageUrl(medication?: MedicationDto | null): void {
-    const med = medication ?? this.medication();
-    if (med?.primaryImageId) {
-      this.imageUrlService.revoke(med.id, med.primaryImageId);
-    }
+  private clearImageUrl(_medication?: MedicationDto | null): void {
     this.imageUrl.set(null);
   }
 }

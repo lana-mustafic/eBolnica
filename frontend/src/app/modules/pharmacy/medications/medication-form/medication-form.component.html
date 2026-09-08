@@ -300,7 +300,9 @@
                   (click)="openLightbox(img)"
                   [attr.aria-label]="'Pregled slike ' + img.fileName"
                 >
-                  <img [src]="imageUrl(img)" [alt]="img.fileName" />
+                  @if (imageUrl(img); as url) {
+                    <img [src]="url" [alt]="img.fileName" />
+                  }
                 </button>
                 <div class="image-actions">
                   @if (!img.isPrimary) {

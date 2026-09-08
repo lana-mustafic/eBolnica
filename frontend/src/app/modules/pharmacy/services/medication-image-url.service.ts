@@ -9,20 +9,44 @@ export class MedicationImageUrlService {
   private readonly cache = new Map<string, string>();
 
   getAuthenticatedUrl(medicationId: number, imageId: number): Observable<string> {
-    const key = `${medicationId}:${imageId}`;
+    const key = this.cacheKey(medicationId, imageId);
     const cached = this.cache.get(key);
     if (cached) {
       return of(cached);
     }
 
     return this.pharmacyApi.getMedicationImageBlob(medicationId, imageId).pipe(
-      map((blob) => URL.createObjectURL(blob)),
+      map((blob) => {
+        if (!this.isDisplayableImageBlob(blob)) {
+          throw new Error('Image file response is not a displayable image.');
+        }
+        return URL.createObjectURL(blob);
+      }),
       tap((url) => this.cache.set(key, url))
     );
   }
 
+  /** Reuse a local preview after upload so the next screen can show the image immediately. */
+  prime(medicationId: number, imageId: number, objectUrl: string): void {
+    const key = this.cacheKey(medicationId, imageId);
+    const existing = this.cache.get(key);
+    if (existing && existing !== objectUrl) {
+      URL.revokeObjectURL(existing);
+    }
+    this.cache.set(key, objectUrl);
+  }
+
+  owns(url: string): boolean {
+    for (const cached of this.cache.values()) {
+      if (cached === url) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   revoke(medicationId: number, imageId: number): void {
-    const key = `${medicationId}:${imageId}`;
+    const key = this.cacheKey(medicationId, imageId);
     const url = this.cache.get(key);
     if (!url) {
       return;
@@ -31,10 +55,25 @@ export class MedicationImageUrlService {
     this.cache.delete(key);
   }
 
+  /**
+   * Do not revoke cached object URLs here. Form/list/detail share this singleton;
+   * destroying the upload form after save was revoking the URL the detail page just set.
+   */
   revokeAll(): void {
-    for (const url of this.cache.values()) {
-      URL.revokeObjectURL(url);
+    return;
+  }
+
+  private cacheKey(medicationId: number, imageId: number): string {
+    return `${medicationId}:${imageId}`;
+  }
+
+  private isDisplayableImageBlob(blob: Blob | null): boolean {
+    if (!blob || blob.size === 0) {
+      return false;
     }
-    this.cache.clear();
+    if (!blob.type) {
+      return true;
+    }
+    return blob.type.startsWith('image/') || blob.type === 'application/octet-stream';
   }
 }

@@ -146,7 +146,7 @@ public sealed class PharmacyController(IMediator mediator) : ControllerBase
         if (result is null)
             return NotFound();
 
-        return PhysicalFile(result.FullPath, result.ContentType, result.FileName);
+        return PhysicalFile(result.FullPath, result.ContentType);
     }
 
     [HttpPost("medications/{id:int}/images")]
