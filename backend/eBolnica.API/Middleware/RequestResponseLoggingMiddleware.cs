@@ -18,9 +18,9 @@ public sealed class RequestResponseLoggingMiddleware(
         var stopwatch = Stopwatch.StartNew();
         var request = context.Request;
 
-        // Read request body (only for POST/PUT)
+        // Read request body (only for JSON/text POST/PUT — never multipart or binary)
         string? requestBody = null;
-        if (request.Method is "POST" or "PUT")
+        if (ShouldLogRequestBody(request))
         {
             request.EnableBuffering();
             using var reader = new StreamReader(request.Body, Encoding.UTF8, leaveOpen: true);
@@ -41,9 +41,12 @@ public sealed class RequestResponseLoggingMiddleware(
         {
             stopwatch.Stop();
 
-            // read response text for logging
-            responseBody.Seek(0, SeekOrigin.Begin);
-            var responseText = await new StreamReader(responseBody).ReadToEndAsync();
+            string? responseText = null;
+            if (ShouldLogResponseBody(context.Response))
+            {
+                responseBody.Seek(0, SeekOrigin.Begin);
+                responseText = await new StreamReader(responseBody).ReadToEndAsync();
+            }
             responseBody.Seek(0, SeekOrigin.Begin);
 
             var logMessage = new StringBuilder()
@@ -84,5 +87,35 @@ public sealed class RequestResponseLoggingMiddleware(
             context.Response.Body = originalBodyStream;
             await responseBody.CopyToAsync(originalBodyStream);
         }
+    }
+
+    private static bool ShouldLogRequestBody(HttpRequest request)
+    {
+        if (request.Method is not ("POST" or "PUT"))
+            return false;
+
+        return IsLoggableTextContent(request.ContentType);
+    }
+
+    private static bool ShouldLogResponseBody(HttpResponse response)
+        => IsLoggableTextContent(response.ContentType);
+
+    private static bool IsLoggableTextContent(string? contentType)
+    {
+        if (string.IsNullOrWhiteSpace(contentType))
+            return true;
+
+        if (contentType.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (contentType.StartsWith("application/octet-stream", StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (contentType.StartsWith("application/pdf", StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (contentType.Contains("csv", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        return true;
     }
 }
