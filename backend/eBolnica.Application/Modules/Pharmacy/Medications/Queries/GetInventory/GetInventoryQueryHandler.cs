@@ -76,6 +76,10 @@ public sealed class GetInventoryQueryHandler(IAppDbContext ctx)
             .Select(MedicationMapping.ToListDtoExpression)
             .ToListAsync(ct);
 
+        MedicationDisplayLabels.Apply(lowStockAlerts);
+        MedicationDisplayLabels.Apply(expiryAlerts);
+        MedicationDisplayLabels.Apply(items);
+
         var totalCount = stats?.TotalCount ?? 0;
 
         return new GetInventoryQueryDto

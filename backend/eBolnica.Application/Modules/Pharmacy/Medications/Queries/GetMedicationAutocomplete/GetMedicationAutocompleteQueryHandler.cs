@@ -1,3 +1,4 @@
+using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Medications.Queries.GetMedicationAutocomplete;
 using eBolnica.Domain.Entities.Pharmacy;
 
@@ -21,7 +22,7 @@ public sealed class GetMedicationAutocompleteQueryHandler(IAppDbContext ctx)
         if (request.RequiresPrescription.HasValue)
             query = query.Where(m => m.RequiresPrescription == request.RequiresPrescription.Value);
 
-        return await query
+        var suggestions = await query
             .Where(m =>
                 m.NormalizedName.Contains(normalized) ||
                 (m.GenericName != null && m.GenericName.Contains(trimmed)) ||
@@ -37,5 +38,10 @@ public sealed class GetMedicationAutocompleteQueryHandler(IAppDbContext ctx)
                 RequiresPrescription = m.RequiresPrescription
             })
             .ToListAsync(ct);
+
+        foreach (var suggestion in suggestions)
+            suggestion.Category = MedicationCategoryAliases.ToBosnian(suggestion.Category);
+
+        return suggestions;
     }
 }

@@ -26,6 +26,7 @@ public sealed class GetMedicationByIdQueryHandler(IAppDbContext ctx)
                 .FirstOrDefaultAsync(ct);
         }
 
+        MedicationDisplayLabels.Apply(medication);
         return medication;
     }
 }

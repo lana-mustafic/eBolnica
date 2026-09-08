@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.CreateMedication;
 using eBolnica.Domain.Entities.Pharmacy;
 
@@ -164,8 +165,8 @@ internal static class MedicationCsvImporter
         BatchNumber = cmd.BatchNumber?.Trim(),
         IsActive = cmd.IsActive,
         RequiresPrescription = cmd.RequiresPrescription,
-        Category = cmd.Category.Trim(),
-        DosageForm = cmd.DosageForm?.Trim(),
+        Category = MedicationCategoryAliases.ToBosnian(cmd.Category) ?? cmd.Category.Trim(),
+        DosageForm = MedicationDosageFormAliases.ToBosnian(cmd.DosageForm),
         Strength = cmd.Strength?.Trim(),
         CreatedAtUtc = DateTime.UtcNow
     };

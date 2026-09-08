@@ -28,7 +28,13 @@ const LEGACY_ENGLISH_CATEGORIES: Record<string, MedicationCategory> = {
 export function normalizeMedicationCategory(value: string | null | undefined): string {
   if (!value) return '';
   const trimmed = value.trim();
-  return LEGACY_ENGLISH_CATEGORIES[trimmed] ?? trimmed;
+  if (LEGACY_ENGLISH_CATEGORIES[trimmed])
+    return LEGACY_ENGLISH_CATEGORIES[trimmed];
+
+  const match = Object.entries(LEGACY_ENGLISH_CATEGORIES).find(
+    ([key]) => key.toLowerCase() === trimmed.toLowerCase(),
+  );
+  return match?.[1] ?? trimmed;
 }
 
 /** Read-only display label for medication category. */

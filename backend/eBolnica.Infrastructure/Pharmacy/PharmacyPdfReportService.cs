@@ -1,6 +1,7 @@
 using eBolnica.Application.Abstractions;
 using eBolnica.Application.Modules.Pharmacy;
 using eBolnica.Application.Modules.Pharmacy.Analytics;
+using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Domain.Entities.Clinical;
 using eBolnica.Domain.Entities.Pharmacy;
 using QuestPDF.Fluent;
@@ -20,17 +21,6 @@ public sealed class PharmacyPdfReportService : IPharmacyPdfReportService
     private static readonly Color Success = Color.FromHex("#22C55E");
     private static readonly Color Warning = Color.FromHex("#F59E0B");
     private static readonly Color Danger = Color.FromHex("#EF4444");
-
-    private static readonly Dictionary<string, string> LegacyDosageForms = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["Tablet"] = "Tableta",
-        ["Capsule"] = "Kapsula",
-        ["Liquid"] = "Tečnost",
-        ["Injection"] = "Injekcija",
-        ["Cream"] = "Krema",
-        ["Drops"] = "Kapi",
-        ["Other"] = "Ostalo",
-    };
 
     static PharmacyPdfReportService()
     {
@@ -224,7 +214,7 @@ public sealed class PharmacyPdfReportService : IPharmacyPdfReportService
 
                 RenderBodyCell(table.Cell(), rowBg, (rowIndex + 1).ToString(), TextSecondary);
                 RenderNameCell(table.Cell(), rowBg, medication);
-                RenderBodyCell(table.Cell(), rowBg, medication.Category ?? "-");
+                RenderBodyCell(table.Cell(), rowBg, FormatCategory(medication.Category));
                 RenderBodyCell(table.Cell(), rowBg, FormatDosageForm(medication.DosageForm));
                 RenderBodyCell(table.Cell(), rowBg, $"{medication.Price:F2}\u00A0KM", TextPrimary, true);
                 RenderBodyCell(table.Cell(), rowBg, medication.StockQuantity.ToString(), TextPrimary, true);
@@ -360,14 +350,20 @@ public sealed class PharmacyPdfReportService : IPharmacyPdfReportService
         return StockStatus.Available;
     }
 
+    private static string FormatCategory(string? category)
+    {
+        if (string.IsNullOrWhiteSpace(category))
+            return "-";
+
+        return MedicationCategoryAliases.ToBosnian(category) ?? category.Trim();
+    }
+
     private static string FormatDosageForm(string? dosageForm)
     {
         if (string.IsNullOrWhiteSpace(dosageForm))
             return "-";
 
-        return LegacyDosageForms.TryGetValue(dosageForm.Trim(), out var translated)
-            ? translated
-            : dosageForm.Trim();
+        return MedicationDosageFormAliases.ToBosnian(dosageForm) ?? dosageForm.Trim();
     }
 
     private static string FormatPatientName(PatientEntity? patient) =>

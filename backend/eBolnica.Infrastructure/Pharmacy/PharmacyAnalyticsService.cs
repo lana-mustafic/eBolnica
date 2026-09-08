@@ -1,6 +1,7 @@
 using eBolnica.Application.Abstractions;
 using eBolnica.Application.Common.Exceptions;
 using eBolnica.Application.Modules.Pharmacy.Analytics;
+using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Domain.Entities.Pharmacy;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -202,6 +203,8 @@ public sealed class PharmacyAnalyticsService(
         if (categoryStats.Count == 0)
             return await GetTopCategoriesFromInventoryAsync(topCount, ct);
 
+        categoryStats = MergeCategoryAliases(categoryStats);
+
         var totalSold = categoryStats.Sum(c => c.MedicationCount);
         foreach (var c in categoryStats)
             c.Percentage = totalSold > 0 ? Math.Round((decimal)c.MedicationCount / totalSold * 100, 2) : 0;
@@ -212,7 +215,7 @@ public sealed class PharmacyAnalyticsService(
         {
             top.Add(new CategoryItemDto
             {
-                Category = "Other",
+                Category = "Ostalo",
                 MedicationCount = other.Sum(c => c.MedicationCount),
                 Percentage = Math.Round(other.Sum(c => c.Percentage), 2),
                 TotalValue = other.Sum(c => c.TotalValue)
@@ -483,7 +486,7 @@ public sealed class PharmacyAnalyticsService(
         if (meds.Count == 0)
             return new CategoriesDataDto();
 
-        var groups = meds.GroupBy(m => m.Category!)
+        var groups = meds.GroupBy(m => MedicationCategoryAliases.ToBosnian(m.Category) ?? m.Category!)
             .Select(g => new CategoryItemDto
             {
                 Category = g.Key,
@@ -503,7 +506,7 @@ public sealed class PharmacyAnalyticsService(
         {
             top.Add(new CategoryItemDto
             {
-                Category = "Other",
+                Category = "Ostalo",
                 MedicationCount = other.Sum(c => c.MedicationCount),
                 Percentage = Math.Round(other.Sum(c => c.Percentage), 2),
                 TotalValue = other.Sum(c => c.TotalValue)
@@ -516,6 +519,20 @@ public sealed class PharmacyAnalyticsService(
             TotalCategories = groups.Count,
             TotalMedications = total
         };
+    }
+
+    private static List<CategoryItemDto> MergeCategoryAliases(List<CategoryItemDto> items)
+    {
+        return items
+            .GroupBy(c => MedicationCategoryAliases.ToBosnian(c.Category) ?? c.Category)
+            .Select(g => new CategoryItemDto
+            {
+                Category = g.Key,
+                MedicationCount = g.Sum(x => x.MedicationCount),
+                TotalValue = g.Sum(x => x.TotalValue)
+            })
+            .OrderByDescending(c => c.MedicationCount)
+            .ToList();
     }
 
     private MemoryCacheEntryOptions CreateCacheEntryOptions()
@@ -531,9 +548,9 @@ public sealed class PharmacyAnalyticsService(
 
     private static string DetermineStockStatus(decimal stockLevel) => stockLevel switch
     {
-        < 20 => "Critical",
-        < 50 => "Low",
-        < 80 => "Normal",
-        _ => "Optimal"
+        < 20 => "Kritično",
+        < 50 => "Nisko",
+        < 80 => "Normalno",
+        _ => "Optimalno"
     };
 }

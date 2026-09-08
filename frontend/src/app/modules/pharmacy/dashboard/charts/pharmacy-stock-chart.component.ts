@@ -252,10 +252,10 @@ export class PharmacyStockChartComponent implements AfterViewInit, OnChanges, On
 
   private colorForStatus(status: string): string {
     const normalized = status?.toLowerCase() ?? '';
-    if (normalized.includes('critical') || normalized.includes('out')) {
+    if (normalized.includes('critical') || normalized.includes('kritično') || normalized.includes('out')) {
       return '#EF4444';
     }
-    if (normalized.includes('low') || normalized.includes('warn')) {
+    if (normalized.includes('low') || normalized.includes('nisko') || normalized.includes('warn')) {
       return '#F59E0B';
     }
     return '#22C55E';

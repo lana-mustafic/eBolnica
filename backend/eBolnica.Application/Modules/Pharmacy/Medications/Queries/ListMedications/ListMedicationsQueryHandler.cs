@@ -28,6 +28,7 @@ public sealed class ListMedicationsQueryHandler(IAppDbContext ctx)
             .Take(pageSize)
             .Select(MedicationMapping.ToListDtoExpression)
             .ToListAsync(ct);
+        MedicationDisplayLabels.Apply(items);
 
         return new ListMedicationsQueryDto
         {

@@ -1,6 +1,6 @@
 namespace eBolnica.Application.Modules.Pharmacy.Medications;
 
-internal static class MedicationCategoryAliases
+public static class MedicationCategoryAliases
 {
     private static readonly Dictionary<string, string[]> Equivalents = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -28,5 +28,14 @@ internal static class MedicationCategoryAliases
     {
         var key = category.Trim();
         return Equivalents.TryGetValue(key, out var aliases) ? aliases : [key];
+    }
+
+    public static string? ToBosnian(string? category)
+    {
+        if (string.IsNullOrWhiteSpace(category))
+            return category;
+
+        var key = category.Trim();
+        return Equivalents.TryGetValue(key, out var aliases) ? aliases[0] : key;
     }
 }

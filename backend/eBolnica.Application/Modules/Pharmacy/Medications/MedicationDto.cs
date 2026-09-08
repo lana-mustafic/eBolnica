@@ -14,8 +14,8 @@ public sealed class MedicationDto
     public string? BatchNumber { get; init; }
     public bool IsActive { get; init; }
     public bool RequiresPrescription { get; init; }
-    public string? Category { get; init; }
-    public string? DosageForm { get; init; }
+    public string? Category { get; set; }
+    public string? DosageForm { get; set; }
     public string? Strength { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }

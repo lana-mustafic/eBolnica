@@ -1,4 +1,5 @@
 using eBolnica.Application.Modules.Pharmacy;
+using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Medications.Queries.ListMedications;
 using eBolnica.Domain.Entities.Pharmacy;
 using System.Globalization;
@@ -29,11 +30,11 @@ internal static class MedicationCsvService
         {
             sb.AppendLine(string.Join(",", new[]
             {
-                Escape(m.Name), Escape(m.GenericName), Escape(m.Category), Escape(m.Manufacturer),
+                Escape(m.Name), Escape(m.GenericName), Escape(MedicationCategoryAliases.ToBosnian(m.Category)), Escape(m.Manufacturer),
                 Escape(m.Description), m.Price.ToString(CultureInfo.InvariantCulture),
                 m.StockQuantity.ToString(CultureInfo.InvariantCulture),
                 m.MinimumStockLevel.ToString(CultureInfo.InvariantCulture),
-                FormatDate(m.ExpiryDate), Escape(m.BatchNumber), Escape(m.DosageForm),
+                FormatDate(m.ExpiryDate), Escape(m.BatchNumber), Escape(MedicationDosageFormAliases.ToBosnian(m.DosageForm)),
                 Escape(m.Strength), m.RequiresPrescription ? "Yes" : "No",
                 m.IsActive ? "Yes" : "No", Escape(GetStatusLabel(m))
             }));
@@ -48,9 +49,9 @@ internal static class MedicationCsvService
         sb.AppendLine(string.Join(",", ImportHeaders));
         sb.AppendLine(string.Join(",", new[]
         {
-            Escape("Paracetamol"), Escape("Acetaminophen"), Escape("Analgesics"),
-            Escape("PharmaCorp"), Escape("Pain reliever"), "9.99", "100", "20",
-            "2026-12-31", Escape("BATCH-001"), Escape("Tablet"), Escape("500mg"),
+            Escape("Paracetamol"), Escape("Acetaminophen"), Escape("Analgetici"),
+            Escape("PharmaCorp"), Escape("Lijek protiv bolova"), "9.99", "100", "20",
+            "2026-12-31", Escape("BATCH-001"), Escape("Tableta"), Escape("500mg"),
             "No", "Yes"
         }));
         return sb.ToString();

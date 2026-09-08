@@ -35,8 +35,8 @@ public sealed class CreateMedicationCommandHandler(
             BatchNumber = request.BatchNumber?.Trim(),
             IsActive = request.IsActive,
             RequiresPrescription = request.RequiresPrescription,
-            Category = request.Category.Trim(),
-            DosageForm = request.DosageForm?.Trim(),
+            Category = MedicationCategoryAliases.ToBosnian(request.Category) ?? request.Category.Trim(),
+            DosageForm = MedicationDosageFormAliases.ToBosnian(request.DosageForm),
             Strength = request.Strength?.Trim(),
             CreatedAtUtc = now
         };
@@ -89,8 +89,8 @@ public sealed class CreateMedicationCommandHandler(
         BatchNumber = m.BatchNumber,
         IsActive = m.IsActive,
         RequiresPrescription = m.RequiresPrescription,
-        Category = m.Category,
-        DosageForm = m.DosageForm,
+        Category = MedicationCategoryAliases.ToBosnian(m.Category),
+        DosageForm = MedicationDosageFormAliases.ToBosnian(m.DosageForm),
         Strength = m.Strength,
         CreatedAt = m.CreatedAtUtc,
         UpdatedAt = m.ModifiedAtUtc,

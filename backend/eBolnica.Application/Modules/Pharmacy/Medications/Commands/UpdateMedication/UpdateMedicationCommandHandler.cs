@@ -44,8 +44,8 @@ public sealed class UpdateMedicationCommandHandler(IAppDbContext ctx, IAppCurren
         medication.BatchNumber = request.BatchNumber?.Trim();
         medication.IsActive = request.IsActive;
         medication.RequiresPrescription = request.RequiresPrescription;
-        medication.Category = request.Category.Trim();
-        medication.DosageForm = request.DosageForm?.Trim();
+        medication.Category = MedicationCategoryAliases.ToBosnian(request.Category) ?? request.Category.Trim();
+        medication.DosageForm = MedicationDosageFormAliases.ToBosnian(request.DosageForm);
         medication.Strength = request.Strength?.Trim();
         medication.ModifiedAtUtc = DateTime.UtcNow;
 
@@ -98,8 +98,8 @@ public sealed class UpdateMedicationCommandHandler(IAppDbContext ctx, IAppCurren
             BatchNumber = medication.BatchNumber,
             IsActive = medication.IsActive,
             RequiresPrescription = medication.RequiresPrescription,
-            Category = medication.Category,
-            DosageForm = medication.DosageForm,
+            Category = MedicationCategoryAliases.ToBosnian(medication.Category),
+            DosageForm = MedicationDosageFormAliases.ToBosnian(medication.DosageForm),
             Strength = medication.Strength,
             CreatedAt = medication.CreatedAtUtc,
             UpdatedAt = medication.ModifiedAtUtc,
