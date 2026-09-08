@@ -315,16 +315,16 @@ export class MedicationWizardComponent implements OnInit, OnDestroy {
 
   onImageSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const files = input.files;
+    const files = Array.from(input.files ?? []);
     input.value = '';
-    if (!files?.length) {
+    if (!files.length) {
       return;
     }
     if (!this.canAddMoreImages) {
       this.toaster.warning(`Maksimalno ${MAX_MEDICATION_IMAGES} slika po lijeku.`);
       return;
     }
-    void this.queueFiles(Array.from(files));
+    void this.queueFiles(files);
   }
 
   removePendingImage(key: string): void {

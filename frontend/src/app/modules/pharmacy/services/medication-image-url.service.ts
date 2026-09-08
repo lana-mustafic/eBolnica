@@ -71,9 +71,10 @@ export class MedicationImageUrlService {
     if (!blob || blob.size === 0) {
       return false;
     }
-    if (!blob.type) {
-      return true;
+    const type = (blob.type || '').toLowerCase();
+    if (type.includes('json') || type.includes('html') || type.startsWith('text/')) {
+      return false;
     }
-    return blob.type.startsWith('image/') || blob.type === 'application/octet-stream';
+    return true;
   }
 }

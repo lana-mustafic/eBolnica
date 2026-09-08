@@ -385,31 +385,44 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
           this.medicationRowVersion = saved.rowVersion;
         }
 
-        if (!this.isEditMode()) {
+        const createdNow = !this.isEditMode();
+        const targetId = saved?.id ?? id ?? this.medicationId();
+        if (createdNow && saved?.id) {
           this.medicationId.set(saved.id);
-          this.uploadQueuedImagesAfterCreate(saved.id)
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe({
-              next: (uploadFailed) => {
-                this.toaster.success(
-                  uploadFailed
-                    ? 'Lijek kreiran, ali neke slike nisu uploadovane.'
-                    : 'Lijek kreiran.'
-                );
-                this.router.navigate(['/pharmacy/medications', saved.id]);
-              },
-              error: () => {
-                this.isSaving.set(false);
-                this.toaster.success('Lijek kreiran, ali slike nisu uploadovane.');
-                this.router.navigate(['/pharmacy/medications', saved.id]);
-              },
-            });
+        }
+
+        if (!targetId) {
+          this.isSaving.set(false);
+          this.toaster.success(createdNow ? 'Lijek kreiran.' : 'Lijek ažuriran.');
           return;
         }
 
-        this.isSaving.set(false);
-        this.toaster.success('Lijek ažuriran.');
-        this.router.navigate(['/pharmacy/medications']);
+        this.uploadQueuedImages(targetId)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            next: (uploadFailed) => {
+              this.isSaving.set(false);
+              this.toaster.success(
+                uploadFailed
+                  ? createdNow
+                    ? 'Lijek kreiran, ali neke slike nisu uploadovane.'
+                    : 'Lijek ažuriran, ali neke slike nisu uploadovane.'
+                  : createdNow
+                    ? 'Lijek kreiran.'
+                    : 'Lijek ažuriran.'
+              );
+              this.router.navigate(
+                createdNow ? ['/pharmacy/medications', targetId] : ['/pharmacy/medications']
+              );
+            },
+            error: () => {
+              this.isSaving.set(false);
+              this.toaster.success(createdNow ? 'Lijek kreiran, ali slike nisu uploadovane.' : 'Lijek ažuriran.');
+              this.router.navigate(
+                createdNow ? ['/pharmacy/medications', targetId] : ['/pharmacy/medications']
+              );
+            },
+          });
       },
       error: (err) => {
         this.isSaving.set(false);
@@ -470,16 +483,16 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
 
   onImageSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const files = input.files;
+    const files = Array.from(input.files ?? []);
     input.value = '';
-    if (!files?.length) {
+    if (!files.length) {
       return;
     }
     if (!this.canAddMoreImages) {
       this.toaster.warning(`Maksimalno ${MAX_MEDICATION_IMAGES} slika po lijeku.`);
       return;
     }
-    void this.queueFiles(Array.from(files));
+    void this.queueFiles(files);
   }
 
   removePending(key: string): void {
@@ -623,19 +636,20 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
         try {
           const compressed = await compressMedicationImage(original);
           const previewUrl = URL.createObjectURL(compressed);
-          this.pendingUploads.update((entries) => [
-            ...entries,
-            {
-              key: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-              file: compressed,
-              previewUrl,
-              originalSize: original.size,
-              compressedSize: compressed.size,
-              status: 'pending',
-              progress: 0,
-              progressKnown: false,
-            },
-          ]);
+          const item: PendingImageUpload = {
+            key: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+            file: compressed,
+            previewUrl,
+            originalSize: original.size,
+            compressedSize: compressed.size,
+            status: 'pending',
+            progress: 0,
+            progressKnown: false,
+          };
+          this.pendingUploads.update((entries) => [...entries, item]);
+          if (this.isEditMode() && this.medicationId()) {
+            this.uploadFile(item);
+          }
         } catch {
           this.toaster.error(`Greška pri obradi slike: ${original.name}`);
         }
@@ -697,14 +711,14 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
         }
         this.finishUploadBatch(targetMedicationId, uploadSession);
       },
-      error: () => {
+      error: (err) => {
         if (uploadSession === this.uploadSessionGeneration) {
           item.status = 'error';
           item.progress = 0;
           item.progressKnown = false;
-          item.errorMessage = 'Upload nije uspio.';
+          item.errorMessage = getApiErrorMessage(err, 'Upload nije uspio.');
           this.pendingUploads.update((entries) => [...entries]);
-          this.toaster.error('Greška pri uploadu slike.');
+          this.toaster.error(item.errorMessage);
         }
         this.finishUploadBatch(targetMedicationId, uploadSession);
       },
@@ -727,7 +741,7 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
     this.loadImages(targetMedicationId);
   }
 
-  private uploadQueuedImagesAfterCreate(medicationId: number) {
+  private uploadQueuedImages(medicationId: number) {
     const images = this.pendingUploads()
       .filter((entry) => entry.status !== 'error')
       .slice(0, MAX_MEDICATION_IMAGES);

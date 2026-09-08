@@ -135,7 +135,7 @@ export class PharmacyApiService {
 
   uploadImage(medicationId: number, file: File): Observable<HttpEvent<MedicationImageDto>> {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', file, file.name || 'image.jpg');
     return this.http.post<MedicationImageDto>(
       `${this.baseUrl}/medications/${medicationId}/images`,
       formData,

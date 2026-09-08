@@ -15,6 +15,17 @@ public sealed class GetMedicationByIdQueryHandler(IAppDbContext ctx)
         if (medication is null)
             throw new eBolnicaNotFoundException("Medication not found.");
 
+        if (medication.PrimaryImageId is null)
+        {
+            medication.PrimaryImageId = await ctx.MedicationImages
+                .AsNoTracking()
+                .Where(i => i.MedicationId == medication.Id && !i.IsDeleted)
+                .OrderByDescending(i => i.IsPrimary)
+                .ThenBy(i => i.SortOrder)
+                .Select(i => (int?)i.Id)
+                .FirstOrDefaultAsync(ct);
+        }
+
         return medication;
     }
 }

@@ -22,8 +22,6 @@
 
   @if (isLoading()) {
     <app-fit-table-skeleton [rows]="8" [columns]="2"></app-fit-table-skeleton>
-  } @else if (isSaving()) {
-    <app-fit-table-skeleton [rows]="8" [columns]="2" [showActions]="false"></app-fit-table-skeleton>
   } @else {
     <div class="validation-banner" [class.valid]="isFormReady" [class.invalid]="!isFormReady">
       @if (isFormReady) {

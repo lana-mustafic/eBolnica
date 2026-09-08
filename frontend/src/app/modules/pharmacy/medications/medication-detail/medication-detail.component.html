@@ -48,13 +48,57 @@
       <section class="card hero-card">
         <div class="hero-grid">
           <div class="image-panel">
-            @if (imageUrl(); as img) {
-              <img [src]="img" [alt]="medication.name" class="medication-image" (error)="onImageError()" />
+            @if (primaryImageUrl(); as img) {
+              <button
+                type="button"
+                class="image-preview-button"
+                (click)="openLightbox()"
+                [attr.aria-label]="'Pregled slike ' + medication.name"
+              >
+                <img [src]="img" [alt]="medication.name" class="medication-image" (error)="onImageError()" />
+              </button>
             } @else {
               <div class="image-placeholder">
                 <app-pharmacy-icon name="pill" [size]="48"></app-pharmacy-icon>
               </div>
             }
+
+            @if (images().length) {
+              <div class="image-gallery" aria-label="Galerija slika lijeka">
+                @for (image of images(); track image.id) {
+                  <button
+                    type="button"
+                    class="gallery-thumb"
+                    [class.primary]="image.isPrimary"
+                    (click)="openLightbox(image)"
+                    [attr.aria-label]="'Pregled slike ' + image.fileName"
+                  >
+                    @if (imageSrc(image); as thumb) {
+                      <img [src]="thumb" [alt]="image.fileName" />
+                    }
+                  </button>
+                }
+              </div>
+              <p class="image-hint">Kliknite sliku za uvećanje · {{ images().length }}/{{ maxMedicationImages }}</p>
+            }
+
+            <input
+              #detailFileInput
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              hidden
+              (change)="onDetailImageSelected($event)"
+            />
+            <button
+              type="button"
+              class="btn btn-outline"
+              (click)="detailFileInput.click()"
+              [disabled]="!canAddMoreImages"
+            >
+              <app-pharmacy-icon name="upload" [size]="16"></app-pharmacy-icon>
+              {{ isUploadingImage() ? 'Upload u toku...' : 'Dodaj sliku' }}
+            </button>
+
             <p class="image-caption">{{ medication.name }}</p>
           </div>
 

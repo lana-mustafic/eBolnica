@@ -30,7 +30,12 @@ internal static class MedicationMapping
             UpdatedAt = m.ModifiedAtUtc,
             RowVersion = m.RowVersion,
             PrimaryImageUrl = m.ImageUrl,
-            PrimaryImageId = m.PrimaryImageId
+            PrimaryImageId = m.PrimaryImageId ?? m.Images
+                .Where(i => !i.IsDeleted)
+                .OrderByDescending(i => i.IsPrimary)
+                .ThenBy(i => i.SortOrder)
+                .Select(i => (int?)i.Id)
+                .FirstOrDefault()
         };
 
     /// <summary>

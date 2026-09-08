@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   DestroyRef,
   inject,
   OnDestroy,
@@ -8,10 +9,16 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, Router } from '@angular/router';
-import { EMPTY, catchError, map, of, switchMap } from 'rxjs';
+import { HttpEventType } from '@angular/common/http';
+import { EMPTY, catchError, filter, map, of, switchMap } from 'rxjs';
 import { PharmacyApiService } from '../../../../api-services/pharmacy/pharmacy-api.service';
-import { MedicationDto, MedicationStockHistoryDto } from '../../../../api-services/pharmacy/pharmacy-api.models';
+import {
+  MedicationDto,
+  MedicationImageDto,
+  MedicationStockHistoryDto,
+} from '../../../../api-services/pharmacy/pharmacy-api.models';
 import { ToasterService } from '../../../../core/services/toaster.service';
 import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
 import { AuthFacadeService } from '../../../../core/services/auth/auth-facade.service';
@@ -19,8 +26,15 @@ import { DialogButton, DialogType } from '../../../shared/models/dialog-config.m
 import { DialogHelperService } from '../../../shared/services/dialog-helper.service';
 import { getDosageFormLabel } from '../../constants/medication-dosage-forms.constant';
 import { getMedicationCategoryLabel } from '../../constants/medication-categories.constant';
+import { MAX_MEDICATION_IMAGES } from '../../constants/medication-image-limits.constant';
 import { MedicationImageUrlService } from '../../services/medication-image-url.service';
 import { KpiCardTone } from '../../shared/pharmacy-kpi-card/pharmacy-kpi-card.component';
+import { compressMedicationImage } from '../utils/medication-image-compress.util';
+import { extractMedicationImageUploadResponse } from '../utils/medication-image-upload-progress.util';
+import {
+  MedicationImageLightboxComponent,
+  MedicationImageLightboxData,
+} from '../medication-image-lightbox/medication-image-lightbox.component';
 
 interface StockHistoryRow {
   id: number;
@@ -44,16 +58,36 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private toaster = inject(ToasterService);
   private dialog = inject(DialogHelperService);
+  private imageDialog = inject(MatDialog);
   private destroyRef = inject(DestroyRef);
   auth = inject(AuthFacadeService);
+
+  readonly maxMedicationImages = MAX_MEDICATION_IMAGES;
 
   medication = signal<MedicationDto | null>(null);
   isLoading = signal(true);
   loadError = signal(false);
+  images = signal<MedicationImageDto[]>([]);
+  imageUrls = signal<Map<number, string>>(new Map());
   imageUrl = signal<string | null>(null);
   stockHistory = signal<StockHistoryRow[]>([]);
   isLoadingHistory = signal(false);
   historyLoadError = signal(false);
+  isUploadingImage = signal(false);
+  private imageLoadGeneration = 0;
+
+  primaryImage = computed(() => {
+    const list = this.images();
+    return list.find((image) => image.isPrimary) ?? list[0] ?? null;
+  });
+
+  primaryImageUrl = computed(() => {
+    const image = this.primaryImage();
+    if (image) {
+      return this.imageUrls().get(image.id) ?? this.imageUrl();
+    }
+    return this.imageUrl();
+  });
 
   ngOnInit(): void {
     this.route.paramMap
@@ -99,7 +133,7 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
         this.historyLoadError.set(historyFailed);
         this.isLoading.set(false);
         this.isLoadingHistory.set(false);
-        this.loadImageUrl(medication);
+        this.loadGallery(medication);
       });
   }
 
@@ -162,7 +196,7 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
           this.historyLoadError.set(historyFailed);
           this.isLoading.set(false);
           this.isLoadingHistory.set(false);
-          this.loadImageUrl(medication);
+          this.loadGallery(medication);
         },
         error: () => {
           this.loadError.set(true);
@@ -231,6 +265,84 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
 
   onImageError(): void {
     this.imageUrl.set(null);
+  }
+
+  imageSrc(image: MedicationImageDto): string | null {
+    return this.imageUrls().get(image.id) ?? null;
+  }
+
+  get canAddMoreImages(): boolean {
+    return this.images().length < MAX_MEDICATION_IMAGES && !this.isUploadingImage();
+  }
+
+  onDetailImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    input.value = '';
+    const medication = this.medication();
+    if (!file || !medication) {
+      return;
+    }
+    if (this.images().length >= MAX_MEDICATION_IMAGES) {
+      this.toaster.warning(`Maksimalno ${MAX_MEDICATION_IMAGES} slika po lijeku.`);
+      return;
+    }
+
+    this.isUploadingImage.set(true);
+    void this.uploadDetailImage(medication, file);
+  }
+
+  private async uploadDetailImage(medication: MedicationDto, original: File): Promise<void> {
+    try {
+      const compressed = original.type.startsWith('image/')
+        ? await compressMedicationImage(original)
+        : original;
+
+      this.pharmacyApi
+        .uploadImage(medication.id, compressed)
+        .pipe(
+          filter((event) => event.type === HttpEventType.Response),
+          takeUntilDestroyed(this.destroyRef)
+        )
+        .subscribe({
+          next: (event) => {
+            const uploaded = extractMedicationImageUploadResponse(event);
+            if (uploaded) {
+              this.imageUrlService.prime(medication.id, uploaded.id, URL.createObjectURL(compressed));
+            }
+            this.toaster.success('Slika uploadovana.');
+            this.isUploadingImage.set(false);
+            this.loadGallery({
+              ...medication,
+              primaryImageId: uploaded?.id ?? medication.primaryImageId,
+            });
+          },
+          error: (err) => {
+            this.isUploadingImage.set(false);
+            this.toaster.error(getApiErrorMessage(err, 'Upload slike nije uspio.'));
+          },
+        });
+    } catch {
+      this.isUploadingImage.set(false);
+      this.toaster.error('Greška pri obradi slike.');
+    }
+  }
+
+  openLightbox(image?: MedicationImageDto | null): void {
+    const target = image ?? this.primaryImage();
+    const url = target ? this.imageSrc(target) : this.primaryImageUrl();
+    if (!url) {
+      return;
+    }
+
+    this.imageDialog.open(MedicationImageLightboxComponent, {
+      data: {
+        imageUrl: url,
+        fileName: target?.fileName ?? this.medication()?.name ?? 'Slika lijeka',
+      } satisfies MedicationImageLightboxData,
+      maxWidth: '95vw',
+      panelClass: 'medication-image-lightbox-panel',
+    });
   }
 
   get dosageFormLabel(): string {
@@ -365,26 +477,76 @@ export class MedicationDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-  private loadImageUrl(medication: MedicationDto): void {
-    if (!medication.primaryImageId) {
-      this.imageUrl.set(null);
-      return;
-    }
+  private loadGallery(medication: MedicationDto): void {
+    const generation = ++this.imageLoadGeneration;
+    this.images.set([]);
+    this.imageUrls.set(new Map());
+    this.imageUrl.set(null);
 
+    this.pharmacyApi
+      .listImages(medication.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (imgs) => {
+          if (generation !== this.imageLoadGeneration) {
+            return;
+          }
+          this.images.set(imgs);
+          const ids = new Set(imgs.map((image) => image.id));
+          if (medication.primaryImageId && !ids.has(medication.primaryImageId)) {
+            this.resolveImageUrl(medication.id, medication.primaryImageId, generation, true);
+          }
+          for (const image of imgs) {
+            this.resolveImageUrl(medication.id, image.id, generation, image.isPrimary || imgs[0]?.id === image.id);
+          }
+        },
+        error: () => {
+          if (generation !== this.imageLoadGeneration) {
+            return;
+          }
+          if (medication.primaryImageId) {
+            this.resolveImageUrl(medication.id, medication.primaryImageId, generation, true);
+          }
+        },
+      });
+  }
+
+  private resolveImageUrl(
+    medicationId: number,
+    imageId: number,
+    generation: number,
+    setAsPrimary: boolean
+  ): void {
     this.imageUrlService
-      .getAuthenticatedUrl(medication.id, medication.primaryImageId)
+      .getAuthenticatedUrl(medicationId, imageId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (url) => {
-          this.imageUrl.set(url);
+          if (generation !== this.imageLoadGeneration) {
+            return;
+          }
+          this.imageUrls.update((map) => {
+            const next = new Map(map);
+            next.set(imageId, url);
+            return next;
+          });
+          if (setAsPrimary) {
+            this.imageUrl.set(url);
+          }
         },
         error: () => {
+          if (generation !== this.imageLoadGeneration || !setAsPrimary) {
+            return;
+          }
           this.imageUrl.set(null);
         },
       });
   }
 
   private clearImageUrl(_medication?: MedicationDto | null): void {
+    this.imageLoadGeneration++;
+    this.images.set([]);
+    this.imageUrls.set(new Map());
     this.imageUrl.set(null);
   }
 }

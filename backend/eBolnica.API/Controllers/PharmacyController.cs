@@ -155,7 +155,7 @@ public sealed class PharmacyController(IMediator mediator) : ControllerBase
     [RequestSizeLimit(5 * 1024 * 1024)]
     public async Task<ActionResult<MedicationImageDto>> UploadMedicationImage(
         int id,
-        IFormFile file,
+        [FromForm] IFormFile file,
         CancellationToken ct)
     {
         if (file is null || file.Length == 0)

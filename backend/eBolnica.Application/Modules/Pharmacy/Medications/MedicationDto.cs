@@ -21,5 +21,5 @@ public sealed class MedicationDto
     public DateTime? UpdatedAt { get; init; }
     public byte[]? RowVersion { get; init; }
     public string? PrimaryImageUrl { get; init; }
-    public int? PrimaryImageId { get; init; }
+    public int? PrimaryImageId { get; set; }
 }
