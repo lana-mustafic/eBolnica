@@ -43,6 +43,13 @@ public sealed class DispensePrescriptionCommandHandler(
             if (prescription.Items.Count == 0)
                 throw new eBolnicaBusinessRuleException("prescription.no_items", "Prescription has no items to dispense.");
 
+            var now = DateTime.UtcNow;
+            var dispensedDate = request.DispensedDate ?? now;
+            if (dispensedDate < prescription.PrescribedDate)
+                throw new eBolnicaBusinessRuleException(
+                    "prescription.dispensed_before_prescribed",
+                    "Dispensed date cannot be earlier than the prescribed date.");
+
             var patientAllergies = await ctx.PatientAllergies
                 .Where(a => a.PatientId == prescription.PatientId)
                 .ToListAsync(ct);
@@ -88,7 +95,6 @@ public sealed class DispensePrescriptionCommandHandler(
                         $"Patient is allergic to {conflictingAllergy.Allergen} ({medication.Name}).");
             }
 
-            var now = DateTime.UtcNow;
             foreach (var medication in medications)
             {
                 var required = requiredByMedication[medication.Id];
@@ -107,7 +113,7 @@ public sealed class DispensePrescriptionCommandHandler(
 
             prescription.Status = PrescriptionStatuses.Dispensed;
             prescription.PharmacistId = pharmacist.Id;
-            prescription.DispensedDate = request.DispensedDate ?? now;
+            prescription.DispensedDate = dispensedDate;
             prescription.ModifiedAtUtc = now;
 
             var invoiceYearCount = await ctx.PharmacyInvoices.CountAsync(i => i.IssuedAtUtc.Year == now.Year, ct) + 1;
