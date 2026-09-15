@@ -1,1 +1,82 @@
-<p>admin-settings works!</p>
+<div class="admin-settings-page">
+  <div class="page-header">
+    <div>
+      <h1>{{ 'ADMIN_PANEL.MENU.SETTINGS' | translate }}</h1>
+      <p>Pregled i izmjena administratorskog profila i jezičkih postavki</p>
+    </div>
+  </div>
+
+  <div *ngIf="errorMessage" class="error-banner">{{ errorMessage }}</div>
+
+  @if (isLoading && !profile) {
+    <app-fit-table-skeleton [rows]="4" [columns]="2"></app-fit-table-skeleton>
+  }
+
+  @if (profile) {
+    <div class="settings-grid">
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Moj profil</mat-card-title>
+          <mat-card-subtitle>{{ profile.email }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="profile-meta">
+            <div><strong>Uloga:</strong> {{ roleLabel(profile) }}</div>
+            <div><strong>Nalog:</strong> {{ profile.isEnabled ? 'Aktivan' : 'Onemogućen' }}</div>
+            <div><strong>ID korisnika:</strong> {{ profile.appUserId }}</div>
+          </div>
+
+          <form [formGroup]="form" (ngSubmit)="saveProfile()" class="profile-form">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Ime</mat-label>
+              <input matInput formControlName="firstName" autocomplete="given-name" />
+              <mat-error *ngIf="form.get('firstName')?.hasError('required')">Ime je obavezno</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Prezime</mat-label>
+              <input matInput formControlName="lastName" autocomplete="family-name" />
+              <mat-error *ngIf="form.get('lastName')?.hasError('required')">Prezime je obavezno</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Email</mat-label>
+              <input matInput formControlName="email" type="email" autocomplete="email" />
+              <mat-error *ngIf="form.get('email')?.hasError('required')">Email je obavezan</mat-error>
+              <mat-error *ngIf="form.get('email')?.hasError('email')">Unesite validan email</mat-error>
+            </mat-form-field>
+
+            <div class="form-actions">
+              <button mat-stroked-button type="button" (click)="loadProfile()" [disabled]="isLoading">
+                Poništi
+              </button>
+              <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || isLoading">
+                {{ isLoading ? 'Spremanje...' : 'Sačuvaj profil' }}
+              </button>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Jezik aplikacije</mat-card-title>
+          <mat-card-subtitle>Postavka se pamti na ovom uređaju</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Jezik</mat-label>
+            <mat-select [value]="currentLang" (selectionChange)="switchLanguage($event.value)">
+              @for (lang of languages; track lang.code) {
+                <mat-option [value]="lang.code">{{ lang.flag }} {{ lang.name }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <p class="hint">
+            Ulogovani nalog: <strong>{{ auth.currentUser()?.email }}</strong>
+          </p>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+</div>

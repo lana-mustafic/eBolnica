@@ -9,6 +9,7 @@ import {
   MessageResponse,
   UpdateRegistrationStatusCommand,
   UpdateUserCommand,
+  AdminProfileDto,
 } from './admin-api.models';
 
 @Injectable({
@@ -17,6 +18,10 @@ import {
 export class AdminApiService {
   private readonly baseUrl = `${environment.apiUrl}/api/admin`;
   private http = inject(HttpClient);
+
+  getMyProfile(): Observable<AdminProfileDto> {
+    return this.http.get<AdminProfileDto>(`${this.baseUrl}/me`);
+  }
 
   listUsers(request: ListUsersRequest = {}): Observable<ListUsersResponse> {
     let params = new HttpParams()

@@ -3,6 +3,7 @@ using eBolnica.Application.Modules.Admin.Users.Commands.DeleteUser;
 using eBolnica.Application.Modules.Admin.Users.Commands.UpdateDoctorRegistrationStatus;
 using eBolnica.Application.Modules.Admin.Users.Commands.UpdatePatientRegistrationStatus;
 using eBolnica.Application.Modules.Admin.Users.Commands.UpdateUser;
+using eBolnica.Application.Modules.Admin.Users.Queries.GetAdminProfile;
 using eBolnica.Application.Modules.Admin.Users.Queries.List;
 
 [ApiController]
@@ -10,6 +11,10 @@ using eBolnica.Application.Modules.Admin.Users.Queries.List;
 [Authorize(Policy = "AdminOnly")]
 public sealed class AdminController(IMediator mediator) : ControllerBase
 {
+    [HttpGet("me")]
+    public async Task<ActionResult<GetAdminProfileQueryDto>> GetMyProfile(CancellationToken ct)
+        => Ok(await mediator.Send(new GetAdminProfileQuery(), ct));
+
     [HttpGet("list-users")]
     public async Task<ActionResult<ListUsersQueryDto>> ListUsers([FromQuery] ListUsersQuery query, CancellationToken ct)
         => Ok(await mediator.Send(query, ct));

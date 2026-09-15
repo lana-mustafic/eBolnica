@@ -46,6 +46,16 @@ export interface UpdateRegistrationStatusCommand {
   registrationStatus: string;
 }
 
+export interface AdminProfileDto {
+  appUserId: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  userType: string;
+  isAdmin: boolean;
+  isEnabled: boolean;
+}
+
 export interface MessageResponse {
   message: string;
 }
