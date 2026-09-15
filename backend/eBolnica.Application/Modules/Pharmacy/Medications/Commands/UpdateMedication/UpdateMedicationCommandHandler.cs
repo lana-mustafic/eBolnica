@@ -13,7 +13,7 @@ public sealed class UpdateMedicationCommandHandler(IAppDbContext ctx, IAppCurren
         var medication = await ctx.Medications
             .FirstOrDefaultAsync(m => m.Id == request.Id && !m.IsDeleted, ct);
 
-        if (medication is null || (!medication.IsActive && !request.IsActive))
+        if (medication is null)
             throw new eBolnicaNotFoundException("Medication not found.");
 
         if (!request.RowVersion!.AsSpan().SequenceEqual(medication.RowVersion))
