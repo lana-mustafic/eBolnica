@@ -35,73 +35,84 @@ public sealed class CreateUserCommandHandler(
         };
 
         ctx.Users.Add(user);
-        await ctx.SaveChangesAsync(ct);
 
-        switch (request.UserType)
+        await using var transaction = await ctx.Database.BeginTransactionAsync(ct);
+        try
         {
-            case UserTypes.Doctor:
-                var doctorLicense = request.LicenseNumber?.Trim();
-                if (string.IsNullOrWhiteSpace(doctorLicense))
-                    doctorLicense = $"DOC-{user.Id}";
+            await ctx.SaveChangesAsync(ct);
 
-                if (await ctx.Doctors.AnyAsync(d => d.LicenseNumber == doctorLicense, ct))
-                    throw new eBolnicaConflictException("License number is already in use.");
+            switch (request.UserType)
+            {
+                case UserTypes.Doctor:
+                    var doctorLicense = request.LicenseNumber?.Trim();
+                    if (string.IsNullOrWhiteSpace(doctorLicense))
+                        doctorLicense = $"DOC-{user.Id}";
 
-                ctx.Doctors.Add(new DoctorEntity
-                {
-                    UserId = user.Id,
-                    FirstName = user.Firstname,
-                    LastName = user.Lastname,
-                    LicenseNumber = doctorLicense,
-                    RegistrationStatus = "Pending",
-                    CreatedAtUtc = DateTime.UtcNow
-                });
-                user.LicenseNumber = doctorLicense;
-                break;
+                    if (await ctx.Doctors.AnyAsync(d => d.LicenseNumber == doctorLicense, ct))
+                        throw new eBolnicaConflictException("License number is already in use.");
 
-            case UserTypes.Patient:
-                var patient = new PatientEntity
-                {
-                    UserId = user.Id,
-                    FirstName = user.Firstname,
-                    LastName = user.Lastname,
-                    DoctorId = assignedDoctor!.Id,
-                    RegistrationStatus = "Approved",
-                    CreatedAtUtc = DateTime.UtcNow
-                };
-                ctx.Patients.Add(patient);
-                await ctx.SaveChangesAsync(ct);
+                    ctx.Doctors.Add(new DoctorEntity
+                    {
+                        UserId = user.Id,
+                        FirstName = user.Firstname,
+                        LastName = user.Lastname,
+                        LicenseNumber = doctorLicense,
+                        RegistrationStatus = "Pending",
+                        CreatedAtUtc = DateTime.UtcNow
+                    });
+                    user.LicenseNumber = doctorLicense;
+                    break;
 
-                ctx.MedicalRecords.Add(new MedicalRecordEntity
-                {
-                    PatientId = patient.Id,
-                    RecordNumber = $"MR-{DateTime.UtcNow:yyyyMMdd}-{user.Id}",
-                    CreatedAtUtc = DateTime.UtcNow
-                });
-                break;
+                case UserTypes.Patient:
+                    var patient = new PatientEntity
+                    {
+                        UserId = user.Id,
+                        FirstName = user.Firstname,
+                        LastName = user.Lastname,
+                        DoctorId = assignedDoctor!.Id,
+                        RegistrationStatus = "Approved",
+                        CreatedAtUtc = DateTime.UtcNow
+                    };
+                    ctx.Patients.Add(patient);
+                    await ctx.SaveChangesAsync(ct);
 
-            case UserTypes.Pharmacist:
-                var pharmacistLicense = request.LicenseNumber?.Trim();
-                if (string.IsNullOrWhiteSpace(pharmacistLicense))
-                    pharmacistLicense = $"PH-{user.Id}";
+                    ctx.MedicalRecords.Add(new MedicalRecordEntity
+                    {
+                        PatientId = patient.Id,
+                        RecordNumber = $"MR-{DateTime.UtcNow:yyyyMMdd}-{user.Id}",
+                        CreatedAtUtc = DateTime.UtcNow
+                    });
+                    break;
 
-                if (await ctx.Pharmacists.AnyAsync(p => p.LicenseNumber == pharmacistLicense, ct))
-                    throw new eBolnicaConflictException("License number is already in use.");
+                case UserTypes.Pharmacist:
+                    var pharmacistLicense = request.LicenseNumber?.Trim();
+                    if (string.IsNullOrWhiteSpace(pharmacistLicense))
+                        pharmacistLicense = $"PH-{user.Id}";
 
-                ctx.Pharmacists.Add(new PharmacistEntity
-                {
-                    UserId = user.Id,
-                    FirstName = user.Firstname,
-                    LastName = user.Lastname,
-                    LicenseNumber = pharmacistLicense,
-                    HireDate = DateTime.UtcNow,
-                    CreatedAtUtc = DateTime.UtcNow
-                });
-                user.LicenseNumber = pharmacistLicense;
-                break;
+                    if (await ctx.Pharmacists.AnyAsync(p => p.LicenseNumber == pharmacistLicense, ct))
+                        throw new eBolnicaConflictException("License number is already in use.");
+
+                    ctx.Pharmacists.Add(new PharmacistEntity
+                    {
+                        UserId = user.Id,
+                        FirstName = user.Firstname,
+                        LastName = user.Lastname,
+                        LicenseNumber = pharmacistLicense,
+                        HireDate = DateTime.UtcNow,
+                        CreatedAtUtc = DateTime.UtcNow
+                    });
+                    user.LicenseNumber = pharmacistLicense;
+                    break;
+            }
+
+            await ctx.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
         }
-
-        await ctx.SaveChangesAsync(ct);
+        catch
+        {
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
 
         return new MessageResponseDto { Message = "User created successfully." };
     }

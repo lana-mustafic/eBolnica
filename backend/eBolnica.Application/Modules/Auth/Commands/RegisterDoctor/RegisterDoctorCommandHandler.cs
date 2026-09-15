@@ -31,11 +31,9 @@ public sealed class RegisterDoctorCommandHandler(
         };
 
         ctx.Users.Add(user);
-        await ctx.SaveChangesAsync(ct);
-
         ctx.Doctors.Add(new DoctorEntity
         {
-            UserId = user.Id,
+            User = user,
             FirstName = user.Firstname,
             LastName = user.Lastname,
             LicenseNumber = license,

@@ -26,11 +26,10 @@ public sealed class RegisterPatientCommandHandler(
         };
 
         ctx.Users.Add(user);
-        await ctx.SaveChangesAsync(ct);
 
         var patient = new PatientEntity
         {
-            UserId = user.Id,
+            User = user,
             FirstName = user.Firstname,
             LastName = user.Lastname,
             RegistrationStatus = "Pending",
@@ -38,18 +37,28 @@ public sealed class RegisterPatientCommandHandler(
             Gender = request.Gender,
             CreatedAtUtc = DateTime.UtcNow
         };
-
         ctx.Patients.Add(patient);
-        await ctx.SaveChangesAsync(ct);
 
-        ctx.MedicalRecords.Add(new MedicalRecordEntity
+        await using var transaction = await ctx.Database.BeginTransactionAsync(ct);
+        try
         {
-            PatientId = patient.Id,
-            RecordNumber = $"MR-{DateTime.UtcNow:yyyy}-{patient.Id}",
-            CreatedAtUtc = DateTime.UtcNow
-        });
+            await ctx.SaveChangesAsync(ct);
 
-        await ctx.SaveChangesAsync(ct);
+            ctx.MedicalRecords.Add(new MedicalRecordEntity
+            {
+                PatientId = patient.Id,
+                RecordNumber = $"MR-{DateTime.UtcNow:yyyy}-{patient.Id}",
+                CreatedAtUtc = DateTime.UtcNow
+            });
+
+            await ctx.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
 
         return new RegisterPatientCommandDto();
     }
