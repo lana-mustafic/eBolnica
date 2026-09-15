@@ -27,6 +27,65 @@
     </mat-card-content>
   </mat-card>
 
+  @if (record.allergies?.length) {
+    <mat-card class="section">
+      <mat-card-header><mat-card-title>Alergije</mat-card-title></mat-card-header>
+      <mat-card-content>
+        @for (allergy of record.allergies; track allergy.id) {
+          <div>{{ allergy.allergen }} ({{ allergy.severity }}){{ allergy.reaction ? ' — ' + allergy.reaction : '' }}</div>
+        }
+      </mat-card-content>
+    </mat-card>
+  }
+
+  @if (record.hospitalizations?.length) {
+    <mat-card class="section">
+      <mat-card-header><mat-card-title>Hospitalizacije</mat-card-title></mat-card-header>
+      <mat-card-content>
+        @for (stay of record.hospitalizations; track stay.id) {
+          <div>
+            {{ stay.ward }}{{ stay.roomNumber ? ' / soba ' + stay.roomNumber : '' }}
+            — {{ stay.status }}
+            ({{ stay.admittedAtUtc | date:'dd.MM.yyyy' }}
+            @if (stay.dischargedAtUtc) {
+              – {{ stay.dischargedAtUtc | date:'dd.MM.yyyy' }}
+            }
+            )
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+  }
+
+  @if (record.appointments?.length) {
+    <mat-card class="section">
+      <mat-card-header><mat-card-title>Termini</mat-card-title></mat-card-header>
+      <mat-card-content>
+        @for (appointment of record.appointments; track appointment.id) {
+          <div>
+            {{ appointment.scheduledAtUtc | date:'dd.MM.yyyy HH:mm' }}
+            — {{ appointment.reason }} ({{ appointment.status }})
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+  }
+
+  @if (record.diagnoses?.length) {
+    <mat-card class="section">
+      <mat-card-header><mat-card-title>Dijagnoze</mat-card-title></mat-card-header>
+      <mat-card-content>
+        @for (diagnosis of record.diagnoses; track diagnosis.id) {
+          <div>
+            {{ diagnosis.name }}
+            @if (diagnosis.code) { ({{ diagnosis.code }}) }
+            — {{ diagnosis.diagnosedAtUtc | date:'dd.MM.yyyy' }}
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+  }
+
   <mat-card class="section">
     <mat-card-header><mat-card-title>Novi medicinski izvještaj</mat-card-title></mat-card-header>
     <mat-card-content [formGroup]="reportForm">

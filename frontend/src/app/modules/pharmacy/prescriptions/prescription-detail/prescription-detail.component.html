@@ -171,6 +171,35 @@
           </div>
         }
       </section>
+
+      @if (p.allergies?.length) {
+        <section class="card">
+          <h2 class="section-title">Alergije pacijenta</h2>
+          <ul class="plain-list">
+            @for (allergy of p.allergies; track allergy.id) {
+              <li>
+                <strong>{{ allergy.allergen }}</strong>
+                <span>{{ allergy.severity }}{{ allergy.reaction ? ' · ' + allergy.reaction : '' }}</span>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      @if (p.invoice; as invoice) {
+        <section class="card">
+          <h2 class="section-title">Račun {{ invoice.invoiceNumber }}</h2>
+          <p class="field-value">{{ invoice.issuedAtUtc | date:'dd.MM.yyyy HH:mm' }} · {{ invoice.totalAmount | number:'1.2-2' }} KM</p>
+          <ul class="plain-list">
+            @for (item of invoice.items; track item.medicationId) {
+              <li>
+                <strong>{{ item.medicationName }}</strong>
+                <span>{{ item.quantity }} × {{ item.unitPrice | number:'1.2-2' }} KM</span>
+              </li>
+            }
+          </ul>
+        </section>
+      }
     </div>
   }
 </div>

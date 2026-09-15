@@ -6,4 +6,5 @@ public static class MedicationStockChangeReasons
     public const string ManualAdjustment = "ManualAdjustment";
     public const string PrescriptionDispensed = "PrescriptionDispensed";
     public const string Import = "Import";
+    public const string PurchaseReceived = "PurchaseReceived";
 }

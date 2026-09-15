@@ -22,6 +22,17 @@ public interface IAppDbContext
     DbSet<PrescriptionItemEntity> PrescriptionItems { get; }
     DbSet<PrescriptionNumberSequenceEntity> PrescriptionNumberSequences { get; }
     DbSet<PharmacyActivityEntity> PharmacyActivities { get; }
+    DbSet<MedicationSupplierEntity> MedicationSuppliers { get; }
+    DbSet<PurchaseOrderEntity> PurchaseOrders { get; }
+    DbSet<PurchaseOrderItemEntity> PurchaseOrderItems { get; }
+    DbSet<StockReceiptEntity> StockReceipts { get; }
+    DbSet<StockReceiptItemEntity> StockReceiptItems { get; }
+    DbSet<PatientAllergyEntity> PatientAllergies { get; }
+    DbSet<PharmacyInvoiceEntity> PharmacyInvoices { get; }
+    DbSet<PharmacyInvoiceItemEntity> PharmacyInvoiceItems { get; }
+    DbSet<AppointmentEntity> Appointments { get; }
+    DbSet<HospitalizationEntity> Hospitalizations { get; }
+    DbSet<ClinicalDiagnosisEntity> ClinicalDiagnoses { get; }
 
     DatabaseFacade Database { get; }
 

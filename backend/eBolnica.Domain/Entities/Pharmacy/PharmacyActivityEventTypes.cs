@@ -9,4 +9,6 @@ public static class PharmacyActivityEventTypes
     public const string MedicationDeleted = "medication.deleted";
     public const string StockAdjusted = "inventory.stock_adjusted";
     public const string MedicationsImported = "medication.imported";
+    public const string PurchaseOrderCreated = "inventory.purchase_order_created";
+    public const string StockReceived = "inventory.stock_received";
 }

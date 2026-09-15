@@ -65,4 +65,35 @@ public sealed class PrescriptionDto
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public IReadOnlyList<PrescriptionItemDto> PrescriptionItems { get; set; } = Array.Empty<PrescriptionItemDto>();
+    public IReadOnlyList<PatientAllergyDto> Allergies { get; set; } = Array.Empty<PatientAllergyDto>();
+    public PharmacyInvoiceDto? Invoice { get; set; }
+}
+
+public sealed class PatientAllergyDto
+{
+    public int Id { get; set; }
+    public string Allergen { get; set; } = string.Empty;
+    public string Severity { get; set; } = string.Empty;
+    public string? Reaction { get; set; }
+    public int? MedicationId { get; set; }
+    public string? MedicationName { get; set; }
+}
+
+public sealed class PharmacyInvoiceDto
+{
+    public int Id { get; set; }
+    public string InvoiceNumber { get; set; } = string.Empty;
+    public DateTime IssuedAtUtc { get; set; }
+    public decimal TotalAmount { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public IReadOnlyList<PharmacyInvoiceItemDto> Items { get; set; } = Array.Empty<PharmacyInvoiceItemDto>();
+}
+
+public sealed class PharmacyInvoiceItemDto
+{
+    public int MedicationId { get; set; }
+    public string MedicationName { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal TotalPrice { get; set; }
 }

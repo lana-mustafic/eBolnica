@@ -24,6 +24,9 @@ import {
   GetDashboardStatsRequest,
   PharmacyActivityDto,
   ListRecentActivitiesRequest,
+  PurchaseOrderSummaryDto,
+  StockReceiptSummaryDto,
+  CreatePurchaseOrderRequest,
 } from './pharmacy-api.models';
 
 @Injectable({
@@ -97,6 +100,14 @@ export class PharmacyApiService {
     return this.http.get<InventoryResponse>(`${this.baseUrl}/inventory`, {
       params: this.buildMedicationParams(request),
     });
+  }
+
+  createPurchaseOrder(body: CreatePurchaseOrderRequest): Observable<PurchaseOrderSummaryDto> {
+    return this.http.post<PurchaseOrderSummaryDto>(`${this.baseUrl}/purchase-orders`, body);
+  }
+
+  receivePurchaseOrder(id: number): Observable<StockReceiptSummaryDto> {
+    return this.http.post<StockReceiptSummaryDto>(`${this.baseUrl}/purchase-orders/${id}/receive`, {});
   }
 
   getMedicationById(id: number): Observable<MedicationDto> {

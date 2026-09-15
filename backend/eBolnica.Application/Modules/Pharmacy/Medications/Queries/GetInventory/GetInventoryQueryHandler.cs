@@ -80,6 +80,48 @@ public sealed class GetInventoryQueryHandler(IAppDbContext ctx)
         MedicationDisplayLabels.Apply(expiryAlerts);
         MedicationDisplayLabels.Apply(items);
 
+        var suppliers = await ctx.MedicationSuppliers
+            .AsNoTracking()
+            .Where(s => s.IsActive)
+            .OrderBy(s => s.Name)
+            .Select(s => new MedicationSupplierDto
+            {
+                Id = s.Id,
+                Name = s.Name,
+                ContactPerson = s.ContactPerson,
+                Email = s.Email,
+                Phone = s.Phone,
+                Address = s.Address,
+                TaxNumber = s.TaxNumber,
+                IsActive = s.IsActive
+            })
+            .ToListAsync(ct);
+
+        var purchaseOrders = await ctx.PurchaseOrders
+            .AsNoTracking()
+            .Include(o => o.Supplier)
+            .Include(o => o.Items)
+            .ThenInclude(i => i.Medication)
+            .OrderByDescending(o => o.OrderedAtUtc)
+            .Take(20)
+            .ToListAsync(ct);
+
+        var recentReceipts = await ctx.StockReceipts
+            .AsNoTracking()
+            .Include(r => r.PurchaseOrder)
+            .Include(r => r.Items)
+            .OrderByDescending(r => r.ReceivedAtUtc)
+            .Take(10)
+            .Select(r => new StockReceiptSummaryDto
+            {
+                Id = r.Id,
+                ReceiptNumber = r.ReceiptNumber,
+                OrderNumber = r.PurchaseOrder.OrderNumber,
+                ReceivedAtUtc = r.ReceivedAtUtc,
+                TotalQuantity = r.Items.Sum(i => i.Quantity)
+            })
+            .ToListAsync(ct);
+
         var totalCount = stats?.TotalCount ?? 0;
 
         return new GetInventoryQueryDto
@@ -94,7 +136,25 @@ public sealed class GetInventoryQueryHandler(IAppDbContext ctx)
             TotalCount = totalCount,
             CurrentPage = page,
             PageSize = pageSize,
-            TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+            Suppliers = suppliers,
+            PurchaseOrders = purchaseOrders.Select(o => new PurchaseOrderSummaryDto
+            {
+                Id = o.Id,
+                OrderNumber = o.OrderNumber,
+                SupplierName = o.Supplier.Name,
+                Status = o.Status,
+                OrderedAtUtc = o.OrderedAtUtc,
+                TotalAmount = o.TotalAmount,
+                Items = o.Items.Select(i => new PurchaseOrderItemDto
+                {
+                    MedicationId = i.MedicationId,
+                    MedicationName = i.Medication.Name,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice
+                }).ToList()
+            }).ToList(),
+            RecentReceipts = recentReceipts
         };
     }
 

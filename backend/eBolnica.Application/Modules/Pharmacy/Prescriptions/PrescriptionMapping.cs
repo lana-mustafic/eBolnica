@@ -5,7 +5,13 @@ namespace eBolnica.Application.Modules.Pharmacy.Prescriptions;
 
 internal static class PrescriptionMapping
 {
-    public static PrescriptionDto MapToDto(PrescriptionEntity p) => new()
+    public static PrescriptionDto MapToDto(PrescriptionEntity p) =>
+        MapToDto(p, Array.Empty<PatientAllergyDto>(), null);
+
+    public static PrescriptionDto MapToDto(
+        PrescriptionEntity p,
+        IReadOnlyList<PatientAllergyDto> allergies,
+        PharmacyInvoiceDto? invoice) => new()
     {
         Id = p.Id,
         PrescriptionNumber = p.PrescriptionNumber,
@@ -62,7 +68,9 @@ internal static class PrescriptionMapping
             UnitPrice = i.UnitPrice,
             StockQuantity = i.Medication?.StockQuantity,
             MinimumStockLevel = i.Medication?.MinimumStockLevel
-        }).ToList()
+        }).ToList(),
+        Allergies = allergies,
+        Invoice = invoice
     };
 
     public static IQueryable<PrescriptionEntity> WithDetails(this IQueryable<PrescriptionEntity> query) =>
@@ -71,4 +79,51 @@ internal static class PrescriptionMapping
             .Include(p => p.Doctor).ThenInclude(d => d.User)
             .Include(p => p.Pharmacist!).ThenInclude(ph => ph.User)
             .Include(p => p.Items).ThenInclude(i => i.Medication);
+
+    public static async Task<(IReadOnlyList<PatientAllergyDto> Allergies, PharmacyInvoiceDto? Invoice)> LoadRelatedAsync(
+        IAppDbContext ctx,
+        int patientId,
+        int prescriptionId,
+        CancellationToken ct)
+    {
+        var allergies = await ctx.PatientAllergies
+            .AsNoTracking()
+            .Include(a => a.Medication)
+            .Where(a => a.PatientId == patientId)
+            .Select(a => new PatientAllergyDto
+            {
+                Id = a.Id,
+                Allergen = a.Allergen,
+                Severity = a.Severity,
+                Reaction = a.Reaction,
+                MedicationId = a.MedicationId,
+                MedicationName = a.Medication != null ? a.Medication.Name : null
+            })
+            .ToListAsync(ct);
+
+        var invoice = await ctx.PharmacyInvoices
+            .AsNoTracking()
+            .Include(i => i.Items)
+            .ThenInclude(item => item.Medication)
+            .Where(i => i.PrescriptionId == prescriptionId)
+            .Select(i => new PharmacyInvoiceDto
+            {
+                Id = i.Id,
+                InvoiceNumber = i.InvoiceNumber,
+                IssuedAtUtc = i.IssuedAtUtc,
+                TotalAmount = i.TotalAmount,
+                Status = i.Status,
+                Items = i.Items.Select(item => new PharmacyInvoiceItemDto
+                {
+                    MedicationId = item.MedicationId,
+                    MedicationName = item.Medication.Name,
+                    Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice,
+                    TotalPrice = item.TotalPrice
+                }).ToList()
+            })
+            .FirstOrDefaultAsync(ct);
+
+        return (allergies, invoice);
+    }
 }

@@ -41,6 +41,60 @@ public sealed class GetMedicalRecordByPatientIdQueryHandler(IAppDbContext ctx, I
             })
             .ToListAsync(ct);
 
+        var appointments = await ctx.Appointments
+            .Where(a => a.PatientId == patient.Id)
+            .OrderByDescending(a => a.ScheduledAtUtc)
+            .Select(a => new AppointmentItemDto
+            {
+                Id = a.Id,
+                ScheduledAtUtc = a.ScheduledAtUtc,
+                DurationMinutes = a.DurationMinutes,
+                Reason = a.Reason,
+                Status = a.Status,
+                Notes = a.Notes
+            })
+            .ToListAsync(ct);
+
+        var hospitalizations = await ctx.Hospitalizations
+            .Where(h => h.PatientId == patient.Id)
+            .OrderByDescending(h => h.AdmittedAtUtc)
+            .Select(h => new HospitalizationItemDto
+            {
+                Id = h.Id,
+                AdmittedAtUtc = h.AdmittedAtUtc,
+                DischargedAtUtc = h.DischargedAtUtc,
+                Ward = h.Ward,
+                RoomNumber = h.RoomNumber,
+                AdmissionReason = h.AdmissionReason,
+                Status = h.Status
+            })
+            .ToListAsync(ct);
+
+        var diagnoses = await ctx.ClinicalDiagnoses
+            .Where(d => d.PatientId == patient.Id)
+            .OrderByDescending(d => d.DiagnosedAtUtc)
+            .Select(d => new ClinicalDiagnosisItemDto
+            {
+                Id = d.Id,
+                Code = d.Code,
+                Name = d.Name,
+                Description = d.Description,
+                DiagnosedAtUtc = d.DiagnosedAtUtc,
+                MedicalReportId = d.MedicalReportId
+            })
+            .ToListAsync(ct);
+
+        var allergies = await ctx.PatientAllergies
+            .Where(a => a.PatientId == patient.Id)
+            .Select(a => new PatientAllergyItemDto
+            {
+                Id = a.Id,
+                Allergen = a.Allergen,
+                Severity = a.Severity,
+                Reaction = a.Reaction
+            })
+            .ToListAsync(ct);
+
         return new GetMedicalRecordByPatientIdQueryDto
         {
             Id = patient.MedicalRecord.Id,
@@ -55,7 +109,11 @@ public sealed class GetMedicalRecordByPatientIdQueryHandler(IAppDbContext ctx, I
             IsAdmitted = patient.IsAdmitted,
             BloodType = patient.BloodType,
             Email = patient.User.Email,
-            Reports = reports
+            Reports = reports,
+            Appointments = appointments,
+            Hospitalizations = hospitalizations,
+            Diagnoses = diagnoses,
+            Allergies = allergies
         };
     }
 }

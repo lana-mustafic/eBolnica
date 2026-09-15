@@ -32,6 +32,8 @@ using eBolnica.Application.Modules.Pharmacy.Prescriptions.Queries.GetPrescriptio
 using eBolnica.Application.Modules.Pharmacy.Prescriptions.Queries.ListPatientMedicalReportsForPrescription;
 using eBolnica.Application.Modules.Pharmacy.Prescriptions.Queries.ListPrescriptions;
 using eBolnica.Application.Modules.Pharmacy.Prescriptions.Queries.SearchPrescriptionPatients;
+using eBolnica.Application.Modules.Pharmacy.Procurement.Commands.CreatePurchaseOrder;
+using eBolnica.Application.Modules.Pharmacy.Procurement.Commands.ReceivePurchaseOrder;
 using eBolnica.Shared.Dtos;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Text;
@@ -114,6 +116,21 @@ public sealed class PharmacyController(IMediator mediator) : ControllerBase
         [FromQuery] GetInventoryQuery query,
         CancellationToken ct)
         => Ok(await mediator.Send(query, ct));
+
+    [HttpPost("purchase-orders")]
+    [Authorize(Policy = "PharmacistOnly")]
+    public async Task<ActionResult<PurchaseOrderSummaryDto>> CreatePurchaseOrder(
+        [FromBody] CreatePurchaseOrderCommand command,
+        CancellationToken ct)
+    {
+        var result = await mediator.Send(command, ct);
+        return Created($"/api/pharmacy/purchase-orders/{result.Id}", result);
+    }
+
+    [HttpPost("purchase-orders/{id:int}/receive")]
+    [Authorize(Policy = "PharmacistOnly")]
+    public async Task<ActionResult<StockReceiptSummaryDto>> ReceivePurchaseOrder(int id, CancellationToken ct)
+        => Ok(await mediator.Send(new ReceivePurchaseOrderCommand { PurchaseOrderId = id }, ct));
 
     [HttpGet("medications/{id:int}")]
     [Authorize(Policy = "PharmacyStaff")]

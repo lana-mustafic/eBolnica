@@ -37,6 +37,22 @@ public sealed class CreateMedicalReportCommandHandler(IAppDbContext ctx, IAppCur
         ctx.MedicalReports.Add(report);
         await ctx.SaveChangesAsync(ct);
 
+        var diagnosisName = request.Diagnosis?.Trim();
+        if (!string.IsNullOrWhiteSpace(diagnosisName))
+        {
+            ctx.ClinicalDiagnoses.Add(new ClinicalDiagnosisEntity
+            {
+                PatientId = medicalRecord.PatientId,
+                DoctorId = doctor.Id,
+                MedicalReportId = report.Id,
+                Name = diagnosisName,
+                Description = request.Description?.Trim(),
+                DiagnosedAtUtc = DateTime.UtcNow,
+                CreatedAtUtc = DateTime.UtcNow
+            });
+            await ctx.SaveChangesAsync(ct);
+        }
+
         return new CreateMedicalReportCommandDto { Id = report.Id };
     }
 }

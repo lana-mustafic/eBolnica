@@ -22,6 +22,45 @@ export interface MedicalRecordDto {
   bloodType?: string | null;
   email: string;
   reports: MedicalReportItemDto[];
+  appointments?: AppointmentItemDto[];
+  hospitalizations?: HospitalizationItemDto[];
+  diagnoses?: ClinicalDiagnosisItemDto[];
+  allergies?: PatientAllergyItemDto[];
+}
+
+export interface AppointmentItemDto {
+  id: number;
+  scheduledAtUtc: string;
+  durationMinutes: number;
+  reason: string;
+  status: string;
+  notes?: string | null;
+}
+
+export interface HospitalizationItemDto {
+  id: number;
+  admittedAtUtc: string;
+  dischargedAtUtc?: string | null;
+  ward: string;
+  roomNumber?: string | null;
+  admissionReason: string;
+  status: string;
+}
+
+export interface ClinicalDiagnosisItemDto {
+  id: number;
+  code?: string | null;
+  name: string;
+  description?: string | null;
+  diagnosedAtUtc: string;
+  medicalReportId?: number | null;
+}
+
+export interface PatientAllergyItemDto {
+  id: number;
+  allergen: string;
+  severity: string;
+  reaction?: string | null;
 }
 
 export interface CreateMedicalReportCommand {

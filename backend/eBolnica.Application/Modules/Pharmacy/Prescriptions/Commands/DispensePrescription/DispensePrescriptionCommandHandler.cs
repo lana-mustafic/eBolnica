@@ -43,6 +43,10 @@ public sealed class DispensePrescriptionCommandHandler(
             if (prescription.Items.Count == 0)
                 throw new eBolnicaBusinessRuleException("prescription.no_items", "Prescription has no items to dispense.");
 
+            var patientAllergies = await ctx.PatientAllergies
+                .Where(a => a.PatientId == prescription.PatientId)
+                .ToListAsync(ct);
+
             var requiredByMedication = prescription.Items
                 .GroupBy(i => i.MedicationId)
                 .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
@@ -75,6 +79,13 @@ public sealed class DispensePrescriptionCommandHandler(
                     throw new eBolnicaBusinessRuleException(
                         "prescription.medication_otc",
                         $"Medication {medication.Name} is not a prescription-only product.");
+
+                var conflictingAllergy = patientAllergies.FirstOrDefault(a =>
+                    MedicationMatchesAllergen(medication, a.Allergen));
+                if (conflictingAllergy is not null)
+                    throw new eBolnicaBusinessRuleException(
+                        "prescription.allergy_conflict",
+                        $"Patient is allergic to {conflictingAllergy.Allergen} ({medication.Name}).");
             }
 
             var now = DateTime.UtcNow;
@@ -98,6 +109,27 @@ public sealed class DispensePrescriptionCommandHandler(
             prescription.PharmacistId = pharmacist.Id;
             prescription.DispensedDate = request.DispensedDate ?? now;
             prescription.ModifiedAtUtc = now;
+
+            var invoiceYearCount = await ctx.PharmacyInvoices.CountAsync(i => i.IssuedAtUtc.Year == now.Year, ct) + 1;
+            ctx.PharmacyInvoices.Add(new PharmacyInvoiceEntity
+            {
+                InvoiceNumber = $"INV-{now.Year}-{invoiceYearCount:0000}",
+                PrescriptionId = prescription.Id,
+                PatientId = prescription.PatientId,
+                PharmacistId = pharmacist.Id,
+                IssuedAtUtc = now,
+                TotalAmount = prescription.TotalAmount,
+                Status = PharmacyInvoiceStatuses.Issued,
+                CreatedAtUtc = now,
+                Items = prescription.Items.Select(item => new PharmacyInvoiceItemEntity
+                {
+                    MedicationId = item.MedicationId,
+                    Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice,
+                    TotalPrice = item.TotalPrice,
+                    CreatedAtUtc = now
+                }).ToList()
+            });
 
             PharmacyActivityWriter.Record(
                 ctx,
@@ -129,6 +161,21 @@ public sealed class DispensePrescriptionCommandHandler(
             .FirstAsync(p => p.Id == request.PrescriptionId, ct);
 
         analytics.InvalidateAnalyticsCache();
-        return PrescriptionMapping.MapToDto(result);
+        var (allergies, invoice) = await PrescriptionMapping.LoadRelatedAsync(
+            ctx,
+            result.PatientId,
+            result.Id,
+            ct);
+        return PrescriptionMapping.MapToDto(result, allergies, invoice);
+    }
+
+    private static bool MedicationMatchesAllergen(MedicationEntity medication, string allergen)
+    {
+        var needle = allergen.Trim();
+        if (needle.Length == 0)
+            return false;
+
+        return medication.Name.Contains(needle, StringComparison.OrdinalIgnoreCase)
+            || (medication.GenericName?.Contains(needle, StringComparison.OrdinalIgnoreCase) ?? false);
     }
 }

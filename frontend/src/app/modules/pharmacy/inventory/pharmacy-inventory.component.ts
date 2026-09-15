@@ -19,7 +19,12 @@ import {
   finalize,
 } from 'rxjs';
 import { PharmacyApiService } from '../../../api-services/pharmacy/pharmacy-api.service';
-import { MedicationDto } from '../../../api-services/pharmacy/pharmacy-api.models';
+import {
+  MedicationDto,
+  MedicationSupplierDto,
+  PurchaseOrderSummaryDto,
+  StockReceiptSummaryDto,
+} from '../../../api-services/pharmacy/pharmacy-api.models';
 import { getMedicationCategoryLabel, MEDICATION_CATEGORIES } from '../constants/medication-categories.constant';
 import { ToasterService } from '../../../core/services/toaster.service';
 import { AuthFacadeService } from '../../../core/services/auth/auth-facade.service';
@@ -59,6 +64,9 @@ interface InventoryListViewModel {
   currentPage: number;
   totalPages: number;
   firstLowStockAlert: MedicationDto | null;
+  suppliers: MedicationSupplierDto[];
+  purchaseOrders: PurchaseOrderSummaryDto[];
+  recentReceipts: StockReceiptSummaryDto[];
 }
 
 @Component({
@@ -85,6 +93,8 @@ export class PharmacyInventoryComponent implements OnInit {
 
   isLoading = signal(false);
   isExporting = signal(false);
+  isReceiving = signal(false);
+  isOrdering = signal(false);
   loadError = signal(false);
   currentPage = signal(1);
   totalPages = signal(0);
@@ -217,6 +227,54 @@ export class PharmacyInventoryComponent implements OnInit {
     this.router.navigate(['/pharmacy/medications', id]);
   }
 
+  receivePurchaseOrder(order: PurchaseOrderSummaryDto): void {
+    if (order.status !== 'Ordered' || this.isReceiving()) {
+      return;
+    }
+
+    this.isReceiving.set(true);
+    this.pharmacyApi
+      .receivePurchaseOrder(order.id)
+      .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.isReceiving.set(false)))
+      .subscribe({
+        next: (receipt) => {
+          this.toaster.success(`Zaprimljeno: ${receipt.receiptNumber}`);
+          this.loadTrigger$.next();
+        },
+        error: (err) => {
+          this.toaster.error(resolvePharmacyApiErrorMessage(err, 'Greška pri prijemu narudžbe.'));
+        },
+      });
+  }
+
+  createRestockOrder(): void {
+    const vm = this.listState();
+    const supplier = vm.suppliers[0];
+    const lowStock = vm.lowStockAlerts[0] ?? vm.items.find((m) => m.stockQuantity < m.minimumStockLevel);
+    if (!supplier || !lowStock || this.isOrdering()) {
+      this.toaster.error('Nema dobavljača ili lijeka za narudžbu.');
+      return;
+    }
+
+    this.isOrdering.set(true);
+    this.pharmacyApi
+      .createPurchaseOrder({
+        supplierId: supplier.id,
+        notes: `Dopuna zalihe: ${lowStock.name}`,
+        items: [{ medicationId: lowStock.id, quantity: Math.max(lowStock.minimumStockLevel, 10) }],
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.isOrdering.set(false)))
+      .subscribe({
+        next: (order) => {
+          this.toaster.success(`Narudžba kreirana: ${order.orderNumber}`);
+          this.loadTrigger$.next();
+        },
+        error: (err) => {
+          this.toaster.error(resolvePharmacyApiErrorMessage(err, 'Greška pri kreiranju narudžbe.'));
+        },
+      });
+  }
+
   deleteMedication(medication: MedicationDto): void {
     this.dialog
       .showCustom({
@@ -273,6 +331,9 @@ export class PharmacyInventoryComponent implements OnInit {
     totalCount: number;
     totalPages: number;
     currentPage: number;
+    suppliers?: MedicationSupplierDto[];
+    purchaseOrders?: PurchaseOrderSummaryDto[];
+    recentReceipts?: StockReceiptSummaryDto[];
   }): InventoryListViewModel {
     const inventoryValue = res.inventoryValue ?? 0;
     const items = res.items ?? [];
@@ -293,6 +354,9 @@ export class PharmacyInventoryComponent implements OnInit {
       currentPage: res.currentPage ?? 1,
       totalPages: res.totalPages ?? 1,
       firstLowStockAlert: lowStockAlerts[0] ?? null,
+      suppliers: res.suppliers ?? [],
+      purchaseOrders: res.purchaseOrders ?? [],
+      recentReceipts: res.recentReceipts ?? [],
     };
   }
 
@@ -312,6 +376,9 @@ export class PharmacyInventoryComponent implements OnInit {
       currentPage: this.currentPage(),
       totalPages: 0,
       firstLowStockAlert: null,
+      suppliers: [],
+      purchaseOrders: [],
+      recentReceipts: [],
     };
   }
 

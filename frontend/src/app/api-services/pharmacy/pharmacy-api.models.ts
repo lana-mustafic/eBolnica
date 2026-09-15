@@ -104,6 +104,51 @@ export interface InventoryResponse {
   currentPage: number;
   pageSize: number;
   totalPages: number;
+  suppliers?: MedicationSupplierDto[];
+  purchaseOrders?: PurchaseOrderSummaryDto[];
+  recentReceipts?: StockReceiptSummaryDto[];
+}
+
+export interface MedicationSupplierDto {
+  id: number;
+  name: string;
+  contactPerson?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  taxNumber?: string | null;
+  isActive: boolean;
+}
+
+export interface PurchaseOrderSummaryDto {
+  id: number;
+  orderNumber: string;
+  supplierName: string;
+  status: string;
+  orderedAtUtc: string;
+  totalAmount: number;
+  items: PurchaseOrderItemDto[];
+}
+
+export interface PurchaseOrderItemDto {
+  medicationId: number;
+  medicationName: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface StockReceiptSummaryDto {
+  id: number;
+  receiptNumber: string;
+  orderNumber: string;
+  receivedAtUtc: string;
+  totalQuantity: number;
+}
+
+export interface CreatePurchaseOrderRequest {
+  supplierId: number;
+  notes?: string;
+  items: { medicationId: number; quantity: number }[];
 }
 
 export interface MedicationImageDto {
@@ -176,6 +221,34 @@ export interface PrescriptionDto {
   createdAt: string;
   updatedAt?: string | null;
   prescriptionItems: PrescriptionItemDto[];
+  allergies?: PatientAllergyDto[];
+  invoice?: PharmacyInvoiceDto | null;
+}
+
+export interface PatientAllergyDto {
+  id: number;
+  allergen: string;
+  severity: string;
+  reaction?: string | null;
+  medicationId?: number | null;
+  medicationName?: string | null;
+}
+
+export interface PharmacyInvoiceDto {
+  id: number;
+  invoiceNumber: string;
+  issuedAtUtc: string;
+  totalAmount: number;
+  status: string;
+  items: PharmacyInvoiceItemDto[];
+}
+
+export interface PharmacyInvoiceItemDto {
+  medicationId: number;
+  medicationName: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
 }
 
 export interface ListPrescriptionsRequest {

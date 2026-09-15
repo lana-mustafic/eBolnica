@@ -13,6 +13,7 @@ public static class DynamicDataSeeder
         await context.Database.EnsureCreatedAsync();
         await SeedUsersAsync(context);
         await SeedPrescriptionsAsync(context);
+        await SeedClinicalAndProcurementAsync(context);
     }
 
     private static async Task SeedUsersAsync(DatabaseContext context)
@@ -345,6 +346,148 @@ public static class DynamicDataSeeder
         };
 
         context.Prescriptions.Add(prescription);
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedClinicalAndProcurementAsync(DatabaseContext context)
+    {
+        var doctor = await context.Doctors.FirstOrDefaultAsync();
+        var patient = await context.Patients.FirstOrDefaultAsync(p => p.RegistrationStatus == "Approved");
+        var pharmacist = await context.Pharmacists.FirstOrDefaultAsync();
+        var medications = await context.Medications.Where(m => m.IsActive).ToListAsync();
+        var reports = await context.MedicalReports.OrderBy(r => r.CreatedAtUtc).ToListAsync();
+
+        if (doctor is null || patient is null)
+            return;
+
+        if (!await context.Appointments.AnyAsync())
+        {
+            context.Appointments.AddRange(
+                new AppointmentEntity
+                {
+                    PatientId = patient.Id,
+                    DoctorId = doctor.Id,
+                    ScheduledAtUtc = DateTime.UtcNow.AddDays(-7),
+                    DurationMinutes = 30,
+                    Reason = "Kontrolni pregled hipertenzije",
+                    Status = AppointmentStatuses.Completed,
+                    Notes = "Pacijent se osjeća bolje",
+                    CreatedAtUtc = DateTime.UtcNow.AddDays(-7)
+                },
+                new AppointmentEntity
+                {
+                    PatientId = patient.Id,
+                    DoctorId = doctor.Id,
+                    ScheduledAtUtc = DateTime.UtcNow.AddDays(14),
+                    DurationMinutes = 20,
+                    Reason = "Follow-up nakon terapije",
+                    Status = AppointmentStatuses.Scheduled,
+                    CreatedAtUtc = DateTime.UtcNow
+                });
+        }
+
+        if (!await context.Hospitalizations.AnyAsync())
+        {
+            context.Hospitalizations.Add(new HospitalizationEntity
+            {
+                PatientId = patient.Id,
+                DoctorId = doctor.Id,
+                AdmittedAtUtc = DateTime.UtcNow.AddDays(-40),
+                DischargedAtUtc = DateTime.UtcNow.AddDays(-35),
+                Ward = "Kardiologija",
+                RoomNumber = "214",
+                AdmissionReason = "Povišen krvni pritisak, kratkoća daha",
+                Status = HospitalizationStatuses.Discharged,
+                Notes = "Otpušten uz ambulantno praćenje",
+                CreatedAtUtc = DateTime.UtcNow.AddDays(-40)
+            });
+        }
+
+        if (!await context.ClinicalDiagnoses.AnyAsync() && reports.Count > 0)
+        {
+            foreach (var report in reports)
+            {
+                if (string.IsNullOrWhiteSpace(report.Diagnosis))
+                    continue;
+
+                context.ClinicalDiagnoses.Add(new ClinicalDiagnosisEntity
+                {
+                    PatientId = patient.Id,
+                    DoctorId = report.DoctorId,
+                    MedicalReportId = report.Id,
+                    Code = report.Diagnosis.Contains("Hypertension", StringComparison.OrdinalIgnoreCase) ? "I10" : null,
+                    Name = report.Diagnosis,
+                    Description = report.Description,
+                    DiagnosedAtUtc = report.CreatedAtUtc,
+                    CreatedAtUtc = report.CreatedAtUtc
+                });
+            }
+        }
+
+        if (!await context.PatientAllergies.AnyAsync())
+        {
+            context.PatientAllergies.Add(new PatientAllergyEntity
+            {
+                PatientId = patient.Id,
+                Allergen = "Penicillin",
+                Severity = "High",
+                Reaction = "Osip i otežano disanje",
+                Notes = "Izbjegavati beta-laktamske antibiotike bez konsultacije",
+                CreatedAtUtc = DateTime.UtcNow
+            });
+        }
+
+        if (pharmacist is not null && medications.Count > 0 && !await context.MedicationSuppliers.AnyAsync())
+        {
+            var supplier = new MedicationSupplierEntity
+            {
+                Name = "PharmaDist d.o.o.",
+                ContactPerson = "Lejla Smajić",
+                Email = "nabavka@pharmadist.ba",
+                Phone = "+38733222111",
+                Address = "Sarajevo, BiH",
+                TaxNumber = "4201234560007",
+                IsActive = true,
+                CreatedAtUtc = DateTime.UtcNow
+            };
+            context.MedicationSuppliers.Add(supplier);
+            await context.SaveChangesAsync();
+
+            var ibuprofen = medications.FirstOrDefault(m => m.Name.Contains("Ibuprofen")) ?? medications[0];
+            var amoxicillin = medications.FirstOrDefault(m => m.Name.Contains("Amoxicillin")) ?? medications[^1];
+            var now = DateTime.UtcNow;
+
+            context.PurchaseOrders.Add(new PurchaseOrderEntity
+            {
+                OrderNumber = $"PO-{now.Year}-0001",
+                SupplierId = supplier.Id,
+                PharmacistId = pharmacist.Id,
+                Status = PurchaseOrderStatuses.Ordered,
+                OrderedAtUtc = now.AddDays(-1),
+                ExpectedAtUtc = now.AddDays(3),
+                Notes = "Dopuna niske zalihe Ibuprofena",
+                TotalAmount = ibuprofen.Price * 50 + amoxicillin.Price * 20,
+                CreatedAtUtc = now.AddDays(-1),
+                Items =
+                {
+                    new PurchaseOrderItemEntity
+                    {
+                        MedicationId = ibuprofen.Id,
+                        Quantity = 50,
+                        UnitPrice = ibuprofen.Price,
+                        CreatedAtUtc = now.AddDays(-1)
+                    },
+                    new PurchaseOrderItemEntity
+                    {
+                        MedicationId = amoxicillin.Id,
+                        Quantity = 20,
+                        UnitPrice = amoxicillin.Price,
+                        CreatedAtUtc = now.AddDays(-1)
+                    }
+                }
+            });
+        }
+
         await context.SaveChangesAsync();
     }
 }

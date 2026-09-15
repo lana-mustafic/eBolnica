@@ -15,6 +15,12 @@ public sealed class GetPrescriptionByIdQueryHandler(IAppDbContext ctx)
         if (prescription is null)
             throw new eBolnicaNotFoundException("Prescription not found.");
 
-        return PrescriptionMapping.MapToDto(prescription);
+        var (allergies, invoice) = await PrescriptionMapping.LoadRelatedAsync(
+            ctx,
+            prescription.PatientId,
+            prescription.Id,
+            ct);
+
+        return PrescriptionMapping.MapToDto(prescription, allergies, invoice);
     }
 }

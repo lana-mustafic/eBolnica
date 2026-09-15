@@ -396,6 +396,82 @@
           </mat-menu>
         }
       </section>
+
+      @if (auth.isPharmacist()) {
+        <section class="card procurement-card">
+          <div class="procurement-header">
+            <h2 class="section-title">Nabavka lijekova</h2>
+            <button
+              type="button"
+              class="btn btn-primary"
+              (click)="createRestockOrder()"
+              [disabled]="isOrdering() || vm.suppliers.length === 0"
+            >
+              {{ isOrdering() ? 'Kreiranje...' : 'Naruči dopunu zalihe' }}
+            </button>
+          </div>
+
+          <div class="procurement-grid">
+            <div>
+              <h3 class="sub-title">Dobavljači</h3>
+              @if (vm.suppliers.length === 0) {
+                <p class="empty-hint">Nema aktivnih dobavljača.</p>
+              } @else {
+                <ul class="plain-list">
+                  @for (supplier of vm.suppliers; track supplier.id) {
+                    <li>
+                      <strong>{{ supplier.name }}</strong>
+                      <span>{{ supplier.contactPerson || '—' }} · {{ supplier.phone || supplier.email || '—' }}</span>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+
+            <div>
+              <h3 class="sub-title">Narudžbe</h3>
+              @if (vm.purchaseOrders.length === 0) {
+                <p class="empty-hint">Nema narudžbi.</p>
+              } @else {
+                <ul class="plain-list">
+                  @for (order of vm.purchaseOrders; track order.id) {
+                    <li>
+                      <strong>{{ order.orderNumber }}</strong>
+                      <span>{{ order.supplierName }} · {{ order.status }} · {{ order.totalAmount | number:'1.2-2' }} KM</span>
+                      @if (order.status === 'Ordered') {
+                        <button
+                          type="button"
+                          class="btn btn-outline"
+                          (click)="receivePurchaseOrder(order)"
+                          [disabled]="isReceiving()"
+                        >
+                          Zaprimi
+                        </button>
+                      }
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+
+            <div>
+              <h3 class="sub-title">Zaprimljene pošiljke</h3>
+              @if (vm.recentReceipts.length === 0) {
+                <p class="empty-hint">Nema prijemnica.</p>
+              } @else {
+                <ul class="plain-list">
+                  @for (receipt of vm.recentReceipts; track receipt.id) {
+                    <li>
+                      <strong>{{ receipt.receiptNumber }}</strong>
+                      <span>{{ receipt.orderNumber }} · {{ receipt.totalQuantity }} kom</span>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          </div>
+        </section>
+      }
     }
     }
   </div>
