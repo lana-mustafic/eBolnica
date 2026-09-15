@@ -1,3 +1,5 @@
+using eBolnica.Application.Modules.Auth;
+
 namespace eBolnica.Application.Modules.Auth.Commands.Refresh;
 
 public sealed class RefreshTokenCommandHandler(
@@ -35,6 +37,18 @@ public sealed class RefreshTokenCommandHandler(
         var user = rt.User;
         if (user is null || !user.IsEnabled || user.IsDeleted)
             throw new eBolnicaConflictException("Korisnički nalog je nevažeći.");
+
+        try
+        {
+            await RegistrationApprovalGuard.EnsureApprovedAsync(ctx, user, ct);
+        }
+        catch (eBolnicaBusinessRuleException)
+        {
+            rt.IsRevoked = true;
+            rt.RevokedAtUtc = nowUtc;
+            await ctx.SaveChangesAsync(ct);
+            throw;
+        }
 
         // 3) Rotation: revoke the old one
         rt.IsRevoked = true;
