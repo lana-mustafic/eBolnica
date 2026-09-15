@@ -302,14 +302,19 @@ public static class DynamicDataSeeder
         var doctor = await context.Doctors.FirstOrDefaultAsync();
         var patient = await context.Patients.FirstOrDefaultAsync(p => p.DoctorId == doctor!.Id);
         var report = await context.MedicalReports.FirstOrDefaultAsync(r => r.DoctorId == doctor!.Id);
-        var medications = await context.Medications.Where(m => m.IsActive).Take(2).ToListAsync();
+        var medications = await context.Medications
+            .Where(m => m.IsActive && m.RequiresPrescription)
+            .OrderBy(m => m.Id)
+            .Take(2)
+            .ToListAsync();
 
         if (doctor is null || patient is null || report is null || medications.Count == 0)
             return;
 
         var now = DateTime.UtcNow;
-        var amlodipine = medications.FirstOrDefault(m => m.Name.Contains("Amlodipine")) ?? medications[0];
-        var ibuprofen = medications.FirstOrDefault(m => m.Name.Contains("Ibuprofen")) ?? medications[^1];
+        var primary = medications[0];
+        var secondary = medications.Count > 1 ? medications[1] : null;
+        var totalAmount = primary.Price * 2 + (secondary is null ? 0 : secondary.Price);
 
         var prescription = new PrescriptionEntity
         {
@@ -320,30 +325,34 @@ public static class DynamicDataSeeder
             Status = PrescriptionStatuses.Pending,
             PrescribedDate = now.AddDays(-2),
             Notes = "Demo recept za test dispense flow-a",
-            TotalAmount = amlodipine.Price * 2 + ibuprofen.Price * 1,
+            TotalAmount = totalAmount,
             CreatedAtUtc = now.AddDays(-2),
             Items =
             {
                 new PrescriptionItemEntity
                 {
-                    MedicationId = amlodipine.Id,
+                    MedicationId = primary.Id,
                     Quantity = 2,
                     Instructions = "1 tableta ujutro",
-                    UnitPrice = amlodipine.Price,
-                    TotalPrice = amlodipine.Price * 2,
-                    CreatedAtUtc = now.AddDays(-2)
-                },
-                new PrescriptionItemEntity
-                {
-                    MedicationId = ibuprofen.Id,
-                    Quantity = 1,
-                    Instructions = "Po potrebi",
-                    UnitPrice = ibuprofen.Price,
-                    TotalPrice = ibuprofen.Price,
+                    UnitPrice = primary.Price,
+                    TotalPrice = primary.Price * 2,
                     CreatedAtUtc = now.AddDays(-2)
                 }
             }
         };
+
+        if (secondary is not null)
+        {
+            prescription.Items.Add(new PrescriptionItemEntity
+            {
+                MedicationId = secondary.Id,
+                Quantity = 1,
+                Instructions = "Prema uputi ljekara",
+                UnitPrice = secondary.Price,
+                TotalPrice = secondary.Price,
+                CreatedAtUtc = now.AddDays(-2)
+            });
+        }
 
         context.Prescriptions.Add(prescription);
         await context.SaveChangesAsync();
