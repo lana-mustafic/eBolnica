@@ -12,5 +12,10 @@ public sealed class UpdatePatientRegistrationStatusCommandValidator
             .NotEmpty()
             .Must(s => Allowed.Contains(s))
             .WithMessage("Registration status must be Pending, Approved, or Rejected.");
+        RuleFor(x => x.DoctorId)
+            .NotNull()
+            .GreaterThan(0)
+            .When(x => string.Equals(x.RegistrationStatus, "Approved", StringComparison.OrdinalIgnoreCase))
+            .WithMessage("An approved doctor must be assigned before the patient can be approved.");
     }
 }

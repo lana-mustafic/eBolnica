@@ -43,7 +43,8 @@ public sealed class AdminController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(new UpdatePatientRegistrationStatusCommand
         {
             AppUserId = appUserId,
-            RegistrationStatus = body.RegistrationStatus
+            RegistrationStatus = body.RegistrationStatus,
+            DoctorId = body.DoctorId
         }, ct);
 
         return Ok(result);
@@ -78,6 +79,7 @@ public sealed class AdminController(IMediator mediator) : ControllerBase
 public sealed class UpdateRegistrationStatusRequest
 {
     public string RegistrationStatus { get; set; } = string.Empty;
+    public int? DoctorId { get; set; }
 }
 
 public sealed class UpdateUserBody

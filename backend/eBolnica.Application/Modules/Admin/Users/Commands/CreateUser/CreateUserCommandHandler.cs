@@ -1,4 +1,5 @@
 using eBolnica.Application.Modules.Admin.Common;
+using eBolnica.Application.Modules.Admin.Users;
 using eBolnica.Application.Modules.Admin.Users.Commands.CreateUser;
 using eBolnica.Domain.Entities.Clinical;
 using eBolnica.Domain.Entities.Identity;
@@ -18,8 +19,7 @@ public sealed class CreateUserCommandHandler(
         DoctorEntity? assignedDoctor = null;
         if (request.UserType == UserTypes.Patient)
         {
-            assignedDoctor = await ctx.Doctors.FirstOrDefaultAsync(d => d.Id == request.DoctorId, ct)
-                ?? throw new eBolnicaBusinessRuleException("doctor.not_found", "Selected doctor not found.");
+            assignedDoctor = await PatientDoctorAssignment.RequireAssignableDoctorAsync(ctx, request.DoctorId, ct);
         }
 
         var user = new eBolnicaUserEntity

@@ -7,6 +7,7 @@ export interface UserOverviewDto {
   registrationStatus?: string | null;
   licenseNumber?: string | null;
   doctorProfileId?: number | null;
+  assignedDoctorId?: number | null;
 }
 
 export interface ListUsersResponse {
@@ -44,6 +45,7 @@ export interface UpdateUserCommand {
 
 export interface UpdateRegistrationStatusCommand {
   registrationStatus: string;
+  doctorId?: number | null;
 }
 
 export interface AdminProfileDto {

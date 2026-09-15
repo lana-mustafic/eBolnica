@@ -27,11 +27,14 @@ export class AdminUsersComponent extends BaseListComponent<UserOverviewDto> impl
   sortDirection: 'asc' | 'desc' = 'asc';
 
   showDialog = false;
+  showAssignDialog = false;
   isEditMode = false;
   selectedUserId: number | null = null;
   approvedDoctors: UserOverviewDto[] = [];
+  assignTarget: UserOverviewDto | null = null;
+  assignDoctorId: number | null = null;
 
-  displayedColumns = ['firstName', 'lastName', 'email', 'userType', 'status', 'actions'];
+  displayedColumns = ['firstName', 'lastName', 'email', 'userType', 'status', 'doctor', 'actions'];
 
   form = this.fb.group({
     firstName: ['', [Validators.required, Validators.minLength(2)]],
@@ -133,6 +136,56 @@ export class AdminUsersComponent extends BaseListComponent<UserOverviewDto> impl
     this.showDialog = false;
   }
 
+  closeAssignDialog(): void {
+    this.showAssignDialog = false;
+    this.assignTarget = null;
+    this.assignDoctorId = null;
+  }
+
+  assignedDoctorName(user: UserOverviewDto): string {
+    if (!user.assignedDoctorId) {
+      return 'Nije dodijeljen';
+    }
+    const doctor = this.approvedDoctors.find((d) => d.doctorProfileId === user.assignedDoctorId);
+    return doctor ? `${doctor.firstName} ${doctor.lastName}` : `#${user.assignedDoctorId}`;
+  }
+
+  openAssignDoctorDialog(user: UserOverviewDto): void {
+    if (this.approvedDoctors.length === 0) {
+      this.toaster.error('Nema odobrenih doktora. Prvo odobrite doktora, pa zatim pacijenta.');
+      return;
+    }
+
+    this.assignTarget = user;
+    this.assignDoctorId = user.assignedDoctorId ?? null;
+    this.showAssignDialog = true;
+  }
+
+  confirmAssignDoctor(): void {
+    if (!this.assignTarget || !this.assignDoctorId) {
+      this.toaster.error('Odaberite odobrenog doktora.');
+      return;
+    }
+
+    this.adminApi
+      .updatePatientRegistrationStatus(this.assignTarget.appUserId, {
+        registrationStatus: 'Approved',
+        doctorId: this.assignDoctorId,
+      })
+      .subscribe({
+        next: () => {
+          this.toaster.success(
+            this.assignTarget?.registrationStatus === 'Approved'
+              ? 'Doktor je dodijeljen pacijentu.'
+              : 'Pacijent je odobren i dodijeljen doktoru.'
+          );
+          this.closeAssignDialog();
+          this.loadData();
+        },
+        error: (err) => this.toaster.error(err?.error?.message ?? 'Dodjela doktora nije uspjela.'),
+      });
+  }
+
   submitForm(): void {
     if (this.form.invalid || this.isLoading) {
       this.form.markAllAsTouched();
@@ -185,6 +238,11 @@ export class AdminUsersComponent extends BaseListComponent<UserOverviewDto> impl
   }
 
   changeStatus(user: UserOverviewDto, status: string): void {
+    if (user.userType === 'Patient' && status === 'Approved') {
+      this.openAssignDoctorDialog(user);
+      return;
+    }
+
     const request =
       user.userType === 'Doctor'
         ? this.adminApi.updateDoctorRegistrationStatus(user.appUserId, { registrationStatus: status })

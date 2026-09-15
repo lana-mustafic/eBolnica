@@ -53,7 +53,7 @@ public sealed class ListUsersQueryHandler(IAppDbContext ctx, IAppCurrentUser cur
 
         var patients = await ctx.Patients
             .Where(p => userIds.Contains(p.UserId))
-            .Select(p => new { p.UserId, p.RegistrationStatus })
+            .Select(p => new { p.UserId, p.RegistrationStatus, p.DoctorId })
             .ToListAsync(ct);
 
         var doctorMap = doctors.ToDictionary(x => x.UserId);
@@ -63,6 +63,7 @@ public sealed class ListUsersQueryHandler(IAppDbContext ctx, IAppCurrentUser cur
         {
             string? registrationStatus = null;
             string? licenseNumber = u.LicenseNumber;
+            int? assignedDoctorId = null;
 
             if (u.UserType == UserTypes.Doctor && doctorMap.TryGetValue(u.Id, out var doc))
             {
@@ -72,6 +73,7 @@ public sealed class ListUsersQueryHandler(IAppDbContext ctx, IAppCurrentUser cur
             else if (u.UserType == UserTypes.Patient && patientMap.TryGetValue(u.Id, out var pat))
             {
                 registrationStatus = pat.RegistrationStatus;
+                assignedDoctorId = pat.DoctorId;
             }
 
             return new UserOverviewDto
@@ -83,7 +85,8 @@ public sealed class ListUsersQueryHandler(IAppDbContext ctx, IAppCurrentUser cur
                 UserType = u.UserType,
                 RegistrationStatus = registrationStatus,
                 LicenseNumber = licenseNumber,
-                DoctorProfileId = u.UserType == UserTypes.Doctor && doctorMap.TryGetValue(u.Id, out var d) ? d.Id : null
+                DoctorProfileId = u.UserType == UserTypes.Doctor && doctorMap.TryGetValue(u.Id, out var d) ? d.Id : null,
+                AssignedDoctorId = assignedDoctorId
             };
         }).ToList();
 

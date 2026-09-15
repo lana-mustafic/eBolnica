@@ -4,4 +4,5 @@ public sealed class UpdatePatientRegistrationStatusCommand : IRequest<Common.Mes
 {
     public int AppUserId { get; init; }
     public string RegistrationStatus { get; init; } = string.Empty;
+    public int? DoctorId { get; init; }
 }

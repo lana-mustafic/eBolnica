@@ -22,7 +22,7 @@ internal static class RegistrationApprovalGuard
         if (user.UserType == UserTypes.Patient)
         {
             var patient = await ctx.Patients.FirstOrDefaultAsync(p => p.UserId == user.Id, ct);
-            if (patient is null || !IsApprovedStatus(patient.RegistrationStatus))
+            if (patient is null || !IsApprovedStatus(patient.RegistrationStatus) || patient.DoctorId is null)
                 throw new eBolnicaBusinessRuleException("auth.not_approved", "Your account is not approved.");
         }
     }

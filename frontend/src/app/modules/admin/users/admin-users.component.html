@@ -52,14 +52,21 @@
           <td mat-cell *matCellDef="let user">{{ user.registrationStatus || 'N/A' }}</td>
         </ng-container>
 
+        <ng-container matColumnDef="doctor">
+          <th mat-header-cell *matHeaderCellDef>Doktor</th>
+          <td mat-cell *matCellDef="let user">
+            {{ user.userType === 'Patient' ? assignedDoctorName(user) : '—' }}
+          </td>
+        </ng-container>
+
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef>Akcije</th>
           <td mat-cell *matCellDef="let user">
             <ng-container *ngIf="user.userType === 'Doctor' || user.userType === 'Patient'">
               <button mat-stroked-button color="primary" class="action-btn"
                       (click)="changeStatus(user, 'Approved')"
-                      [disabled]="user.registrationStatus === 'Approved'">
-                Odobri
+                      [disabled]="user.userType === 'Doctor' && user.registrationStatus === 'Approved'">
+                {{ user.userType === 'Patient' && user.assignedDoctorId ? 'Promijeni doktora' : 'Odobri' }}
               </button>
               <button mat-stroked-button color="warn" class="action-btn"
                       (click)="changeStatus(user, 'Rejected')"
@@ -159,5 +166,34 @@
         </button>
       </div>
     </form>
+  </mat-card-content>
+</mat-card>
+
+<div class="dialog-backdrop" *ngIf="showAssignDialog" (click)="closeAssignDialog()"></div>
+<mat-card class="user-dialog" *ngIf="showAssignDialog" (click)="$event.stopPropagation()">
+  <mat-card-header>
+    <mat-card-title>
+      {{ assignTarget?.registrationStatus === 'Approved' ? 'Dodijeli / promijeni doktora' : 'Odobri pacijenta' }}
+    </mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    <p class="assign-hint">
+      Pacijent {{ assignTarget?.firstName }} {{ assignTarget?.lastName }} mora imati aktivnog odobrenog doktora
+      prije nego što postane operativan u sistemu.
+    </p>
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Odobreni doktor</mat-label>
+      <mat-select [(ngModel)]="assignDoctorId">
+        <mat-option *ngFor="let doc of approvedDoctors" [value]="doc.doctorProfileId">
+          {{ doc.firstName }} {{ doc.lastName }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+    <div class="dialog-actions">
+      <button mat-button type="button" (click)="closeAssignDialog()">Odustani</button>
+      <button mat-raised-button color="primary" type="button" (click)="confirmAssignDoctor()" [disabled]="!assignDoctorId">
+        {{ assignTarget?.registrationStatus === 'Approved' ? 'Sačuvaj dodjelu' : 'Odobri i dodijeli' }}
+      </button>
+    </div>
   </mat-card-content>
 </mat-card>

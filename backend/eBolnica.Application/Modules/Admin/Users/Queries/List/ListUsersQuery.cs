@@ -29,4 +29,5 @@ public sealed class UserOverviewDto
     public string? RegistrationStatus { get; init; }
     public string? LicenseNumber { get; init; }
     public int? DoctorProfileId { get; init; }
+    public int? AssignedDoctorId { get; init; }
 }
