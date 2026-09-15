@@ -24,6 +24,11 @@ public sealed class PrescriptionCreationService(
         if (medicalReport is null)
             throw new eBolnicaNotFoundException("Medical report not found.");
 
+        if (medicalReport.DoctorId != request.PrescribingDoctorId)
+            throw new eBolnicaBusinessRuleException(
+                "prescription.report_access",
+                "Only the doctor who wrote the medical report can prescribe from it.");
+
         if (medicalReport.MedicalRecord.PatientId != request.PatientId)
             throw new eBolnicaBusinessRuleException(
                 "prescription.report_patient_mismatch",
@@ -88,7 +93,7 @@ public sealed class PrescriptionCreationService(
                     PrescriptionNumber = prescriptionNumber,
                     MedicalReportId = request.MedicalReportId,
                     PatientId = request.PatientId,
-                    DoctorId = medicalReport.DoctorId,
+                    DoctorId = request.PrescribingDoctorId,
                     Status = PrescriptionStatuses.Pending,
                     PrescribedDate = now,
                     Notes = request.Notes?.Trim(),

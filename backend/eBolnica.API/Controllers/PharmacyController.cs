@@ -26,12 +26,9 @@ using eBolnica.Application.Modules.Pharmacy.Medications.Queries.ListMedicationIm
 using eBolnica.Application.Modules.Pharmacy.Medications.Queries.ListMedications;
 using eBolnica.Application.Modules.Pharmacy.Prescriptions;
 using eBolnica.Application.Modules.Pharmacy.Prescriptions.Commands.CancelPrescription;
-using eBolnica.Application.Modules.Pharmacy.Prescriptions.Commands.CreatePharmacyPrescription;
 using eBolnica.Application.Modules.Pharmacy.Prescriptions.Commands.DispensePrescription;
 using eBolnica.Application.Modules.Pharmacy.Prescriptions.Queries.GetPrescriptionById;
-using eBolnica.Application.Modules.Pharmacy.Prescriptions.Queries.ListPatientMedicalReportsForPrescription;
 using eBolnica.Application.Modules.Pharmacy.Prescriptions.Queries.ListPrescriptions;
-using eBolnica.Application.Modules.Pharmacy.Prescriptions.Queries.SearchPrescriptionPatients;
 using eBolnica.Application.Modules.Pharmacy.Procurement.Commands.CreatePurchaseOrder;
 using eBolnica.Application.Modules.Pharmacy.Procurement.Commands.ReceivePurchaseOrder;
 using eBolnica.Shared.Dtos;
@@ -255,30 +252,6 @@ public sealed class PharmacyController(IMediator mediator) : ControllerBase
         [FromQuery] ListPrescriptionsQuery query,
         CancellationToken ct)
         => Ok(await mediator.Send(query, ct));
-
-    [HttpPost("prescriptions")]
-    [Authorize(Policy = "PharmacistOnly")]
-    public async Task<ActionResult<PrescriptionDto>> CreatePrescription(
-        [FromBody] CreatePharmacyPrescriptionCommand command,
-        CancellationToken ct)
-    {
-        var result = await mediator.Send(command, ct);
-        return Created($"/api/pharmacy/prescriptions/{result.Id}", result);
-    }
-
-    [HttpGet("prescriptions/form/patients")]
-    [Authorize(Policy = "PharmacistOnly")]
-    public async Task<ActionResult<IReadOnlyList<PrescriptionFormPatientDto>>> SearchPrescriptionPatients(
-        [FromQuery] SearchPrescriptionPatientsQuery query,
-        CancellationToken ct)
-        => Ok(await mediator.Send(query, ct));
-
-    [HttpGet("prescriptions/form/patients/{patientId:int}/medical-reports")]
-    [Authorize(Policy = "PharmacistOnly")]
-    public async Task<ActionResult<IReadOnlyList<PrescriptionFormMedicalReportDto>>> ListPatientMedicalReports(
-        int patientId,
-        CancellationToken ct)
-        => Ok(await mediator.Send(new ListPatientMedicalReportsForPrescriptionQuery { PatientId = patientId }, ct));
 
     [HttpGet("prescriptions/{id:int}")]
     [Authorize(Policy = "PharmacistOnly")]

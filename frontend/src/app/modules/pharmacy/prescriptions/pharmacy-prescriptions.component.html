@@ -13,10 +13,6 @@
     </div>
 
     <div class="page-toolbar">
-      <button type="button" class="btn btn-primary" (click)="createNew()" title="Za hitne slučajeve ako doktor nije poslao recept">
-        <app-pharmacy-icon name="plus" [size]="18"></app-pharmacy-icon>
-        Novi recept (apoteka)
-      </button>
       <button type="button" class="btn btn-secondary" (click)="exportPdf()" [disabled]="isExporting()">
         <app-pharmacy-icon name="download" [size]="16"></app-pharmacy-icon>
         {{ isExporting() ? 'Preuzimanje...' : 'Eksport' }}

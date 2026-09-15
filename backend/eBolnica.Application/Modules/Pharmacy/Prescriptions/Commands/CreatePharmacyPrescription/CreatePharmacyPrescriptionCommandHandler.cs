@@ -3,8 +3,7 @@ using eBolnica.Application.Modules.Pharmacy.Prescriptions;
 namespace eBolnica.Application.Modules.Pharmacy.Prescriptions.Commands.CreatePharmacyPrescription;
 public sealed class CreatePharmacyPrescriptionCommandHandler(
     IAppDbContext ctx,
-    IAppCurrentUser currentUser,
-    IPrescriptionCreationService prescriptionCreationService)
+    IAppCurrentUser currentUser)
     : IRequestHandler<CreatePharmacyPrescriptionCommand, PrescriptionDto>
 {
     public async Task<PrescriptionDto> Handle(CreatePharmacyPrescriptionCommand request, CancellationToken ct)
@@ -18,14 +17,8 @@ public sealed class CreatePharmacyPrescriptionCommandHandler(
         if (pharmacist is null)
             throw new eBolnicaNotFoundException("Pharmacist profile not found.");
 
-        return await prescriptionCreationService.CreateAsync(
-            new PrescriptionCreationRequest
-            {
-                MedicalReportId = request.MedicalReportId,
-                PatientId = request.PatientId,
-                Notes = request.Notes,
-                PrescriptionItems = request.PrescriptionItems
-            },
-            ct);
+        throw new eBolnicaBusinessRuleException(
+            "prescription.pharmacist_cannot_prescribe",
+            "Pharmacists cannot prescribe therapy. Dispense prescriptions that a doctor has already created.");
     }
 }

@@ -46,6 +46,7 @@ public sealed class CreatePrescriptionCommandHandler(
         return await prescriptionCreationService.CreateAsync(
             new PrescriptionCreationRequest
             {
+                PrescribingDoctorId = doctor.Id,
                 MedicalReportId = request.MedicalReportId,
                 PatientId = request.PatientId,
                 Notes = request.Notes,

@@ -10,7 +10,6 @@ import { MedicationWizardComponent } from './medications/medication-wizard/medic
 import { PharmacyInventoryComponent } from './inventory/pharmacy-inventory.component';
 import { PharmacyPrescriptionsComponent } from './prescriptions/pharmacy-prescriptions.component';
 import { PrescriptionDetailComponent } from './prescriptions/prescription-detail/prescription-detail.component';
-import { PrescriptionFormComponent } from './prescriptions/prescription-form/prescription-form.component';
 
 const pharmacyStaffOnly = {
   canActivate: [myAuthGuard],
@@ -35,7 +34,7 @@ const routes: Routes = [
       { path: 'medications/:id', component: MedicationDetailComponent, ...pharmacyStaffOnly },
       { path: 'inventory', component: PharmacyInventoryComponent, ...pharmacyStaffOnly },
       { path: 'prescriptions', component: PharmacyPrescriptionsComponent, ...pharmacistOnly },
-      { path: 'prescriptions/new', component: PrescriptionFormComponent, ...pharmacistOnly },
+      { path: 'prescriptions/new', redirectTo: 'prescriptions', pathMatch: 'full' },
       { path: 'prescriptions/:id', component: PrescriptionDetailComponent, ...pharmacistOnly },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],

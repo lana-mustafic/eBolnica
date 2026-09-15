@@ -4,6 +4,7 @@ namespace eBolnica.Application.Modules.Pharmacy.Prescriptions;
 
 public sealed class PrescriptionCreationRequest
 {
+    public int PrescribingDoctorId { get; init; }
     public int MedicalReportId { get; init; }
     public int PatientId { get; init; }
     public string? Notes { get; init; }

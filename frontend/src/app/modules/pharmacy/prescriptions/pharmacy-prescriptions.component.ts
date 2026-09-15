@@ -441,10 +441,6 @@ export class PharmacyPrescriptionsComponent implements OnInit {
       });
   }
 
-  createNew(): void {
-    this.router.navigate(['/pharmacy/prescriptions/new']);
-  }
-
   cancelPrescription(prescription: PrescriptionDto): void {
     if (prescription.status !== 'Pending') {
       this.toaster.error('Samo recepti na čekanju mogu biti otkazani.');
