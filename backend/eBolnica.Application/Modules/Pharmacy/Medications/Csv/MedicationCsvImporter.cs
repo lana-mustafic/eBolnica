@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text;
 using eBolnica.Application.Modules.Pharmacy.Medications;
 using eBolnica.Application.Modules.Pharmacy.Medications.Commands.CreateMedication;
 using eBolnica.Domain.Entities.Pharmacy;
@@ -8,48 +7,9 @@ namespace eBolnica.Application.Modules.Pharmacy.Medications.Csv;
 
 internal static class MedicationCsvImporter
 {
-    public static List<string[]> ParseRows(string content)
-    {
-        var rows = new List<string[]>();
-        using var reader = new StringReader(content);
-        string? line;
-        while ((line = reader.ReadLine()) != null)
-        {
-            if (string.IsNullOrWhiteSpace(line)) continue;
-            rows.Add(ParseLine(line));
-        }
-        return rows;
-    }
+    private static readonly CreateMedicationCommandValidator CreateValidator = new();
 
-    private static string[] ParseLine(string line)
-    {
-        var cells = new List<string>();
-        var current = new StringBuilder();
-        var inQuotes = false;
-
-        for (var i = 0; i < line.Length; i++)
-        {
-            var c = line[i];
-            if (c == '"')
-            {
-                if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
-                {
-                    current.Append('"');
-                    i++;
-                }
-                else inQuotes = !inQuotes;
-            }
-            else if (c == ',' && !inQuotes)
-            {
-                cells.Add(current.ToString());
-                current.Clear();
-            }
-            else current.Append(c);
-        }
-
-        cells.Add(current.ToString());
-        return cells.ToArray();
-    }
+    public static List<string[]> ParseRows(string content) => MedicationCsvService.ParseRows(content);
 
     public static bool TryMapRow(
         int rowNumber,
@@ -66,43 +26,32 @@ internal static class MedicationCsvImporter
                 ? cells[idx].Trim()
                 : string.Empty;
 
-        var name = Get("Name");
-        if (string.IsNullOrWhiteSpace(name) || name.Length < 3)
+        if (!decimal.TryParse(Get("Price"), NumberStyles.Number, CultureInfo.InvariantCulture, out var price))
         {
-            error = RowError(rowNumber, "Name", name, "Name is required (3-100 characters).");
+            error = RowError(rowNumber, "Price", Get("Price"), "Price must be a valid number.");
             return false;
         }
 
-        if (!decimal.TryParse(Get("Price"), NumberStyles.Number, CultureInfo.InvariantCulture, out var price) || price <= 0)
+        if (!int.TryParse(Get("Stock Quantity"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var stock))
         {
-            error = RowError(rowNumber, "Price", Get("Price"), "Price must be a positive number.");
+            error = RowError(rowNumber, "Stock Quantity", Get("Stock Quantity"), "Stock quantity must be an integer.");
             return false;
         }
 
-        if (!int.TryParse(Get("Stock Quantity"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var stock) || stock < 0)
+        if (!int.TryParse(Get("Minimum Stock Level"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var minStock))
         {
-            error = RowError(rowNumber, "Stock Quantity", Get("Stock Quantity"), "Stock quantity must be a non-negative integer.");
-            return false;
-        }
-
-        if (!int.TryParse(Get("Minimum Stock Level"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var minStock) || minStock < 0)
-        {
-            error = RowError(rowNumber, "Minimum Stock Level", Get("Minimum Stock Level"), "Minimum stock level must be a non-negative integer.");
+            error = RowError(
+                rowNumber,
+                "Minimum Stock Level",
+                Get("Minimum Stock Level"),
+                "Minimum stock level must be an integer.");
             return false;
         }
 
         var expiryRaw = Get("Expiry Date");
-        if (!DateTime.TryParseExact(expiryRaw, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var expiry)
-            || expiry.Date <= DateTime.UtcNow.Date)
+        if (!DateTime.TryParseExact(expiryRaw, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var expiry))
         {
-            error = RowError(rowNumber, "Expiry Date", expiryRaw, "Expiry date must be YYYY-MM-DD and in the future.");
-            return false;
-        }
-
-        var category = Get("Category");
-        if (string.IsNullOrWhiteSpace(category))
-        {
-            error = RowError(rowNumber, "Category", category, "Category is required.");
+            error = RowError(rowNumber, "Expiry Date", expiryRaw, "Expiry date must be YYYY-MM-DD.");
             return false;
         }
 
@@ -118,9 +67,9 @@ internal static class MedicationCsvImporter
             return false;
         }
 
-        command = new CreateMedicationCommand
+        var mapped = new CreateMedicationCommand
         {
-            Name = name,
+            Name = Get("Name"),
             GenericName = NullIfEmpty(Get("Generic Name")),
             Description = NullIfEmpty(Get("Description")),
             Manufacturer = NullIfEmpty(Get("Manufacturer")),
@@ -133,9 +82,19 @@ internal static class MedicationCsvImporter
             Strength = NullIfEmpty(Get("Strength")),
             RequiresPrescription = requiresRx,
             IsActive = isActive,
-            Category = category
+            Category = Get("Category")
         };
 
+        var validation = CreateValidator.Validate(mapped);
+        if (!validation.IsValid)
+        {
+            var failure = validation.Errors[0];
+            var field = ToCsvField(failure.PropertyName);
+            error = RowError(rowNumber, field, Get(field), failure.ErrorMessage);
+            return false;
+        }
+
+        command = mapped;
         return true;
     }
 
@@ -169,6 +128,23 @@ internal static class MedicationCsvImporter
         DosageForm = MedicationDosageFormAliases.ToBosnian(cmd.DosageForm),
         Strength = cmd.Strength?.Trim(),
         CreatedAtUtc = DateTime.UtcNow
+    };
+
+    private static string ToCsvField(string propertyName) => propertyName switch
+    {
+        nameof(CreateMedicationCommand.Name) => "Name",
+        nameof(CreateMedicationCommand.GenericName) => "Generic Name",
+        nameof(CreateMedicationCommand.Description) => "Description",
+        nameof(CreateMedicationCommand.Manufacturer) => "Manufacturer",
+        nameof(CreateMedicationCommand.Price) => "Price",
+        nameof(CreateMedicationCommand.StockQuantity) => "Stock Quantity",
+        nameof(CreateMedicationCommand.MinimumStockLevel) => "Minimum Stock Level",
+        nameof(CreateMedicationCommand.ExpiryDate) => "Expiry Date",
+        nameof(CreateMedicationCommand.BatchNumber) => "Batch Number",
+        nameof(CreateMedicationCommand.Category) => "Category",
+        nameof(CreateMedicationCommand.DosageForm) => "Dosage Form",
+        nameof(CreateMedicationCommand.Strength) => "Strength",
+        _ => propertyName
     };
 
     private static string? NullIfEmpty(string v) => string.IsNullOrWhiteSpace(v) ? null : v.Trim();
