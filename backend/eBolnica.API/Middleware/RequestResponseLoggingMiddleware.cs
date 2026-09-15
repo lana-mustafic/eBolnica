@@ -67,7 +67,7 @@ public sealed class RequestResponseLoggingMiddleware(
             {
                 logger.LogWarning("[SLOW REQUEST] {Path} took {Elapsed} ms", request.Path, elapsed);
 
-                // >>> Bugfix 27.10.2025: sigurno pisanje na disk (ne ruši response ako folder ne postoji)
+                // >>> Bugfix 27.10.2025: write to disk safely (do not fail the response if the folder is missing)
                 try
                 {
                     var logDir = Path.Combine(AppContext.BaseDirectory, "Logs");
@@ -83,7 +83,7 @@ public sealed class RequestResponseLoggingMiddleware(
 
             logger.LogInformation("{Log}", logMessage.ToString());
 
-            // >>> Bugfix 27.10.2025: KLJUČNO: vrati originalni stream i kopiraj tijelo nazad da se vidi json error poruka
+            // >>> Bugfix 27.10.2025: restore the original stream and copy the body back so the JSON error is visible
             context.Response.Body = originalBodyStream;
             await responseBody.CopyToAsync(originalBodyStream);
         }

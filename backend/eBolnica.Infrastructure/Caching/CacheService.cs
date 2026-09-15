@@ -12,7 +12,7 @@ public sealed class CacheService : ICacheService
         TimeSpan ttl,
         CancellationToken cancellationToken = default) where T : class
     {
-        // No caching - just call factory directly - zbog ispita smo isključiti REDIS
+        // No caching — call the factory directly. Redis is disabled for the exam.
         return await factory(cancellationToken);
     }
 }

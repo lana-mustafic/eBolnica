@@ -97,8 +97,8 @@ public partial class Program
         }
         catch (HostAbortedException)
         {
-            // EF Core tools abortiraju host nakon što uzmu DbContext.
-            // Ovo nije runtime greška – samo tiho izađi.
+            // EF Core tools abort the host after they obtain the DbContext.
+            // This is not a runtime error — exit quietly.
             Log.Information("Host aborted by EF Core tooling (design-time) - its ok.");
         }
         catch (Exception ex)
